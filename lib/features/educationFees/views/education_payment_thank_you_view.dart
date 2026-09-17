@@ -1,13 +1,12 @@
 // ignore_for_file: deprecated_member_use
 
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../widgets/app_network_image.dart';
 import '../../../widgets/custom_elevated_button.dart';
 
 class EducationPaymentThankYouView extends StatelessWidget {
@@ -15,10 +14,12 @@ class EducationPaymentThankYouView extends StatelessWidget {
     super.key,
     required this.amount,
     this.transactionTime = '',
+    this.bannerImage = '',
   });
 
   final String amount;
   final String transactionTime;
+  final String bannerImage;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +29,7 @@ class EducationPaymentThankYouView extends StatelessWidget {
           ? DateTime.now().toIso8601String()
           : transactionTime,
     );
+    final imageUrl = bannerImage.trim();
 
     return PopScope(
       canPop: false,
@@ -36,150 +38,176 @@ class EducationPaymentThankYouView extends StatelessWidget {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Column(
+        body: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFF149248),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(48.r),
-                  bottomRight: Radius.circular(48.r),
+            Positioned(
+              top: -409.h,
+              left: -199.w,
+              child: Container(
+                width: 838.w,
+                height: 756.h,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF149248),
+                  shape: BoxShape.circle,
                 ),
               ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 36.h),
-                  child: Column(
-                    children: [
-                      Image.asset(
-                        FileConstants.successIcon,
-                        width: 64.w,
-                        height: 64.w,
-                        fit: BoxFit.contain,
-                      ),
-                      SizedBox(height: 18.h),
-                      Text(
-                        'Thank You for\nEducation Payment',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 22.sp,
-                              height: 1.25,
+            ),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: (101.h - MediaQuery.paddingOf(context).top)
+                        .clamp(0.0, 101.h),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
+                    child: SizedBox(
+                      width: 393.w,
+                      height: 193.h,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          children: [
+                          Image.asset(
+                            FileConstants.successIcon,
+                            width: 64.w,
+                            height: 64.w,
+                            fit: BoxFit.contain,
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            'Thank You for\nEducation Payment',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 22.sp,
+                                  height: 1.25,
+                                ),
+                          ),
+                          SizedBox(height: 16.h),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 18.w,
+                              vertical: 8.h,
                             ),
-                      ),
-                      SizedBox(height: 16.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 18.w,
-                          vertical: 8.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0E7340),
-                          borderRadius: BorderRadius.circular(24.r),
-                        ),
-                        child: Text(
-                          formattedAmount,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0E7340),
+                              borderRadius: BorderRadius.circular(24.r),
+                            ),
+                            child: Text(
+                              formattedAmount,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 16.sp,
                                   ),
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-                      Text(
-                        formattedDate,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 12.sp,
                             ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24.r),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.asset(
-                              FileConstants.homeBanner2,
-                              fit: BoxFit.cover,
-                            ),
-                            Positioned(
-                              top: 12.h,
-                              right: 12.w,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 4.h,
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            formattedDate,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 12.sp,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.92),
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Text(
-                                  'Ad',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 11.sp,
-                                      ),
-                                ),
-                              ),
-                            ),
+                          ),
                           ],
                         ),
                       ),
                     ),
-                    SizedBox(height: 20.h),
-                    CustomElevatedButton(
+                  ),
+                  SizedBox(height: 16.h),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12.r),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            AppNetworkImage(
+                              url: imageUrl,
+                              width: 392.w,
+                              height: 450.h,
+                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            if (imageUrl.isNotEmpty)
+                              Positioned(
+                                top: 12.h,
+                                right: 12.w,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 4.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.92),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                  child: Text(
+                                    'Ad',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 11.sp,
+                                        ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 0),
+                    child: CustomElevatedButton(
                       onPressed: () => context.go(RouteConstants.home),
                       label: 'Done',
                       uppercaseLabel: false,
                       showArrow: false,
                     ),
-                    SizedBox(height: 16.h),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'powered by',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.black,
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                        ),
-                        SizedBox(width: 4.w),
-                        Image.asset(
-                          FileConstants.bharatConnectColor,
-                          width: 52.w,
-                          height: 24.h,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'powered by',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.black,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                      SizedBox(width: 4.w),
+                      Image.asset(
+                        FileConstants.bharatConnectColor,
+                        width: 52.w,
+                        height: 24.h,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+                ],
               ),
             ),
           ],

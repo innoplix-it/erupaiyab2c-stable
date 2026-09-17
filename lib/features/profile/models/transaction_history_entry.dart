@@ -80,14 +80,21 @@ class TransactionHistoryEntry {
             )
             .toList()
         : const <TransactionRoute>[];
+    final paymentType = _stringOrEmpty(json['payment_type']);
+    final amount = _stringOrEmpty(json['amount']);
+    final totalAmountCharged = _stringOrEmpty(json['total_amount_charged']);
+    final billAmountLabel = paymentType.toLowerCase().contains('recharge')
+        ? 'Recharge Amount'
+        : 'Bill Amount';
+
     return TransactionHistoryEntry(
       paymentStatus: _stringOrEmpty(json['payment_status']),
-      paymentType: _stringOrEmpty(json['payment_type']),
+      paymentType: paymentType,
       billerName: _stringOrEmpty(json['biller_name']),
       maskedIdentifier: _stringOrEmpty(json['masked_identifier']),
-      amount: _stringOrEmpty(json['amount']),
+      amount: amount,
       platformFees: _stringOrEmpty(json['platform_fees']),
-      totalAmountCharged: _stringOrEmpty(json['total_amount_charged']),
+      totalAmountCharged: totalAmountCharged,
       customerMobile: _stringOrEmpty(json['customer_mobile']),
       iconUrl: _stringOrEmpty(json['icon']),
       pgTransactionId: _stringOrEmpty(
@@ -111,8 +118,21 @@ class TransactionHistoryEntry {
       paymentMode: _stringOrEmpty(json['payment_mode']),
       vpa: _stringOrEmpty(json['vpa']),
       rrn: _stringOrEmpty(json['rrn']),
-      customerParams: customerParams,
-      amountBreakdown: amountBreakdown,
+      customerParams: ensurePaymentTypeCustomerParam(
+        params: customerParams,
+        paymentType: paymentType,
+      ),
+      amountBreakdown: composeTransactionAmountBreakdown(
+        source: json,
+        existingBreakdown: amountBreakdown,
+        fallbackBillAmount: amount,
+        fallbackTotal: _stringOrEmpty(
+          json['payable_amount'] ??
+              json['total_payable'] ??
+              totalAmountCharged,
+        ),
+        billAmountLabel: billAmountLabel,
+      ),
       routes: routes,
       feeType: _stringOrEmpty(json['fee_type']).isEmpty
           ? null
@@ -167,6 +187,138 @@ class TransactionRoute {
 
 String _stringOrEmpty(dynamic value) {
   if (value == null) return '';
-  final text = value.toString();
+  final text = value.toString().trim();
   return text == 'null' ? '' : text;
+}
+
+bool _hasMappedValue(dynamic value) => _stringOrEmpty(value).isNotEmpty;
+
+String _readMappedValue(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    final exact = source[key];
+    if (_hasMappedValue(exact)) return _stringOrEmpty(exact);
+    for (final entry in source.entries) {
+      if (entry.key.trim().toLowerCase() == key.toLowerCase() &&
+          _hasMappedValue(entry.value)) {
+        return _stringOrEmpty(entry.value);
+      }
+    }
+  }
+  return '';
+}
+
+List<TransactionCustomerParam> ensurePaymentTypeCustomerParam({
+  required List<TransactionCustomerParam> params,
+  required String paymentType,
+}) {
+  final resolvedType = paymentType.trim();
+  if (resolvedType.isEmpty) return params;
+
+  final hasPaymentType = params.any(
+    (item) => item.label.trim().toLowerCase() == 'payment type',
+  );
+  if (hasPaymentType) return params;
+
+  final paymentToIndex = params.indexWhere(
+    (item) => item.label.trim().toLowerCase() == 'payment to',
+  );
+  if (paymentToIndex < 0) return params;
+
+  final next = [...params];
+  next.insert(
+    paymentToIndex + 1,
+    TransactionCustomerParam(
+      label: 'Payment Type',
+      value: resolvedType,
+    ),
+  );
+  return next;
+}
+
+Map<String, dynamic> composeTransactionAmountBreakdown({
+  required Map<String, dynamic> source,
+  Map<String, dynamic> existingBreakdown = const {},
+  String fallbackBillAmount = '',
+  String fallbackTotal = '',
+  String billAmountLabel = 'Bill Amount',
+}) {
+  final data = source['data'];
+  final flattened = <String, dynamic>{
+    ...source,
+    if (data is Map)
+      ...data.map((key, value) => MapEntry(key.toString(), value)),
+    ...existingBreakdown,
+  };
+
+  final billAmount = _readMappedValue(
+    flattened,
+    [
+      'Bill Amount',
+      'Recharge Amount',
+      'bill_amount',
+      'amount',
+    ],
+  );
+  final resolvedBillAmount =
+      billAmount.isNotEmpty ? billAmount : fallbackBillAmount.trim();
+
+  final serviceCharge = _readMappedValue(
+    flattened,
+    ['Service Charge', 'service_charge'],
+  );
+  final gstOnServiceCharge = _readMappedValue(
+    flattened,
+    ['GST on Service Charge', 'gst_on_service_charge'],
+  );
+  final payableAmount = _readMappedValue(
+    flattened,
+    [
+      'payable_amount',
+      'Payable Amount',
+      'total_payable',
+      'Total',
+      'total_amount_charged',
+    ],
+  );
+  final resolvedTotal = payableAmount.isNotEmpty
+      ? payableAmount
+      : (fallbackTotal.trim().isNotEmpty
+          ? fallbackTotal.trim()
+          : resolvedBillAmount);
+
+  final ordered = <String, dynamic>{
+    if (resolvedBillAmount.isNotEmpty) billAmountLabel: resolvedBillAmount,
+    if (serviceCharge.isNotEmpty) 'Service Charge': serviceCharge,
+    if (gstOnServiceCharge.isNotEmpty)
+      'GST on Service Charge': gstOnServiceCharge,
+  };
+
+  const reserved = {
+    'bill amount',
+    'recharge amount',
+    'bill_amount',
+    'amount',
+    'service charge',
+    'service_charge',
+    'gst on service charge',
+    'gst_on_service_charge',
+    'total',
+    'payable_amount',
+    'payable amount',
+    'total_payable',
+    'total_amount_charged',
+  };
+
+  for (final entry in existingBreakdown.entries) {
+    final key = entry.key.trim();
+    if (key.isEmpty) continue;
+    if (reserved.contains(key.toLowerCase())) continue;
+    if (!_hasMappedValue(entry.value)) continue;
+    ordered[entry.key] = entry.value;
+  }
+
+  if (resolvedTotal.isNotEmpty) {
+    ordered['Total'] = resolvedTotal;
+  }
+  return ordered;
 }

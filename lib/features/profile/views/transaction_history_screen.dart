@@ -154,7 +154,10 @@ class _TransactionHistoryScreenState
                                       item: item,
                                       onTap: () {
                                         context.push(
-                                          RouteConstants.transactionDetail,
+                                          RouteConstants
+                                              .transactionDetailForStatus(
+                                            item.paymentStatus,
+                                          ),
                                           extra: item,
                                         );
                                       },

@@ -27,6 +27,7 @@ import '../../../widgets/date_picker_field.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/param_dropdown_field.dart';
+import '../../../widgets/payment_processing_loader.dart';
 import '../../../widgets/payment_success_flow.dart';
 import '../../../widgets/search_textfield.dart';
 import '../../mobile_prepaid/components/payment_bottom_sheet.dart';
@@ -1073,7 +1074,9 @@ class BillerDetailView extends HookConsumerWidget {
                                                     canPop: false,
                                                     child: Center(
                                                       child:
-                                                          CircularProgressIndicator(),
+                                                          PaymentProcessingLoader(
+                                                        size: 160,
+                                                      ),
                                                     ),
                                                   );
                                                 },

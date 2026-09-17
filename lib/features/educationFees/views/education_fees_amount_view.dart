@@ -54,6 +54,12 @@ class EducationFeesAmountView extends HookConsumerWidget {
       return null;
     }, [resolvedFeeType]);
 
+    useListenable(amountController);
+    final hasValidAmount = _parseAmount(amountController.text) > 0;
+    final canContinue = hasValidAmount &&
+        !state.isValidatingAmount &&
+        !isFetchingTutors.value;
+
     Future<void> handleContinue() async {
       controller.updateFeeType(_toApiFeeType(resolvedFeeType));
       final ok = await controller.validateAmount();
@@ -285,22 +291,21 @@ class EducationFeesAmountView extends HookConsumerWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
-              child: CustomElevatedButton(
-                onPressed: (state.isValidatingAmount || isFetchingTutors.value)
-                    ? null
-                    : handleContinue,
-                label: state.isValidatingAmount
-                    ? 'Validating...'
-                    : isFetchingTutors.value
-                        ? 'Loading...'
-                        : 'Continue',
-                uppercaseLabel: false,
-                showArrow: false,
-                height: 42.h,
+            if (hasValidAmount)
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
+                child: CustomElevatedButton(
+                  onPressed: canContinue ? handleContinue : null,
+                  label: state.isValidatingAmount
+                      ? 'Validating...'
+                      : isFetchingTutors.value
+                          ? 'Loading...'
+                          : 'Continue',
+                  uppercaseLabel: false,
+                  showArrow: false,
+                  height: 42.h,
+                ),
               ),
-            ),
           ],
         ),
       ),

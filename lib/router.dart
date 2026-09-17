@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'config/temporary_block_debug_config.dart';
 import 'constants/routes_constant.dart';
+import 'core/barrel_file.dart';
 import 'features/auth/controllers/auth_controller.dart';
 import 'features/auth/models/auth_state.dart';
 import 'features/auth/models/otp_verification_args.dart';
@@ -348,6 +349,7 @@ final routerProvider = Provider<GoRouter>(
             return EducationPaymentThankYouView(
               amount: extra['amount'] as String? ?? '',
               transactionTime: extra['transactionTime'] as String? ?? '',
+              bannerImage: extra['bannerImage'] as String? ?? '',
             );
           },
         ),
@@ -368,7 +370,9 @@ final routerProvider = Provider<GoRouter>(
                   return;
                 }
                 screenContext.pushReplacement(
-                  RouteConstants.transactionDetail,
+                  RouteConstants.transactionDetailForStatus(
+                    entry.paymentStatus,
+                  ),
                   extra: entry,
                 );
               },
@@ -501,22 +505,20 @@ final routerProvider = Provider<GoRouter>(
           builder: (context, state) => const TransactionHistoryScreen(),
         ),
         GoRoute(
+          path: RouteConstants.transactionDetailSuccess,
+          builder: (context, state) => _transactionDetailFromState(context, state),
+        ),
+        GoRoute(
+          path: RouteConstants.transactionDetailFailed,
+          builder: (context, state) => _transactionDetailFromState(context, state),
+        ),
+        GoRoute(
+          path: RouteConstants.transactionDetailPending,
+          builder: (context, state) => _transactionDetailFromState(context, state),
+        ),
+        GoRoute(
           path: RouteConstants.transactionDetail,
-          builder: (context, state) {
-            final extra = state.extra;
-            if (extra is Map<String, dynamic> &&
-                extra['fromPaymentFlow'] == true) {
-              return TransactionDetailScreen(
-                entry: extra['entry'] as TransactionHistoryEntry?,
-                doneLabel: 'View Transaction History',
-                onBack: () => context.go(RouteConstants.transactions),
-                onDone: () => context.go(RouteConstants.transactions),
-              );
-            }
-            return TransactionDetailScreen(
-              entry: extra as TransactionHistoryEntry?,
-            );
-          },
+          builder: (context, state) => _transactionDetailFromState(context, state),
         ),
         GoRoute(
           path: RouteConstants.notifications,
@@ -708,3 +710,29 @@ final routerProvider = Provider<GoRouter>(
     return router;
   },
 );
+
+TransactionDetailScreen _transactionDetailFromState(
+  BuildContext context,
+  GoRouterState state,
+) {
+  final extra = state.extra;
+  TransactionHistoryEntry? entry;
+  var fromPaymentFlow = false;
+  if (extra is TransactionHistoryEntry) {
+    entry = extra;
+  } else if (extra is Map) {
+    final mapped = extra.map((key, value) => MapEntry(key.toString(), value));
+    entry = mapped['entry'] as TransactionHistoryEntry?;
+    fromPaymentFlow = mapped['fromPaymentFlow'] == true;
+  }
+  if (fromPaymentFlow) {
+    return TransactionDetailScreen(
+      entry: entry,
+      doneLabel: 'View Transaction History',
+      onBack: () => context.go(RouteConstants.transactions),
+      onDone: () => context.go(RouteConstants.transactions),
+    );
+  }
+  return TransactionDetailScreen(entry: entry);
+}
+

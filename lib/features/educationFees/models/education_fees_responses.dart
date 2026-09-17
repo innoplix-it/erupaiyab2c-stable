@@ -255,6 +255,11 @@ class EducationPaymentStatusResponse {
     required this.paymentStatus,
     required this.amount,
     required this.updatedAt,
+    this.paymentType = '',
+    this.serviceCharge = '',
+    this.gstOnServiceCharge = '',
+    this.payableAmount = '',
+    this.bannerImage = '',
   });
 
   factory EducationPaymentStatusResponse.fromJson(
@@ -283,6 +288,16 @@ class EducationPaymentStatusResponse {
       paymentStatus: paymentStatus,
       amount: rawAmount,
       updatedAt: (flattened['updated_at'] ?? '').toString().trim(),
+      paymentType: (flattened['payment_type'] ?? '').toString().trim(),
+      serviceCharge: (flattened['service_charge'] ?? '').toString().trim(),
+      gstOnServiceCharge:
+          (flattened['gst_on_service_charge'] ?? '').toString().trim(),
+      payableAmount: (flattened['payable_amount'] ??
+              flattened['total_payable'] ??
+              '')
+          .toString()
+          .trim(),
+      bannerImage: _readBannerImage(flattened),
     );
   }
 
@@ -292,6 +307,11 @@ class EducationPaymentStatusResponse {
   final String paymentStatus;
   final String amount;
   final String updatedAt;
+  final String paymentType;
+  final String serviceCharge;
+  final String gstOnServiceCharge;
+  final String payableAmount;
+  final String bannerImage;
 
   bool get isSuccess => paymentStatus.trim().toUpperCase() == 'SUCCESS';
   bool get isPending => paymentStatus.trim().toUpperCase() == 'PENDING';
@@ -310,6 +330,37 @@ String _readPaymentStatus(Map<String, dynamic> source) {
     final normalized = text.toLowerCase();
     if (normalized == 'true' || normalized == 'false') continue;
     return text;
+  }
+  return '';
+}
+
+String _readBannerImage(Map<String, dynamic> source) {
+  for (final key in [
+    'banner_image',
+    'ad_image',
+    'advertisement_image',
+    'promo_image',
+    'image_url',
+    'banner_url',
+  ]) {
+    final text = (source[key] ?? '').toString().trim();
+    if (text.isNotEmpty && text.toLowerCase() != 'null') {
+      return text;
+    }
+  }
+  for (final key in ['banner', 'advertisement', 'ad']) {
+    final nested = source[key];
+    if (nested is Map) {
+      final image = (nested['image'] ??
+              nested['image_url'] ??
+              nested['banner_image'] ??
+              '')
+          .toString()
+          .trim();
+      if (image.isNotEmpty && image.toLowerCase() != 'null') {
+        return image;
+      }
+    }
   }
   return '';
 }

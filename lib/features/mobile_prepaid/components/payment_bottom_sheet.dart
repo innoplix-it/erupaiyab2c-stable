@@ -10,6 +10,7 @@ import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
+import '../../../widgets/payment_processing_loader.dart';
 import '../../../widgets/payment_success_flow.dart';
 import '../../paymentgateway/razorpay_guard.dart';
 import '../../paymentgateway/razorpay_service.dart';
@@ -213,11 +214,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
               child: Row(
                 children: [
-                  const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  const PaymentProcessingLoader(size: 48),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
@@ -571,11 +568,7 @@ class _PrepaidPaymentBottomSheetState
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
               child: Row(
                 children: [
-                  const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  const PaymentProcessingLoader(size: 48),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(

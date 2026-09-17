@@ -90,34 +90,7 @@ class TransactionDetailScreen extends StatelessWidget {
     final primaryParam = resolvedParams.first;
     final secondaryParam =
         resolvedParams.length > 1 ? resolvedParams[1] : resolvedParams.first;
-    final breakdownRows = tx.amountBreakdown.isNotEmpty
-        ? tx.amountBreakdown.entries.map((entry) {
-            final isTotal = entry.key.trim().toLowerCase() == 'total';
-            return _DetailValueRow(
-              label: entry.key,
-              value: _formatBreakdownValue(entry.value),
-              emphasize: isTotal,
-            );
-          }).toList(growable: false)
-        : <_DetailValueRow>[
-            _DetailValueRow(
-              label: tx.paymentType.trim().toLowerCase().contains('recharge')
-                  ? 'Recharge Amount'
-                  : 'Bill Amount',
-              value: _formatAmount(tx.amount),
-            ),
-            if (_hasAmount(tx.platformFees))
-              _DetailValueRow(
-                label: 'Platform Fees',
-                value: _formatAmount(tx.platformFees),
-              ),
-            const _DetailValueRow(label: 'eCoins', value: '- ₹15'),
-            _DetailValueRow(
-              label: 'Total',
-              value: _formatAmount(totalAmount),
-              emphasize: true,
-            ),
-          ];
+    final breakdownRows = _resolveBreakdownRows(tx);
     final detailRows = <_DetailValueRow>[
       _DetailValueRow(label: 'Amount', value: _formatAmount(totalAmount)),
       _DetailValueRow(label: 'Payment Method', value: paymentMethod),
@@ -309,9 +282,10 @@ class TransactionDetailScreen extends StatelessWidget {
                 left: 12.w,
                 top: MediaQuery.of(context).padding.top + 8.h,
                 child: IconButton(
-                  onPressed: effectiveOnBack ?? () => context.pop(),
+                  onPressed: effectiveOnBack ??
+                      () => Navigator.of(context).maybePop(),
                   icon: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
+                    Icons.arrow_back,
                     color: Colors.white,
                   ),
                 ),
@@ -525,8 +499,12 @@ List<TransactionCustomerParam> _resolveHeaderParams(
       .where(
         (item) => item.label.trim().isNotEmpty && item.value.trim().isNotEmpty,
       )
-      .toList(growable: false);
-  if (explicit.isNotEmpty) return explicit;
+      .toList();
+  final withPaymentType = ensurePaymentTypeCustomerParam(
+    params: explicit,
+    paymentType: tx.paymentType,
+  );
+  if (withPaymentType.isNotEmpty) return withPaymentType;
 
   final paymentType = tx.paymentType.trim().toLowerCase();
   final billerName = tx.billerName.trim();
@@ -552,21 +530,95 @@ List<TransactionCustomerParam> _resolveHeaderParams(
     ];
   }
 
-  final secondaryLabel =
-      paymentType.isNotEmpty ? tx.paymentType.trim() : 'Details';
-  final secondaryValue =
-      maskedIdentifier.isNotEmpty ? maskedIdentifier : customerMobile;
-
   return [
     TransactionCustomerParam(
       label: 'Payment to',
       value: billerName.isNotEmpty ? billerName : 'Transaction',
     ),
     TransactionCustomerParam(
-      label: secondaryLabel,
-      value: secondaryValue.isNotEmpty
-          ? secondaryValue
+      label: 'Payment Type',
+      value: tx.paymentType.trim().isNotEmpty
+          ? tx.paymentType.trim()
           : (billerName.isNotEmpty ? billerName : 'Transaction'),
+    ),
+  ];
+}
+
+List<_DetailValueRow> _resolveBreakdownRows(TransactionHistoryEntry tx) {
+  final composed = composeTransactionAmountBreakdown(
+    source: {
+      'payment_type': tx.paymentType,
+      'amount': tx.amount,
+      'platform_fees': tx.platformFees,
+      'total_amount_charged': tx.totalAmountCharged,
+      'payable_amount': tx.amountBreakdown['payable_amount'] ??
+          tx.amountBreakdown['Payable Amount'] ??
+          tx.amountBreakdown['Total'] ??
+          tx.totalAmountCharged,
+      'service_charge': tx.amountBreakdown['service_charge'] ??
+          tx.amountBreakdown['Service Charge'],
+      'gst_on_service_charge': tx.amountBreakdown['gst_on_service_charge'] ??
+          tx.amountBreakdown['GST on Service Charge'],
+    },
+    existingBreakdown: tx.amountBreakdown,
+    fallbackBillAmount: tx.amount,
+    fallbackTotal: tx.totalAmountCharged.trim().isNotEmpty
+        ? tx.totalAmountCharged
+        : tx.amount,
+    billAmountLabel: tx.paymentType.trim().toLowerCase().contains('recharge')
+        ? 'Recharge Amount'
+        : 'Bill Amount',
+  );
+
+  String mappedValue(List<String> labels) {
+    for (final label in labels) {
+      for (final entry in composed.entries) {
+        if (entry.key.trim().toLowerCase() == label.toLowerCase()) {
+          return _formatBreakdownValue(entry.value);
+        }
+      }
+    }
+    return '';
+  }
+
+  final isRecharge = tx.paymentType.trim().toLowerCase().contains('recharge');
+  final reserved = {
+    'bill amount',
+    'recharge amount',
+    'service charge',
+    'gst on service charge',
+    'total',
+    'payable_amount',
+    'payable amount',
+  };
+
+  return [
+    _DetailValueRow(
+      label: isRecharge ? 'Recharge Amount' : 'Bill Amount',
+      value: mappedValue(['Bill Amount', 'Recharge Amount']),
+    ),
+    _DetailValueRow(
+      label: 'Service Charge',
+      value: mappedValue(['Service Charge']),
+    ),
+    _DetailValueRow(
+      label: 'GST on Service Charge',
+      value: mappedValue(['GST on Service Charge']),
+    ),
+    ...composed.entries
+        .where(
+          (entry) => !reserved.contains(entry.key.trim().toLowerCase()),
+        )
+        .map(
+          (entry) => _DetailValueRow(
+            label: entry.key,
+            value: _formatBreakdownValue(entry.value),
+          ),
+        ),
+    _DetailValueRow(
+      label: 'Total',
+      value: mappedValue(['Total', 'payable_amount', 'Payable Amount']),
+      emphasize: true,
     ),
   ];
 }
@@ -1018,8 +1070,6 @@ String _resolveSupportTransactionType(TransactionHistoryEntry tx) {
   }
   return 'BBPS';
 }
-
-bool _hasAmount(String raw) => raw.trim().isNotEmpty;
 
 String _formatAmount(String raw) {
   final trimmed = raw.trim();

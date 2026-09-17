@@ -49,6 +49,11 @@ class RouteConstants {
   static const String supportTicketDetail = '/support/tickets/detail';
   static const String transactions = '/transactions';
   static const String transactionDetail = '/transactions/detail';
+  static const String transactionDetailSuccess =
+      '/transactions/detail/success';
+  static const String transactionDetailFailed = '/transactions/detail/failed';
+  static const String transactionDetailPending =
+      '/transactions/detail/pending';
   static const String notifications = '/notifications';
   static const String myQr = '/my-qr';
   static const String quickActions = '/quick-actions';
@@ -73,4 +78,15 @@ class RouteConstants {
   static const String digitalGoldSipSetup = '/digital-gold/sip/setup';
   static const String digitalGoldSipPortfolio = '/digital-gold/sip/portfolio';
   static const String digitalGoldSipSuccess = '/digital-gold/sip/success';
+
+  static String transactionDetailForStatus(String paymentStatus) {
+    final value = paymentStatus.trim().toUpperCase();
+    if (value.contains('FAIL')) {
+      return transactionDetailFailed;
+    }
+    if (value.contains('PENDING') || value.contains('PROCESS')) {
+      return transactionDetailPending;
+    }
+    return transactionDetailSuccess;
+  }
 }

@@ -8,15 +8,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:lottie/lottie.dart';
 
-import '../constants/file_constants.dart';
 import '../constants/routes_constant.dart';
 import '../features/educationFees/controllers/education_fees_controller.dart';
 import '../features/educationFees/models/education_fees_responses.dart';
 import '../features/profile/models/transaction_history_entry.dart';
 import '../services/logger_service.dart';
 import 'k_dialog.dart';
+import 'payment_processing_loader.dart';
 
 void openEducationPaymentProcessing(Map<String, dynamic> extra) {
   var opened = false;
@@ -47,7 +46,7 @@ void openEducationPaymentProcessing(Map<String, dynamic> extra) {
 }
 
 const _statusRetryInterval = Duration(seconds: 1);
-const _maxStatusAttempts = 3;
+const _processingTimeout = Duration(seconds: 60);
 
 /// A reusable processing overlay that can be displayed over any child widget.
 ///
@@ -60,11 +59,13 @@ class ProcessingOverlay extends StatelessWidget {
     required this.isProcessing,
     required this.message,
     required this.child,
+    this.countdownText,
   });
 
   final bool isProcessing;
   final String message;
   final Widget child;
+  final String? countdownText;
 
   @override
   Widget build(BuildContext context) {
@@ -101,14 +102,22 @@ class ProcessingOverlay extends StatelessWidget {
                             SizedBox(
                               width: 160.w,
                               height: 160.w,
-                              child: Lottie.asset(
-                                FileConstants.processingLottie,
-                                fit: BoxFit.contain,
-                                repeat: true,
-                                animate: true,
-                                frameRate: FrameRate.max,
-                              ),
+                              child: const PaymentProcessingLoader(),
                             ),
+                            if (countdownText != null &&
+                                countdownText!.trim().isNotEmpty) ...[
+                              SizedBox(height: 12.h),
+                              Text(
+                                countdownText!,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.black,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1,
+                                ),
+                              ),
+                            ],
                             SizedBox(height: 28.h),
                             SizedBox(
                               width: 287.w,
@@ -175,96 +184,147 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final remainingSeconds =
+        useState<int>(_processingTimeout.inSeconds);
+
     useEffect(() {
       var cancelled = false;
+      var completed = false;
+      Timer? countdownTimer;
+      EducationPaymentStatusResponse? lastResult;
 
-      Future<void> verify() async {
+      void complete(VoidCallback action) {
+        if (cancelled || completed) return;
+        completed = true;
+        countdownTimer?.cancel();
+        if (!context.mounted) return;
+        action();
+      }
+
+      void goToSuccess(EducationPaymentStatusResponse result) {
+        complete(() {
+          logger.info(
+            'Payment SUCCESS for ${transactionRefId.trim()}',
+          );
+          context.go(
+            RouteConstants.educationPaymentThankYou,
+            extra: <String, dynamic>{
+              'amount': result.amount.isNotEmpty
+                  ? result.amount
+                  : fallbackAmount,
+              'transactionTime': result.updatedAt,
+              'bannerImage': result.bannerImage,
+            },
+          );
+        });
+      }
+
+      void goToPending() {
+        complete(() {
+          final referenceId = transactionRefId.trim();
+          final result = lastResult ??
+              EducationPaymentStatusResponse(
+                status: true,
+                message: '',
+                transactionId: referenceId,
+                paymentStatus: 'PENDING',
+                amount: fallbackAmount,
+                updatedAt: DateTime.now().toIso8601String(),
+                paymentType: paymentType,
+              );
+          final pendingResult = EducationPaymentStatusResponse(
+            status: result.status,
+            message: result.message,
+            transactionId: result.transactionId.isNotEmpty
+                ? result.transactionId
+                : referenceId,
+            paymentStatus: 'PENDING',
+            amount: result.amount.isNotEmpty ? result.amount : fallbackAmount,
+            updatedAt: result.updatedAt.isNotEmpty
+                ? result.updatedAt
+                : DateTime.now().toIso8601String(),
+            paymentType: result.paymentType,
+            serviceCharge: result.serviceCharge,
+            gstOnServiceCharge: result.gstOnServiceCharge,
+            payableAmount: result.payableAmount,
+            bannerImage: result.bannerImage,
+          );
+          logger.info('Payment PENDING timeout for $referenceId');
+          context.go(
+            RouteConstants.transactionDetailForStatus('PENDING'),
+            extra: <String, dynamic>{
+              'entry': _buildTransactionEntry(
+                result: pendingResult,
+                transactionRefId: referenceId,
+                paymentType: paymentType,
+                recipientName: recipientName,
+                maskedAccount: maskedAccount,
+                fallbackAmount: fallbackAmount,
+                paymentId: paymentId,
+              ),
+              'fromPaymentFlow': true,
+            },
+          );
+        });
+      }
+
+      Future<void> pollStatus() async {
         final referenceId = transactionRefId.trim();
         if (referenceId.isEmpty) {
           logger.error('Payment reference is missing');
-          if (context.mounted) {
-            context.go(RouteConstants.transactions);
-          }
+          complete(() {
+            if (context.mounted) {
+              context.go(RouteConstants.transactions);
+            }
+          });
           return;
         }
 
         final repository = ref.read(educationFeesRepositoryProvider);
-
-        void showResult(EducationPaymentStatusResponse result) {
-          if (result.isSuccess) {
-            logger.info('Payment SUCCESS for $referenceId');
-            context.go(
-              RouteConstants.educationPaymentThankYou,
-              extra: <String, dynamic>{
-                'amount': result.amount.isNotEmpty
-                    ? result.amount
-                    : fallbackAmount,
-                'transactionTime': result.updatedAt,
-              },
-            );
-            return;
-          }
-
-          final entry = _buildTransactionEntry(
-            result: result,
-            transactionRefId: referenceId,
-            paymentType: paymentType,
-            recipientName: recipientName,
-            maskedAccount: maskedAccount,
-            fallbackAmount: fallbackAmount,
-            paymentId: paymentId,
-          );
-          logger.info(
-            'Payment ${result.paymentStatus.toUpperCase()} for $referenceId',
-          );
-          context.go(
-            RouteConstants.transactionDetail,
-            extra: <String, dynamic>{
-              'entry': entry,
-              'fromPaymentFlow': true,
-            },
-          );
-        }
-
-        for (var attempt = 1;
-            attempt <= _maxStatusAttempts && !cancelled && context.mounted;
-            attempt++) {
+        while (!cancelled && !completed) {
           try {
             final result = await repository.fetchPaymentStatus(
               transactionRefId: referenceId,
             );
-            if (cancelled || !context.mounted) return;
-
-            if (!result.hasKnownPaymentStatus) {
-              throw const FormatException('Unknown payment status');
-            }
-
-            final shouldShowImmediately = result.isSuccess || result.isPending;
-            if (shouldShowImmediately || attempt == _maxStatusAttempts) {
-              showResult(result);
+            if (cancelled || completed) return;
+            lastResult = result;
+            if (result.isSuccess) {
+              goToSuccess(result);
               return;
             }
           } catch (error, stackTrace) {
-            if (cancelled || !context.mounted) return;
+            if (cancelled || completed) return;
             logger.error(
-              'Payment verification attempt $attempt failed: $error',
+              'Payment verification failed: $error',
               error: error,
               stackTrace: stackTrace,
             );
           }
 
-          if (attempt < _maxStatusAttempts) {
-            await Future<void>.delayed(_statusRetryInterval);
-          }
-        }
-
-        if (!cancelled && context.mounted) {
-          context.go(RouteConstants.transactions);
+          if (cancelled || completed) return;
+          await Future<void>.delayed(_statusRetryInterval);
         }
       }
 
-      unawaited(Future<void>.microtask(verify));
-      return () => cancelled = true;
+      var remaining = _processingTimeout.inSeconds;
+      countdownTimer = Timer.periodic(_statusRetryInterval, (timer) {
+        if (cancelled || completed) {
+          timer.cancel();
+          return;
+        }
+        remaining -= 1;
+        remainingSeconds.value = remaining < 0 ? 0 : remaining;
+        if (remaining <= 0) {
+          timer.cancel();
+          goToPending();
+        }
+      });
+
+      unawaited(Future<void>.microtask(pollStatus));
+      return () {
+        cancelled = true;
+        countdownTimer?.cancel();
+      };
     }, const []);
 
     return PopScope(
@@ -274,6 +334,7 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
         child: ProcessingOverlay(
           isProcessing: true,
           message: message,
+          countdownText: _formatCountdown(remainingSeconds.value),
           child: const SizedBox.expand(),
         ),
       ),
@@ -294,8 +355,12 @@ TransactionHistoryEntry _buildTransactionEntry({
       result.transactionId.isNotEmpty ? result.transactionId : transactionRefId;
   final rawAmount = result.amount.isNotEmpty ? result.amount : fallbackAmount;
   final amount = _formatAmount(rawAmount);
-  final resolvedPaymentType =
-      paymentType.trim().isEmpty ? 'Education Fees' : paymentType.trim();
+  final resolvedPaymentType = result.paymentType.trim().isNotEmpty
+      ? result.paymentType.trim()
+      : (paymentType.trim().isEmpty ? 'Education Fees' : paymentType.trim());
+  final payableAmount = result.payableAmount.trim().isNotEmpty
+      ? _formatAmount(result.payableAmount)
+      : amount;
 
   return TransactionHistoryEntry(
     paymentStatus: result.paymentStatus.trim().toUpperCase(),
@@ -306,7 +371,7 @@ TransactionHistoryEntry _buildTransactionEntry({
         maskedAccount.trim().isEmpty ? transactionId : maskedAccount,
     amount: amount,
     platformFees: '',
-    totalAmountCharged: amount,
+    totalAmountCharged: payableAmount,
     customerMobile: '',
     iconUrl: '',
     pgTransactionId: paymentId.trim().isEmpty ? transactionId : paymentId,
@@ -322,23 +387,36 @@ TransactionHistoryEntry _buildTransactionEntry({
     paymentMode: 'Online',
     vpa: '',
     rrn: '',
-    customerParams: [
-      TransactionCustomerParam(
-        label: 'Payment to',
-        value: recipientName.trim().isEmpty
-            ? resolvedPaymentType
-            : recipientName.trim(),
-      ),
-      TransactionCustomerParam(
-        label: 'Account',
-        value: maskedAccount.trim().isEmpty ? transactionId : maskedAccount,
-      ),
-    ],
-    amountBreakdown: {
-      'Bill Amount': amount,
-      'Total': amount,
-    },
+    customerParams: ensurePaymentTypeCustomerParam(
+      params: [
+        TransactionCustomerParam(
+          label: 'Payment to',
+          value: recipientName.trim().isEmpty
+              ? resolvedPaymentType
+              : recipientName.trim(),
+        ),
+      ],
+      paymentType: resolvedPaymentType,
+    ),
+    amountBreakdown: composeTransactionAmountBreakdown(
+      source: {
+        'amount': amount,
+        'service_charge': result.serviceCharge,
+        'gst_on_service_charge': result.gstOnServiceCharge,
+        'payable_amount': result.payableAmount,
+      },
+      fallbackBillAmount: amount,
+      fallbackTotal: payableAmount,
+      billAmountLabel: 'Bill Amount',
+    ),
   );
+}
+
+String _formatCountdown(int totalSeconds) {
+  final clamped = totalSeconds < 0 ? 0 : totalSeconds;
+  final minutes = clamped ~/ 60;
+  final seconds = clamped % 60;
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
 String _formatAmount(String raw) {

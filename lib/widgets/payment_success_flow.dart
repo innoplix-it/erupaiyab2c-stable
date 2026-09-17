@@ -694,6 +694,9 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromRechargeStatus({
   final customerParams =
       status?.customerParams ?? const <TransactionCustomerParam>[];
   final amountBreakdown = status?.amountBreakdown ?? const <String, dynamic>{};
+  final billAmountLabel = paymentType.toLowerCase().contains('recharge')
+      ? 'Recharge Amount'
+      : 'Bill Amount';
 
   return TransactionHistoryEntry(
     paymentStatus: statusCode,
@@ -727,26 +730,30 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromRechargeStatus({
     paymentMode: paymentMode,
     vpa: _readFirstNonEmpty(raw, ['vpa']),
     rrn: _readFirstNonEmpty(raw, ['rrn']),
-    customerParams: customerParams.isNotEmpty
-        ? customerParams
-        : _customerParamsFromRaw(
-            raw,
-            paymentType: paymentType,
-            billerName: billerName,
-            fallbackIdentifier:
-                maskedIdentifier.isNotEmpty ? maskedIdentifier : customerMobile,
-          ),
-    amountBreakdown: amountBreakdown.isNotEmpty
-        ? amountBreakdown
-        : _amountBreakdownFromRaw(
-            raw,
-            fallbackLabel: paymentType.toLowerCase().contains('recharge')
-                ? 'Recharge Amount'
-                : 'Bill Amount',
-            amount: amount,
-            platformFees: platformFees,
-            totalAmount: totalAmount,
-          ),
+    customerParams: ensurePaymentTypeCustomerParam(
+      params: customerParams.isNotEmpty
+          ? customerParams
+          : _customerParamsFromRaw(
+              raw,
+              paymentType: paymentType,
+              billerName: billerName,
+              fallbackIdentifier: maskedIdentifier.isNotEmpty
+                  ? maskedIdentifier
+                  : customerMobile,
+            ),
+      paymentType: paymentType,
+    ),
+    amountBreakdown: composeTransactionAmountBreakdown(
+      source: raw,
+      existingBreakdown: amountBreakdown,
+      fallbackBillAmount: amount,
+      fallbackTotal: _readFirstNonEmpty(
+        raw,
+        ['payable_amount', 'total_payable', 'total_amount_charged'],
+        fallback: totalAmount,
+      ),
+      billAmountLabel: billAmountLabel,
+    ),
   );
 }
 
@@ -861,21 +868,28 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromPrepaidStatus({
     paymentMode: paymentMode,
     vpa: _readFirstNonEmpty(raw, ['vpa']),
     rrn: _readFirstNonEmpty(raw, ['rrn']),
-    customerParams: _customerParamsFromRaw(
-      raw,
+    customerParams: ensurePaymentTypeCustomerParam(
+      params: _customerParamsFromRaw(
+        raw,
+        paymentType: paymentType,
+        billerName: operatorName,
+        fallbackIdentifier:
+            maskedIdentifier.isNotEmpty ? maskedIdentifier : mobile,
+      ),
       paymentType: paymentType,
-      billerName: operatorName,
-      fallbackIdentifier:
-          maskedIdentifier.isNotEmpty ? maskedIdentifier : mobile,
     ),
-    amountBreakdown: _amountBreakdownFromRaw(
-      raw,
-      fallbackLabel: paymentType.toLowerCase().contains('recharge')
+    amountBreakdown: composeTransactionAmountBreakdown(
+      source: raw,
+      existingBreakdown: _parseAmountBreakdown(raw),
+      fallbackBillAmount: amount,
+      fallbackTotal: _readFirstNonEmpty(
+        raw,
+        ['payable_amount', 'total_payable', 'total_amount_charged'],
+        fallback: totalAmount,
+      ),
+      billAmountLabel: paymentType.toLowerCase().contains('recharge')
           ? 'Recharge Amount'
           : 'Bill Amount',
-      amount: amount,
-      platformFees: platformFees,
-      totalAmount: totalAmount,
     ),
   );
 }
@@ -922,27 +936,10 @@ List<TransactionCustomerParam> _customerParamsFromRaw(
       value: billerName,
     ),
     TransactionCustomerParam(
-      label: paymentType.isNotEmpty ? paymentType : 'Details',
-      value: fallbackIdentifier.isNotEmpty ? fallbackIdentifier : billerName,
+      label: 'Payment Type',
+      value: paymentType,
     ),
   ];
-}
-
-Map<String, dynamic> _amountBreakdownFromRaw(
-  Map<String, dynamic> raw, {
-  required String fallbackLabel,
-  required String amount,
-  required String platformFees,
-  required String totalAmount,
-}) {
-  final existing = _parseAmountBreakdown(raw);
-  if (existing.isNotEmpty) return existing;
-
-  return <String, dynamic>{
-    fallbackLabel: amount,
-    if (platformFees.trim().isNotEmpty) 'Platform Fees': platformFees,
-    'Total': totalAmount,
-  };
 }
 
 List<TransactionCustomerParam> _parseCustomerParams(Map<String, dynamic> raw) {
