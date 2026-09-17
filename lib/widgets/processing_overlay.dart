@@ -212,8 +212,12 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
               'amount': result.amount.isNotEmpty
                   ? result.amount
                   : fallbackAmount,
+              'payableAmount': result.payableAmount,
               'transactionTime': result.updatedAt,
               'bannerImage': result.bannerImage,
+              'paymentType': result.paymentType.trim().isNotEmpty
+                  ? result.paymentType
+                  : paymentType,
             },
           );
         });

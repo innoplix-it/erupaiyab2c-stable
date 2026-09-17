@@ -280,6 +280,12 @@ class EducationPaymentStatusResponse {
             '')
         .toString()
         .trim();
+    final rawTime = (flattened['transaction_time'] ??
+            flattened['created_at'] ??
+            flattened['updated_at'] ??
+            '')
+        .toString()
+        .trim();
 
     return EducationPaymentStatusResponse(
       status: json['status'] == true,
@@ -287,7 +293,7 @@ class EducationPaymentStatusResponse {
       transactionId: (flattened['transaction_id'] ?? '').toString().trim(),
       paymentStatus: paymentStatus,
       amount: rawAmount,
-      updatedAt: (flattened['updated_at'] ?? '').toString().trim(),
+      updatedAt: rawTime,
       paymentType: (flattened['payment_type'] ?? '').toString().trim(),
       serviceCharge: (flattened['service_charge'] ?? '').toString().trim(),
       gstOnServiceCharge:
@@ -342,6 +348,7 @@ String _readBannerImage(Map<String, dynamic> source) {
     'promo_image',
     'image_url',
     'banner_url',
+    'image',
   ]) {
     final text = (source[key] ?? '').toString().trim();
     if (text.isNotEmpty && text.toLowerCase() != 'null') {

@@ -348,8 +348,10 @@ final routerProvider = Provider<GoRouter>(
             final extra = state.extra as Map<String, dynamic>? ?? {};
             return EducationPaymentThankYouView(
               amount: extra['amount'] as String? ?? '',
+              payableAmount: extra['payableAmount'] as String? ?? '',
               transactionTime: extra['transactionTime'] as String? ?? '',
               bannerImage: extra['bannerImage'] as String? ?? '',
+              paymentType: extra['paymentType'] as String? ?? '',
             );
           },
         ),

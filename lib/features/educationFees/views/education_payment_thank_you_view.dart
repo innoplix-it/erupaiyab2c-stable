@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
@@ -13,23 +14,37 @@ class EducationPaymentThankYouView extends StatelessWidget {
   const EducationPaymentThankYouView({
     super.key,
     required this.amount,
+    this.payableAmount = '',
     this.transactionTime = '',
     this.bannerImage = '',
+    this.paymentType = '',
   });
 
   final String amount;
+  final String payableAmount;
   final String transactionTime;
   final String bannerImage;
+  final String paymentType;
 
   @override
   Widget build(BuildContext context) {
-    final formattedAmount = _formatRupee(amount);
-    final formattedDate = _formatHeaderDate(
-      transactionTime.trim().isEmpty
-          ? DateTime.now().toIso8601String()
-          : transactionTime,
-    );
+    final displayAmount =
+        payableAmount.trim().isNotEmpty ? payableAmount : amount;
+    final formattedAmount = _formatRupee(displayAmount);
+    final formattedDate = _formatHeaderDate(transactionTime);
     final imageUrl = bannerImage.trim();
+    final title = _thankYouTitle(paymentType);
+    final sx = MediaQuery.sizeOf(context).width / 441.0;
+    double x(double value) => value * sx;
+    final headerTop = MediaQuery.paddingOf(context).top + 40.h;
+    final dateStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 10.5.sp,
+            ) ??
+        TextStyle(
+          color: Colors.white.withOpacity(0.9),
+          fontSize: 10.5.sp,
+        );
 
     return PopScope(
       canPop: false,
@@ -42,148 +57,162 @@ class EducationPaymentThankYouView extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Positioned(
-              top: -409.h,
-              left: -199.w,
+              top: x(-409),
+              left: x(-199),
               child: Container(
-                width: 838.w,
-                height: 756.h,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF149248),
-                  shape: BoxShape.circle,
+                width: x(838),
+                height: x(756),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.all(
+                    Radius.elliptical(x(838) / 2, x(756) / 2),
+                  ),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF004C1E),
+                      Color(0xFF149248),
+                      Color(0xFF136E3C),
+                      Color(0xFF007340),
+                    ],
+                    stops: [0.0, 0.3446, 0.9055, 1.0],
+                  ),
                 ),
               ),
             ),
-            SafeArea(
-              bottom: false,
+            Positioned(
+              top: headerTop,
+              left: 24.w,
+              right: 24.w,
               child: Column(
                 children: [
+                  Image.asset(
+                    FileConstants.successIcon,
+                    width: 52.w,
+                    height: 52.w,
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(height: x(16)),
                   SizedBox(
-                    height: (101.h - MediaQuery.paddingOf(context).top)
-                        .clamp(0.0, 101.h),
+                    width: x(287),
+                    height: x(116),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: x(287),
+                          height: x(50),
+                          child: Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: const Color(0xFFFFFFFF),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 20 * sx,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: x(16)),
+                        Container(
+                          width: 106,
+                          height: 34,
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0x1AFFFFFF),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            formattedAmount,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: const Color(0xFFFFFFFF),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    child: SizedBox(
-                      width: 393.w,
-                      height: 193.h,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Column(
-                          children: [
-                          Image.asset(
-                            FileConstants.successIcon,
-                            width: 64.w,
-                            height: 64.w,
-                            fit: BoxFit.contain,
-                          ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            'Thank You for\nEducation Payment',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 22.sp,
-                                  height: 1.25,
-                                ),
-                          ),
-                          SizedBox(height: 16.h),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 18.w,
-                              vertical: 8.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0E7340),
-                              borderRadius: BorderRadius.circular(24.r),
-                            ),
-                            child: Text(
-                              formattedAmount,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16.sp,
-                                  ),
-                            ),
-                          ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            formattedDate,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 12.sp,
-                                ),
-                          ),
-                          ],
+                  SizedBox(height: x(16)),
+                  Text(
+                    formattedDate,
+                    textAlign: TextAlign.center,
+                    style: dateStyle,
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              top: x(376),
+              left: x(24),
+              child: SizedBox(
+                width: x(392),
+                height: x(450),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: x(392),
+                        height: x(450),
+                        child: AppNetworkImage(
+                          url: imageUrl,
+                          width: x(392),
+                          height: x(450),
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 16.h),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12.r),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            AppNetworkImage(
-                              url: imageUrl,
-                              width: 392.w,
-                              height: 450.h,
-                              fit: BoxFit.cover,
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            if (imageUrl.isNotEmpty)
-                              Positioned(
-                                top: 12.h,
-                                right: 12.w,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 4.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.92),
-                                    borderRadius: BorderRadius.circular(12.r),
-                                  ),
-                                  child: Text(
-                                    'Ad',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 11.sp,
-                                        ),
-                                  ),
-                                ),
-                              ),
-                          ],
+                    Positioned(
+                      top: x(20),
+                      right: 0,
+                      child: Container(
+                        width: x(43),
+                        height: x(28),
+                        padding: EdgeInsets.fromLTRB(x(12), x(5), x(12), x(5)),
+                        decoration: const BoxDecoration(
+                          color: Color(0x4D000000),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(50),
+                            bottomLeft: Radius.circular(50),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Ad',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFFFFFFFF),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11 * sx,
+                            height: 1,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 0),
-                    child: CustomElevatedButton(
-                      onPressed: () => context.go(RouteConstants.home),
-                      label: 'Done',
-                      uppercaseLabel: false,
-                      showArrow: false,
-                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: x(24),
+              right: x(24),
+              bottom: 16.h + MediaQuery.paddingOf(context).bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomElevatedButton(
+                    onPressed: () => context.go(RouteConstants.home),
+                    label: 'Done',
+                    uppercaseLabel: false,
+                    showArrow: false,
                   ),
                   SizedBox(height: 16.h),
                   Row(
@@ -191,11 +220,11 @@ class EducationPaymentThankYouView extends StatelessWidget {
                     children: [
                       Text(
                         'powered by',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.black,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.black,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       SizedBox(width: 4.w),
                       Image.asset(
@@ -206,7 +235,6 @@ class EducationPaymentThankYouView extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16.h),
                 ],
               ),
             ),
@@ -215,6 +243,15 @@ class EducationPaymentThankYouView extends StatelessWidget {
       ),
     );
   }
+}
+
+String _thankYouTitle(String paymentType) {
+  final raw = paymentType.trim();
+  if (raw.isEmpty) return 'Thank You for\nEducation Payment';
+  final lower = raw.toLowerCase();
+  if (lower.contains('thank you')) return raw;
+  if (lower.endsWith(' payment')) return 'Thank You for\n$raw';
+  return 'Thank You for\n$raw Payment';
 }
 
 String _formatRupee(String raw) {
