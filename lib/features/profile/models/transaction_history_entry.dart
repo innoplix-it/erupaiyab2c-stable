@@ -23,6 +23,7 @@ class TransactionHistoryEntry {
     this.customerParams = const [],
     this.amountBreakdown = const {},
     this.routes = const [],
+    this.feeType,
   });
 
   final String paymentStatus;
@@ -48,6 +49,7 @@ class TransactionHistoryEntry {
   final List<TransactionCustomerParam> customerParams;
   final Map<String, dynamic> amountBreakdown;
   final List<TransactionRoute> routes;
+  final String? feeType;
 
   factory TransactionHistoryEntry.fromJson(Map<String, dynamic> json) {
     final rawCustomerParams = json['customer_params'];
@@ -112,6 +114,9 @@ class TransactionHistoryEntry {
       customerParams: customerParams,
       amountBreakdown: amountBreakdown,
       routes: routes,
+      feeType: _stringOrEmpty(json['fee_type']).isEmpty
+          ? null
+          : _stringOrEmpty(json['fee_type']),
     );
   }
 }

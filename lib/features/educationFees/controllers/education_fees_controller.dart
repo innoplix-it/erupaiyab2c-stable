@@ -35,6 +35,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     state = const EducationFeesState();
   }
 
+  void updateFeeType(String? feeType) {
+    state = state.copyWith(feeType: feeType);
+  }
+
   void updateAmountInput(String value) {
     state = state.copyWith(
       amountInput: value,

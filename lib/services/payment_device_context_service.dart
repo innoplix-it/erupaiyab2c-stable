@@ -8,12 +8,49 @@ import 'logger_service.dart';
 class PaymentDeviceContextService {
   const PaymentDeviceContextService();
 
+  static const _cacheTtl = Duration(seconds: 30);
+  static Future<Map<String, dynamic>>? _pending;
+  static Map<String, dynamic>? _cache;
+  static DateTime? _cacheAt;
+
   Future<Map<String, dynamic>> collect() async {
+    final cached = _cache;
+    final cachedAt = _cacheAt;
+    if (cached != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _cacheTtl) {
+      return Map<String, dynamic>.from(cached)
+        ..['timestamp'] = DateTime.now().millisecondsSinceEpoch.toString();
+    }
+
+    final pending = _pending;
+    if (pending != null) return pending;
+
+    final future = _collectFresh();
+    _pending = future;
+    try {
+      final result = await future;
+      _cache = result;
+      _cacheAt = DateTime.now();
+      return result;
+    } finally {
+      if (identical(_pending, future)) {
+        _pending = null;
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _collectFresh() async {
     final now = DateTime.now();
-    final deviceId = await _deviceId();
-    final vpn = await _isVpnLikely();
-    final rooted = await _isRootedLikely();
-    final location = await _safeLocation();
+    final deviceIdFuture = _deviceId();
+    final vpnFuture = _isVpnLikely();
+    final rootedFuture = _isRootedLikely();
+    final locationFuture = _safeLocation();
+
+    final deviceId = await deviceIdFuture;
+    final vpn = await vpnFuture;
+    final rooted = await rootedFuture;
+    final location = await locationFuture;
 
     return <String, dynamic>{
       'latitude': location.latitude,
@@ -122,7 +159,7 @@ class PaymentDeviceContextService {
         return const _LocationSnapshot.empty();
       }
 
-      // Prefer last-known position to avoid blocking the payment flow.
+      // Use last-known only so create-order is never blocked on a GPS fix.
       final last = await Geolocator.getLastKnownPosition();
       if (last != null) {
         return _LocationSnapshot(
@@ -131,22 +168,11 @@ class PaymentDeviceContextService {
           isMocked: last.isMocked,
         );
       }
-
-      // Fall back to current position with a tight timeout.
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 2),
-      );
-      return _LocationSnapshot(
-        latitude: position.latitude.toString(),
-        longitude: position.longitude.toString(),
-        isMocked: position.isMocked,
-      );
     } catch (e, stackTrace) {
       logger.error('Failed to collect payment location context',
           error: e, stackTrace: stackTrace);
-      return const _LocationSnapshot.empty();
     }
+    return const _LocationSnapshot.empty();
   }
 }
 

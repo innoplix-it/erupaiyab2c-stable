@@ -1,3 +1,35 @@
+class EducationCreateOrderRequest {
+  const EducationCreateOrderRequest({
+    required this.recipientName,
+    required this.accountNo,
+    required this.ifsc,
+    required this.amount,
+    this.accountNoUnmasked,
+  });
+
+  final String recipientName;
+  final String accountNo;
+  final String ifsc;
+  final double amount;
+  final String? accountNoUnmasked;
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> map = {
+      'recipient_name': recipientName,
+      'account_no': accountNoUnmasked ?? accountNo,
+      'ifsc': ifsc,
+      'amount': double.parse(amount.toStringAsFixed(2)),
+    };
+
+    if (accountNoUnmasked != null && accountNoUnmasked!.isNotEmpty) {
+      map['account_no_unmasked'] = accountNoUnmasked!;
+      map['accountNoUnmasked'] = accountNoUnmasked!;
+    }
+
+    return map;
+  }
+}
+
 class EducationValidateAmountResponse {
   const EducationValidateAmountResponse({
     required this.status,
@@ -102,6 +134,8 @@ class EducationPaymentSummaryData {
   const EducationPaymentSummaryData({
     required this.amount,
     required this.serviceCharge,
+    required this.gstRate,
+    required this.gstOnServiceCharge,
     required this.walletBalance,
     required this.walletUsed,
     required this.totalPayable,
@@ -116,17 +150,25 @@ class EducationPaymentSummaryData {
     return EducationPaymentSummaryData(
       amount: toDouble(json['amount']),
       serviceCharge: toDouble(json['service_charge']),
+      gstRate: toDouble(json['gst_rate']),
+      gstOnServiceCharge: toDouble(json['gst_on_service_charge']),
       walletBalance: toDouble(json['wallet_balance']),
       walletUsed: toDouble(json['wallet_used']),
-      totalPayable: toDouble(json['total_payable']),
+      totalPayable: toDouble(
+        json['total_payable'] ?? json['payable_amount'],
+      ),
     );
   }
 
   final double amount;
   final double serviceCharge;
+  final double gstRate;
+  final double gstOnServiceCharge;
   final double walletBalance;
   final double walletUsed;
   final double totalPayable;
+
+  double get payableAmount => totalPayable;
 }
 
 class EducationPaymentSummaryResponse {
@@ -145,11 +187,17 @@ class EducationPaymentSummaryResponse {
       message = json['message'] as String?;
     }
     final data = json['data'];
+    Map<String, dynamic>? summaryData;
+    if (data is Map) {
+      summaryData = data.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    }
     return EducationPaymentSummaryResponse(
       status: json['status'] == true,
-      data: data is Map<String, dynamic>
-          ? EducationPaymentSummaryData.fromJson(data)
-          : null,
+      data: summaryData == null
+          ? null
+          : EducationPaymentSummaryData.fromJson(summaryData),
       message: message,
     );
   }
@@ -213,19 +261,27 @@ class EducationPaymentStatusResponse {
     Map<String, dynamic> json,
   ) {
     final data = json['data'];
-    final flattened = data is Map
-        ? <String, dynamic>{
-            ...json,
-            ...data.map((key, value) => MapEntry(key.toString(), value)),
-          }
-        : json;
+    final flattened = <String, dynamic>{
+      ...json,
+      if (data is Map)
+        ...data.map((key, value) => MapEntry(key.toString(), value)),
+    };
+
+    final paymentStatus = _readPaymentStatus(flattened);
+    final rawAmount = (flattened['amount'] ??
+            flattened['total_amount'] ??
+            flattened['payable_amount'] ??
+            flattened['total_amount_charged'] ??
+            '')
+        .toString()
+        .trim();
 
     return EducationPaymentStatusResponse(
       status: json['status'] == true,
       message: (json['message'] ?? '').toString().trim(),
       transactionId: (flattened['transaction_id'] ?? '').toString().trim(),
-      paymentStatus: (flattened['status'] ?? '').toString().trim(),
-      amount: (flattened['amount'] ?? '').toString().trim(),
+      paymentStatus: paymentStatus,
+      amount: rawAmount,
       updatedAt: (flattened['updated_at'] ?? '').toString().trim(),
     );
   }
@@ -241,6 +297,21 @@ class EducationPaymentStatusResponse {
   bool get isPending => paymentStatus.trim().toUpperCase() == 'PENDING';
   bool get isProcessing => paymentStatus.trim().toUpperCase() == 'PROCESSING';
   bool get isFailed => paymentStatus.trim().toUpperCase() == 'FAILED';
+  bool get hasKnownPaymentStatus =>
+      isSuccess || isFailed || isPending || isProcessing;
+}
+
+String _readPaymentStatus(Map<String, dynamic> source) {
+  for (final key in ['payment_status', 'status']) {
+    final value = source[key];
+    if (value == null || value is bool) continue;
+    final text = value.toString().trim();
+    if (text.isEmpty) continue;
+    final normalized = text.toLowerCase();
+    if (normalized == 'true' || normalized == 'false') continue;
+    return text;
+  }
+  return '';
 }
 
 class EducationCard {
@@ -344,6 +415,7 @@ class EducationBeneficiary {
     required this.panMasked,
     required this.accountMasked,
     required this.ifsc,
+    this.accountNoUnmasked,
   });
 
   factory EducationBeneficiary.fromJson(Map<String, dynamic> json) {
@@ -357,6 +429,7 @@ class EducationBeneficiary {
       panMasked: json['pan_masked']?.toString() ?? '',
       accountMasked: json['account_masked']?.toString() ?? '',
       ifsc: json['ifsc']?.toString() ?? '',
+      accountNoUnmasked: json['account_no_unmasked']?.toString(),
     );
   }
 
@@ -369,6 +442,7 @@ class EducationBeneficiary {
   final String panMasked;
   final String accountMasked;
   final String ifsc;
+  final String? accountNoUnmasked;
 }
 
 class EducationBeneficiariesResponse {
@@ -403,30 +477,6 @@ class EducationBeneficiariesResponse {
   final bool status;
   final String? message;
   final List<EducationBeneficiary> beneficiaries;
-}
-
-class EducationPaymentSuccessResponse {
-  const EducationPaymentSuccessResponse({
-    required this.status,
-    this.message,
-  });
-
-  factory EducationPaymentSuccessResponse.fromJson(Map<String, dynamic> json) {
-    String? message;
-    final messages = json['messages'];
-    if (messages is Map && messages['error'] is String) {
-      message = messages['error'] as String;
-    } else {
-      message = json['message'] as String?;
-    }
-    return EducationPaymentSuccessResponse(
-      status: json['status'] == true,
-      message: message,
-    );
-  }
-
-  final bool status;
-  final String? message;
 }
 
 class EducationSaveBeneficiaryResponse {

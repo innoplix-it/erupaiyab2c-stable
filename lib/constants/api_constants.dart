@@ -60,8 +60,6 @@ class ApiConstants {
       '$baseUrl/api/education/payment-summary';
   static const String educationCreateOrderEndpoint =
       '$baseUrl/api/education/create-order';
-  static const String educationPaymentSuccessEndpoint =
-      '$baseUrl/api/education/payment/success';
   static const String educationSaveBeneficiaryEndpoint =
       '$baseUrl/api/education/save-beneficiary';
   static String educationStatusEndpoint(String transactionRefId) =>

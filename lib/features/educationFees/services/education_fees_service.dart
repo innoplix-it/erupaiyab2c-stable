@@ -108,11 +108,15 @@ class EducationFeesService {
   Future<EducationPaymentSummaryResponse> fetchPaymentSummary({
     required int amount,
     int? walletUsed,
+    double? gstRate,
   }) async {
     try {
       final data = <String, dynamic>{'amount': amount};
       if (walletUsed != null) {
         data['wallet_used'] = walletUsed;
+      }
+      if (gstRate != null) {
+        data['gst_rate'] = gstRate;
       }
       final response = await _dio.post(
         ApiConstants.educationPaymentSummaryEndpoint,
@@ -156,18 +160,27 @@ class EducationFeesService {
     required String accountNo,
     required String ifsc,
     required double amount,
+    String? feeType,
+    String? accountNoUnmasked,
   }) async {
     try {
       final deviceContext = await const PaymentDeviceContextService().collect();
+      final requestObj = EducationCreateOrderRequest(
+        recipientName: recipientName,
+        accountNo: accountNo,
+        ifsc: ifsc,
+        amount: amount,
+        accountNoUnmasked: accountNoUnmasked,
+      );
+      final data = requestObj.toJson();
+      data.addAll(deviceContext);
+      final trimmedFeeType = feeType?.trim();
+      if (trimmedFeeType != null && trimmedFeeType.isNotEmpty) {
+        data['fee_type'] = trimmedFeeType;
+      }
       final response = await _dio.post(
         ApiConstants.educationCreateOrderEndpoint,
-        data: {
-          'recipient_name': recipientName,
-          'account_no': accountNo,
-          'ifsc': ifsc,
-          'amount': double.parse(amount.toStringAsFixed(2)),
-          ...deviceContext,
-        },
+        data: data,
       );
       final payload = response.data as Map<String, dynamic>? ?? {};
       return EducationCreateOrderResponse.fromJson(payload);
@@ -253,50 +266,6 @@ class EducationFeesService {
         }
       }
       logger.error('Failed to save beneficiary: $e', error: e);
-      rethrow;
-    }
-  }
-
-  Future<EducationPaymentSuccessResponse> reportPaymentSuccess({
-    required String recipientName,
-    required String accountNo,
-    required String ifsc,
-    required double amount,
-    required String paymentId,
-    required String status,
-    required String cardToken,
-    required String last4,
-    required String cardNetwork,
-    required String expiryMonth,
-    required String expiryYear,
-  }) async {
-    try {
-      final response = await _dio.post(
-        ApiConstants.educationPaymentSuccessEndpoint,
-        data: {
-          'recipient_name': recipientName,
-          'account_no': accountNo,
-          'ifsc': ifsc,
-          'amount': amount,
-          'payment_id': paymentId,
-          'status': status,
-          'card_token': cardToken,
-          'last4': last4,
-          'card_network': cardNetwork,
-          'expiry_month': expiryMonth,
-          'expiry_year': expiryYear,
-        },
-      );
-      final payload = response.data as Map<String, dynamic>? ?? {};
-      return EducationPaymentSuccessResponse.fromJson(payload);
-    } catch (e) {
-      if (e is DioException) {
-        final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          return EducationPaymentSuccessResponse.fromJson(data);
-        }
-      }
-      logger.error('Failed to report payment success: $e', error: e);
       rethrow;
     }
   }

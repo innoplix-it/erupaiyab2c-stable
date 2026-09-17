@@ -1,7 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -14,14 +12,13 @@ import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../../../widgets/processing_overlay.dart';
 import '../../paymentgateway/razorpay_guard.dart';
 import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
-import '../../profile/models/transaction_history_entry.dart';
 import '../components/education_payment_sheets.dart';
 import '../controllers/education_fees_controller.dart';
 import '../models/education_fees_responses.dart';
-import '../repositories/education_fees_repository.dart';
 
 class EducationFeesTutorsView extends HookConsumerWidget {
   const EducationFeesTutorsView({
@@ -43,20 +40,8 @@ class EducationFeesTutorsView extends HookConsumerWidget {
       );
       return null;
     }, const []);
-    final selectedCard = useState<EducationCard?>(null);
     final expandedIndex = useState<int?>(null);
-
-    useEffect(() {
-      Future.microtask(() async {
-        try {
-          final response = await repository.fetchCardList();
-          if (response.status && response.cards.isNotEmpty) {
-            selectedCard.value = response.cards.first;
-          }
-        } catch (_) {}
-      });
-      return null;
-    }, const []);
+    final processingNavigationStarted = useRef(false);
 
     void openSummary(EducationBeneficiary tutor) {
       KDialog.instance.openSheet(
@@ -66,14 +51,16 @@ class EducationFeesTutorsView extends HookConsumerWidget {
             if (!await RazorpayGuard.ensureProfileReadyAndNotPaused(ref)) {
               return;
             }
-            final card = selectedCard.value;
+            final feeType = ref.read(educationFeesControllerProvider).feeType;
             EducationCreateOrderResponse order;
             try {
               order = await repository.createOrder(
                 recipientName: tutor.name,
                 accountNo: tutor.accountMasked,
+                accountNoUnmasked: tutor.accountNoUnmasked,
                 ifsc: tutor.ifsc,
-                amount: payable,
+                amount: amount,
+                feeType: feeType,
               );
             } catch (e) {
               AppSnackbar.show(
@@ -96,81 +83,33 @@ class EducationFeesTutorsView extends HookConsumerWidget {
             }
 
             await RazorpayService.instance.openCheckout(
-              amount: order.amount > 0 ? order.amount : payable,
+              amount: payable,
               name: tutor.name.isEmpty ? 'Education Fees' : tutor.name,
               description: 'Tuition fee payment',
               orderId: order.orderId,
               keyOverride: order.key,
-              onSuccess: (paymentId) async {
-                final verified = await _verifyEducationPaymentStatus(
-                  repository: repository,
-                  transactionRefId: order.transactionRefId,
-                );
-                if (verified == null || !verified.isSuccess) {
-                  if (!context.mounted) return;
-                  AppSnackbar.show(
-                    (verified?.message.isNotEmpty ?? false)
-                        ? verified!.message
-                        : 'Unable to verify payment status. Please try again.',
-                    backgroundColor: Colors.red,
-                    textColor: Colors.white,
-                  );
-                  return;
-                }
-
-                try {
-                  await repository.reportPaymentSuccess(
-                    recipientName: tutor.name,
-                    accountNo: tutor.accountMasked,
-                    ifsc: '',
-                    amount: order.amount > 0 ? order.amount : payable,
-                    paymentId: paymentId,
-                    status: 'success',
-                    cardToken: card?.cardToken ?? '',
-                    last4: card?.last4 ?? '',
-                    cardNetwork: card?.cardNetwork ?? '',
-                    expiryMonth: card?.expiryMonth ?? '',
-                    expiryYear: card?.expiryYear ?? '',
-                  );
-                } catch (_) {}
-                if (context.mounted) {
-                  context.push(
-                    RouteConstants.transactionDetail,
-                    extra: _buildEducationSuccessEntry(
-                      recipientName: tutor.name,
-                      maskedAccount: tutor.accountMasked,
-                      amount: order.amount > 0 ? order.amount : payable,
-                      paymentId: paymentId,
-                    ),
-                  );
-                }
+              onSuccess: (paymentId) {
+                if (processingNavigationStarted.value) return;
+                processingNavigationStarted.value = true;
+                openEducationPaymentProcessing({
+                  'transactionRefId': order.transactionRefId,
+                  'paymentType': 'Education Fees',
+                  'recipientName': tutor.name,
+                  'maskedAccount': tutor.accountMasked,
+                  'fallbackAmount': payable.toStringAsFixed(2),
+                  'paymentId': paymentId,
+                });
               },
-              onFailure: (message) async {
-                final verified = await _verifyEducationPaymentStatus(
-                  repository: repository,
-                  transactionRefId: order.transactionRefId,
-                );
-                if (verified != null && verified.isSuccess) {
-                  if (!context.mounted) return;
-                  context.push(
-                    RouteConstants.transactionDetail,
-                    extra: _buildEducationSuccessEntry(
-                      recipientName: tutor.name,
-                      maskedAccount: tutor.accountMasked,
-                      amount: order.amount > 0 ? order.amount : payable,
-                      paymentId: order.transactionRefId,
-                    ),
-                  );
-                  return;
-                }
-                if (!context.mounted) return;
-                AppSnackbar.show(
-                  (verified?.message.isNotEmpty ?? false)
-                      ? verified!.message
-                      : message,
-                  backgroundColor: Colors.red,
-                  textColor: Colors.white,
-                );
+              onFailure: (message) {
+                if (processingNavigationStarted.value) return;
+                processingNavigationStarted.value = true;
+                openEducationPaymentProcessing({
+                  'transactionRefId': order.transactionRefId,
+                  'paymentType': 'Education Fees',
+                  'recipientName': tutor.name,
+                  'maskedAccount': tutor.accountMasked,
+                  'fallbackAmount': payable.toStringAsFixed(2),
+                });
               },
             );
           },
@@ -329,25 +268,6 @@ class EducationFeesTutorsView extends HookConsumerWidget {
   }
 }
 
-Future<EducationPaymentStatusResponse?> _verifyEducationPaymentStatus({
-  required EducationFeesRepository repository,
-  required String transactionRefId,
-}) async {
-  if (transactionRefId.trim().isEmpty) return null;
-  var latest =
-      await repository.fetchPaymentStatus(transactionRefId: transactionRefId);
-  if (latest.isSuccess || latest.isFailed) return latest;
-
-  const pollInterval = Duration(seconds: 2);
-  for (var attempt = 0; attempt < 2; attempt++) {
-    await Future.delayed(pollInterval);
-    latest =
-        await repository.fetchPaymentStatus(transactionRefId: transactionRefId);
-    if (latest.isSuccess || latest.isFailed) return latest;
-  }
-  return latest;
-}
-
 class _DetailRow extends StatelessWidget {
   const _DetailRow({
     required this.label,
@@ -401,35 +321,4 @@ String _fallbackTutorName(EducationBeneficiary tutor) {
     return 'Account ${tutor.accountMasked}';
   }
   return 'Beneficiary';
-}
-
-TransactionHistoryEntry _buildEducationSuccessEntry({
-  required String recipientName,
-  required String maskedAccount,
-  required double amount,
-  required String paymentId,
-}) {
-  final now = DateTime.now().toIso8601String();
-  return TransactionHistoryEntry(
-    paymentStatus: 'SUCCESS',
-    paymentType: 'Education Fees',
-    billerName: recipientName.isEmpty ? 'Recipient' : recipientName,
-    maskedIdentifier: maskedAccount.isEmpty ? '****' : maskedAccount,
-    amount: amount.toStringAsFixed(2),
-    platformFees: '',
-    totalAmountCharged: amount.toStringAsFixed(2),
-    customerMobile: '',
-    iconUrl: '',
-    pgTransactionId: paymentId,
-    ecoinsTransactionId: '',
-    transactionId: paymentId,
-    bankReferenceId: '',
-    referenceId: paymentId,
-    transactionTime: now,
-    method: 'Card',
-    methodIcon: '',
-    paymentMode: 'Card',
-    vpa: '',
-    rrn: '',
-  );
 }

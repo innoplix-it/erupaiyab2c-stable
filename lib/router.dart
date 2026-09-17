@@ -1,4 +1,5 @@
 import 'package:e_rupaiya/features/home/views/home_search_view.dart';
+import 'package:e_rupaiya/widgets/processing_overlay.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -30,6 +31,7 @@ import 'features/digital_gold/views/digital_gold_view.dart';
 import 'features/educationFees/views/education_fees_amount_view.dart';
 import 'features/educationFees/views/education_fees_payment_view.dart';
 import 'features/educationFees/views/education_fees_recipient_view.dart';
+import 'features/educationFees/views/education_payment_thank_you_view.dart';
 import 'features/home/views/home_view.dart';
 import 'features/home/views/notifications_screen.dart';
 import 'features/home/views/quick_actions_view.dart';
@@ -77,6 +79,7 @@ import 'features/spinandear/views/spin_and_win_view.dart';
 import 'services/logger_service.dart';
 import 'services/navigation_interaction_lock.dart';
 import 'widgets/k_dialog.dart';
+import 'widgets/payment_success_flow.dart';
 
 final routerProvider = Provider<GoRouter>(
   (ref) {
@@ -317,6 +320,62 @@ final routerProvider = Provider<GoRouter>(
           builder: (context, state) => const EducationFeesPaymentView(),
         ),
         GoRoute(
+          path: RouteConstants.paymentProcessing,
+          pageBuilder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            return CustomTransitionPage<void>(
+              key: state.pageKey,
+              opaque: true,
+              barrierDismissible: false,
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) => child,
+              child: PaymentProcessingOverlay(
+                transactionRefId: extra['transactionRefId'] as String? ?? '',
+                paymentType:
+                    extra['paymentType'] as String? ?? 'Education Fees',
+                recipientName: extra['recipientName'] as String? ?? '',
+                maskedAccount: extra['maskedAccount'] as String? ?? '',
+                fallbackAmount: extra['fallbackAmount'] as String? ?? '',
+                paymentId: extra['paymentId'] as String? ?? '',
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: RouteConstants.educationPaymentThankYou,
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            return EducationPaymentThankYouView(
+              amount: extra['amount'] as String? ?? '',
+              transactionTime: extra['transactionTime'] as String? ?? '',
+            );
+          },
+        ),
+        GoRoute(
+          path: RouteConstants.paymentThankYou,
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? const {};
+            final entry = extra['entry'] as TransactionHistoryEntry?;
+            return PaymentThankYouScreen(
+              title: (extra['title'] as String?) ?? 'Thank You',
+              subtitle: (extra['subtitle'] as String?) ?? '',
+              highlightedSubtitleText:
+                  extra['highlightedSubtitleText'] as String?,
+              autoNavigateAfter: const Duration(seconds: 2),
+              onAutoNavigate: (screenContext) {
+                if (entry == null) {
+                  screenContext.go(RouteConstants.home);
+                  return;
+                }
+                screenContext.pushReplacement(
+                  RouteConstants.transactionDetail,
+                  extra: entry,
+                );
+              },
+            );
+          },
+        ),
+        GoRoute(
           path: RouteConstants.creditCardIntro,
           builder: (context, state) => const CreditCardIntroView(),
         ),
@@ -443,9 +502,21 @@ final routerProvider = Provider<GoRouter>(
         ),
         GoRoute(
           path: RouteConstants.transactionDetail,
-          builder: (context, state) => TransactionDetailScreen(
-            entry: state.extra as TransactionHistoryEntry?,
-          ),
+          builder: (context, state) {
+            final extra = state.extra;
+            if (extra is Map<String, dynamic> &&
+                extra['fromPaymentFlow'] == true) {
+              return TransactionDetailScreen(
+                entry: extra['entry'] as TransactionHistoryEntry?,
+                doneLabel: 'View Transaction History',
+                onBack: () => context.go(RouteConstants.transactions),
+                onDone: () => context.go(RouteConstants.transactions),
+              );
+            }
+            return TransactionDetailScreen(
+              entry: extra as TransactionHistoryEntry?,
+            );
+          },
         ),
         GoRoute(
           path: RouteConstants.notifications,

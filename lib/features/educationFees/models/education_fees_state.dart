@@ -24,6 +24,7 @@ class EducationFeesState {
     this.isSavingBeneficiary = false,
     this.beneficiaryId,
     this.saveErrorMessage,
+    this.feeType,
   });
 
   final String amountInput;
@@ -50,6 +51,7 @@ class EducationFeesState {
   final bool isSavingBeneficiary;
   final int? beneficiaryId;
   final String? saveErrorMessage;
+  final String? feeType;
 
   static const _sentinel = Object();
 
@@ -76,6 +78,7 @@ class EducationFeesState {
     bool? isSavingBeneficiary,
     int? beneficiaryId,
     Object? saveErrorMessage = _sentinel,
+    Object? feeType = _sentinel,
   }) {
     return EducationFeesState(
       amountInput: amountInput ?? this.amountInput,
@@ -110,6 +113,7 @@ class EducationFeesState {
       saveErrorMessage: saveErrorMessage == _sentinel
           ? this.saveErrorMessage
           : saveErrorMessage as String?,
+      feeType: feeType == _sentinel ? this.feeType : feeType as String?,
     );
   }
 }

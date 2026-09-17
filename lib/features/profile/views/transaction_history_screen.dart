@@ -16,7 +16,6 @@ import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/search_textfield.dart';
-import '../../home/controllers/home_tab_controller.dart';
 import '../controllers/transaction_history_controller.dart';
 import '../models/transaction_history_entry.dart';
 import '../models/transaction_history_filter.dart';
@@ -75,22 +74,25 @@ class _TransactionHistoryScreenState
     final filteredItems = _filterItems(items, query);
     final sections = _sectionsFor(items, query, filteredItems);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          MyAppBar(
-            title: 'Transaction History',
-            showHelp: true,
-            onBack: () {
-              if (context.canPop()) {
-                context.pop();
-                return;
-              }
-              ref.read(homeTabControllerProvider).index = 0;
-            },
-            onHelp: () {},
-          ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go(RouteConstants.home);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            MyAppBar(
+              title: 'Transaction History',
+              showHelp: true,
+              onBack: () {
+                context.go(RouteConstants.home);
+              },
+              onHelp: () {},
+            ),
           Expanded(
             child: isLoading
                 ? const _TransactionHistoryShimmer()
@@ -187,6 +189,7 @@ class _TransactionHistoryScreenState
                   ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -347,6 +350,8 @@ class _TransactionTile extends StatelessWidget {
           fontWeight: FontWeight.w700,
         );
 
+    final displayPaymentType = _getDisplayPaymentType(item);
+
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -391,7 +396,7 @@ class _TransactionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.paymentType, style: titleStyle),
+                  Text(displayPaymentType, style: titleStyle),
                   SizedBox(height: 1.h),
                   Text(_formatTxnTime(item.transactionTime), style: subStyle),
                 ],
@@ -536,7 +541,10 @@ enum _TxnStatus { success, failed, processing }
 
 _TxnStatus _resolveStatus(String raw) {
   final value = raw.trim().toLowerCase();
-  if (value.contains('fail')) return _TxnStatus.failed;
+  if (value.contains('fail') ||
+      (value.contains('refund') && !value.contains('pending'))) {
+    return _TxnStatus.failed;
+  }
   if (value.contains('process') ||
       value.contains('pending') ||
       value.contains('refund_pending')) {
@@ -718,6 +726,32 @@ DateTime? _parseTxnDate(String raw) {
   final dt = DateTime(year, monthIndex + 1, day, hour, minute);
   _putBounded(_txnDateCache, key, dt);
   return dt;
+}
+
+String _getDisplayPaymentType(TransactionHistoryEntry item) {
+  final feeType = item.feeType?.trim();
+  if (feeType != null && feeType.isNotEmpty) {
+    return _formatFeeType(feeType);
+  }
+  return item.paymentType;
+}
+
+String _formatFeeType(String feeType) {
+  switch (feeType.toLowerCase()) {
+    case 'school fee':
+    case 'school fees':
+      return 'School Fee';
+    case 'college fee':
+    case 'college fees':
+      return 'College Fee';
+    case 'tuition fee':
+    case 'tuition fees':
+    case 'tution fee':
+    case 'tution fees':
+      return 'Tuition Fee';
+    default:
+      return feeType;
+  }
 }
 
 class _FilterFab extends StatelessWidget {

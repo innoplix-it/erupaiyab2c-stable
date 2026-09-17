@@ -120,6 +120,8 @@ class FileConstants {
   static String failedIcon = 'assets/images/png/failedIcon.png';
   static String pendingIcon = 'assets/images/png/pendingIcon.png';
   static String successIcon = 'assets/images/png/successIcon.png';
+  static String processingIcon = 'assets/images/png/Vector.png';
+  static String processingLottie = 'assets/lottie/processing.json';
   static String nps = 'assets/images/png/home_icon/nps.png';
   static String donation = 'assets/images/png/home_icon/donation.png';
   static String education = 'assets/images/png/home_icon/education.png';

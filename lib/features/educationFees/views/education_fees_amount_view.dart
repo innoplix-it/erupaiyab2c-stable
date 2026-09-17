@@ -47,7 +47,15 @@ class EducationFeesAmountView extends HookConsumerWidget {
       return null;
     }, const []);
 
+    useEffect(() {
+      Future.microtask(
+        () => controller.updateFeeType(_toApiFeeType(resolvedFeeType)),
+      );
+      return null;
+    }, [resolvedFeeType]);
+
     Future<void> handleContinue() async {
+      controller.updateFeeType(_toApiFeeType(resolvedFeeType));
       final ok = await controller.validateAmount();
       if (!ok) return;
       if (!context.mounted) return;
@@ -334,6 +342,20 @@ String _feeChipLabel(String feeType) {
     case 'Education Fees':
       return 'Education Fee';
     case 'Tuition Fees':
+    default:
+      return 'Tuition Fee';
+  }
+}
+
+String _toApiFeeType(String feeType) {
+  switch (feeType) {
+    case 'School Fees':
+      return 'School Fee';
+    case 'College Fees':
+      return 'College Fee';
+    case 'Tuition Fees':
+    case 'Tution Fees':
+      return 'Tuition Fee';
     default:
       return 'Tuition Fee';
   }

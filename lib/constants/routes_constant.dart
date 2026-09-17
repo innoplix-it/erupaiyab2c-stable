@@ -21,6 +21,10 @@ class RouteConstants {
   static const String educationFeesAmount = '/education-fees';
   static const String educationFeesRecipient = '/education-fees/recipient';
   static const String educationFeesPayment = '/education-fees/payment';
+  static const String paymentProcessing = '/education-fees/payment-processing';
+  static const String educationPaymentThankYou =
+      '/education-fees/payment-thank-you';
+  static const String paymentThankYou = '/payment-thank-you';
   static const String creditCardIntro = '/credit-card';
   static const String creditCardListing = '/credit-card/billers';
   static const String creditCardMyCards = '/credit-card/cards';

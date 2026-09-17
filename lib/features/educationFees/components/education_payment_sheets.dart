@@ -9,6 +9,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../services/payment_device_context_service.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../controllers/education_fees_controller.dart';
 import '../models/education_fees_responses.dart';
@@ -157,20 +158,25 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
     super.key,
     required this.amount,
     required this.onPayNow,
+    this.initialSummary,
   });
 
   final double amount;
   final Future<void> Function(double payable) onPayNow;
+  final EducationPaymentSummaryData? initialSummary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(educationFeesRepositoryProvider);
-    final summary = useState<EducationPaymentSummaryData?>(null);
-    final isLoading = useState(false);
+    final summary = useState<EducationPaymentSummaryData?>(initialSummary);
+    final isLoading = useState(initialSummary == null);
     final isPaying = useState(false);
     final error = useState<String?>(null);
-    final walletController = useTextEditingController();
-    final walletUsedInput = useState<int>(0);
+    final initialWalletUsed = (initialSummary?.walletUsed ?? 0).toInt();
+    final walletController = useTextEditingController(
+      text: initialWalletUsed.toString(),
+    );
+    final walletUsedInput = useState<int>(initialWalletUsed);
     Timer? debounce;
 
     Future<void> fetchSummary({int? walletUsed}) async {
@@ -184,10 +190,8 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
         if (response.status && response.data != null) {
           summary.value = response.data;
           final balance = response.data!.walletBalance.toInt();
-          final maxByPayable =
-              (response.data!.amount + response.data!.serviceCharge).toInt();
           final clamped =
-              walletUsedInput.value.clamp(0, balance).clamp(0, maxByPayable);
+              response.data!.walletUsed.toInt().clamp(0, balance).toInt();
           if (clamped != walletUsedInput.value) {
             walletUsedInput.value = clamped;
           }
@@ -205,7 +209,10 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
     }
 
     useEffect(() {
-      Future.microtask(fetchSummary);
+      unawaited(const PaymentDeviceContextService().collect());
+      if (initialSummary == null) {
+        unawaited(fetchSummary());
+      }
       return () {
         debounce?.cancel();
       };
@@ -215,10 +222,7 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
       final parsed = int.tryParse(value.replaceAll(RegExp(r'\D'), '')) ?? 0;
       final current = summary.value;
       if (current == null) return;
-      final maxByPayable = current.amount + current.serviceCharge;
-      final clamped = parsed
-          .clamp(0, current.walletBalance.toInt())
-          .clamp(0, maxByPayable.toInt());
+      final clamped = parsed.clamp(0, current.walletBalance.toInt()).toInt();
       if (walletController.text != clamped.toString()) {
         walletController.text = clamped.toString();
       }
@@ -232,11 +236,10 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
 
     final current = summary.value;
     final serviceCharge = current?.serviceCharge ?? 0.0;
+    final gstOnServiceCharge = current?.gstOnServiceCharge ?? 0.0;
     final walletBalance = current?.walletBalance ?? 0.0;
-    final walletUsed = walletUsedInput.value.toDouble();
-    final payable = (amount + serviceCharge - walletUsed)
-        .clamp(0, double.infinity)
-        .toDouble();
+    final walletUsed = current?.walletUsed ?? walletUsedInput.value.toDouble();
+    final payable = current?.payableAmount ?? 0.0;
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return SafeArea(
@@ -283,86 +286,91 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
                     label: 'Service Charge',
                     value: '₹${serviceCharge.toStringAsFixed(2)}',
                   ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Container(
-                        height: 22.r,
-                        width: 22.r,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.currency_rupee,
-                          size: 14.r,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          'Use E-Coins\nBalance ${walletBalance.toStringAsFixed(0)} Coins',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                color: AppColors.textPrimary.withOpacity(0.6),
-                              ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 92.w,
-                        child: TextField(
-                          controller: walletController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          enabled: walletBalance > 0,
-                          decoration: InputDecoration(
-                            hintText: '0',
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 8.h,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                              borderSide: const BorderSide(
-                                  color: AppColors.lightBorder),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                              borderSide: const BorderSide(
-                                  color: AppColors.lightBorder),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                              borderSide:
-                                  const BorderSide(color: AppColors.primary),
-                            ),
-                            suffixIcon: isLoading.value
-                                ? Padding(
-                                    padding: EdgeInsets.all(8.r),
-                                    child: const Center(
-                                      child: SpinKitCircle(
-                                        color: AppColors.primary,
-                                        size: 48,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          onChanged: onWalletUsedChanged,
-                        ),
-                      ),
-                    ],
-                  ),
                   SizedBox(height: 8.h),
                   _SummaryRow(
-                    label: 'You used ${walletUsed.toStringAsFixed(0)} E-Coins',
-                    value: '-₹${walletUsed.toStringAsFixed(2)}',
-                    valueColor: Colors.red,
+                    label: 'GST on Service Charge',
+                    value: '₹${gstOnServiceCharge.toStringAsFixed(2)}',
                   ),
+                  // SizedBox(height: 12.h),
+                  // Row(
+                  //   children: [
+                  //     Container(
+                  //       height: 22.r,
+                  //       width: 22.r,
+                  //       decoration: BoxDecoration(
+                  //         color: AppColors.primary.withOpacity(0.1),
+                  //         shape: BoxShape.circle,
+                  //       ),
+                  //       child: Icon(
+                  //         Icons.currency_rupee,
+                  //         size: 14.r,
+                  //         color: AppColors.primary,
+                  //       ),
+                  //     ),
+                  //     SizedBox(width: 8.w),
+                  //     Expanded(
+                  //       child: Text(
+                  //         'Use E-Coins\nBalance ${walletBalance.toStringAsFixed(0)} Coins',
+                  //         style: Theme.of(context)
+                  //             .textTheme
+                  //             .bodySmall
+                  //             ?.copyWith(
+                  //               color: AppColors.textPrimary.withOpacity(0.6),
+                  //             ),
+                  //       ),
+                  //     ),
+                  //     SizedBox(
+                  //       width: 92.w,
+                  //       child: TextField(
+                  //         controller: walletController,
+                  //         keyboardType: TextInputType.number,
+                  //         textAlign: TextAlign.center,
+                  //         enabled: walletBalance > 0,
+                  //         decoration: InputDecoration(
+                  //           hintText: '0',
+                  //           isDense: true,
+                  //           contentPadding: EdgeInsets.symmetric(
+                  //             horizontal: 8.w,
+                  //             vertical: 8.h,
+                  //           ),
+                  //           border: OutlineInputBorder(
+                  //             borderRadius: BorderRadius.circular(10.r),
+                  //             borderSide: const BorderSide(
+                  //                 color: AppColors.lightBorder),
+                  //           ),
+                  //           enabledBorder: OutlineInputBorder(
+                  //             borderRadius: BorderRadius.circular(10.r),
+                  //             borderSide: const BorderSide(
+                  //                 color: AppColors.lightBorder),
+                  //           ),
+                  //           focusedBorder: OutlineInputBorder(
+                  //             borderRadius: BorderRadius.circular(10.r),
+                  //             borderSide:
+                  //                 const BorderSide(color: AppColors.primary),
+                  //           ),
+                  //           suffixIcon: isLoading.value
+                  //               ? Padding(
+                  //                   padding: EdgeInsets.all(8.r),
+                  //                   child: const Center(
+                  //                     child: SpinKitCircle(
+                  //                       color: AppColors.primary,
+                  //                       size: 48,
+                  //                     ),
+                  //                   ),
+                  //                 )
+                  //               : null,
+                  //         ),
+                  //         onChanged: onWalletUsedChanged,
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
+                  // SizedBox(height: 8.h),
+                  // _SummaryRow(
+                  //   label: 'You used ${walletUsed.toStringAsFixed(0)} E-Coins',
+                  //   value: '-₹${walletUsed.toStringAsFixed(2)}',
+                  //   valueColor: Colors.red,
+                  // ),
                   if (error.value != null) ...[
                     SizedBox(height: 8.h),
                     Text(
@@ -386,18 +394,18 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
             CustomElevatedButton(
               onPressed: (isLoading.value || isPaying.value)
                   ? null
-                  : () {
+                  : () async {
                       if (isPaying.value) return;
                       isPaying.value = true;
-                      Navigator.of(context).maybePop();
-                      onPayNow(payable);
+                      await Navigator.of(context).maybePop();
+                      await onPayNow(payable);
                     },
               label: isPaying.value
                   ? 'Processing...'
                   : 'Pay ₹${payable.toStringAsFixed(2)}',
               uppercaseLabel: false,
               showArrow: false,
-              height: 48.h,
+              height: 42.h,
             ),
           ],
         ),
@@ -429,10 +437,13 @@ class _SummaryRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textPrimary.withOpacity(0.6)),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.black,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  height: 1.0,
+                  letterSpacing: 0,
+                ),
           ),
         ),
         Text(
@@ -475,15 +486,15 @@ class _InputField extends StatelessWidget {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(8.r),
           borderSide: const BorderSide(color: AppColors.lightBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(8.r),
           borderSide: const BorderSide(color: AppColors.lightBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(8.r),
           borderSide: const BorderSide(color: AppColors.primary),
         ),
         contentPadding: EdgeInsets.symmetric(

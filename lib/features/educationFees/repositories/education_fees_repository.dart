@@ -42,10 +42,12 @@ class EducationFeesRepository {
   Future<EducationPaymentSummaryResponse> fetchPaymentSummary({
     required int amount,
     int? walletUsed,
+    double? gstRate,
   }) {
     return _service.fetchPaymentSummary(
       amount: amount,
       walletUsed: walletUsed,
+      gstRate: gstRate,
     );
   }
 
@@ -58,12 +60,16 @@ class EducationFeesRepository {
     required String accountNo,
     required String ifsc,
     required double amount,
+    String? feeType,
+    String? accountNoUnmasked,
   }) {
     return _service.createOrder(
       recipientName: recipientName,
       accountNo: accountNo,
+      accountNoUnmasked: accountNoUnmasked,
       ifsc: ifsc,
       amount: amount,
+      feeType: feeType,
     );
   }
 
@@ -92,34 +98,6 @@ class EducationFeesRepository {
       accountType: accountType,
       accountNo: accountNo,
       ifsc: ifsc,
-    );
-  }
-
-  Future<EducationPaymentSuccessResponse> reportPaymentSuccess({
-    required String recipientName,
-    required String accountNo,
-    required String ifsc,
-    required double amount,
-    required String paymentId,
-    required String status,
-    required String cardToken,
-    required String last4,
-    required String cardNetwork,
-    required String expiryMonth,
-    required String expiryYear,
-  }) {
-    return _service.reportPaymentSuccess(
-      recipientName: recipientName,
-      accountNo: accountNo,
-      ifsc: ifsc,
-      amount: amount,
-      paymentId: paymentId,
-      status: status,
-      cardToken: cardToken,
-      last4: last4,
-      cardNetwork: cardNetwork,
-      expiryMonth: expiryMonth,
-      expiryYear: expiryYear,
     );
   }
 }

@@ -32,6 +32,7 @@ void main() {
     test('uses pending mobile when explicit mobile is absent', () async {
       controller.state = const AuthState(
         isAuthenticated: false,
+        hasTemporaryAccess: true,
         isLoading: false,
         isSubmitting: false,
         pendingMobile: '9552529513',
