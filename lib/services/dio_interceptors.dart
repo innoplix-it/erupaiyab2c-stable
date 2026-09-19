@@ -13,6 +13,7 @@ import 'package:http_certificate_pinning/http_certificate_pinning.dart';
 
 import '../config/app_env.dart';
 import '../config/ssl_pinning_config.dart';
+import '../constants/app_error_messages.dart';
 import '../constants/storage_keys.dart';
 import '../widgets/app_snackbar.dart';
 import 'secure_storage_service.dart';
@@ -332,11 +333,7 @@ class DioInterceptors extends InterceptorsWrapper {
       }
       final refreshExpired = await _isRefreshTokenExpired();
       if (refreshExpired == true) {
-        AppSnackbar.show(
-          'Session Expired. Please login again.',
-          textColor: Colors.white,
-          backgroundColor: Colors.red,
-        );
+        _showAppError(AppErrorMessages.sessionExpired);
         final context = navigatorKey.currentContext;
         if (context != null) {
           try {
@@ -355,33 +352,10 @@ class DioInterceptors extends InterceptorsWrapper {
           await _clearSession();
         }
       } else {
-        AppSnackbar.show(
-          'Session refresh failed. Please try again.',
-          textColor: Colors.white,
-          backgroundColor: Colors.red,
-        );
+        _showAppError(AppErrorMessages.sessionRefreshFailed);
       }
-    } else if (err.response?.statusCode == 401 && skipAuth) {
-      final data = err.response?.data;
-      final apiMessage =
-          (data is Map ? data['message'] as String? : null) ?? 'Unauthorized';
-      AppSnackbar.show(
-        apiMessage,
-        textColor: Colors.white,
-        backgroundColor: Colors.red,
-      );
-    } else if (err.response?.statusCode == 403) {
-      AppSnackbar.show(
-        'Forbidden',
-        textColor: Colors.white,
-        backgroundColor: Colors.red,
-      );
     } else if (err.response?.statusCode == 404) {
-      AppSnackbar.show(
-        'Session Expired. Please login again.',
-        textColor: Colors.white,
-        backgroundColor: Colors.red,
-      );
+      _showAppError(AppErrorMessages.sessionExpired);
       final context = navigatorKey.currentContext;
       if (context != null) {
         try {
@@ -398,70 +372,18 @@ class DioInterceptors extends InterceptorsWrapper {
       } else {
         await _clearSession();
       }
-    } else if (err.type == DioExceptionType.connectionTimeout) {
-      AppSnackbar.show(
-        'Connection timeout',
-        textColor: Colors.white,
-        backgroundColor: Colors.red,
-      );
-    } else if (err.type == DioExceptionType.badResponse) {
-      final path = err.requestOptions.path;
-      final suppressSnackbar =
-          path.contains('/api/education/validate-amount') ||
-              path.contains('/api/education/check-mobile') ||
-              path.contains('/api/education/verify-bank');
-      if (!suppressSnackbar) {
-        final data = err.response?.data;
-        String? apiMessage;
-        if (data is Map) {
-          final messages = data['messages'];
-          if (messages is Map) {
-            final msgErr = messages['error']?.toString().trim();
-            if (msgErr != null && msgErr.isNotEmpty) {
-              apiMessage = msgErr;
-            }
-          }
-          apiMessage ??= data['message']?.toString().trim();
-          if (apiMessage != null && apiMessage.isEmpty) apiMessage = null;
-          apiMessage ??= data['error']?.toString().trim();
-          if (apiMessage != null && apiMessage.isEmpty) apiMessage = null;
-        }
-        apiMessage ??= 'Something went wrong';
-        AppSnackbar.show(
-          apiMessage,
-          textColor: Colors.white,
-          backgroundColor: Colors.red,
-        );
-      }
-    } else if (err.type == DioExceptionType.cancel) {
-      AppSnackbar.show(
-        'Request Cancelled',
-        textColor: Colors.white,
-        backgroundColor: Colors.red,
-      );
-    } else {
-      if (err.error is CertificateNotVerifiedException ||
-          err.error is CertificateCouldNotBeVerifiedException) {
-        AppSnackbar.show(
-          'Secure connection failed. Please try again later.',
-          textColor: Colors.white,
-          backgroundColor: Colors.red,
-        );
-      } else if (err.error.toString().contains('SocketException')) {
-        AppSnackbar.show(
-          'Please check your internet connection.',
-          textColor: Colors.white,
-          backgroundColor: Colors.red,
-        );
-      } else {
-        AppSnackbar.show(
-          'Something went wrong. Please try again.',
-          textColor: Colors.white,
-          backgroundColor: Colors.red,
-        );
-      }
+    } else if (err.error is CertificateNotVerifiedException ||
+        err.error is CertificateCouldNotBeVerifiedException) {
+      _showAppError(AppErrorMessages.secureConnection);
     }
     super.onError(err, handler);
+  }
+
+  void _showAppError(String message) {
+    AppSnackbar.show(
+      message,
+      type: AppSnackbarType.error,
+    );
   }
 
   Future<void> _handleServerUnavailable() async {
@@ -476,11 +398,7 @@ class DioInterceptors extends InterceptorsWrapper {
 
       final authState = container.read(authControllerProvider);
       if (!authState.isAuthenticated && !authState.hasTemporaryAccess) {
-        AppSnackbar.show(
-          'Server unavailable. Please try again later.',
-          textColor: Colors.white,
-          backgroundColor: Colors.red,
-        );
+        _showAppError(AppErrorMessages.serverUnavailable);
         return;
       }
 

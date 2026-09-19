@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
@@ -296,11 +297,22 @@ class TransactionDetailScreen extends StatelessWidget {
                 top: headerTop,
                 child: Column(
                   children: [
-                    Image.asset(
-                      statusMeta.iconAsset,
-                      width: 52.w,
-                      height: 52.w,
-                      fit: BoxFit.contain,
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          FileConstants.successVectorIcon,
+                          width: 50.w,
+                          height: 50.w,
+                          fit: BoxFit.contain,
+                        ),
+                        Image.asset(
+                          statusMeta.iconAsset,
+                          width: 52.w,
+                          height: 52.w,
+                          fit: BoxFit.contain,
+                        ),
+                      ],
                     ),
                     SizedBox(height: 10.h),
                     Text(

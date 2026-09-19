@@ -1,6 +1,8 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../constants/app_error_messages.dart';
 import '../../../services/logger_service.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../home/models/banner_model.dart';
 import '../models/latest_transaction.dart';
 import '../models/mobile_prepaid_state.dart';
@@ -472,17 +474,16 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
   }
 
   String _errorMessageFromException(Object error) {
-    final raw = error.toString().trim();
-    if (raw.isEmpty) {
+    final message = ErrorMessageUtils.from(
+      error,
+      fallback: 'Recharge failed. Please try again.',
+    );
+    if (RegExp(r'^\d{3}$').hasMatch(message)) {
       return 'Recharge failed. Please try again.';
     }
-    if (raw.startsWith('Exception:')) {
-      final message = raw.replaceFirst('Exception:', '').trim();
-      if (message.isNotEmpty && !RegExp(r'^\d{3}$').hasMatch(message)) {
-        return message;
-      }
+    if (message == AppErrorMessages.generic) {
+      return 'Recharge failed. Please try again.';
     }
-    // If the message is just a status code, return a user-friendly fallback
-    return 'Recharge failed. Please try again.';
+    return message;
   }
 }

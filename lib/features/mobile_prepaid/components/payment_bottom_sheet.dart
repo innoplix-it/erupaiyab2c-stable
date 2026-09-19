@@ -10,8 +10,8 @@ import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
-import '../../../widgets/payment_processing_loader.dart';
 import '../../../widgets/payment_success_flow.dart';
+import '../../../widgets/processing_overlay.dart';
 import '../../paymentgateway/razorpay_guard.dart';
 import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
@@ -197,48 +197,10 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     return remaining < 0 ? 0 : remaining;
   }
 
-  Future<void> _runWithVerificationLoader(Future<void> Function() task) async {
-    if (!mounted) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return PopScope(
-          canPop: false,
-          child: Dialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 36),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-              child: Row(
-                children: [
-                  const PaymentProcessingLoader(size: 48),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      'Verifying payment…',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-    try {
-      await task();
-    } finally {
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-    }
+  Future<PaymentProcessingWait<T>> _runWithVerificationLoader<T>(
+    Future<T> Function() task,
+  ) {
+    return showPaymentProcessingWhile<T>(work: task());
   }
 
   String _resolvePaymentType(BillerDetailState detailState) {
@@ -256,12 +218,11 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     required String fallbackMessage,
   }) async {
     final controller = ref.read(billerDetailControllerProvider.notifier);
-    RechargeStatusResult? status;
-    await _runWithVerificationLoader(() async {
-      status = await controller.verifyPayAllServicesStatus(
+    final wait = await _runWithVerificationLoader(
+      () => controller.verifyPayAllServicesStatus(
         transactionRef: transactionRef,
-      );
-    });
+      ),
+    );
     if (!mounted) return;
 
     // Close the sheet before showing result screen.
@@ -270,12 +231,15 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     }
 
     final latestState = ref.read(billerDetailControllerProvider);
+    final status = wait.value;
     final normalized = (status?.status ?? '').trim().toUpperCase();
-    final outcome = normalized == 'SUCCESS'
-        ? _PaymentOutcome.success
-        : (normalized == 'PENDING'
-            ? _PaymentOutcome.pending
-            : _PaymentOutcome.failure);
+    final outcome = wait.timedOut
+        ? _PaymentOutcome.pending
+        : (normalized == 'SUCCESS'
+            ? _PaymentOutcome.success
+            : (normalized == 'PENDING'
+                ? _PaymentOutcome.pending
+                : _PaymentOutcome.failure));
     final txId = (status?.transactionId.trim().isNotEmpty == true)
         ? status!.transactionId.trim()
         : transactionRef;
@@ -551,48 +515,26 @@ class _PrepaidPaymentBottomSheetState
     return raw;
   }
 
-  Future<void> _runWithVerificationLoader(Future<void> Function() task) async {
-    if (!mounted) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return PopScope(
-          canPop: false,
-          child: Dialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 36),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-              child: Row(
-                children: [
-                  const PaymentProcessingLoader(size: 48),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      'Verifying payment…',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-    try {
-      await task();
-    } finally {
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+  Future<PaymentProcessingWait<T>> _runWithVerificationLoader<T>(
+    Future<T> Function() task,
+  ) {
+    return showPaymentProcessingWhile<T>(work: task());
+  }
+
+  _PaymentOutcome _prepaidOutcome({
+    required bool timedOut,
+    required PrepaidTransactionStatus? verified,
+    required bool nullIsFailure,
+  }) {
+    if (timedOut) return _PaymentOutcome.pending;
+    if (verified == null) {
+      return nullIsFailure ? _PaymentOutcome.failure : _PaymentOutcome.pending;
     }
+    if (verified.isSuccess) return _PaymentOutcome.success;
+    if (verified.isPending || verified.isProcessing) {
+      return _PaymentOutcome.pending;
+    }
+    return _PaymentOutcome.failure;
   }
 
   double _availableECoins() {
@@ -647,7 +589,7 @@ class _PrepaidPaymentBottomSheetState
       prefill: prefill,
       onSuccess: (paymentId) async {
         if (!mounted) return;
-        await _runWithVerificationLoader(() async {
+        final wait = await _runWithVerificationLoader(() async {
           await ref
               .read(mobilePrepaidControllerProvider.notifier)
               .verifyRechargeStatus(transactionRef: transactionRef);
@@ -655,13 +597,11 @@ class _PrepaidPaymentBottomSheetState
         if (!mounted) return;
         final latestState = ref.read(mobilePrepaidControllerProvider);
         final verified = latestState.verifiedTransaction;
-        final outcome = verified == null
-            ? _PaymentOutcome.pending
-            : (verified.isSuccess
-                ? _PaymentOutcome.success
-                : ((verified.isPending || verified.isProcessing)
-                    ? _PaymentOutcome.pending
-                    : _PaymentOutcome.failure));
+        final outcome = _prepaidOutcome(
+          timedOut: wait.timedOut,
+          verified: verified,
+          nullIsFailure: false,
+        );
         final resolvedTxId =
             (latestState.rechargeTransactionId ?? '').isNotEmpty
                 ? latestState.rechargeTransactionId!
@@ -676,7 +616,8 @@ class _PrepaidPaymentBottomSheetState
           prepaidStatus: verified,
         );
         final message = latestState.errorMessage?.trim().toLowerCase();
-        if (latestState.errorMessage != null &&
+        if (!wait.timedOut &&
+            latestState.errorMessage != null &&
             message != 'unable to process recharge') {
           AppSnackbar.show(
             latestState.errorMessage!,
@@ -687,7 +628,7 @@ class _PrepaidPaymentBottomSheetState
       },
       onFailure: (message) async {
         if (!mounted) return;
-        await _runWithVerificationLoader(() async {
+        final wait = await _runWithVerificationLoader(() async {
           await ref
               .read(mobilePrepaidControllerProvider.notifier)
               .verifyRechargeStatus(transactionRef: transactionRef);
@@ -695,13 +636,11 @@ class _PrepaidPaymentBottomSheetState
         if (!mounted) return;
         final latestState = ref.read(mobilePrepaidControllerProvider);
         final verified = latestState.verifiedTransaction;
-        final outcome = verified == null
-            ? _PaymentOutcome.failure
-            : (verified.isSuccess
-                ? _PaymentOutcome.success
-                : ((verified.isPending || verified.isProcessing)
-                    ? _PaymentOutcome.pending
-                    : _PaymentOutcome.failure));
+        final outcome = _prepaidOutcome(
+          timedOut: wait.timedOut,
+          verified: verified,
+          nullIsFailure: true,
+        );
         final resolvedTxId =
             (latestState.rechargeTransactionId ?? '').isNotEmpty
                 ? latestState.rechargeTransactionId!
@@ -718,7 +657,8 @@ class _PrepaidPaymentBottomSheetState
         final fallbackMessage = message.trim().isEmpty
             ? 'Payment failed. Please try again.'
             : message;
-        if (verified == null || outcome == _PaymentOutcome.failure) {
+        if (!wait.timedOut &&
+            (verified == null || outcome == _PaymentOutcome.failure)) {
           AppSnackbar.show(
             latestState.errorMessage ?? fallbackMessage,
             backgroundColor: Colors.red,
@@ -728,7 +668,7 @@ class _PrepaidPaymentBottomSheetState
       },
       onExternalWallet: (_) async {
         if (!mounted) return;
-        await _runWithVerificationLoader(() async {
+        final wait = await _runWithVerificationLoader(() async {
           await ref
               .read(mobilePrepaidControllerProvider.notifier)
               .verifyRechargeStatus(transactionRef: transactionRef);
@@ -736,13 +676,11 @@ class _PrepaidPaymentBottomSheetState
         if (!mounted) return;
         final latestState = ref.read(mobilePrepaidControllerProvider);
         final verified = latestState.verifiedTransaction;
-        final outcome = verified == null
-            ? _PaymentOutcome.pending
-            : (verified.isSuccess
-                ? _PaymentOutcome.success
-                : ((verified.isPending || verified.isProcessing)
-                    ? _PaymentOutcome.pending
-                    : _PaymentOutcome.failure));
+        final outcome = _prepaidOutcome(
+          timedOut: wait.timedOut,
+          verified: verified,
+          nullIsFailure: false,
+        );
         final resolvedTxId =
             (latestState.rechargeTransactionId ?? '').isNotEmpty
                 ? latestState.rechargeTransactionId!
@@ -879,25 +817,24 @@ class _PrepaidPaymentBottomSheetState
                                   );
                                   return;
                                 }
-                                await _runWithVerificationLoader(() async {
-                                  await controller.verifyRechargeStatus(
-                                    transactionRef: order.transactionRef,
-                                  );
-                                });
+                                final wait = await _runWithVerificationLoader(
+                                  () async {
+                                    await controller.verifyRechargeStatus(
+                                      transactionRef: order.transactionRef,
+                                    );
+                                  },
+                                );
                                 if (!context.mounted) return;
                                 final latestState =
                                     ref.read(mobilePrepaidControllerProvider);
                                 Navigator.of(context).pop();
                                 final verified =
                                     latestState.verifiedTransaction;
-                                final outcome = verified == null
-                                    ? _PaymentOutcome.pending
-                                    : (verified.isSuccess
-                                        ? _PaymentOutcome.success
-                                        : ((verified.isPending ||
-                                                verified.isProcessing)
-                                            ? _PaymentOutcome.pending
-                                            : _PaymentOutcome.failure));
+                                final outcome = _prepaidOutcome(
+                                  timedOut: wait.timedOut,
+                                  verified: verified,
+                                  nullIsFailure: false,
+                                );
                                 final resolvedTxId =
                                     (latestState.rechargeTransactionId ?? '')
                                             .isNotEmpty
@@ -913,7 +850,8 @@ class _PrepaidPaymentBottomSheetState
                                       latestState.rechargeDateTime,
                                   prepaidStatus: verified,
                                 );
-                                if (latestState.errorMessage != null) {
+                                if (!wait.timedOut &&
+                                    latestState.errorMessage != null) {
                                   AppSnackbar.show(
                                     latestState.errorMessage!,
                                     backgroundColor: Colors.red,

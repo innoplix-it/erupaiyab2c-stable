@@ -1,6 +1,7 @@
 class FileConstants {
   static String loginLogo = 'assets/images/svg/erupaiya_logo.svg';
   static String successVectorIcon = 'assets/images/svg/Vector.svg';
+  static String amountContainer = 'assets/images/svg/frame_19840.svg';
   static String indiaFlag = 'assets/images/png/indiaFlag.png';
   static String logo = 'assets/images/png/logo.png';
   static String whatsapp = 'assets/images/png/whatsapp.png';

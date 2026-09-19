@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../utils/error_message_utils.dart';
 import '../../../services/push_notification_service.dart';
 import '../models/education_account_type.dart';
 import '../models/education_fees_state.dart';
@@ -75,7 +76,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       state = state.copyWith(
         isValidatingAmount: false,
         amountValidated: false,
-        amountErrorMessage: 'Failed to validate amount. Please try again.',
+        amountErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to validate amount. Please try again.',
+        ),
       );
       return false;
     }
@@ -142,7 +146,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       state = state.copyWith(
         isCheckingMobile: false,
         showRecipientFields: false,
-        mobileErrorMessage: 'Failed to verify mobile. Please try again.',
+        mobileErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to verify mobile. Please try again.',
+        ),
         recipientName: '',
         pan: '',
         isVerifyingPan: false,
@@ -221,7 +228,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       state = state.copyWith(
         isVerifyingPan: false,
         panVerified: false,
-        panErrorMessage: 'Unable to verify PAN. Please try again.',
+        panErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Unable to verify PAN. Please try again.',
+        ),
       );
     }
   }
@@ -288,7 +298,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       state = state.copyWith(
         isVerifyingBank: false,
         bankVerified: false,
-        bankErrorMessage: 'Failed to verify bank details.',
+        bankErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to verify bank details.',
+        ),
       );
     }
   }
@@ -353,7 +366,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     } catch (e) {
       state = state.copyWith(
         isSavingBeneficiary: false,
-        saveErrorMessage: 'Failed to save beneficiary details.',
+        saveErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to save beneficiary details.',
+        ),
       );
       return false;
     }

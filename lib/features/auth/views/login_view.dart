@@ -15,6 +15,7 @@ import 'package:pinput/pinput.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
 import '../../../config/app_env.dart';
+import '../../../constants/app_error_messages.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
@@ -48,8 +49,7 @@ class LoginView extends HookConsumerWidget {
   const LoginView({super.key});
 
   static const int _otpLength = 4;
-  static const String _genericErrorMessage =
-      'Something went wrong. Please try again.';
+  static const String _genericErrorMessage = AppErrorMessages.generic;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -209,7 +209,10 @@ class LoginView extends HookConsumerWidget {
         debugPrint(
           '[LoginView] checkLogin returned null -> error=${latestState.errorMessage}',
         );
-        AppSnackbar.show(_genericErrorMessage);
+        AppSnackbar.show(
+          latestState.errorMessage ?? _genericErrorMessage,
+          type: AppSnackbarType.error,
+        );
         return;
       }
       if (flow == AuthFlow.login) {
@@ -263,7 +266,10 @@ class LoginView extends HookConsumerWidget {
           isKycVerified: result.isKycVerified == true,
         );
       } else {
-        AppSnackbar.show(result.message ?? _genericErrorMessage);
+        AppSnackbar.show(
+          result.message ?? _genericErrorMessage,
+          type: AppSnackbarType.error,
+        );
         pinController.clear();
         pinFocusNode.requestFocus();
       }
@@ -348,7 +354,11 @@ class LoginView extends HookConsumerWidget {
         startOtpTimer();
         AppSnackbar.show('OTP resent to $mobile');
       } else {
-        AppSnackbar.show(_genericErrorMessage);
+        final latestState = ref.read(authControllerProvider);
+        AppSnackbar.show(
+          latestState.errorMessage ?? _genericErrorMessage,
+          type: AppSnackbarType.error,
+        );
       }
     }
 

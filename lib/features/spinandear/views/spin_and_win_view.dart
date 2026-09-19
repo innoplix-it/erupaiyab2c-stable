@@ -2,14 +2,15 @@
 
 import 'dart:math' as math;
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../home/controllers/home_tab_controller.dart';
@@ -129,23 +130,12 @@ class SpinAndWinView extends HookConsumerWidget {
         // Always refresh spin count from API after spinning (including extra spin)
         await profileController.fetchProfile();
       } catch (error) {
-        String message = 'Something went wrong';
-        if (error is DioException) {
-          final data = error.response?.data;
-          if (data is Map<String, dynamic>) {
-            final messages = data['messages'];
-            if (messages is Map<String, dynamic>) {
-              final apiMessage = messages['error']?.toString();
-              if (apiMessage != null && apiMessage.isNotEmpty) {
-                message = apiMessage;
-              }
-            }
-          }
-        }
         AppSnackbar.show(
-          message,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
+          ErrorMessageUtils.from(
+            error,
+            fallback: AppErrorMessages.generic,
+          ),
+          type: AppSnackbarType.error,
         );
       }
 
@@ -164,8 +154,7 @@ class SpinAndWinView extends HookConsumerWidget {
             if (error != null && error.isNotEmpty && context.mounted) {
               AppSnackbar.show(
                 error,
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
+                type: AppSnackbarType.error,
               );
             }
           },

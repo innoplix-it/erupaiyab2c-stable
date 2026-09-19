@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../services/logger_service.dart';
+import '../../../utils/error_message_utils.dart';
 import '../models/biller_listing_state.dart';
 import '../repositories/biller_repository.dart';
 
@@ -64,7 +65,10 @@ class BillerListingController extends StateNotifier<BillerListingState> {
       );
       state = state.copyWith(
         isFetching: false,
-        errorMessage: 'Failed to fetch providers. Please try again.',
+        errorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to fetch providers. Please try again.',
+        ),
       );
     }
   }
@@ -101,7 +105,10 @@ class BillerListingController extends StateNotifier<BillerListingState> {
       );
       state = state.copyWith(
         isFetchingMore: false,
-        errorMessage: 'Failed to load more providers. Please try again.',
+        errorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to load more providers. Please try again.',
+        ),
       );
     }
   }

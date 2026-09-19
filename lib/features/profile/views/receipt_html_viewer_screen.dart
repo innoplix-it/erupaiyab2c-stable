@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../services/receipt_file_service.dart';
 
@@ -75,7 +76,13 @@ class _ReceiptHtmlViewerScreenState extends State<ReceiptHtmlViewerScreen> {
         text: 'Payment Receipt',
       );
     } catch (e) {
-      AppSnackbar.show(e.toString());
+      AppSnackbar.show(
+        ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to share receipt. Please try again.',
+        ),
+        type: AppSnackbarType.error,
+      );
     } finally {
       if (mounted) setState(() => _isBusy = false);
     }

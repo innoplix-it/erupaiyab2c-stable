@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/file_constants.dart';
@@ -115,25 +116,30 @@ class EducationPaymentThankYouView extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: x(16)),
-                        Container(
+                        SizedBox(
                           width: 106,
                           height: 34,
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0x1AFFFFFF),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            formattedAmount,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFFFFFFFF),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              height: 1,
-                            ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SvgPicture.asset(
+                                FileConstants.amountContainer,
+                                width: 106,
+                                height: 34,
+                                fit: BoxFit.fill,
+                              ),
+                              Text(
+                                formattedAmount,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: const Color(0xFFFFFFFF),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  height: 1,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -145,6 +151,7 @@ class EducationPaymentThankYouView extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: dateStyle,
                   ),
+                  SizedBox(height: 40.h),
                 ],
               ),
             ),

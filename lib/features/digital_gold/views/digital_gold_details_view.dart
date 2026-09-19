@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/routes_constant.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/my_app_bar.dart';
@@ -419,7 +420,10 @@ class DigitalGoldDetailsView extends HookConsumerWidget {
                       );
                     } catch (e) {
                       AppSnackbar.show(
-                        e.toString().replaceFirst('Exception: ', ''),
+                        ErrorMessageUtils.from(
+                          e,
+                          fallback: 'Unable to continue. Please try again.',
+                        ),
                         type: AppSnackbarType.error,
                       );
                     } finally {

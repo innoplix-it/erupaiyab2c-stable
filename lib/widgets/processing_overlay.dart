@@ -46,7 +46,65 @@ void openEducationPaymentProcessing(Map<String, dynamic> extra) {
 }
 
 const _statusRetryInterval = Duration(seconds: 1);
-const _processingTimeout = Duration(seconds: 60);
+const _processingTimeout = paymentProcessingDuration;
+
+class PaymentProcessingWait<T> {
+  const PaymentProcessingWait({this.value, this.timedOut = false});
+
+  final T? value;
+  final bool timedOut;
+}
+
+/// Shows the common processing overlay while [work] runs.
+/// Completes early on success/result, or [timedOut] at 60 seconds.
+Future<PaymentProcessingWait<T>> showPaymentProcessingWhile<T>({
+  required Future<T> work,
+  String message = 'Processing Your Payment...',
+}) async {
+  final overlayState = navigatorKey.currentState?.overlay;
+  OverlayEntry? entry;
+  if (overlayState != null) {
+    entry = OverlayEntry(
+      builder: (_) => Positioned.fill(
+        child: Material(
+          color: Colors.transparent,
+          child: ProcessingOverlay(
+            isProcessing: true,
+            message: message,
+            child: const SizedBox.expand(),
+          ),
+        ),
+      ),
+    );
+    overlayState.insert(entry);
+  }
+
+  final completer = Completer<PaymentProcessingWait<T>>();
+  final timeout = Timer(_processingTimeout, () {
+    if (!completer.isCompleted) {
+      completer.complete(PaymentProcessingWait<T>(timedOut: true));
+    }
+  });
+
+  unawaited(
+    work.then((value) {
+      if (!completer.isCompleted) {
+        completer.complete(PaymentProcessingWait(value: value));
+      }
+    }).catchError((Object error, StackTrace stackTrace) {
+      if (!completer.isCompleted) {
+        completer.completeError(error, stackTrace);
+      }
+    }),
+  );
+
+  try {
+    return await completer.future;
+  } finally {
+    timeout.cancel();
+    entry?.remove();
+  }
+}
 
 /// A reusable processing overlay that can be displayed over any child widget.
 ///
@@ -59,13 +117,11 @@ class ProcessingOverlay extends StatelessWidget {
     required this.isProcessing,
     required this.message,
     required this.child,
-    this.countdownText,
   });
 
   final bool isProcessing;
   final String message;
   final Widget child;
-  final String? countdownText;
 
   @override
   Widget build(BuildContext context) {
@@ -102,22 +158,11 @@ class ProcessingOverlay extends StatelessWidget {
                             SizedBox(
                               width: 160.w,
                               height: 160.w,
-                              child: const PaymentProcessingLoader(),
-                            ),
-                            if (countdownText != null &&
-                                countdownText!.trim().isNotEmpty) ...[
-                              SizedBox(height: 12.h),
-                              Text(
-                                countdownText!,
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.black,
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1,
-                                ),
+                              child: PaymentProcessingLoader(
+                                key: const ValueKey('payment-processing-lottie'),
+                                size: 160.w,
                               ),
-                            ],
+                            ),
                             SizedBox(height: 28.h),
                             SizedBox(
                               width: 287.w,
@@ -184,9 +229,6 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final remainingSeconds =
-        useState<int>(_processingTimeout.inSeconds);
-
     useEffect(() {
       var cancelled = false;
       var completed = false;
@@ -317,7 +359,6 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
           return;
         }
         remaining -= 1;
-        remainingSeconds.value = remaining < 0 ? 0 : remaining;
         if (remaining <= 0) {
           timer.cancel();
           goToPending();
@@ -338,7 +379,6 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
         child: ProcessingOverlay(
           isProcessing: true,
           message: message,
-          countdownText: _formatCountdown(remainingSeconds.value),
           child: const SizedBox.expand(),
         ),
       ),
@@ -414,13 +454,6 @@ TransactionHistoryEntry _buildTransactionEntry({
       billAmountLabel: 'Bill Amount',
     ),
   );
-}
-
-String _formatCountdown(int totalSeconds) {
-  final clamped = totalSeconds < 0 ? 0 : totalSeconds;
-  final minutes = clamped ~/ 60;
-  final seconds = clamped % 60;
-  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
 String _formatAmount(String raw) {

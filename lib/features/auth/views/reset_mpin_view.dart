@@ -11,6 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pinput/pinput.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
+import '../../../constants/app_error_messages.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../services/logger_service.dart';
@@ -26,8 +27,7 @@ class ResetMpinView extends HookConsumerWidget {
   });
 
   static const int _otpLength = 6;
-  static const String _genericErrorMessage =
-      'Something went wrong. Please try again.';
+  static const String _genericErrorMessage = AppErrorMessages.generic;
   final String? mobile;
 
   @override
@@ -120,7 +120,10 @@ class ResetMpinView extends HookConsumerWidget {
         startTimer();
         return;
       }
-      AppSnackbar.show(_genericErrorMessage);
+      AppSnackbar.show(
+        ref.read(authControllerProvider).errorMessage ?? _genericErrorMessage,
+        type: AppSnackbarType.error,
+      );
     }
 
     Future<void> handleResendOtp() async {
@@ -164,7 +167,10 @@ class ResetMpinView extends HookConsumerWidget {
         AppSnackbar.show(message);
         context.pop();
       } else {
-        AppSnackbar.show(_genericErrorMessage);
+        AppSnackbar.show(
+          ref.read(authControllerProvider).errorMessage ?? _genericErrorMessage,
+          type: AppSnackbarType.error,
+        );
       }
     }
 

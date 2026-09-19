@@ -9,8 +9,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../widgets/processing_overlay.dart';
 import '../../paymentgateway/razorpay_guard.dart';
 import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
@@ -289,20 +291,34 @@ class GoldPaymentSummarySheet extends HookConsumerWidget {
                               }
                               final repository =
                                   ref.read(digitalGoldRepoProvider);
-                              final receipt = await repository.buyGold(
-                                refId: otpData.refId,
-                                billingAddressId: billingAddressId,
-                                customerId: customerId,
-                                quoteId: quoteId,
-                                stateResp: otpData.stateResp,
-                                otp: otpController.text.trim(),
+                              final wait = await showPaymentProcessingWhile(
+                                work: repository.buyGold(
+                                  refId: otpData.refId,
+                                  billingAddressId: billingAddressId,
+                                  customerId: customerId,
+                                  quoteId: quoteId,
+                                  stateResp: otpData.stateResp,
+                                  otp: otpController.text.trim(),
+                                ),
                               );
                               if (!context.mounted) return;
+                              if (wait.timedOut) {
+                                AppSnackbar.show(
+                                  'Your payment is being processed. Please wait a moment.',
+                                );
+                                return;
+                              }
+                              final receipt = wait.value;
+                              if (receipt == null) return;
                               Navigator.of(context).maybePop();
                               onBuyNow(receipt);
                             } catch (e) {
                               AppSnackbar.show(
-                                e.toString().replaceFirst('Exception: ', ''),
+                                ErrorMessageUtils.from(
+                                  e,
+                                  fallback:
+                                      'Payment failed. Please try again.',
+                                ),
                                 type: AppSnackbarType.error,
                               );
                             }
@@ -317,7 +333,10 @@ class GoldPaymentSummarySheet extends HookConsumerWidget {
                         );
                       } catch (e) {
                         AppSnackbar.show(
-                          e.toString().replaceFirst('Exception: ', ''),
+                          ErrorMessageUtils.from(
+                            e,
+                            fallback: 'Payment failed. Please try again.',
+                          ),
                           type: AppSnackbarType.error,
                         );
                       } finally {
@@ -351,7 +370,10 @@ class GoldPaymentSummarySheet extends HookConsumerWidget {
                         );
                       } catch (e) {
                         AppSnackbar.show(
-                          e.toString().replaceFirst('Exception: ', ''),
+                          ErrorMessageUtils.from(
+                            e,
+                            fallback: 'Failed to send OTP. Please try again.',
+                          ),
                           type: AppSnackbarType.error,
                         );
                       } finally {

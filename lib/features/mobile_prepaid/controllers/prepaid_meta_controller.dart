@@ -1,6 +1,7 @@
 import 'package:e_rupaiya/features/mobile_prepaid/controllers/mobile_prepaid_controller.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../utils/error_message_utils.dart';
 import '../models/operator_option.dart';
 import '../models/region_option.dart';
 import '../repositories/mobile_prepaid_repository.dart';
@@ -89,7 +90,10 @@ class PrepaidMetaController extends StateNotifier<PrepaidMetaState> {
       if (!mounted) return;
       state = state.copyWith(
         isLoadingOperators: false,
-        errorMessage: e.toString(),
+        errorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to load operators. Please try again.',
+        ),
       );
     }
   }
@@ -111,7 +115,10 @@ class PrepaidMetaController extends StateNotifier<PrepaidMetaState> {
       if (!mounted) return;
       state = state.copyWith(
         isLoadingRegions: false,
-        errorMessage: e.toString(),
+        errorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to load regions. Please try again.',
+        ),
       );
     }
   }

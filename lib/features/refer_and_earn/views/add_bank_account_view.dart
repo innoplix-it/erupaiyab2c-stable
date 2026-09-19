@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../utils/utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
@@ -133,9 +133,10 @@ class AddBankAccountView extends HookConsumerWidget {
         referenceId.value = response.transactionReferenceNumber;
         step.value = _BankStep.confirm;
       } catch (e) {
-        final message = _extractApiMessage(e);
-        final resolvedMessage =
-            message ?? 'Failed to verify account. Please try again.';
+        final resolvedMessage = ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to verify account. Please try again.',
+        );
         AppSnackbar.show(resolvedMessage);
         if (_isKycVerificationRequired(resolvedMessage) && context.mounted) {
           context.push(RouteConstants.kycVerification);
@@ -215,7 +216,12 @@ class AddBankAccountView extends HookConsumerWidget {
           ),
         );
       } catch (e) {
-        AppSnackbar.show('Failed to save bank account. Please try again.');
+        AppSnackbar.show(
+          ErrorMessageUtils.from(
+            e,
+            fallback: 'Failed to save bank account. Please try again.',
+          ),
+        );
       } finally {
         isSaving.value = false;
       }
@@ -356,23 +362,6 @@ class AddBankAccountView extends HookConsumerWidget {
       ),
     );
   }
-}
-
-String? _extractApiMessage(Object error) {
-  if (error is! DioException) return null;
-  final data = error.response?.data;
-  if (data is Map) {
-    final messages = data['messages'];
-    if (messages is Map) {
-      final nested = messages['error']?.toString().trim();
-      if (nested != null && nested.isNotEmpty) return nested;
-    }
-    final message = data['message']?.toString().trim();
-    if (message != null && message.isNotEmpty) return message;
-    final fallback = data['error']?.toString().trim();
-    if (fallback != null && fallback.isNotEmpty) return fallback;
-  }
-  return null;
 }
 
 enum _BankStep { verify, confirm }

@@ -1,10 +1,11 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
+import '../../../constants/app_error_messages.dart';
 import '../../../constants/storage_keys.dart';
 import '../../../services/logger_service.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../utils/utils.dart';
 import '../../refer_and_earn/repositories/referral_repository.dart';
 import '../models/auth_login_result.dart';
@@ -42,28 +43,10 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   String _messageFromException(Object error, String fallback) {
-    if (error is DioException) {
-      switch (error.type) {
-        case DioExceptionType.connectionTimeout:
-        case DioExceptionType.sendTimeout:
-        case DioExceptionType.receiveTimeout:
-          return 'Network timeout. Please check your internet and try again.';
-        case DioExceptionType.connectionError:
-          return 'Network error. Please check your internet and try again.';
-        default:
-          break;
-      }
-      final message = error.message;
-      if (message != null && message.trim().isNotEmpty) {
-        return message.trim();
-      }
-    }
-
-    final raw = error.toString();
-    if (raw.startsWith('Exception: ')) {
-      return raw.replaceFirst('Exception: ', '');
-    }
-    return fallback;
+    return ErrorMessageUtils.from(
+      error,
+      fallback: fallback.isNotEmpty ? fallback : AppErrorMessages.generic,
+    );
   }
 
   Future<void> _checkInitialAuth() async {

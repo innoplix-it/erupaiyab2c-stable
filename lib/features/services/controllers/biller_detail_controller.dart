@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../services/logger_service.dart';
+import '../../../utils/error_message_utils.dart';
 import '../models/biller_detail_model.dart';
 import '../models/biller_detail_state.dart';
 import '../models/biller_model.dart';
@@ -92,7 +93,10 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
       );
       state = state.copyWith(
         isFetchingDetail: false,
-        errorMessage: 'Failed to fetch provider details.',
+        errorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to fetch provider details.',
+        ),
       );
     }
   }
@@ -148,7 +152,10 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
       );
       state = state.copyWith(
         isFetchingBill: false,
-        errorMessage: 'Something went wrong.Please try again.',
+        errorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Something went wrong. Please try again.',
+        ),
         billFetchNote: null,
       );
     }

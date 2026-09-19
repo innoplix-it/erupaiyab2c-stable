@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../utils/error_message_utils.dart';
 import '../models/digital_gold_preview.dart';
 import '../models/digital_metal.dart';
 import '../repo/digital_gold_repo.dart';
@@ -191,7 +192,10 @@ class DigitalGoldTradeController extends StateNotifier<DigitalGoldTradeState> {
       if (!silent) {
         state = state.copyWith(
           isFetching: false,
-          errorMessage: e.toString().replaceFirst('Exception: ', ''),
+          errorMessage: ErrorMessageUtils.from(
+            e,
+            fallback: 'Unable to fetch preview. Please try again.',
+          ),
         );
       }
     } finally {

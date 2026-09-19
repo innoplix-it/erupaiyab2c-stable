@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../services/logger_service.dart';
+import '../../../utils/error_message_utils.dart';
 import '../models/profile_state.dart';
 import '../repositories/profile_repository.dart';
 
@@ -100,9 +101,10 @@ class ProfileController extends StateNotifier<ProfileState> {
         error: e,
         stackTrace: stackTrace,
       );
-      final msg = e.toString().startsWith('Exception: ')
-          ? e.toString().substring('Exception: '.length)
-          : 'Failed to update profile. Please try again.';
+      final msg = ErrorMessageUtils.from(
+        e,
+        fallback: 'Failed to update profile. Please try again.',
+      );
       state = state.copyWith(
         isUpdating: false,
         updateErrorMessage: msg,
@@ -181,9 +183,10 @@ class ProfileController extends StateNotifier<ProfileState> {
         error: e,
         stackTrace: stackTrace,
       );
-      final msg = e.toString().startsWith('Exception: ')
-          ? e.toString().substring('Exception: '.length)
-          : 'Failed to update delivery info. Please try again.';
+      final msg = ErrorMessageUtils.from(
+        e,
+        fallback: 'Failed to update delivery info. Please try again.',
+      );
       state = state.copyWith(
         isUpdating: false,
         updateErrorMessage: msg,

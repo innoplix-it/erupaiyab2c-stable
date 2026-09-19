@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../config/app_env.dart';
 import '../../../constants/app_colors.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
 import '../repositories/receipt_repository.dart';
@@ -111,7 +112,13 @@ class ReceiptActions {
       _debugLog('Receipt generation error: $e');
       _debugLog(t.toString());
       _hideLoading(dialogContext);
-      AppSnackbar.show(e.toString());
+      AppSnackbar.show(
+        ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to generate receipt. Please try again.',
+        ),
+        type: AppSnackbarType.error,
+      );
     }
   }
 
@@ -165,7 +172,13 @@ class ReceiptActions {
       _debugLog('Receipt view error: $e');
       _debugLog(t.toString());
       _hideLoading(dialogContext);
-      AppSnackbar.show(e.toString());
+      AppSnackbar.show(
+        ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to open receipt. Please try again.',
+        ),
+        type: AppSnackbarType.error,
+      );
     }
   }
 

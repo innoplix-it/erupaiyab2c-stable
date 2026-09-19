@@ -27,8 +27,8 @@ import '../../../widgets/date_picker_field.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/param_dropdown_field.dart';
-import '../../../widgets/payment_processing_loader.dart';
 import '../../../widgets/payment_success_flow.dart';
+import '../../../widgets/processing_overlay.dart';
 import '../../../widgets/search_textfield.dart';
 import '../../mobile_prepaid/components/payment_bottom_sheet.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
@@ -1066,44 +1066,30 @@ class BillerDetailView extends HookConsumerWidget {
                                               required String fallbackMessage,
                                             }) async {
                                               if (!context.mounted) return;
-                                              showDialog<void>(
-                                                context: context,
-                                                barrierDismissible: false,
-                                                builder: (dialogContext) {
-                                                  return const PopScope(
-                                                    canPop: false,
-                                                    child: Center(
-                                                      child:
-                                                          PaymentProcessingLoader(
-                                                        size: 160,
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
+                                              final wait =
+                                                  await showPaymentProcessingWhile(
+                                                work: controller
+                                                    .verifyPayAllServicesStatus(
+                                                  transactionRef:
+                                                      order.transactionRef,
+                                                ),
                                               );
-                                              final status = await controller
-                                                  .verifyPayAllServicesStatus(
-                                                transactionRef:
-                                                    order.transactionRef,
-                                              );
-                                              if (context.mounted) {
-                                                Navigator.of(
-                                                  context,
-                                                  rootNavigator: true,
-                                                ).pop();
-                                              }
                                               if (!context.mounted) return;
+                                              final status = wait.value;
                                               final normalized = (status?.status
                                                       .trim()
                                                       .toUpperCase() ??
                                                   '');
+                                              final fallbackStatus =
+                                                  wait.timedOut
+                                                      ? 'PENDING'
+                                                      : (normalized.isNotEmpty
+                                                          ? normalized
+                                                          : 'FAILED');
                                               final entry =
                                                   buildPaymentFlowTransactionEntryFromRechargeStatus(
                                                 status: status,
-                                                fallbackStatus:
-                                                    normalized.isNotEmpty
-                                                        ? normalized
-                                                        : 'FAILED',
+                                                fallbackStatus: fallbackStatus,
                                                 fallbackPaymentType: args
                                                         ?.paymentType ??
                                                     detail.billerCategoryName,

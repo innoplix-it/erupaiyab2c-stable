@@ -11,6 +11,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import '../../home/controllers/home_tab_controller.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/k_dialog.dart';
@@ -36,6 +37,20 @@ class _TransactionHistoryScreenState
   List<TransactionHistoryEntry>? _cachedItems;
   String _cachedQuery = '';
   List<_TxnSection> _cachedSections = const [];
+
+  void _handleBack() {
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location == RouteConstants.transactions) {
+      context.go(RouteConstants.home);
+      return;
+    }
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    ref.read(homeTabControllerProvider).jumpToTab(0);
+  }
 
   @override
   void dispose() {
@@ -77,9 +92,8 @@ class _TransactionHistoryScreenState
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          context.go(RouteConstants.home);
-        }
+        if (didPop) return;
+        _handleBack();
       },
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -88,9 +102,7 @@ class _TransactionHistoryScreenState
             MyAppBar(
               title: 'Transaction History',
               showHelp: true,
-              onBack: () {
-                context.go(RouteConstants.home);
-              },
+              onBack: _handleBack,
               onHelp: () {},
             ),
           Expanded(
