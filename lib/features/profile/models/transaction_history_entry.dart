@@ -88,7 +88,7 @@ class TransactionHistoryEntry {
         : 'Bill Amount';
 
     return TransactionHistoryEntry(
-      paymentStatus: _stringOrEmpty(json['payment_status']),
+      paymentStatus: _readPaymentStatus(json),
       paymentType: paymentType,
       billerName: _stringOrEmpty(json['biller_name']),
       maskedIdentifier: _stringOrEmpty(json['masked_identifier']),
@@ -189,6 +189,22 @@ String _stringOrEmpty(dynamic value) {
   if (value == null) return '';
   final text = value.toString().trim();
   return text == 'null' ? '' : text;
+}
+
+String _readPaymentStatus(Map<String, dynamic> json) {
+  for (final key in [
+    'payment_status',
+    'paymentStatus',
+    'txn_status',
+    'transaction_status',
+    'transactionStatus',
+  ]) {
+    final value = _stringOrEmpty(json[key]);
+    if (value.isNotEmpty) return value;
+  }
+  final status = json['status'];
+  if (status is bool || status is num) return '';
+  return _stringOrEmpty(status);
 }
 
 bool _hasMappedValue(dynamic value) => _stringOrEmpty(value).isNotEmpty;

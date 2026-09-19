@@ -123,6 +123,10 @@ class FileConstants {
   static String pendingIcon = 'assets/images/png/pendingIcon.png';
   static String successIcon = 'assets/images/png/successIcon.png';
   static String processingIcon = 'assets/images/png/Vector.png';
+  static String processingStatic = 'assets/images/png/processingstatic.png';
+  static String securePayments = 'assets/images/png/securepayments.png';
+  static String rbiCompliant = 'assets/images/png/rbicomplient.png';
+  static String trustedBy = 'assets/images/png/trustedby.png';
   static String processingLottie =
       'assets/lottie/Payment-processing-60s.json';
   static String paymentProcessingLottie =

@@ -80,11 +80,17 @@ class RouteConstants {
   static const String digitalGoldSipSuccess = '/digital-gold/sip/success';
 
   static String transactionDetailForStatus(String paymentStatus) {
-    final value = paymentStatus.trim().toUpperCase();
+    final value = paymentStatus.trim().toUpperCase().replaceAll('-', '_');
+    if (value.contains('REFUND')) {
+      return transactionDetailFailed;
+    }
     if (value.contains('FAIL')) {
       return transactionDetailFailed;
     }
-    if (value.contains('PENDING') || value.contains('PROCESS')) {
+    if (value == 'PROCESSING' || value.contains('PROCESS')) {
+      return transactionDetailPending;
+    }
+    if (value == 'PENDING' || value.contains('PENDING')) {
       return transactionDetailPending;
     }
     return transactionDetailSuccess;

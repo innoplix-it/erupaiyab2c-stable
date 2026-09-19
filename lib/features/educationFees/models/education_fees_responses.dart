@@ -273,19 +273,29 @@ class EducationPaymentStatusResponse {
     };
 
     final paymentStatus = _readPaymentStatus(flattened);
-    final rawAmount = (flattened['amount'] ??
-            flattened['total_amount'] ??
-            flattened['payable_amount'] ??
-            flattened['total_amount_charged'] ??
-            '')
-        .toString()
-        .trim();
-    final rawTime = (flattened['transaction_time'] ??
-            flattened['created_at'] ??
-            flattened['updated_at'] ??
-            '')
-        .toString()
-        .trim();
+    final rawAmount = _readMappedText(
+      flattened,
+      [
+        'amount',
+        'Amount',
+        'paid_amount',
+        'transaction_amount',
+        'total_amount',
+        'payable_amount',
+        'total_amount_charged',
+      ],
+    );
+    final rawTime = _readMappedText(
+      flattened,
+      [
+        'transaction_time',
+        'timestamp',
+        'paid_at',
+        'payment_time',
+        'created_at',
+        'updated_at',
+      ],
+    );
 
     return EducationPaymentStatusResponse(
       status: json['status'] == true,
@@ -335,6 +345,17 @@ String _readPaymentStatus(Map<String, dynamic> source) {
     if (text.isEmpty) continue;
     final normalized = text.toLowerCase();
     if (normalized == 'true' || normalized == 'false') continue;
+    return text;
+  }
+  return '';
+}
+
+String _readMappedText(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    final value = source[key];
+    if (value == null || value is bool) continue;
+    final text = value.toString().trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') continue;
     return text;
   }
   return '';

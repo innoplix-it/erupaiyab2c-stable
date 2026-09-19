@@ -971,98 +971,107 @@ _StatusMeta _statusMeta(
   String status, {
   required String refundAmount,
 }) {
-  switch (status) {
-    case 'SUCCESS':
-      return _StatusMeta(
-        title: 'Transaction Successful',
-        iconAsset: FileConstants.successIcon,
-        gradient: const [
-          Color(0xFF004C1E),
-          Color(0xFF149248),
-          Color(0xFF136E3C),
-          Color(0xFF007340),
-        ],
-      );
-    case 'PENDING':
-    case 'PROCESSING':
-      return _StatusMeta(
-        title: 'Transaction Pending',
-        iconAsset: FileConstants.pendingIcon,
-        gradient: const [
-          Color(0xFFD3A30E),
-          Color(0xFFD3A30E),
-          Color(0xFF844E07),
-          Color(0xFFD3A30E),
-        ],
-        message:
-            'Your transaction is currently pending. Please wait a few moments while we confirm your payment status. If the amount has been deducted, it will be updated shortly.',
-        messageBackgroundColor: const Color(0xFF5D3A00),
-      );
-    case 'REFUND_PENDING':
-      return _StatusMeta(
-        title: 'Transaction Failed',
-        iconAsset: FileConstants.failedIcon,
-        gradient: const [
-          Color(0xFFFF5D5D),
-          Color(0xFFC04242),
-          Color(0xFF981919),
-          Color(0xFF8E0303),
-        ],
-        messageTitle: 'Refund Initiated',
-        message:
-            'Your transaction failed. A refund of $refundAmount has been initiated and is expected to be credited within 3–5 business days.',
-        messageIndicatorGradient: const [
-          Color(0xFFFB8A67),
-          Color(0xFFDD5428),
-        ],
-        messageBackgroundColor: const Color(0xFF6D120E),
-      );
-    case 'REFUNDED':
-      return _StatusMeta(
-        title: 'Transaction Failed',
-        iconAsset: FileConstants.failedIcon,
-        gradient: const [
-          Color(0xFFFF5D5D),
-          Color(0xFFC04242),
-          Color(0xFF981919),
-          Color(0xFF8E0303),
-        ],
-        messageTitle: 'Refund Completed',
-        message:
-            '$refundAmount has been successfully refunded to your original payment method. No further action is required.',
-        messageIndicatorGradient: const [
-          Color(0xFF60EB97),
-          Color(0xFF058337),
-        ],
-        messageBackgroundColor: const Color(0xFF6D120E),
-      );
-    case 'FAILED':
-    case 'FAIL':
-      return _StatusMeta(
-        title: 'Transaction Failed',
-        iconAsset: FileConstants.failedIcon,
-        gradient: const [
-          Color(0xFFFF5D5D),
-          Color(0xFFC04242),
-          Color(0xFF981919),
-          Color(0xFF8E0303),
-        ],
-        message:
-            'Unfortunately, your transaction could not be completed. Please check your payment details or try again.',
-        messageBackgroundColor: const Color(0xFF6D120E),
-      );
-    default:
-      return _StatusMeta(
-        title: 'Transaction Details',
-        iconAsset: FileConstants.successIcon,
-        gradient: const [
-          Color(0xFF004C1E),
-          Color(0xFF149248),
-          Color(0xFF136E3C),
-          Color(0xFF007340),
-        ],
-      );
+  final value = status.trim().toUpperCase().replaceAll('-', '_').replaceAll(' ', '_');
+
+  if (value.contains('SUCCESS')) {
+    return _StatusMeta(
+      title: 'Transaction Successful',
+      iconAsset: FileConstants.successIcon,
+      gradient: const [
+        Color(0xFF004C1E),
+        Color(0xFF149248),
+        Color(0xFF136E3C),
+        Color(0xFF007340),
+      ],
+    );
   }
+
+  if (value.contains('PROCESS') ||
+      (value.contains('PENDING') && !value.contains('REFUND'))) {
+    return _StatusMeta(
+      title: 'Transaction Pending',
+      iconAsset: FileConstants.pendingIcon,
+      gradient: const [
+        Color(0xFFD3A30E),
+        Color(0xFFD3A30E),
+        Color(0xFF844E07),
+        Color(0xFFD3A30E),
+      ],
+      message:
+          'Your transaction is currently pending. Please wait a few moments while we confirm your payment status. If the amount has been deducted, it will be updated shortly.',
+      messageBackgroundColor: const Color(0xFF5D3A00),
+    );
+  }
+
+  if (value.contains('REFUND') &&
+      (value.contains('PENDING') || value == 'REFUND' || value.contains('INITIAT'))) {
+    return _StatusMeta(
+      title: 'Transaction Failed',
+      iconAsset: FileConstants.failedIcon,
+      gradient: const [
+        Color(0xFFFF5D5D),
+        Color(0xFFC04242),
+        Color(0xFF981919),
+        Color(0xFF8E0303),
+      ],
+      messageTitle: 'Refund Initiated',
+      message:
+          'Your transaction failed. A refund of $refundAmount has been initiated and is expected to be credited within 3–5 business days.',
+      messageIndicatorGradient: const [
+        Color(0xFFFB8A67),
+        Color(0xFFDD5428),
+      ],
+      messageBackgroundColor: const Color(0xFF6D120E),
+    );
+  }
+
+  if (value.contains('REFUND')) {
+    return _StatusMeta(
+      title: 'Transaction Failed',
+      iconAsset: FileConstants.failedIcon,
+      gradient: const [
+        Color(0xFFFF5D5D),
+        Color(0xFFC04242),
+        Color(0xFF981919),
+        Color(0xFF8E0303),
+      ],
+      messageTitle: 'Refund Completed',
+      message:
+          '$refundAmount has been successfully refunded to your original payment method. No further action is required.',
+      messageIndicatorGradient: const [
+        Color(0xFF60EB97),
+        Color(0xFF058337),
+      ],
+      messageBackgroundColor: const Color(0xFF6D120E),
+    );
+  }
+
+  if (value.contains('FAIL')) {
+    return _StatusMeta(
+      title: 'Transaction Failed',
+      iconAsset: FileConstants.failedIcon,
+      gradient: const [
+        Color(0xFFFF5D5D),
+        Color(0xFFC04242),
+        Color(0xFF981919),
+        Color(0xFF8E0303),
+      ],
+      message:
+          'Unfortunately, your transaction could not be completed. Please check your payment details or try again.',
+      messageBackgroundColor: const Color(0xFF6D120E),
+    );
+  }
+
+  return _StatusMeta(
+    title: 'Transaction Details',
+    iconAsset: FileConstants.successIcon,
+    gradient: const [
+      Color(0xFF004C1E),
+      Color(0xFF149248),
+      Color(0xFF136E3C),
+      Color(0xFF007340),
+    ],
+  );
 }
 
 String _resolveReceiptTransactionId({

@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/file_constants.dart';
@@ -29,9 +28,9 @@ class EducationPaymentThankYouView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayAmount =
-        payableAmount.trim().isNotEmpty ? payableAmount : amount;
-    final formattedAmount = _formatRupee(displayAmount);
+    final formattedAmount = _displayApiAmount(
+      amount.trim().isNotEmpty ? amount : payableAmount,
+    );
     final formattedDate = _formatHeaderDate(transactionTime);
     final imageUrl = bannerImage.trim();
     final title = _thankYouTitle(paymentType);
@@ -116,30 +115,25 @@ class EducationPaymentThankYouView extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: x(16)),
-                        SizedBox(
+                        Container(
                           width: 106,
                           height: 34,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SvgPicture.asset(
-                                FileConstants.amountContainer,
-                                width: 106,
-                                height: 34,
-                                fit: BoxFit.fill,
-                              ),
-                              Text(
-                                formattedAmount,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: const Color(0xFFFFFFFF),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  height: 1,
-                                ),
-                              ),
-                            ],
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0x1AFFFFFF),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Text(
+                            formattedAmount,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: const Color(0xFFFFFFFF),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              height: 1,
+                            ),
                           ),
                         ),
                       ],
@@ -261,24 +255,10 @@ String _thankYouTitle(String paymentType) {
   return 'Thank You for\n$raw Payment';
 }
 
-String _formatRupee(String raw) {
-  final parsed = double.tryParse(
-    raw.replaceAll(',', '').replaceAll('₹', '').trim(),
-  );
-  if (parsed == null) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return '₹0.00';
-    return trimmed.startsWith('₹') ? trimmed : '₹$trimmed';
-  }
-  final parts = parsed.toStringAsFixed(2).split('.');
-  final whole = parts.first;
-  final buffer = StringBuffer();
-  for (var i = 0; i < whole.length; i++) {
-    final remaining = whole.length - i;
-    if (i > 0 && remaining % 3 == 0) buffer.write(',');
-    buffer.write(whole[i]);
-  }
-  return '₹${buffer.toString()}.${parts.last}';
+String _displayApiAmount(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return '';
+  return trimmed.startsWith('₹') ? trimmed : '₹$trimmed';
 }
 
 String _formatHeaderDate(String raw) {

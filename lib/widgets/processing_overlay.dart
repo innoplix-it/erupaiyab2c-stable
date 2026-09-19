@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../constants/file_constants.dart';
 import '../constants/routes_constant.dart';
 import '../features/educationFees/controllers/education_fees_controller.dart';
 import '../features/educationFees/models/education_fees_responses.dart';
@@ -59,7 +60,7 @@ class PaymentProcessingWait<T> {
 /// Completes early on success/result, or [timedOut] at 60 seconds.
 Future<PaymentProcessingWait<T>> showPaymentProcessingWhile<T>({
   required Future<T> work,
-  String message = 'Processing Your Payment...',
+  String message = 'Processing Your Payment',
 }) async {
   final overlayState = navigatorKey.currentState?.overlay;
   OverlayEntry? entry;
@@ -132,76 +133,328 @@ class ProcessingOverlay extends StatelessWidget {
           Positioned.fill(
             child: AbsorbPointer(
               absorbing: true,
-              child: ColoredBox(
-                color: Colors.black.withOpacity(0.48),
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    width: 440.w
-                        .clamp(0, MediaQuery.sizeOf(context).width)
-                        .toDouble(),
-                    height: 442.h,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(1),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20.r),
-                        topRight: Radius.circular(20.r),
-                      ),
-                    ),
-                    child: SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(40.w, 48.h, 40.w, 24.h),
+              child: _PaymentProcessingLayout(message: message),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PaymentProcessingLayout extends StatelessWidget {
+  const _PaymentProcessingLayout({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    double x(double value) => (value * 360 / 440).w;
+    double y(double value) => (value * 360 / 440).h;
+    double r(double value) => (value * 360 / 440).r;
+    double s(double value) => (value * 360 / 440).sp;
+    final sheetTop = x(314);
+    final imageHeight = x(343);
+    final contentWidth = x(353);
+
+    return ColoredBox(
+      color: Colors.white,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: imageHeight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(r(12)),
+                bottomRight: Radius.circular(r(12)),
+              ),
+              child: Image.asset(
+                FileConstants.processingStatic,
+                width: 1.sw,
+                height: imageHeight,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Positioned(
+            top: sheetTop,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFFFF),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(r(20)),
+                  topRight: Radius.circular(r(20)),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0x1AC2C2C2),
+                    offset: Offset(0, -x(7)),
+                    blurRadius: x(16),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x17C2C2C2),
+                    offset: Offset(0, -x(30)),
+                    blurRadius: x(30),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x0DC2C2C2),
+                    offset: Offset(0, -x(67)),
+                    blurRadius: x(40),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x03C2C2C2),
+                    offset: Offset(0, -x(120)),
+                    blurRadius: x(48),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x00C2C2C2),
+                    offset: Offset(0, -x(187)),
+                    blurRadius: x(52),
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(x(44), y(51), x(44), y(24)),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: contentWidth,
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             SizedBox(
-                              width: 160.w,
-                              height: 160.w,
-                              child: PaymentProcessingLoader(
-                                key: const ValueKey('payment-processing-lottie'),
-                                size: 160.w,
+                              width: x(158),
+                              height: x(158),
+                              child: DecoratedBox(
+                                decoration: const BoxDecoration(
+                                  color: Color(0x1ADD5428),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: PaymentProcessingLoader(
+                                  key: const ValueKey(
+                                    'payment-processing-lottie',
+                                  ),
+                                  size: x(158),
+                                ),
                               ),
                             ),
-                            SizedBox(height: 28.h),
+                            SizedBox(height: y(24)),
                             SizedBox(
-                              width: 287.w,
+                              width: contentWidth,
                               child: Text(
                                 message,
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.plusJakartaSans(
                                   color: Colors.black,
-                                  fontSize: 22.sp,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: s(20),
+                                  fontWeight: FontWeight.w700,
                                   height: 1,
                                 ),
                               ),
                             ),
-                            SizedBox(height: 20.h),
+                            SizedBox(height: y(24)),
                             SizedBox(
-                              width: 335.w,
+                              width: contentWidth,
                               child: Text(
-                                'Your payment is being processed. Please wait a moment and keep this screen open. Do not close the app or press the back button.',
+                                'Your payment is currently being processed. Please wait a moment and keep the app open. Do not close the app or use the back button until the payment is completed.',
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFF7C7C7C),
-                                  fontSize: 14.sp,
+                                  fontSize: s(12),
                                   fontWeight: FontWeight.w400,
-                                  height: 24 / 14,
-                                  letterSpacing: -0.28.sp,
+                                  height: 22 / 12,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
+                      SizedBox(height: y(47)),
+                      SizedBox(
+                        width: contentWidth,
+                        child: Column(
+                          children: [
+                            Container(
+                              width: contentWidth,
+                              padding: EdgeInsets.fromLTRB(
+                                x(16),
+                                y(14),
+                                x(16),
+                                y(14),
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF7F7F7),
+                                borderRadius: BorderRadius.circular(r(12)),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.verified_user,
+                                    color: const Color(0xFF2BB673),
+                                    size: x(22),
+                                  ),
+                                  SizedBox(width: x(10)),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Your Security Matters',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: Colors.black,
+                                            fontSize: s(12),
+                                            fontWeight: FontWeight.w700,
+                                            height: 1,
+                                          ),
+                                        ),
+                                        SizedBox(height: y(6)),
+                                        Text(
+                                          'Your transaction is being processed securely through our trusted payment partners.',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: Colors.black,
+                                            fontSize: s(10),
+                                            fontWeight: FontWeight.w400,
+                                            height: 19 / 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: y(40)),
+                            SizedBox(
+                              width: contentWidth,
+                              height: y(64),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Center(
+                                      child: _TrustItem(
+                                        asset: FileConstants.securePayments,
+                                        label: 'Secure\nPayments',
+                                        size: x(107),
+                                        iconSize: x(24),
+                                        fontSize: s(12),
+                                      ),
+                                    ),
+                                  ),
+                                  _TrustDivider(height: y(40)),
+                                  Expanded(
+                                    child: Center(
+                                      child: _TrustItem(
+                                        asset: FileConstants.rbiCompliant,
+                                        label: 'RBI Compliant\nPlatform',
+                                        size: x(107),
+                                        iconSize: x(24),
+                                        fontSize: s(12),
+                                      ),
+                                    ),
+                                  ),
+                                  _TrustDivider(height: y(40)),
+                                  Expanded(
+                                    child: Center(
+                                      child: _TrustItem(
+                                        asset: FileConstants.trustedBy,
+                                        label: 'Trusted By\nMillions',
+                                        size: x(107),
+                                        iconSize: x(24),
+                                        fontSize: s(12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TrustItem extends StatelessWidget {
+  const _TrustItem({
+    required this.asset,
+    required this.label,
+    required this.size,
+    required this.iconSize,
+    required this.fontSize,
+  });
+
+  final String asset;
+  final String label;
+  final double size;
+  final double iconSize;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            asset,
+            width: iconSize,
+            height: iconSize,
+            fit: BoxFit.contain,
+          ),
+          SizedBox(height: fontSize * 10 / 12),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.black,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrustDivider extends StatelessWidget {
+  const _TrustDivider({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      child: Container(
+        width: 1.w,
+        height: height,
+        color: const Color(0xFFE6E6E6),
+      ),
     );
   }
 }
@@ -216,7 +469,7 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
     this.maskedAccount = '',
     this.fallbackAmount = '',
     this.paymentId = '',
-    this.message = 'Processing Your Payment...',
+    this.message = 'Processing Your Payment',
   });
 
   final String transactionRefId;
@@ -251,9 +504,7 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
           context.go(
             RouteConstants.educationPaymentThankYou,
             extra: <String, dynamic>{
-              'amount': result.amount.isNotEmpty
-                  ? result.amount
-                  : fallbackAmount,
+              'amount': result.amount,
               'payableAmount': result.payableAmount,
               'transactionTime': result.updatedAt,
               'bannerImage': result.bannerImage,
@@ -375,7 +626,7 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
     return PopScope(
       canPop: false,
       child: Material(
-        color: Colors.black,
+        color: Colors.white,
         child: ProcessingOverlay(
           isProcessing: true,
           message: message,
