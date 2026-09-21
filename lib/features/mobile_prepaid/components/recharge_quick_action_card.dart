@@ -3,6 +3,7 @@
 import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/core/barrel_file.dart';
 import 'package:e_rupaiya/features/home/components/quick_action_header_card.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SimpleQuickActionCard extends StatelessWidget {
   const SimpleQuickActionCard({
@@ -30,58 +31,52 @@ class SimpleQuickActionCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18.r),
+      borderRadius: BorderRadius.circular(22.r),
       child: Container(
-        constraints: BoxConstraints(minHeight: 62.h),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        width: double.infinity,
+        height: 56.h,
+        padding: EdgeInsets.symmetric(horizontal: 14.w),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xffE2E2E2)),
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          // boxShadow: const [
-          //   BoxShadow(
-          //     color: AppColors.cardShadow,
-          //     blurRadius: 18,
-          //     offset: Offset(0, 8),
-          //   ),
-          // ],
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: AppColors.lightBorder, width: 1.w),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x1A707070),
+              offset: Offset(0, 10.h),
+              blurRadius: 22.r,
+            ),
+            BoxShadow(
+              color: const Color(0x17707070),
+              offset: Offset(0, 41.h),
+              blurRadius: 41.r,
+            ),
+            BoxShadow(
+              color: const Color(0x0D707070),
+              offset: Offset(0, 91.h),
+              blurRadius: 55.r,
+            ),
+            BoxShadow(
+              color: const Color(0x03707070),
+              offset: Offset(0, 163.h),
+              blurRadius: 65.r,
+            ),
+            BoxShadow(
+              color: const Color(0x00707070),
+              offset: Offset(0, 254.h),
+              blurRadius: 71.r,
+            ),
+          ],
         ),
         child: Row(
           children: [
-            /// LEFT ICON
-            Container(
-              height: 45.h,
-              width: 45.h,
-              padding: EdgeInsets.all(8.w), // creates that inner spacing
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(16.r), // more rounded than current
-                border: Border.all(color: const Color(0xffE2E2E2)),
-              ),
-              child: LeadingIcon(
-                asset: leadingAsset,
-                url: leadingImageUrl,
-              ),
+            // Sim Card Container & Icon Size Proper Alignment
+            SimCardIconContainer(
+              asset: leadingAsset,
+              url: leadingImageUrl,
             ),
-            // Container(
-            //   height: 44.h,
-            //   width: 44.h,
-            //   alignment: Alignment.center,
-            //   decoration: BoxDecoration(
-            //     color: AppColors.white,
-            //     borderRadius: BorderRadius.circular(10),
-            //     border: Border.all(color: const Color(0xffE2E2E2)),
-            //   ),
-            //   child: LeadingIcon(
-            //     asset: leadingAsset,
-            //     url: leadingImageUrl,
-            //   ),
-            // ),
-
-            SizedBox(width: 8.w),
-
-            /// TEXT
+            SizedBox(width: 12.w),
+            // Sim Card Name (Title) & State Name (Subtitle)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,52 +84,95 @@ class SimpleQuickActionCard extends StatelessWidget {
                 children: [
                   if (title.trim().isNotEmpty)
                     Text(
-                      title,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                            fontSize: 13.sp,
-                          ),
+                      title, // Sim Card Name (eg. Jio / Airtel)
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.sp,
+                        color: const Color(0xFF000000),
+                      ),
                     ),
                   if (title.trim().isNotEmpty && subtitle.trim().isNotEmpty)
                     SizedBox(height: 2.h),
                   if (subtitle.trim().isNotEmpty)
                     Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textPrimary.withOpacity(0.65),
-                            fontSize: 8.sp,
-                          ),
-                      maxLines: 2,
+                      subtitle, // State Name (eg. Maharashtra)
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 9.sp,
+                        color: const Color(0xFF7C7C7C),
+                      ),
                     ),
                 ],
               ),
             ),
-            if (hasAction)
+            if (hasAction) ...[
+              SizedBox(width: 10.w),
               GestureDetector(
                 onTap: onAction ?? onTap,
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
-                  ),
+                  width: 60.w,
+                  height: 22.h,
+                  padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 4.h),
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE85A2C), // same as your UI
-                    borderRadius: BorderRadius.circular(20.r),
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(50.r),
                   ),
                   child: Text(
                     actionLabel!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    maxLines: 1,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10.sp,
+                      height: 1,
+                    ),
                   ),
                 ),
               ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class SimCardIconContainer extends StatelessWidget {
+  const SimCardIconContainer({
+    super.key,
+    this.asset,
+    this.url,
+  });
+
+  final String? asset;
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 50.w,
+      height: 45.h,
+      padding: EdgeInsets.all(8.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: const Color(0xFFE2E2E2),
+          width: 1.w,
+        ),
+      ),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: LeadingIcon(
+            asset: asset,
+            url: url,
+          ),
         ),
       ),
     );

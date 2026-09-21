@@ -14,6 +14,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -520,14 +521,16 @@ class MobilePrepaidView extends HookConsumerWidget {
             if (showOperatorCard) ...[
               SizedBox(height: 12.h),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14.w),
-                child: SimpleQuickActionCard(
-                  title: '+91 ${state.mobile}',
-                  subtitle:
-                      '${state.operatorInfo?.operatorName ?? 'Operator'} • ${state.operatorInfo?.circle ?? 'Circle'}',
-                  leadingImageUrl: state.operatorInfo?.iconUrl,
-                  actionLabel: 'Change',
-                  onAction: handleChange,
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Center(
+                  child: SimpleQuickActionCard(
+                    title: '+91 ${state.mobile}',
+                    subtitle:
+                        '${state.operatorInfo?.operatorName ?? 'Operator'} • ${state.operatorInfo?.circle ?? 'Circle'}',
+                    leadingImageUrl: state.operatorInfo?.iconUrl,
+                    actionLabel: 'Change',
+                    onAction: handleChange,
+                  ),
                 ),
               ),
               SizedBox(height: 12.h),
@@ -535,7 +538,7 @@ class MobilePrepaidView extends HookConsumerWidget {
               SizedBox(height: 12.h),
             Expanded(
               child: state.isFetching
-                  ? const MobilePrepaidContentShimmer()
+                  ? const MobilePrepaidContentShimmer() 
                   : hasPlanSelected
                       ? _PayNowSection(
                           state: state,

@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 
 String normalizeMobile(String input) {
@@ -37,7 +38,7 @@ class ContactsList extends StatelessWidget {
       padding: EdgeInsets.zero,
       itemCount: displayContacts.length,
       separatorBuilder: (_, __) => Divider(
-        height: 1,
+        height: 1.h,
         thickness: 1,
         color: Colors.black.withOpacity(0.06),
       ),
@@ -48,38 +49,41 @@ class ContactsList extends StatelessWidget {
         final photoBytes = contact.photoOrThumbnail;
         return InkWell(
           onTap: phone.isEmpty ? null : () => onSelect(normalizeMobile(phone)),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 12.h),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 22,
+                  radius: 22.r,
                   backgroundColor: Colors.black.withOpacity(0.08),
                   backgroundImage:
                       photoBytes == null ? null : MemoryImage(photoBytes),
                   child: photoBytes != null
                       ? null
-                      : const Icon(Icons.person, color: Colors.white),
+                      : Icon(Icons.person, color: Colors.white, size: 22.sp),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         contact.displayName,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp,
+                          color: const Color(0xFF292D32),
+                        ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.h),
                       Text(
                         phone.isEmpty ? 'No number' : phone,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textPrimary.withOpacity(0.6),
-                            ),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12.sp,
+                          color: const Color(0xFF7C7C7C),
+                        ),
                       ),
                     ],
                   ),
@@ -87,8 +91,8 @@ class ContactsList extends StatelessWidget {
                 if (phone.isNotEmpty)
                   Image.asset(
                     FileConstants.tiltArrow,
-                    width: 18,
-                    height: 18,
+                    width: 18.w,
+                    height: 18.h,
                     fit: BoxFit.contain,
                   ),
               ],

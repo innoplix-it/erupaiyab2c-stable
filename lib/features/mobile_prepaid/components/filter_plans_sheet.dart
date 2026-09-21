@@ -84,14 +84,14 @@ class _FilterPlansSheetState extends State<FilterPlansSheet> {
                 if (selected.isEmpty) selected.add(_allLabel);
               });
             },
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(6),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: selected.contains(option)
                     ? AppColors.primary.withOpacity(0.1)
                     : Colors.white,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: selected.contains(option)
                       ? AppColors.primary.withOpacity(0.35)

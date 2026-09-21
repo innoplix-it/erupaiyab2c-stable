@@ -146,57 +146,60 @@ class LeadingIcon extends StatelessWidget {
     super.key,
     required this.asset,
     required this.url,
+    this.size,
   });
 
   final String? asset;
   final String? url;
+  final double? size;
 
   @override
   Widget build(BuildContext context) {
     final resolvedAsset = (asset ?? '').trim();
     final resolvedUrl = (url ?? '').trim();
+    final iconSize = size ?? 34.w;
 
     // Prefer remote icon (when present) over any provided fallback asset.
     if (resolvedUrl.isNotEmpty) {
       return AppNetworkImage(
         url: resolvedUrl,
-        width: 34,
-        height: 34,
+        width: iconSize,
+        height: iconSize,
         fit: BoxFit.contain,
         showShimmer: false,
         placeholder: Center(
           child: Image.asset(
             FileConstants.loadingGif,
-            width: 24,
-            height: 24,
+            width: iconSize * 0.7,
+            height: iconSize * 0.7,
             fit: BoxFit.cover,
           ),
         ),
-        errorWidget: _fallbackPlaceholder(context),
+        errorWidget: _fallbackPlaceholder(context, iconSize),
       );
     }
 
     if (resolvedAsset.isNotEmpty) {
       return Image.asset(
         resolvedAsset,
-        width: 34,
-        height: 34,
+        width: iconSize,
+        height: iconSize,
         fit: BoxFit.contain,
       );
     }
 
-    return _fallbackPlaceholder(context);
+    return _fallbackPlaceholder(context, iconSize);
   }
 
-  Widget _fallbackPlaceholder(BuildContext context) {
+  Widget _fallbackPlaceholder(BuildContext context, double iconSize) {
     return Container(
-      width: 34,
-      height: 34,
+      width: iconSize,
+      height: iconSize,
       color: AppColors.white,
       child: Icon(
         Icons.broken_image_outlined,
         color: AppColors.textPrimary.withOpacity(0.5),
-        size: 24,
+        size: iconSize * 0.7,
       ),
     );
   }

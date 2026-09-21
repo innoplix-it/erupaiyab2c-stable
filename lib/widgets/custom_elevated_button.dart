@@ -18,6 +18,7 @@ class CustomElevatedButton extends StatelessWidget {
     this.backgroundColor,
     this.borderColor,
     this.labelColor,
+    this.labelStyle,
   });
 
   final VoidCallback? onPressed;
@@ -31,6 +32,7 @@ class CustomElevatedButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? borderColor;
   final Color? labelColor;
+  final TextStyle? labelStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -95,10 +97,13 @@ class CustomElevatedButton extends StatelessWidget {
               ],
               Text(
                 uppercaseLabel ? label.toUpperCase() : label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: labelColor ?? Colors.white,
-                    letterSpacing: 1.1,
-                    fontWeight: FontWeight.w700),
+                style: (labelStyle ??
+                        Theme.of(context).textTheme.labelLarge)
+                    ?.copyWith(
+                  color: labelColor ?? Colors.white,
+                  letterSpacing: labelStyle == null ? 1.1 : null,
+                  fontWeight: labelStyle?.fontWeight ?? FontWeight.w700,
+                ),
               ),
               if (showArrow) ...[
                 const SizedBox(width: 8),

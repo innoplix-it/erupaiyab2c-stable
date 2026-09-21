@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/app_colors.dart';
-import '../../../widgets/app_divider.dart';
 import '../../../widgets/k_dialog.dart';
 import '../models/plan_item.dart';
 import 'plan_details_sheet.dart';
@@ -36,144 +36,145 @@ class PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final assuredCoinsLabel =
-        plan.eCoins > 0 ? 'Get Assured ${plan.eCoins} E-Coins' : '';
+    final assuredLabel = plan.assuredBadgeLabel;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.lightBorder,
             width: isSelected ? 1.5.w : 1.w,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 12,
-              offset: Offset(0, 8),
+              blurRadius: 12.r,
+              offset: Offset(0, 8.h),
             ),
           ],
         ),
-        child: Padding(
-          padding: EdgeInsets.all(10.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Row 1: Price + E-Coins badge
-              _PlanPriceRow(
-                plan: plan,
-                assuredLabel: assuredCoinsLabel,
-                rightShift: 10.w,
-              ),
-              SizedBox(height: 12.h),
-              // Row 2: Validity | Data | Benefit images
-              _PlanInfoRow(
-                plan: plan,
-                onBenefitsTap: () => _openPlanDetailsSheet(context),
-              ),
-              SizedBox(height: 12.h),
-              const AppDivider(),
-              SizedBox(height: 10.h),
-              // Description
-              Text(
-                plan.description.isEmpty
-                    ? 'No description available.'
-                    : plan.description,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textPrimary.withOpacity(0.7),
-                      height: 1.4,
-                      fontSize: 10.sp,
-                    ),
-              ),
-              SizedBox(height: 14.h),
-              // View Details + Pay Now row
-              Container(
-                margin: EdgeInsets.only(bottom: 4.h),
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: onViewDetails ?? onTap,
-                      child: Text(
-                        'View Details',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12.sp,
-                            ),
+        clipBehavior: Clip.hardEdge,
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 14.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(right: 171.w),
+                    child: Text(
+                      '₹ ${plan.amount}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 24.sp,
+                        color: Colors.black,
+                        height: 1,
                       ),
                     ),
-                    const Spacer(),
-                    SizedBox(
-                      width: 160.w,
-                      child: _PlanPayNowButton(
-                        onTap: onPayNow ?? onTap,
+                  ),
+                  SizedBox(height: 10.h),
+                  _PlanInfoRow(
+                    plan: plan,
+                    onBenefitsTap: () => _openPlanDetailsSheet(context),
+                  ),
+                  SizedBox(height: 10.h),
+                  if (plan.description.trim().isNotEmpty) ...[
+                    Text(
+                      plan.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 11.sp,
+                        height: 15 / 12,
+                        color: const Color(0xFF222222),
                       ),
                     ),
-                  ],
-                ),
+                    SizedBox(height: 12.h),
+                  ] else
+                    SizedBox(height: 16.h),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: onViewDetails ?? onTap,
+                        child: Text(
+                          'View Details',
+                          style: GoogleFonts.bricolageGrotesque(
+                            color: const Color(0xFFDD5428),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.sp,
+                            height: 17 / 14,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 183.w,
+                        height: 43.h,
+                        child: _PlanPayNowButton(
+                          onTap: onPayNow ?? onTap,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              top: 16.h,
+              right: 0,
+              child: GetAssuredCoinsBadge(label: assuredLabel),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _PlanPriceRow extends StatelessWidget {
-  const _PlanPriceRow({
-    required this.plan,
-    required this.assuredLabel,
-    this.rightShift = 0,
+class GetAssuredCoinsBadge extends StatelessWidget {
+  const GetAssuredCoinsBadge({
+    super.key,
+    required this.label,
   });
 
-  final PlanItem plan;
-  final String assuredLabel;
-  final double rightShift;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '₹ ${plan.amount}',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: AppColors.textPrimary,
-                fontSize: 28.sp,
-              ),
+    return Container(
+      width: 163.w,
+      height: 27.h,
+      padding: EdgeInsets.fromLTRB(12.w, 5.h, 16.w, 5.h),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFF193459),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(50.r),
+          bottomLeft: Radius.circular(50.r),
         ),
-        const Spacer(),
-        if (assuredLabel.isNotEmpty)
-          Transform.translate(
-            offset: Offset(rightShift, 0),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1B3554),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(18.r),
-                  bottomLeft: Radius.circular(18.r),
-                ),
-              ),
-              child: Text(
-                assuredLabel,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10.sp,
-                    ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.bricolageGrotesque(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 11.sp,
+                height: 1,
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -254,19 +255,22 @@ class _PlanInfoColumn extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textPrimary,
-                fontSize: 8.sp,
-              ),
+          style: GoogleFonts.plusJakartaSans(
+            color: const Color(0xFF7C7C7C),
+            fontWeight: FontWeight.w400,
+            fontSize: 12.sp,
+            height: 1,
+          ),
         ),
-        SizedBox(height: 2.h),
+        SizedBox(height: 4.h),
         Text(
           value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                fontSize: 10.sp,
-              ),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+            fontSize: 12.sp,
+            height: 1,
+          ),
         ),
       ],
     );
@@ -374,23 +378,26 @@ class _PlanPayNowButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        width: double.infinity,
+        height: double.infinity,
         alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(
-          horizontal: 12.w,
-          vertical: 8.h,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: 10.w),
         decoration: BoxDecoration(
-          color: const Color(0xFFE85A2C),
-          borderRadius: BorderRadius.circular(20.r),
+          color: const Color(0xFFDD5428),
+          borderRadius: BorderRadius.circular(82.r),
         ),
         child: Text(
           'Pay Now',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
+          style: GoogleFonts.bricolageGrotesque(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14.sp,
+            height: 1,
+          ),
         ),
       ),
     );
   }
 }
+
+

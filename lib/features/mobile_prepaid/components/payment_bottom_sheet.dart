@@ -2,10 +2,13 @@
 
 import 'package:e_rupaiya/features/mobile_prepaid/models/plan_item.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
@@ -368,6 +371,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
             // E-Coins option
             _PaymentOptionTile(
               icon: Icons.monetization_on_outlined,
+              iconAsset: FileConstants.favicon,
               iconColor: AppColors.primary,
               title:
                   'E-Coins (${availableECoins.toStringAsFixed(0)}) (Max ${_restrictionPercent().round()}%)',
@@ -708,12 +712,11 @@ class _PrepaidPaymentBottomSheetState
     final canUseECoins = availableECoins > 0;
     final eCoinsApplied = _eCoinsApplied(availableECoins);
     final remainingAmount = _remainingAmount(eCoinsApplied);
-    final buttonLabel = remainingAmount == 0 ? 'Pay Now' : 'Proceed';
 
     return AbsorbPointer(
       absorbing: isPaying,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,10 +734,11 @@ class _PrepaidPaymentBottomSheetState
                 ),
                 Text(
                   '\u20B9 ${widget.plan.amount}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16.sp,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),
@@ -753,6 +757,7 @@ class _PrepaidPaymentBottomSheetState
             // E-Coins option
             _PaymentOptionTile(
               icon: Icons.monetization_on_outlined,
+              iconAsset: FileConstants.favicon,
               iconColor: AppColors.primary,
               title:
                   'E-Coins (${availableECoins.toStringAsFixed(0)}) (Max ${_restrictionPercent().round()}%)',
@@ -778,20 +783,20 @@ class _PrepaidPaymentBottomSheetState
             // const SizedBox(height: 20),
             const SizedBox(height: 16),
 
-            // Bottom bar: amount + PAY NOW
+            // Bottom bar: amount + PROCEED
             SafeArea(
               top: false,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 12.h),
                 child: Row(
                   children: [
                     Text(
                       '\u20B9 ${remainingAmount.toStringAsFixed(0)}',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                              ),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 24.sp,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const Spacer(),
                     CustomElevatedButton(
@@ -907,11 +912,16 @@ class _PrepaidPaymentBottomSheetState
                                 }(),
                               );
                             },
-                      label: buttonLabel,
+                      label: 'Proceed',
                       isLoading: isPaying,
                       showArrow: false,
-                      uppercaseLabel: true,
+                      uppercaseLabel: false,
                       width: null,
+                      labelStyle: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -926,7 +936,8 @@ class _PrepaidPaymentBottomSheetState
 
 class _PaymentOptionTile extends StatelessWidget {
   const _PaymentOptionTile({
-    required this.icon,
+    this.icon,
+    this.iconAsset,
     required this.iconColor,
     required this.title,
     required this.trailing,
@@ -935,7 +946,8 @@ class _PaymentOptionTile extends StatelessWidget {
     this.enabled = true,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAsset;
   final Color iconColor;
   final String title;
   final String? subtitle;
@@ -962,15 +974,24 @@ class _PaymentOptionTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 44.w,
+              height: 44.w,
               decoration: BoxDecoration(
                 color: effectiveIconColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
               ),
-              child: Icon(icon, color: effectiveIconColor, size: 24),
+              alignment: Alignment.center,
+              child: iconAsset != null
+                  ? Padding(
+                      padding: EdgeInsets.all(10.w),
+                      child: Image.asset(
+                        iconAsset!,
+                        fit: BoxFit.contain,
+                      ),
+                    )
+                  : Icon(icon, color: effectiveIconColor, size: 24.sp),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
