@@ -556,45 +556,138 @@ class _CurvedIconGrid extends StatelessWidget {
     required this.onTap,
     this.maxItems = 4,
     this.labelBuilder,
+    this.showCardFrame = true,
   });
 
   final List<QuickActionService> services;
   final Future<void> Function(String serviceName) onTap;
   final int maxItems;
   final String Function(QuickActionService service)? labelBuilder;
+  final bool showCardFrame;
 
   @override
   Widget build(BuildContext context) {
     final visibleItems = services.take(maxItems).toList();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = 10.w;
-        final tileWidth = (constraints.maxWidth - spacing * 3) / 4;
-        final tileHeight = tileWidth * 1.45;
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(4, (index) {
-            final service =
-                index < visibleItems.length ? visibleItems[index] : null;
-            if (service == null) {
-              return SizedBox(width: tileWidth, height: tileHeight);
-            }
-            return SizedBox(
-              width: tileWidth,
-              height: tileHeight,
-              child: _CurvedIconTile(
-                label: labelBuilder?.call(service) ?? service.name,
-                iconUrl: service.icon ?? '',
-                onTap: () async {
-                  await onTap(service.name);
-                },
-              ),
-            );
-          }),
-        );
-      },
+    const columns = 4;
+    final rows = <List<QuickActionService?>>[];
+    for (var i = 0; i < visibleItems.length; i += columns) {
+      final row = <QuickActionService?>[
+        ...visibleItems.skip(i).take(columns),
+      ];
+      while (row.length < columns) {
+        row.add(null);
+      }
+      rows.add(row);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var r = 0; r < rows.length; r++) ...[
+          if (r > 0) SizedBox(height: 12.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final service in rows[r])
+                Expanded(
+                  child: service == null
+                      ? const SizedBox.shrink()
+                      : Builder(
+                          builder: (context) {
+                            final spec = _iconSpecFor(service);
+                            return _CurvedIconTile(
+                              label: labelBuilder?.call(service) ??
+                                  service.name,
+                              iconUrl: service.icon ?? '',
+                              localIconAsset: spec.localAsset,
+                              iconWidth: spec.width,
+                              iconHeight: spec.height,
+                              iconTopOffset: spec.topOffset,
+                              showCardFrame: showCardFrame,
+                              onTap: () async {
+                                await onTap(service.name);
+                              },
+                            );
+                          },
+                        ),
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
+
+  _CreditCardIconSpec _iconSpecFor(QuickActionService service) {
+    final name = service.name.trim().toLowerCase();
+    if (name.contains('school')) {
+      return const _CreditCardIconSpec(
+        width: 34,
+        height: 34,
+        localAsset: 'assets/images/png/schoolfees.png',
+      );
+    }
+    if (name.contains('college')) {
+      return const _CreditCardIconSpec(
+        width: 26.72,
+        height: 35.15,
+        localAsset: 'assets/images/png/collegefees.png',
+      );
+    }
+    if (name.contains('tuition') || name.contains('tution')) {
+      return const _CreditCardIconSpec(
+        width: 32.33,
+        height: 34.21,
+        localAsset: 'assets/images/png/tuitionfees.png',
+      );
+    }
+    if (name.contains('gym')) {
+      return const _CreditCardIconSpec(
+        width: 30,
+        height: 30,
+        localAsset: 'assets/images/png/gymmembership.png',
+      );
+    }
+    if (name.contains('house rent') || name == 'house') {
+      return const _CreditCardIconSpec(
+        width: 28.5,
+        height: 24.65,
+        localAsset: 'assets/images/png/houserent.png',
+      );
+    }
+    if (name.contains('shop rent') || name == 'shop') {
+      return const _CreditCardIconSpec(
+        width: 28,
+        height: 24.45,
+        topOffset: 1.78,
+        localAsset: 'assets/images/png/shoprent.png',
+      );
+    }
+    if (name.contains('life')) {
+      return const _CreditCardIconSpec(width: 24.65, height: 30.26);
+    }
+    if (name.contains('health')) {
+      return const _CreditCardIconSpec(width: 26.5, height: 29.58);
+    }
+    if (name.contains('general')) {
+      return const _CreditCardIconSpec(width: 26.5, height: 28.78);
+    }
+    return const _CreditCardIconSpec(width: 28, height: 28);
+  }
+}
+
+class _CreditCardIconSpec {
+  const _CreditCardIconSpec({
+    required this.width,
+    required this.height,
+    this.topOffset = 0,
+    this.localAsset,
+  });
+
+  final double width;
+  final double height;
+  final double topOffset;
+  final String? localAsset;
 }
 
 class _CurvedIconTile extends StatelessWidget {
@@ -602,100 +695,186 @@ class _CurvedIconTile extends StatelessWidget {
     required this.label,
     required this.iconUrl,
     required this.onTap,
+    this.localIconAsset,
+    this.iconWidth = 28,
+    this.iconHeight = 28,
+    this.iconTopOffset = 0,
+    this.showCardFrame = true,
   });
 
   final String label;
   final String iconUrl;
+  final String? localIconAsset;
+  final double iconWidth;
+  final double iconHeight;
+  final double iconTopOffset;
   final VoidCallback onTap;
+  final bool showCardFrame;
 
   @override
   Widget build(BuildContext context) {
-    final labelWords = label.trim().split(RegExp(r'\s+'));
-    final isTwoWordLabel = labelWords.length == 2;
-    final displayLabel =
-        isTwoWordLabel ? '${labelWords.first}\n${labelWords.last}' : label;
+    final displayLabel = _capitalizeLabel(label.trim());
+    final iconSizeW = iconWidth.w;
+    final iconSizeH = iconHeight.w;
+    Widget iconWidget = localIconAsset != null
+        ? Image.asset(
+            localIconAsset!,
+            width: iconSizeW,
+            height: iconSizeH,
+            fit: BoxFit.contain,
+          )
+        : AppNetworkImage(
+            url: iconUrl,
+            width: iconSizeW,
+            height: iconSizeH,
+            fit: BoxFit.contain,
+            showShimmer: false,
+            errorWidget: Image.asset(
+              FileConstants.appLogo,
+              height: iconSizeH,
+              width: iconSizeW,
+              fit: BoxFit.contain,
+            ),
+          );
+    if (iconTopOffset != 0) {
+      iconWidget = Padding(
+        padding: EdgeInsets.only(top: iconTopOffset.w),
+        child: iconWidget,
+      );
+    }
+
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _creditCardIconCircle(iconWidget),
+        SizedBox(height: 10.h),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 2.w),
+          child: _creditCardIconLabel(displayLabel),
+        ),
+      ],
+    );
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8.r),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xffFAFAFA),
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: const Color(0xffEAEAEA)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14.r),
-          child: Stack(
-            children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Image.asset(
-                  FileConstants.bottomOrangeCurve,
-                  height: 8.h,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                ),
+      borderRadius: BorderRadius.circular(showCardFrame ? 8.r : 80.r),
+      child: showCardFrame
+          ? Container(
+              width: 89.w,
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: const Color(0xffFAFAFA),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: const Color(0xffEAEAEA)),
               ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(6.w, 10.h, 6.w, 8.h),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8.r),
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Container(
-                      height: 50.r,
-                      width: 50.r,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          center: Alignment.center,
-                          radius: 0.5,
-                          colors: [
-                            Color(0xFFF9F9F9),
-                            Color(0xFFF6F6F6),
-                          ],
-                        ),
-                      ),
-                      child: Center(
-                        child: AppNetworkImage(
-                          url: iconUrl,
-                          width: 26.r,
-                          height: 26.r,
-                          fit: BoxFit.contain,
-                          showShimmer: false,
-                          errorWidget: Image.asset(
-                            FileConstants.appLogo,
-                            height: 26.r,
-                            width: 26.r,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Image.asset(
+                        FileConstants.bottomOrangeCurve,
+                        height: 8.h,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
                       ),
                     ),
-                    SizedBox(height: 6.h),
-                    Flexible(
-                      child: Center(
-                        child: Text(
-                          displayLabel,
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.bodySmallSemibold(context),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
+                    content,
                   ],
                 ),
               ),
-            ],
-          ),
+            )
+          : SizedBox(
+              width: double.infinity,
+              child: content,
+            ),
+    );
+  }
+
+  Widget _creditCardIconCircle(Widget iconWidget) {
+    final size = 68.w;
+    return Container(
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: const Color(0xFFFFFFFF),
+          width: 2.w,
         ),
+        gradient: const RadialGradient(
+          center: Alignment(0, 0),
+          radius: 0.7868,
+          colors: [
+            Color(0xFFFFFFFF),
+            Color(0xFFEEF3FD),
+          ],
+          stops: [0.0, 1.0],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0xD9EEF3FD),
+            offset: Offset(0, 1),
+            blurRadius: 1,
+          ),
+          BoxShadow(
+            color: Color(0x80EEF3FD),
+            offset: Offset(0, 2),
+            blurRadius: 1,
+          ),
+          BoxShadow(
+            color: Color(0x26EEF3FD),
+            offset: Offset(0, 3),
+            blurRadius: 1,
+          ),
+          BoxShadow(
+            color: Color(0x05EEF3FD),
+            offset: Offset(0, 5),
+            blurRadius: 1,
+          ),
+        ],
+      ),
+      child: Center(child: iconWidget),
+    );
+  }
+
+  Widget _creditCardIconLabel(String label) {
+    final words = label.trim().split(RegExp(r'\s+'));
+    final last = words.isEmpty ? '' : words.last.toLowerCase();
+    final wrapsTwoLines = words.length == 2 &&
+        (last == 'insurance' || last == 'rent');
+    final text = wrapsTwoLines ? '${words[0]}\n${words[1]}' : label;
+    return Text(
+      text,
+      maxLines: wrapsTwoLines ? 2 : 1,
+      textAlign: TextAlign.center,
+      overflow: TextOverflow.ellipsis,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w600,
+        height: wrapsTwoLines ? 1.2 : 1,
+        letterSpacing: 0,
+        color: const Color(0xFF000000),
       ),
     );
+  }
+
+  String _capitalizeLabel(String input) {
+    if (input.isEmpty) return input;
+    return input
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .map(
+          (word) =>
+              '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+        )
+        .join(' ');
   }
 }
 
@@ -2010,6 +2189,40 @@ class _HomeContent extends HookConsumerWidget {
     final insuranceCategory = quickActions == null
         ? null
         : findCategory(quickActions, ['insurance', 'rent', 'property']);
+    bool isHouseOrShopRent(QuickActionService service) {
+      final name = service.name.trim().toLowerCase();
+      return name.contains('house rent') ||
+          name.contains('shop rent') ||
+          name == 'house rent' ||
+          name == 'shop rent';
+    }
+
+    final educationServices = [
+      ...(educationCategory?.services ?? const <QuickActionService>[]),
+      ...?insuranceCategory?.services.where(
+        (service) =>
+            isHouseOrShopRent(service) &&
+            !(educationCategory?.services ?? const []).any(
+              (existing) =>
+                  existing.name.trim().toLowerCase() ==
+                  service.name.trim().toLowerCase(),
+            ),
+      ),
+    ];
+    final insuranceServices = (insuranceCategory?.services ?? const [])
+        .where((service) => !isHouseOrShopRent(service))
+        .toList()
+      ..sort((a, b) {
+        int rank(String name) {
+          final n = name.toLowerCase();
+          if (n.contains('life')) return 0;
+          if (n.contains('health')) return 1;
+          if (n.contains('general')) return 2;
+          return 3;
+        }
+
+        return rank(a.name).compareTo(rank(b.name));
+      });
 
     final activeTopBanner = topBanners.isEmpty
         ? null
@@ -2070,8 +2283,8 @@ class _HomeContent extends HookConsumerWidget {
           ref.read(homeControllerProvider.notifier).fetchQuickActions(),
       onRestart: () => context.go(RouteConstants.splash),
       payBillsServices: payBillsCategory?.services ?? const [],
-      educationServices: educationCategory?.services ?? const [],
-      insuranceServices: insuranceCategory?.services ?? const [],
+      educationServices: educationServices,
+      insuranceServices: insuranceServices,
       onServiceTap: handleServiceTap,
       onMyBillsTap: () => context.push(RouteConstants.quickActions),
       onExploreUtilitiesTap: () => context.push(RouteConstants.homeSearchView),
@@ -2607,11 +2820,36 @@ class _HomeMainSections extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionHeader(title: 'Education & Lifestyle'),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'PAY VIA CREDIT CARD',
+                      textAlign: TextAlign.left,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6,
+                        color: AppColors.textPrimary.withOpacity(0.45),
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 12.h),
                   _CurvedIconGrid(
                     services: educationServices,
                     onTap: onServiceTap,
+                    maxItems: 8,
+                    showCardFrame: false,
+                    labelBuilder: (service) {
+                      final name = service.name.trim();
+                      final lower = name.toLowerCase();
+                      if (lower.contains('house rent')) {
+                        return 'House Rent';
+                      }
+                      if (lower.contains('shop rent')) {
+                        return 'Shop Rent';
+                      }
+                      return name;
+                    },
                   ),
                   SizedBox(height: middleBanners.isNotEmpty ? 0.h : 18.h),
                 ],
@@ -2665,29 +2903,39 @@ class _HomeMainSections extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 12.h),
+              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 8.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionHeader(
-                      title: 'Insurance & Rent', onAction: onMyBillsTap),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'INSURANCE',
+                      textAlign: TextAlign.left,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6,
+                        color: AppColors.textPrimary.withOpacity(0.45),
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 12.h),
                   _CurvedIconGrid(
                     services: insuranceServices,
                     onTap: onServiceTap,
+                    showCardFrame: false,
                     labelBuilder: (service) {
                       final name = service.name.trim();
                       final lower = name.toLowerCase();
+                      if (lower.contains('life')) return 'Life Insurance';
+                      if (lower.contains('health')) return 'Health Insurance';
+                      if (lower.contains('general')) return 'General Insurance';
                       if (lower.contains('insurance')) return name;
-                      if (lower == 'general' ||
-                          lower == 'health' ||
-                          lower == 'life') {
-                        return '$name Insurance';
-                      }
                       return name;
                     },
                   ),
-                  SizedBox(height: 14.h),
+                  SizedBox(height: 8.h),
                 ],
               ),
             ),

@@ -1,5 +1,6 @@
 package com.innoplix.erupaiya
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.Handler
@@ -52,6 +53,7 @@ class MainActivity: FlutterFragmentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         super.onCreate(savedInstanceState)
 //        val isDebuggable =
 //            (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0

@@ -111,9 +111,25 @@ class MobilePrepaidRepository {
       }
 
       final data = payload['data'];
-      if (data is Map<String, dynamic>) {
-        final info = MyNumberInfo.fromJson(data);
+      Map<String, dynamic>? dataMap;
+      if (data is Map) {
+        dataMap = Map<String, dynamic>.from(data);
+      } else if (data is List && data.isNotEmpty && data.first is Map) {
+        dataMap = Map<String, dynamic>.from(data.first as Map);
+      }
+      if (dataMap != null) {
+        final info = MyNumberInfo.fromJson(dataMap);
         if (info.number.trim().isNotEmpty) return info;
+        return MyNumberInfo(
+          number: number,
+          operatorName: info.operatorName,
+          operatorIcon: info.operatorIcon,
+          lastOn: info.lastOn,
+          dueLabel: info.dueLabel,
+          dueDate: info.dueDate,
+          dueStatus: info.dueStatus,
+          dueAmount: info.dueAmount,
+        );
       }
       return MyNumberInfo(number: number);
     } catch (e, stackTrace) {

@@ -1,5 +1,6 @@
 // import 'package:e_rupaiya/services/screen_security_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -22,6 +23,9 @@ import 'widgets/app_snackbar.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+  ]);
   FlutterNativeSplash.preserve(widgetsBinding: binding);
   // NoScreenshot.instance.screenshotOff();
   runApp(
@@ -86,6 +90,12 @@ class MyApp extends HookConsumerWidget {
       appLockService.init();
       // ScreenSecurityService.enableSecure();
       return appLockService.dispose;
+    }, const []);
+    useEffect(() {
+      SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+      ]);
+      return null;
     }, const []);
     useEffect(() {
       // Allows PushNotificationService to navigate after notification taps.

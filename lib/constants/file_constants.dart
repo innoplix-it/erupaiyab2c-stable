@@ -98,6 +98,7 @@ class FileConstants {
   static String quickAction = 'assets/images/png/home_icon/quick_action.png';
   static String agent = 'assets/images/png/home_icon/agent_icon.png';
   static String houseRent = 'assets/images/png/home_icon/house_rent.png';
+  static String shopRent = 'assets/images/png/shoprent.png';
   static String tutionFees = 'assets/images/png/home_icon/tutionFees.png';
   static String blueArrow = 'assets/images/png/home_icon/blue_arrow.png';
   static String schoolFees = 'assets/images/png/home_icon/schoolFees.png';
@@ -173,6 +174,7 @@ class FileConstants {
   static String spincoin = 'assets/images/png/home_icon/spincoin.png';
   static String digitalsGold = 'assets/images/png/home_icon/digital_gold.png';
   static String homeBanner2 = 'assets/images/png/home_icon/home_banner2.png';
+  static String mobileRecharge = 'assets/images/png/mobilerecharge.png';
   static String somethingWentWrong = 'assets/images/png/home_icon/swg.png';
   static String errorBanner = 'assets/images/png/home_icon/error_banner.png';
   static String goldArrow = 'assets/images/png/home_icon/gold_arrow.png';

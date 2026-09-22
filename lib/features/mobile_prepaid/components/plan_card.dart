@@ -84,7 +84,7 @@ class PlanCard extends StatelessWidget {
                   if (plan.description.trim().isNotEmpty) ...[
                     Text(
                       plan.description,
-                      maxLines: 2,
+                      maxLines: 8,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w400,
@@ -112,8 +112,8 @@ class PlanCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       SizedBox(
-                        width: 183.w,
-                        height: 43.h,
+                        width: 114.w,
+                        height: 32.h,
                         child: _PlanPayNowButton(
                           onTap: onPayNow ?? onTap,
                         ),
@@ -381,17 +381,17 @@ class _PlanPayNowButton extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(horizontal: 10.w),
+        padding: EdgeInsets.symmetric(horizontal: 4.w),
         decoration: BoxDecoration(
           color: const Color(0xFFDD5428),
           borderRadius: BorderRadius.circular(82.r),
         ),
         child: Text(
           'Pay Now',
-          style: GoogleFonts.bricolageGrotesque(
+          style: GoogleFonts.plusJakartaSans(
             color: Colors.white,
             fontWeight: FontWeight.w600,
-            fontSize: 14.sp,
+            fontSize: 12.sp,
             height: 1,
           ),
         ),

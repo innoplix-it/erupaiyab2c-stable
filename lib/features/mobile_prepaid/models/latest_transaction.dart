@@ -14,6 +14,7 @@ class LatestTransaction {
     this.expiresAt,
     this.dueDate,
     this.transactionTime,
+    this.daysLeft,
   });
 
   final String id;
@@ -30,6 +31,7 @@ class LatestTransaction {
   final String? expiresAt;
   final String? dueDate;
   final String? transactionTime;
+  final int? daysLeft;
 
   factory LatestTransaction.fromJson(Map<String, dynamic> json) {
     return LatestTransaction(
@@ -47,11 +49,25 @@ class LatestTransaction {
           (json['service_no_full'] ?? json['serviceNoFull'])?.toString(),
       icon: (json['icon'] ?? '').toString(),
       createdAt: json['created_at']?.toString(),
-      expiresAt: json['expires_at']?.toString(),
+      expiresAt: (json['expires_at'] ??
+              json['expiry_date'] ??
+              json['expire_date'] ??
+              json['valid_till'] ??
+              json['next_due'] ??
+              json['nextDue'])
+          ?.toString(),
       dueDate: json['due_date']?.toString(),
       transactionTime: json['transaction_time']?.toString(),
+      daysLeft: _parseDaysLeft(json['days_left'] ?? json['daysLeft']),
     );
   }
 
   bool get isSuccess => status.trim().toLowerCase() == 'success';
+
+  static int? _parseDaysLeft(Object? value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.round();
+    return int.tryParse(value.toString().trim());
+  }
 }

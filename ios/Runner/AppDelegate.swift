@@ -40,6 +40,13 @@ import UserNotifications
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  override func application(
+    _ application: UIApplication,
+    supportedInterfaceOrientationsFor window: UIWindow?
+  ) -> UIInterfaceOrientationMask {
+    return .portrait
+  }
+
   private func setSecureOverlay(enabled: Bool) {
     guard let window = window else { return }
     let tag = 99999
