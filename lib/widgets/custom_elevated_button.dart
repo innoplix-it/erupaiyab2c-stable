@@ -83,8 +83,7 @@ class CustomElevatedButton extends StatelessWidget {
                 : MainAxisAlignment.center,
             children: [
               if (isLoading && !showArrow) ...[
-                SizedBox(
-                  height: 16.h,
+                SizedBox(height: 16.h,
                   width: 16.h,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
@@ -106,10 +105,10 @@ class CustomElevatedButton extends StatelessWidget {
                 ),
               ),
               if (showArrow) ...[
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 Icon(
                   Icons.arrow_forward_rounded,
-                  size: 20,
+                  size: 20.r,
                   color: labelColor ?? AppColors.white,
                 ),
               ],

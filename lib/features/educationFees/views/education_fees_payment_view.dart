@@ -205,7 +205,7 @@ class EducationFeesPaymentView extends HookConsumerWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
+              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 20.h),
               child: showPayNow
                   ? CustomElevatedButton(
                       onPressed: openSummary,
@@ -245,8 +245,8 @@ class _PayingToCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            blurRadius: 16.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -337,8 +337,7 @@ class _CardListSection extends StatelessWidget {
     final response = cardsFuture.data;
     final cards = response?.cards ?? const <EducationCard>[];
     if (cards.isEmpty) {
-      return SizedBox(
-        height: 260.h,
+      return SizedBox(height: 260.h,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -381,8 +380,8 @@ class _CardListSection extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -484,8 +483,7 @@ class _CardListSection extends StatelessWidget {
                       ),
                 ),
               ),
-              SizedBox(
-                height: 36.h,
+              SizedBox(height: 36.h,
                 child: ElevatedButton(
                   onPressed: onViewAndPay,
                   style: ElevatedButton.styleFrom(

@@ -336,7 +336,7 @@ class _ConsentNote extends StatelessWidget {
                   color: Colors.black,
                   height: 1.4,
                   fontWeight: FontWeight.w500,
-                  fontSize: 10),
+                  fontSize: 10.sp),
             ),
           ),
         ],

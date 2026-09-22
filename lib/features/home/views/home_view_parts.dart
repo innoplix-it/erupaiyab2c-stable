@@ -10,10 +10,10 @@ class _Dot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: active ? 14 : 8,
-      height: 8,
+      height: 8.h,
       decoration: BoxDecoration(
         color: active ? AppColors.primary : AppColors.lightBorder,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
       ),
     );
   }
@@ -72,22 +72,22 @@ class _HeaderIconButton extends StatelessWidget {
                 top: 6,
                 right: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 2,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 5.w,
+                    vertical: 2.h,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade600,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     border: Border.all(color: Colors.white, width: 1),
                   ),
                   constraints: const BoxConstraints(minWidth: 16),
                   child: Text(
                     (badgeCount ?? 0) > 9 ? '9+' : '${badgeCount ?? 0}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: 9.sp,
                       fontWeight: FontWeight.w700,
                       height: 1.1,
                       decoration: TextDecoration.none,
@@ -107,13 +107,13 @@ class _PagerDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _Dot(active: true),
-        SizedBox(width: 6),
+        SizedBox(width: 6.w),
         _Dot(active: false),
-        SizedBox(width: 6),
+        SizedBox(width: 6.w),
         _Dot(active: false),
       ],
     );
@@ -201,9 +201,9 @@ class _BottomIconWithBadge extends StatelessWidget {
                   right: 0,
                   top: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 3,
-                      vertical: 0,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 3.w,
+                      vertical: 0.h,
                     ),
                     constraints: const BoxConstraints(
                       minWidth: 14,
@@ -211,7 +211,7 @@ class _BottomIconWithBadge extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.red.shade600,
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.circular(7.r),
                       border: Border.all(
                         color: Colors.white,
                         width: 1,
@@ -221,9 +221,9 @@ class _BottomIconWithBadge extends StatelessWidget {
                     child: Text(
                       unreadCount > 9 ? '9+' : '$unreadCount',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 8,
+                        fontSize: 8.sp,
                         fontWeight: FontWeight.w700,
                         height: 1,
                         decoration: TextDecoration.none,
@@ -429,11 +429,11 @@ class _HomeCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 14,
-            offset: Offset(0, 8),
+            blurRadius: 14.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -621,58 +621,58 @@ class _CurvedIconGrid extends StatelessWidget {
   _CreditCardIconSpec _iconSpecFor(QuickActionService service) {
     final name = service.name.trim().toLowerCase();
     if (name.contains('school')) {
-      return const _CreditCardIconSpec(
-        width: 34,
-        height: 34,
+      return _CreditCardIconSpec(
+        width: 34.r,
+        height: 34.r,
         localAsset: 'assets/images/png/schoolfees.png',
       );
     }
     if (name.contains('college')) {
-      return const _CreditCardIconSpec(
-        width: 26.72,
-        height: 35.15,
+      return _CreditCardIconSpec(
+        width: 26.72.w,
+        height: 35.15.h,
         localAsset: 'assets/images/png/collegefees.png',
       );
     }
     if (name.contains('tuition') || name.contains('tution')) {
-      return const _CreditCardIconSpec(
-        width: 32.33,
-        height: 34.21,
+      return _CreditCardIconSpec(
+        width: 32.33.w,
+        height: 34.21.h,
         localAsset: 'assets/images/png/tuitionfees.png',
       );
     }
     if (name.contains('gym')) {
-      return const _CreditCardIconSpec(
-        width: 30,
-        height: 30,
+      return _CreditCardIconSpec(
+        width: 30.r,
+        height: 30.r,
         localAsset: 'assets/images/png/gymmembership.png',
       );
     }
     if (name.contains('house rent') || name == 'house') {
-      return const _CreditCardIconSpec(
-        width: 28.5,
-        height: 24.65,
+      return _CreditCardIconSpec(
+        width: 28.5.w,
+        height: 24.65.h,
         localAsset: 'assets/images/png/houserent.png',
       );
     }
     if (name.contains('shop rent') || name == 'shop') {
-      return const _CreditCardIconSpec(
-        width: 28,
-        height: 24.45,
+      return _CreditCardIconSpec(
+        width: 28.w,
+        height: 24.45.h,
         topOffset: 1.78,
         localAsset: 'assets/images/png/shoprent.png',
       );
     }
     if (name.contains('life')) {
-      return const _CreditCardIconSpec(width: 24.65, height: 30.26);
+      return _CreditCardIconSpec(width: 24.65.w, height: 30.26.h);
     }
     if (name.contains('health')) {
-      return const _CreditCardIconSpec(width: 26.5, height: 29.58);
+      return _CreditCardIconSpec(width: 26.5.w, height: 29.58.h);
     }
     if (name.contains('general')) {
-      return const _CreditCardIconSpec(width: 26.5, height: 28.78);
+      return _CreditCardIconSpec(width: 26.5.w, height: 28.78.h);
     }
-    return const _CreditCardIconSpec(width: 28, height: 28);
+    return _CreditCardIconSpec(width: 28.w, height: 28.h);
   }
 }
 
@@ -805,10 +805,10 @@ class _CurvedIconTile extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: const Color(0xFFFFFFFF),
+          color: Color(0xFFFFFFFF),
           width: 2.w,
         ),
-        gradient: const RadialGradient(
+        gradient: RadialGradient(
           center: Alignment(0, 0),
           radius: 0.7868,
           colors: [
@@ -817,26 +817,26 @@ class _CurvedIconTile extends StatelessWidget {
           ],
           stops: [0.0, 1.0],
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Color(0xD9EEF3FD),
-            offset: Offset(0, 1),
-            blurRadius: 1,
+            offset: Offset(0.w, 1.h),
+            blurRadius: 1.r,
           ),
           BoxShadow(
             color: Color(0x80EEF3FD),
-            offset: Offset(0, 2),
-            blurRadius: 1,
+            offset: Offset(0.w, 2.h),
+            blurRadius: 1.r,
           ),
           BoxShadow(
             color: Color(0x26EEF3FD),
-            offset: Offset(0, 3),
-            blurRadius: 1,
+            offset: Offset(0.w, 3.h),
+            blurRadius: 1.r,
           ),
           BoxShadow(
             color: Color(0x05EEF3FD),
-            offset: Offset(0, 5),
-            blurRadius: 1,
+            offset: Offset(0.w, 5.h),
+            blurRadius: 1.r,
           ),
         ],
       ),
@@ -1073,9 +1073,9 @@ class _PromoStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(10),
-        bottomLeft: Radius.circular(10),
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(10.r),
+        bottomLeft: Radius.circular(10.r),
       ),
       child: Image.asset(
         asset,
@@ -1227,8 +1227,7 @@ class _InvestmentTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SizedBox(
-            height: 20.r,
+          SizedBox(height: 20.r,
             width: 20.r,
             child: Image.asset(
               iconAsset,
@@ -1247,8 +1246,7 @@ class _InvestmentTile extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(
-            height: 22.r,
+          SizedBox(height: 22.r,
             width: 22.r,
             child: Image.asset(
               arrowAsset,
@@ -1268,9 +1266,7 @@ class _ImageBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cacheWidth = (MediaQuery.sizeOf(context).width *
-            MediaQuery.devicePixelRatioOf(context))
-        .round();
+    final cacheWidth = (1.sw * MediaQuery.devicePixelRatioOf(context)).round();
     return Image.asset(
       asset,
       height: height,
@@ -1310,18 +1306,18 @@ class InsuranceBannerCarousel extends HookWidget {
     return Stack(
       children: [
         SizedBox(
-          // height: 128,
+          // height: 128.h,
           child: PageView.builder(
             controller: controller,
             itemCount: total,
             onPageChanged: (index) => currentIndex.value = index,
             itemBuilder: (context, index) {
               if (isLoading || banners.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: AppNetworkImage(
                     url: '',
-                    // height: 128,
+                    // height: 128.h,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
@@ -1330,7 +1326,7 @@ class InsuranceBannerCarousel extends HookWidget {
 
               final banner = banners[index];
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: GestureDetector(
                   onTap: () => BannerRedirectMapper.handle(
                     context,
@@ -1491,8 +1487,7 @@ class _InsuranceBannerItem extends StatelessWidget {
           SizedBox(width: 8.w),
 
           /// RIGHT IMAGE
-          SizedBox(
-            height: 96.h,
+          SizedBox(height: 96.h,
             width: 120.w,
             child: Image.asset(
               image,
@@ -1587,8 +1582,7 @@ class _InsuranceBanner extends StatelessWidget {
                           size: 12.r,
                           color: Colors.white,
                         ),
-                        SizedBox(
-                          height: 10.h,
+                        SizedBox(height: 10.h,
                         )
                       ],
                     ),
@@ -1598,8 +1592,7 @@ class _InsuranceBanner extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          SizedBox(
-            height: 96.h,
+          SizedBox(height: 96.h,
             width: 120.w,
             child: Image.asset(
               FileConstants.homeBannerGif,
@@ -1696,11 +1689,11 @@ class _MiniActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12.r),
           gradient: gradientBorder,
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: Color(0x0D000000),
-              blurRadius: 6,
-              offset: Offset(0, 4),
+              blurRadius: 6.r,
+              offset: Offset(0.w, 4.h),
             ),
           ],
         ),
@@ -1718,7 +1711,7 @@ class _MiniActionCard extends StatelessWidget {
           ),
           margin: gradientBorder == null
               ? EdgeInsets.zero
-              : const EdgeInsets.all(0.5),
+              : EdgeInsets.all(0.5.w),
           child: Row(
             children: [
               Image.asset(asset,
@@ -1821,7 +1814,7 @@ class _HomeContent extends HookConsumerWidget {
     final homeRepository = useMemoized(HomeRepository.new);
     final hasInternet = ref.watch(connectivityStatusProvider).value ?? true;
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final screenWidth = MediaQuery.sizeOf(context).width;
+    final screenWidth = 1.sw;
     final bannerCacheWidth = (screenWidth * devicePixelRatio).round();
 
     final didShowCompleteProfile = useRef(false);
@@ -2729,10 +2722,10 @@ class _HomeMainSections extends StatelessWidget {
             topLeft: Radius.circular(18.r),
             topRight: Radius.circular(18.r),
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 20,
+              blurRadius: 20.r,
               offset: Offset(0, -10),
             ),
           ],
@@ -2740,7 +2733,7 @@ class _HomeMainSections extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 2),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2795,8 +2788,7 @@ class _HomeMainSections extends StatelessWidget {
               SizedBox(height: 18.h),
               InkWell(
                 onTap: onBankingBannerTap,
-                child: SizedBox(
-                  height: 60.h,
+                child: SizedBox(height: 60.h,
                   width: double.infinity,
                   child: PageView.builder(
                     controller: bankingBannerController,
@@ -2818,7 +2810,7 @@ class _HomeMainSections extends StatelessWidget {
               ),
             ],
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 0),
+              padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 0.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2865,8 +2857,7 @@ class _HomeMainSections extends StatelessWidget {
                   if (middleBanners.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12.r),
-                      child: SizedBox(
-                        height: 110.h,
+                      child: SizedBox(height: 110.h,
                         child: PageView.builder(
                           controller: middleBannerController,
                           onPageChanged: onMiddleBannerPageChanged,
@@ -2949,7 +2940,7 @@ class _HomeMainSections extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
+              padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0.h),
               child: Column(
                 children: [
                   Row(
@@ -3266,8 +3257,8 @@ class _HomeReminderDialog extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.08),
-                    blurRadius: 14,
-                    offset: const Offset(0, 7),
+                    blurRadius: 14.r,
+                    offset: Offset(0.w, 7.h),
                   ),
                 ],
               ),

@@ -91,8 +91,8 @@ class ContactsList extends StatelessWidget {
                 if (phone.isNotEmpty)
                   Image.asset(
                     FileConstants.tiltArrow,
-                    width: 18.w,
-                    height: 18.h,
+                    width: 18.r,
+                    height: 18.r,
                     fit: BoxFit.contain,
                   ),
               ],

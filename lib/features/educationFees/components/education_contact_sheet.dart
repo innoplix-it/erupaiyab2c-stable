@@ -176,11 +176,11 @@ class _PermissionEmptyState extends StatelessWidget {
             color: AppColors.primary.withOpacity(0.08),
             shape: BoxShape.circle,
           ),
-          child: const Center(
+          child: Center(
             child: Icon(
               Icons.phone_in_talk_outlined,
               color: AppColors.primary,
-              size: 58,
+              size: 58.r,
             ),
           ),
         ),

@@ -95,7 +95,7 @@ class MobileRecentRechargesView extends HookConsumerWidget {
                       ),
                       // New recharge button
                       Padding(
-                        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+                        padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 24.h),
                         child: SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -106,8 +106,8 @@ class MobileRecentRechargesView extends HookConsumerWidget {
                                   .reset();
                               context.push(RouteConstants.mobilePrepaid);
                             },
-                            icon: const Icon(Icons.add,
-                                color: AppColors.primary, size: 20),
+                            icon: Icon(Icons.add,
+                                color: AppColors.primary, size: 20.r),
                             label: const Text(
                               'Recharge a New Number',
                               style: TextStyle(
@@ -162,11 +162,11 @@ class _RechargeCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(color: AppColors.lightBorder),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: AppColors.cardShadow,
-                blurRadius: 14,
-                offset: Offset(0, 6),
+                blurRadius: 14.r,
+                offset: Offset(0.w, 6.h),
               ),
             ],
           ),

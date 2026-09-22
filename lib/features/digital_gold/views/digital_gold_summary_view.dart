@@ -217,8 +217,7 @@ class DigitalGoldSummaryView extends HookConsumerWidget {
                             ),
                       ),
                     ),
-                    SizedBox(
-                      width: 58.w,
+                    SizedBox(width: 58.w,
                       child: TextField(
                         controller: walletController,
                         keyboardType: TextInputType.number,
@@ -283,8 +282,8 @@ class DigitalGoldSummaryView extends HookConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle,
-                          size: 18, color: Colors.black),
+                      Icon(Icons.check_circle,
+                          size: 18.r, color: Colors.black),
                       SizedBox(width: 10.w),
                       Expanded(
                         child: RichText(
@@ -464,16 +463,16 @@ class _FeatureRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Image.asset(
             FileConstants.resetPinIcon,
-            width: 30,
-            height: 30,
+            width: 30.r,
+            height: 30.r,
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,7 +485,7 @@ class _FeatureRow extends StatelessWidget {
                       ),
                 ),
                 if (showSubtitle && subtitle.trim().isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(

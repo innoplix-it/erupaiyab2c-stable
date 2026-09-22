@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CustomTextField extends StatelessWidget {
   final String? labelText;
@@ -62,7 +63,7 @@ class CustomTextField extends StatelessWidget {
   }
 
   InputDecoration _inputDecoration() {
-    final radius = borderRadius ?? BorderRadius.circular(8.0);
+    final radius = borderRadius ?? BorderRadius.circular(8.0.r);
     final border = showBorder
         ? OutlineInputBorder(borderRadius: radius)
         : InputBorder.none;

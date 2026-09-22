@@ -25,7 +25,7 @@ class CreditCardPayNowOptionCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12.r),
       child: Container(
-        height: 90,
+        height: 90.h,
         padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
           color: Colors.white,

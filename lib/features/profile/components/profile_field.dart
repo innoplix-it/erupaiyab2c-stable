@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileField extends StatelessWidget {
   const ProfileField({
@@ -43,21 +44,21 @@ class ProfileField extends StatelessWidget {
             fillColor:
                 enabled ? Colors.white : AppColors.lightBorder.withOpacity(0.3),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               borderSide: const BorderSide(color: AppColors.primary),
             ),
           ),
@@ -71,13 +72,13 @@ class ProfileField extends StatelessWidget {
         ),
         if (trailingText != null || trailingIcon != null)
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: EdgeInsets.only(right: 16.w),
             child: GestureDetector(
               onTap: onTrailingTap,
               child: trailingIcon != null
                   ? Icon(
                       trailingIcon,
-                      size: 18,
+                      size: 18.r,
                       color: AppColors.primary,
                     )
                   : Text(
@@ -102,7 +103,7 @@ class ProfileField extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.h),
         if (onTap == null)
           field
         else

@@ -186,8 +186,7 @@ class _CompleteKycViewState extends State<CompleteKycView> {
                   left: 16.w,
                   right: 16.w,
                   bottom: 16.h,
-                  child: SizedBox(
-                    height: 42.h,
+                  child: SizedBox(height: 42.h,
                     child: InkWell(
                       onTap: () {
                         Navigator.of(context).push(

@@ -51,8 +51,7 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(
-          width: 80.w,
+        SizedBox(width: 80.w,
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

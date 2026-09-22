@@ -32,14 +32,14 @@ class PlanDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final dataValue = extractPlanDataValue(plan);
     final benefits = plan.additionalBenefits;
-    final maxHeight = MediaQuery.of(context).size.height * 0.82;
+    final maxHeight = 0.82.sh;
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return SizedBox(
       height: maxHeight,
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0.h),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

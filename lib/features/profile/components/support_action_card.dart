@@ -30,11 +30,11 @@ class SupportActionCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18.r),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 16,
-            offset: Offset(0, 8),
+            blurRadius: 16.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),

@@ -15,7 +15,7 @@ class MobilePrepaidShimmer extends StatelessWidget {
         children: [
           const _ShimmerAppBar(),
           SizedBox(height: 20.h),
-          const SizedBox(height: 36),
+          SizedBox(height: 36.h),
           Expanded(
             child: ListView(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
@@ -24,8 +24,7 @@ class MobilePrepaidShimmer extends StatelessWidget {
                 SizedBox(height: 18.h),
                 _ShimmerLine(width: 140.w, height: 16.h),
                 SizedBox(height: 14.h),
-                SizedBox(
-                  height: 150.h,
+                SizedBox(height: 150.h,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: 3,
@@ -65,8 +64,7 @@ class MobilePrepaidContentShimmer extends StatelessWidget {
           SizedBox(height: 18.h),
           _ShimmerLine(width: 140.w, height: 16.h),
           SizedBox(height: 14.h),
-          SizedBox(
-            height: 150.h,
+          SizedBox(height: 150.h,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 3,
@@ -172,8 +170,7 @@ class _ShimmerAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 175,
+    return SizedBox(height: 175.h,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -184,11 +181,11 @@ class _ShimmerAppBar extends StatelessWidget {
               bottom: false,
               child: Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                 child: Row(
                   children: [
                     _ShimmerCircle(size: 34.r),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8.w),
                     _ShimmerLine(width: 160.w, height: 16.h),
                     const Spacer(),
                     _ShimmerLine(width: 46.w, height: 12.h),
@@ -207,11 +204,11 @@ class _ShimmerAppBar extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(color: AppColors.lightBorder),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
                     color: AppColors.cardShadow,
-                    blurRadius: 12,
-                    offset: Offset(0, 8),
+                    blurRadius: 12.r,
+                    offset: Offset(0.w, 8.h),
                   ),
                 ],
               ),
@@ -255,11 +252,11 @@ class _SuggestedPlanCardShimmer extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 3,
-            offset: Offset(0, 2),
+            blurRadius: 3.r,
+            offset: Offset(0.w, 2.h),
           ),
         ],
       ),
@@ -287,8 +284,7 @@ class _CategoryTabsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 38.h,
+    return SizedBox(height: 38.h,
       child: Row(
         children: [
           _ShimmerLine(width: 60.w, height: 12.h),
@@ -312,11 +308,11 @@ class _PlanCardShimmer extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: AppColors.lightBorder, width: 1.2),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 12,
-            offset: Offset(0, 8),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),

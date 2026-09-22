@@ -40,11 +40,11 @@ class _CardShimmer extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.lightBorder, width: 1.2),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 10,
-            offset: Offset(0, 6),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -203,7 +203,7 @@ class _ShimmerLine extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
     );
   }

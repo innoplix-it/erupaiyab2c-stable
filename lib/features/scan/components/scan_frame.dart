@@ -62,11 +62,11 @@ class _ScanFramePainter extends CustomPainter {
     // Top-left
     canvas.drawLine(
       const Offset(0, cornerLength),
-      const Offset(0, 0),
+      Offset(0.w, 0.h),
       cornerPaint,
     );
     canvas.drawLine(
-      const Offset(0, 0),
+      Offset(0.w, 0.h),
       const Offset(cornerLength, 0),
       cornerPaint,
     );

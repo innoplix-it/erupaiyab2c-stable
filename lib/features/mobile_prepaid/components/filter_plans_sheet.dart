@@ -84,14 +84,14 @@ class _FilterPlansSheetState extends State<FilterPlansSheet> {
                 if (selected.isEmpty) selected.add(_allLabel);
               });
             },
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(6.r),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
               decoration: BoxDecoration(
                 color: selected.contains(option)
                     ? AppColors.primary.withOpacity(0.1)
                     : Colors.white,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(6.r),
                 border: Border.all(
                   color: selected.contains(option)
                       ? AppColors.primary.withOpacity(0.35)
@@ -121,9 +121,9 @@ class _FilterPlansSheetState extends State<FilterPlansSheet> {
       top: false,
       child: Container(
         padding: EdgeInsets.fromLTRB(18.w, 16.h, 18.w, 18.h),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

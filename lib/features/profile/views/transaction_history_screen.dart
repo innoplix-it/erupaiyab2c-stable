@@ -131,8 +131,7 @@ class _TransactionHistoryScreenState
                                     ),
                                   ),
                                   SizedBox(width: 10.w),
-                                  SizedBox(
-                                    height: 46.h,
+                                  SizedBox(height: 46.h,
                                     width: 46.h,
                                     child: IconButton(
                                       onPressed: () {
@@ -851,9 +850,9 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -953,8 +952,7 @@ class _TransactionEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 100.w,
+            SizedBox(width: 100.w,
               height: 100.w,
               child: DecoratedBox(
                 decoration: BoxDecoration(

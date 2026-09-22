@@ -235,7 +235,7 @@ class _TransactionFilterScreenState extends State<TransactionFilterScreen> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 16.h),
               child: SizedBox(
                 width: double.infinity,
                 height: 40.h,
@@ -372,7 +372,7 @@ class _MonthCheck extends StatelessWidget {
               color: selected ? AppColors.primary : Colors.white,
             ),
             child: selected
-                ? const Icon(Icons.check, size: 12, color: Colors.white)
+                ? Icon(Icons.check, size: 12.r, color: Colors.white)
                 : null,
           ),
           SizedBox(width: 6.w),

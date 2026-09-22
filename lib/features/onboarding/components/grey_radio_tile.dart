@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class GreyRadioTile extends StatelessWidget {
   const GreyRadioTile({
@@ -22,24 +23,24 @@ class GreyRadioTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(18.r),
       child: Container(
-        height: 82,
-        padding: const EdgeInsets.symmetric(horizontal: 0),
+        height: 82.h,
+        padding: EdgeInsets.symmetric(horizontal: 0.w),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(18.r),
           border: Border.all(
             color: isSelected
                 ? AppColors.primary.withOpacity(0.55)
                 : AppColors.lightBorder,
             width: 1.4,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 18,
-              offset: Offset(0, 8),
+              blurRadius: 18.r,
+              offset: Offset(0.w, 8.h),
             ),
           ],
         ),
@@ -51,18 +52,18 @@ class GreyRadioTile extends StatelessWidget {
                 top: 0,
                 bottom: 0,
                 child: Container(
-                  width: 104,
-                  decoration: const BoxDecoration(
+                  width: 104.w,
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [AppColors.primary, AppColors.primaryDark],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
                     borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(18),
-                      bottomRight: Radius.circular(18),
-                      topLeft: Radius.circular(64),
-                      bottomLeft: Radius.circular(64),
+                      topRight: Radius.circular(18.r),
+                      bottomRight: Radius.circular(18.r),
+                      topLeft: Radius.circular(64.r),
+                      bottomLeft: Radius.circular(64.r),
                     ),
                   ),
                   child: Center(child: trailingIcon),
@@ -70,13 +71,13 @@ class GreyRadioTile extends StatelessWidget {
               ),
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 26,
-                      height: 26,
+                      width: 26.r,
+                      height: 26.r,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
@@ -87,7 +88,7 @@ class GreyRadioTile extends StatelessWidget {
                       ),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
-                        margin: const EdgeInsets.all(6),
+                        margin: EdgeInsets.all(6.w),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppColors.primary
@@ -96,7 +97,7 @@ class GreyRadioTile extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14.w),
                     Expanded(
                       child: Text(
                         title,
@@ -107,7 +108,7 @@ class GreyRadioTile extends StatelessWidget {
                                 ),
                       ),
                     ),
-                    const SizedBox(width: 110),
+                    SizedBox(width: 110.w),
                   ],
                 ),
               ),

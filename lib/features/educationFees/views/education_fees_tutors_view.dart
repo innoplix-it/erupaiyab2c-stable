@@ -153,8 +153,8 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 6),
+                          blurRadius: 10.r,
+                          offset: Offset(0.w, 6.h),
                         ),
                       ],
                     ),
@@ -174,8 +174,7 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                             ),
-                            SizedBox(
-                              height: 30.h,
+                            SizedBox(height: 30.h,
                               child: ElevatedButton(
                                 onPressed: () {
                                   expandedIndex.value =
@@ -251,7 +250,7 @@ class EducationFeesTutorsView extends HookConsumerWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
+              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 20.h),
               child: CustomElevatedButton(
                 onPressed: () =>
                     context.push(RouteConstants.educationFeesRecipient),

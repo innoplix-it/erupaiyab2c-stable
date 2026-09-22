@@ -22,8 +22,7 @@ class _GoldPortfolioTabState extends State<_GoldPortfolioTab> {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          SizedBox(
-            height: 420.h,
+          SizedBox(height: 420.h,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -73,8 +72,8 @@ class _GoldPortfolioTabState extends State<_GoldPortfolioTab> {
                                   children: [
                                     Image.asset(
                                       FileConstants.liveSignal,
-                                      width: 12.w,
-                                      height: 12.h,
+                                      width: 12.r,
+                                      height: 12.r,
                                     ),
                                     SizedBox(width: 6.w),
                                     Text(
@@ -237,8 +236,7 @@ class _GoldPortfolioTabState extends State<_GoldPortfolioTab> {
         padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 14.h),
         child: SafeArea(
           top: false,
-          child: SizedBox(
-            height: 40.h,
+          child: SizedBox(height: 40.h,
             child: ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
@@ -323,8 +321,8 @@ class _InfoTile extends StatelessWidget {
                   if (value != null)
                     Text(
                       value!,
-                      style: const TextStyle(
-                        fontSize: 24,
+                      style: TextStyle(
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
@@ -413,8 +411,8 @@ class _IncreaseSipAmountCard extends StatelessWidget {
                       ),
                       Image.asset(
                         FileConstants.righTrack,
-                        width: 55.w,
-                        height: 55.h,
+                        width: 55.r,
+                        height: 55.r,
                         fit: BoxFit.contain,
                       ),
                       SizedBox(width: 12.w),
@@ -565,8 +563,7 @@ class _ManageSavingsCard extends StatelessWidget {
           SizedBox(height: 12.h),
           _RowItem(
             label: 'Pause Daily Saving',
-            trailing: SizedBox(
-              height: 28.h,
+            trailing: SizedBox(height: 28.h,
               child: OutlinedButton(
                 onPressed: onPause,
                 style: OutlinedButton.styleFrom(
@@ -590,8 +587,7 @@ class _ManageSavingsCard extends StatelessWidget {
           SizedBox(height: 10.h),
           _RowItem(
             label: 'Stop Daily Saving',
-            trailing: SizedBox(
-              height: 28.h,
+            trailing: SizedBox(height: 28.h,
               child: OutlinedButton(
                 onPressed: onStop,
                 style: OutlinedButton.styleFrom(
@@ -982,7 +978,7 @@ class _SipPausedSuccessView extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: Color(0xFF0B8A3B),
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 36),
+                child: Icon(Icons.check, color: Colors.white, size: 36.r),
               ),
               SizedBox(height: 16.h),
               Text(

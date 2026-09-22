@@ -367,11 +367,11 @@ class LoginView extends HookConsumerWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28.r),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 30,
-              offset: Offset(0, 14),
+              blurRadius: 30.r,
+              offset: Offset(0.w, 14.h),
             ),
           ],
         ),
@@ -561,9 +561,9 @@ class LoginView extends HookConsumerWidget {
                 color: AppColors.primary.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.redeem,
-                size: 14,
+                size: 14.r,
                 color: AppColors.primary,
               ),
             ),
@@ -636,11 +636,11 @@ class LoginView extends HookConsumerWidget {
                   children: [
                     Container(
                       height: headerHeight,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: AppColors.authBackgroundGradient,
                         borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(20),
+                          bottomLeft: Radius.circular(20.r),
+                          bottomRight: Radius.circular(20.r),
                         ),
                       ),
                     ),
@@ -684,8 +684,8 @@ class LoginView extends HookConsumerWidget {
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.12),
-                                  blurRadius: 18,
-                                  offset: const Offset(0, 10),
+                                  blurRadius: 18.r,
+                                  offset: Offset(0.w, 10.h),
                                 ),
                               ],
                             ),

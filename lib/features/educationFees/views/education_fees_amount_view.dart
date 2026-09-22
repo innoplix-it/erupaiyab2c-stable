@@ -144,8 +144,8 @@ class EducationFeesAmountView extends HookConsumerWidget {
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 6),
+                                  blurRadius: 10.r,
+                                  offset: Offset(0.w, 6.h),
                                 ),
                               ],
                             ),
@@ -178,7 +178,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
                     ),
                     SizedBox(height: 36.h),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 24.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -241,8 +241,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                         ),
                                       ),
                                       SizedBox(width: 4.w),
-                                      SizedBox(
-                                        width: 140.w,
+                                      SizedBox(width: 140.w,
                                         child: TextField(
                                           controller: amountController,
                                           focusNode: amountFocusNode,
@@ -296,7 +295,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
             ),
             if (hasValidAmount)
               Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
+                padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 20.h),
                 child: CustomElevatedButton(
                   onPressed: canContinue ? handleContinue : null,
                   label: state.isValidatingAmount

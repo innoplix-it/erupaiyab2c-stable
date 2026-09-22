@@ -295,8 +295,7 @@ class DigitalGoldTradeView extends HookConsumerWidget {
         top: false,
         child: Padding(
           padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 12.h),
-          child: SizedBox(
-            height: 40.h,
+          child: SizedBox(height: 40.h,
             child: ElevatedButton(
               onPressed: state.isFetching ? null : proceed,
               style: ElevatedButton.styleFrom(

@@ -1,6 +1,7 @@
 import 'package:e_rupaiya/core/barrel_file.dart';
 
 import '../services/referral_share_service.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ReferralShareActions extends HookWidget {
   const ReferralShareActions({super.key});
@@ -23,8 +24,7 @@ class ReferralShareActions extends HookWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: 20.w,
+                  SizedBox(width: 20.w,
                     height: 20.w,
                     child: Image.asset(FileConstants.whatsapp,
                         fit: BoxFit.contain),

@@ -90,7 +90,7 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
+          padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
           child: CustomElevatedButton(
             onPressed: authState.isSubmitting ? null : handleContinue,
             label:
@@ -249,7 +249,7 @@ class _TemporaryBlockSuccessDialog extends StatelessWidget {
                 color: Color(0xFF1B8E36),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check, color: Colors.white, size: 34),
+              child: Icon(Icons.check, color: Colors.white, size: 34.r),
             ),
             SizedBox(height: 14.h),
             Text(

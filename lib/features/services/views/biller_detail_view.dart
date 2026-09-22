@@ -552,7 +552,7 @@ class BillerDetailView extends HookConsumerWidget {
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16.w),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -580,12 +580,12 @@ class BillerDetailView extends HookConsumerWidget {
                           //     context.pop();
                           //   },
                           // ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24.h),
 
                           // --- Loading detail ---
                           if (detailState.isFetchingDetail)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 32),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 32.h),
                               child: Center(
                                 child: SpinKitCircle(
                                   color: AppColors.primary,
@@ -604,13 +604,13 @@ class BillerDetailView extends HookConsumerWidget {
                                 billImageUrl: detail.billImage,
                                 termsText: detail.billTermsCond,
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16.h),
                             ],
                             if (isPipedGas &&
                                 pipedGasErrorMessage.value != null &&
                                 pipedGasErrorMessage.value!.trim().isNotEmpty)
                               Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
+                                padding: EdgeInsets.only(bottom: 16.h),
                                 child: ServiceErrorBanner(
                                   message: pipedGasErrorMessage.value!,
                                 ),
@@ -621,7 +621,7 @@ class BillerDetailView extends HookConsumerWidget {
                                     'Subscription starts immediately upon payment. Please check the phone number before proceeding.',
                                 showLogo: false,
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16.h),
                             ],
                             ...detail.customerParams
                                 .where((p) => p.visibility)
@@ -647,7 +647,7 @@ class BillerDetailView extends HookConsumerWidget {
                                   ? 'Registered Mobile Number'
                                   : param.paramName;
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
+                                padding: EdgeInsets.only(bottom: 16.h),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -678,7 +678,7 @@ class BillerDetailView extends HookConsumerWidget {
                                           ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
+                                    SizedBox(height: 8.h),
                                     if (isDate)
                                       DatePickerField(
                                         controller: tc!,
@@ -785,38 +785,38 @@ class BillerDetailView extends HookConsumerWidget {
                                               : null,
                                           border: OutlineInputBorder(
                                             borderRadius:
-                                                BorderRadius.circular(12),
+                                                BorderRadius.circular(12.r),
                                             borderSide: const BorderSide(
                                                 color: AppColors.lightBorder),
                                           ),
                                           enabledBorder: OutlineInputBorder(
                                             borderRadius:
-                                                BorderRadius.circular(12),
+                                                BorderRadius.circular(12.r),
                                             borderSide: const BorderSide(
                                                 color: AppColors.lightBorder),
                                           ),
                                           focusedBorder: OutlineInputBorder(
                                             borderRadius:
-                                                BorderRadius.circular(12),
+                                                BorderRadius.circular(12.r),
                                             borderSide: const BorderSide(
                                                 color: AppColors.primary),
                                           ),
                                           errorBorder: OutlineInputBorder(
                                             borderRadius:
-                                                BorderRadius.circular(12),
+                                                BorderRadius.circular(12.r),
                                             borderSide: const BorderSide(
                                                 color: Colors.red),
                                           ),
                                           focusedErrorBorder:
                                               OutlineInputBorder(
                                             borderRadius:
-                                                BorderRadius.circular(12),
+                                                BorderRadius.circular(12.r),
                                             borderSide: const BorderSide(
                                                 color: Colors.red),
                                           ),
                                           contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 16, vertical: 16),
+                                              EdgeInsets.symmetric(
+                                                  horizontal: 16.w, vertical: 16.h),
                                         ),
                                       ),
                                   ],
@@ -833,13 +833,13 @@ class BillerDetailView extends HookConsumerWidget {
                                 onClose: () =>
                                     creditCardErrorMessage.value = null,
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: 12.h),
                             ],
                             if (gasPolicyMessage.value != null) ...[
                               _GasPolicyBanner(
                                 message: gasPolicyMessage.value!,
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: 12.h),
                             ],
                             if (isGasCylinder &&
                                 (detailState.errorMessage ?? '')
@@ -848,14 +848,14 @@ class BillerDetailView extends HookConsumerWidget {
                               _GasErrorBanner(
                                 message: detailState.errorMessage!.trim(),
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: 12.h),
                               if ((detailState.billFetchNote ?? '')
                                   .trim()
                                   .isNotEmpty) ...[
                                 _GasErrorBanner(
                                   message: detailState.billFetchNote!.trim(),
                                 ),
-                                const SizedBox(height: 12),
+                                SizedBox(height: 12.h),
                               ],
                             ],
                           ]
@@ -877,7 +877,7 @@ class BillerDetailView extends HookConsumerWidget {
                                 controller.clearBill();
                               },
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12.h),
                           ]
 
                           // --- Compact bill view ---
@@ -932,18 +932,18 @@ class BillerDetailView extends HookConsumerWidget {
 
                           if (detail != null &&
                               (bill == null || showSubscriptionSummary)) ...[
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12.h),
                             const _InfoNoteCard(
                               text:
                                   'By proceeding further, you allow E-Rupaiya to store your bill details, fetch current and future bills, and send you reminders.',
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8.h),
                           ],
 
                           // Loading bill spinner
                           if (detailState.isFetchingBill)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 32),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 32.h),
                               child: Center(
                                 child: SpinKitCircle(
                                   color: AppColors.primary,
@@ -961,7 +961,7 @@ class BillerDetailView extends HookConsumerWidget {
                       !detailState.isFetchingDetail &&
                       !detailState.isFetchingBill)
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + bottomInset),
+                      padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 16.h + bottomInset),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1254,7 +1254,7 @@ class BillerDetailView extends HookConsumerWidget {
                             },
                           ),
                           // if (bill == null) ...[
-                          //   const SizedBox(height: 10),
+                          //   SizedBox(height: 10.h),
                           //   Row(
                           //     mainAxisAlignment: MainAxisAlignment.center,
                           //     children: [
@@ -1269,10 +1269,10 @@ class BillerDetailView extends HookConsumerWidget {
                           //               fontWeight: FontWeight.w600,
                           //             ),
                           //       ),
-                          //       const SizedBox(width: 8),
+                          //       SizedBox(width: 8.w),
                           //       Image.asset(
                           //         FileConstants.bharatConnectColor,
-                          //         height: 20,
+                          //         height: 20.h,
                           //         fit: BoxFit.contain,
                           //       ),
                           //     ],

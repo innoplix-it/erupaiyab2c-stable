@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/file_constants.dart';
 import '../models/spin_reward.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SpinWheel extends StatelessWidget {
   const SpinWheel({
@@ -108,7 +109,7 @@ class _WheelPainter extends CustomPainter {
           text: label,
           style: TextStyle(
             color: isLightSlice ? const Color(0xFF0F6B6F) : Colors.white,
-            fontSize: 12,
+            fontSize: 12.sp,
             fontWeight: isLightSlice ? FontWeight.w700 : FontWeight.w600,
           ),
         ),

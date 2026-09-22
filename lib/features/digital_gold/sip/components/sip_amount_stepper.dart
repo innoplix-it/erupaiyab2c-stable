@@ -28,7 +28,7 @@ class SipAmountStepper extends StatelessWidget {
     }) {
       return InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999.r),
         child: Container(
           width: 28.r,
           height: 28.r,

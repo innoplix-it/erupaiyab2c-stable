@@ -223,7 +223,7 @@ class SupportReplySheet extends HookConsumerWidget {
             onTap: pickScreenshot,
             borderRadius: BorderRadius.circular(14.r),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14.r),
@@ -275,9 +275,8 @@ class SupportReplySheet extends HookConsumerWidget {
                 elevation: 0,
               ),
               child: state.isReplying
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
+                  ? SizedBox(height: 22.r,
+                      width: 22.r,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,

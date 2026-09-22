@@ -34,7 +34,7 @@ class EducationPaymentThankYouView extends StatelessWidget {
     final formattedDate = _formatHeaderDate(transactionTime);
     final imageUrl = bannerImage.trim();
     final title = _thankYouTitle(paymentType);
-    final sx = MediaQuery.sizeOf(context).width / 441.0;
+    final sx = 1.sw / 441.0;
     double x(double value) => value * sx;
     final headerTop = MediaQuery.paddingOf(context).top + 40.h;
     final dateStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -109,20 +109,20 @@ class EducationPaymentThankYouView extends StatelessWidget {
                             style: GoogleFonts.plusJakartaSans(
                               color: const Color(0xFFFFFFFF),
                               fontWeight: FontWeight.w600,
-                              fontSize: 20 * sx,
+                              fontSize: 20.sp * sx,
                               height: 1,
                             ),
                           ),
                         ),
                         SizedBox(height: x(16)),
                         Container(
-                          width: 106,
-                          height: 34,
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                          width: 106.w,
+                          height: 34.h,
+                          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: const Color(0x1AFFFFFF),
-                            borderRadius: BorderRadius.circular(50),
+                            borderRadius: BorderRadius.circular(50.r),
                           ),
                           child: Text(
                             formattedAmount,
@@ -131,7 +131,7 @@ class EducationPaymentThankYouView extends StatelessWidget {
                             style: GoogleFonts.plusJakartaSans(
                               color: const Color(0xFFFFFFFF),
                               fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: 14.sp,
                               height: 1,
                             ),
                           ),
@@ -159,7 +159,7 @@ class EducationPaymentThankYouView extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       child: SizedBox(
                         width: x(392),
                         height: x(450),
@@ -168,7 +168,7 @@ class EducationPaymentThankYouView extends StatelessWidget {
                           width: x(392),
                           height: x(450),
                           fit: BoxFit.cover,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
                     ),
@@ -179,11 +179,11 @@ class EducationPaymentThankYouView extends StatelessWidget {
                         width: x(43),
                         height: x(28),
                         padding: EdgeInsets.fromLTRB(x(12), x(5), x(12), x(5)),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: Color(0x4D000000),
                           borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(50),
-                            bottomLeft: Radius.circular(50),
+                            topLeft: Radius.circular(50.r),
+                            bottomLeft: Radius.circular(50.r),
                           ),
                         ),
                         alignment: Alignment.center,
@@ -192,7 +192,7 @@ class EducationPaymentThankYouView extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFFFFFFFF),
                             fontWeight: FontWeight.w600,
-                            fontSize: 11 * sx,
+                            fontSize: 11.sp * sx,
                             height: 1,
                           ),
                         ),

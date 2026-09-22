@@ -452,7 +452,7 @@ class _ElectricityFlow extends HookConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 8.h),
               child: SearchTextfield(
                 hintText: 'Search by billers',
                 controller: searchController,
@@ -579,7 +579,7 @@ class _BillerListPane extends StatelessWidget {
         hasMore: hasMore,
         onEndReached: onEndReached,
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           itemCount: billers.length + (isFetchingMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index >= billers.length) {
@@ -800,9 +800,9 @@ class _MobilePostpaidFlow extends HookConsumerWidget {
                     outerPadding: EdgeInsets.zero,
                   )
                 else if (contactsState.isLoading)
-                  const Center(
+                  Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
+                      padding: EdgeInsets.symmetric(vertical: 24.h),
                       child: CircularProgressIndicator(
                         color: AppColors.primary,
                       ),
@@ -987,8 +987,7 @@ class _PostpaidRecentSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return recentTransactions.when(
-      loading: () => SizedBox(
-        height: 74.h,
+      loading: () => SizedBox(height: 74.h,
         child: ListView.separated(
           padding: EdgeInsets.zero,
           scrollDirection: Axis.horizontal,
@@ -1001,8 +1000,7 @@ class _PostpaidRecentSection extends StatelessWidget {
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();
         final display = items.take(10).toList();
-        return SizedBox(
-          height: 74.h,
+        return SizedBox(height: 74.h,
           child: ListView.separated(
             padding: EdgeInsets.zero,
             scrollDirection: Axis.horizontal,
@@ -1295,7 +1293,7 @@ class _PostpaidProviderSelection extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0.h),
           child: _SelectedContactCard(
             name: selectedName,
             mobile: selectedMobile,
@@ -1318,7 +1316,7 @@ class _PostpaidProviderSelection extends StatelessWidget {
                   ]
                 : null,
             child: ListView.builder(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 16.h),
               itemCount: billers.length,
               itemBuilder: (context, index) {
                 final biller = billers[index];
@@ -1333,7 +1331,7 @@ class _PostpaidProviderSelection extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+          padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 24.h),
           child: SizedBox(
             width: double.infinity,
             height: 52.h,
@@ -1534,8 +1532,8 @@ class _PostpaidBillerTile extends StatelessWidget {
                 ),
                 Image.asset(
                   FileConstants.tiltArrow,
-                  height: 25,
-                  width: 25,
+                  height: 25.r,
+                  width: 25.r,
                   fit: BoxFit.contain,
                 ),
               ],
@@ -1586,7 +1584,7 @@ class _BillerListingFigmaLayout extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1685,7 +1683,7 @@ class _BillerListingSkeleton extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               child: Container(
                 height: 52.h,
                 decoration: BoxDecoration(
@@ -1715,7 +1713,7 @@ class _BillerListingSkeleton extends StatelessWidget {
             ),
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 itemCount: _mockBillers.length,
                 separatorBuilder: (_, __) => SizedBox(height: 10.h),
                 itemBuilder: (_, index) => _BillerTile(
@@ -1740,7 +1738,7 @@ class _BillerListingFooterSkeleton extends StatelessWidget {
       enabled: true,
       child: IgnorePointer(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: 12.h),
           child: _BillerTile(
             biller: _BillerListingSkeleton._mockBillers.first,
             onTap: null,
@@ -1846,8 +1844,7 @@ class _StaticRecentRow extends StatelessWidget {
       ),
     ];
 
-    return SizedBox(
-      height: 86.h,
+    return SizedBox(height: 86.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -1945,8 +1942,8 @@ class _RecentStaticCard extends StatelessWidget {
           SizedBox(width: 10.w),
           Image.asset(
             FileConstants.tiltArrow,
-            height: 25,
-            width: 25,
+            height: 25.r,
+            width: 25.r,
             fit: BoxFit.contain,
           ),
         ],
@@ -1969,17 +1966,17 @@ class _BillerTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: EdgeInsets.symmetric(vertical: 14.h),
         child: Row(
           children: [
             // Provider logo placeholder
             Container(
-              width: 44,
-              height: 44,
-              padding: const EdgeInsets.all(3),
+              width: 44.r,
+              height: 44.r,
+              padding: EdgeInsets.all(3.w),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(18.r),
                 border: Border.all(
                   color: AppColors.lightBorder2,
                   width: 1,
@@ -1988,14 +1985,16 @@ class _BillerTile extends StatelessWidget {
               child: _BillerIcon(
                 name: biller.billerName,
                 iconUrl: biller.iconUrl,
-                size: 38,
-                borderRadius: BorderRadius.circular(12),
+                size: 38.r,
+                borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14.w),
             Expanded(
               child: Text(
                 biller.billerName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w500,
@@ -2004,8 +2003,8 @@ class _BillerTile extends StatelessWidget {
             ),
             Image.asset(
               FileConstants.tiltArrow,
-              height: 25,
-              width: 25,
+              height: 25.r,
+              width: 25.r,
               fit: BoxFit.contain,
             ),
           ],

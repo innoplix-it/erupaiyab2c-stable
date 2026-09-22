@@ -214,7 +214,7 @@ class CreateSupportTicketScreen extends HookConsumerWidget {
                     borderRadius: BorderRadius.circular(14.r),
                     child: Container(
                       padding:
-                          EdgeInsets.symmetric(horizontal: 14.w, vertical: 14),
+                          EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14.r),
@@ -314,7 +314,7 @@ class _DisabledField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14.r),
@@ -429,7 +429,7 @@ class _ChoiceChipButton extends StatelessWidget {
               child: Text(
                 text,
                 style: textStyle?.copyWith(
-                    fontWeight: FontWeight.w700, fontSize: 12),
+                    fontWeight: FontWeight.w700, fontSize: 12.sp),
               ),
             ),
             if (selected)

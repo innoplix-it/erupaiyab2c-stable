@@ -10,9 +10,9 @@ class OfflineWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.wifi_off,
-            size: 50.0,
+            size: 50.0.r,
           ),
           Text(' You are Offline', style: TextStyle(fontSize: 14.sp)),
         ],

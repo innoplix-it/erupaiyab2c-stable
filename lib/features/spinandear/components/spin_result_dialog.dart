@@ -49,21 +49,21 @@ class _SpinResultDialogState extends State<SpinResultDialog> {
     return Dialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+        padding: EdgeInsets.fromLTRB(22.w, 24.h, 22.w, 22.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Center(
               child: Image.asset(
                 FileConstants.coin_3d,
-                width: 58.w,
-                height: 58.h,
+                width: 58.r,
+                height: 58.r,
                 fit: BoxFit.contain,
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14.h),
             Text(
               title.replaceAll('e-Coins', 'E-Coins'),
               textAlign: TextAlign.center,
@@ -74,7 +74,7 @@ class _SpinResultDialogState extends State<SpinResultDialog> {
                         : AppColors.textPrimary,
                   ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             Text(
               subtitle,
               textAlign: TextAlign.center,
@@ -83,10 +83,10 @@ class _SpinResultDialogState extends State<SpinResultDialog> {
                     height: 1.4,
                   ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18.h),
             SizedBox(
               width: double.infinity,
-              height: 44,
+              height: 44.h,
               child: ElevatedButton(
                 onPressed: _isSubmitting
                     ? null
@@ -105,7 +105,7 @@ class _SpinResultDialogState extends State<SpinResultDialog> {
                       isBetterLuck ? Colors.grey.shade500 : AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
+                    borderRadius: BorderRadius.circular(26.r),
                   ),
                   elevation: 0,
                 ),

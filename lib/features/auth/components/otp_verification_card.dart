@@ -38,11 +38,11 @@ class OtpVerificationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28.r),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Color(0x1A000000),
-            blurRadius: 35,
-            offset: Offset(0, 16),
+            blurRadius: 35.r,
+            offset: Offset(0.w, 16.h),
           ),
         ],
       ),
@@ -97,9 +97,9 @@ class OtpVerificationCard extends StatelessWidget {
             SizedBox(height: 12.h),
             Row(
               children: [
-                const Icon(Icons.access_time,
-                    size: 18, color: AppColors.textPrimary),
-                const SizedBox(width: 6),
+                Icon(Icons.access_time,
+                    size: 18.r, color: AppColors.textPrimary),
+                SizedBox(width: 6.w),
                 Text(
                   timerText,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(

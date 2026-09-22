@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class VerificationResultView extends StatelessWidget {
   const VerificationResultView({
@@ -36,7 +37,7 @@ class VerificationResultView extends StatelessWidget {
                 Align(
                   alignment: Alignment.topRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 24, right: 24),
+                    padding: EdgeInsets.only(top: 24.h, right: 24.w),
                     child: TextButton(
                       onPressed: () => context.go(RouteConstants.home),
                       child: Text(
@@ -52,7 +53,7 @@ class VerificationResultView extends StatelessWidget {
                 ),
                 const Spacer(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: EdgeInsets.symmetric(horizontal: 32.w),
                   child: Column(
                     children: [
                       Text(
@@ -66,7 +67,7 @@ class VerificationResultView extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24.h),
                       Text(
                         isSuccess
                             ? 'Your PAN and Aadhaar details have been successfully verified. All your information matches our records.'
@@ -83,7 +84,7 @@ class VerificationResultView extends StatelessWidget {
                 const Spacer(),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
                   child: CustomElevatedButton(
                     onPressed: () {
                       if (isSuccess) {

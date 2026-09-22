@@ -80,15 +80,15 @@ class ExitAppDialog extends StatelessWidget {
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.primary.withOpacity(0.35),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
+                          blurRadius: 16.r,
+                          offset: Offset(0.w, 8.h),
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.exit_to_app,
                       color: Colors.white,
-                      size: 30,
+                      size: 30.r,
                     ),
                   ),
                   SizedBox(height: 14.h),

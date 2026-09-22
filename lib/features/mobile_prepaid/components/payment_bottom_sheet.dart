@@ -332,7 +332,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     return AbsorbPointer(
       absorbing: isPaying,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,16 +357,16 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             // Orange progress bar
             Container(
               height: 3,
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(2.r),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
 
             // E-Coins option
             _PaymentOptionTile(
@@ -383,7 +383,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                 value: _useECoins,
                 activeColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(4.r),
                 ),
                 onChanged: (canUseECoins && maxAllowedECoins > 0)
                     ? (v) => setState(() => _useECoins = v ?? false)
@@ -394,14 +394,14 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                   : null,
             ),
 
-            const SizedBox(height: 10),
-            // const SizedBox(height: 16),
+            SizedBox(height: 10.h),
+            // SizedBox(height: 16.h),
 
             // Bottom bar: amount + PAY NOW
             SafeArea(
               top: false,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 12.h),
                 child: Row(
                   children: [
                     Text(
@@ -716,7 +716,7 @@ class _PrepaidPaymentBottomSheetState
     return AbsorbPointer(
       absorbing: isPaying,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
+        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,17 +742,17 @@ class _PrepaidPaymentBottomSheetState
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
 
             // Orange progress bar
             Container(
               height: 3,
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(2.r),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
 
             // E-Coins option
             _PaymentOptionTile(
@@ -769,7 +769,7 @@ class _PrepaidPaymentBottomSheetState
                 value: _useECoins,
                 activeColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(4.r),
                 ),
                 onChanged: (canUseECoins && maxAllowedECoins > 0)
                     ? (v) => setState(() => _useECoins = v ?? false)
@@ -780,8 +780,8 @@ class _PrepaidPaymentBottomSheetState
                   : null,
             ),
 
-            // const SizedBox(height: 20),
-            const SizedBox(height: 16),
+            // SizedBox(height: 20.h),
+            SizedBox(height: 16.h),
 
             // Bottom bar: amount + PROCEED
             SafeArea(
@@ -968,9 +968,9 @@ class _PaymentOptionTile extends StatelessWidget {
 
     return InkWell(
       onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(12.r),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: EdgeInsets.symmetric(vertical: 10.h),
         child: Row(
           children: [
             Container(

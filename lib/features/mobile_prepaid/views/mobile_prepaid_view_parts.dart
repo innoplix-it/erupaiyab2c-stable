@@ -69,11 +69,7 @@ class _ContactsSection extends StatelessWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          24.w,
-          4.h,
-          24.w,
-          16.h + MediaQuery.paddingOf(context).bottom,
+        padding: EdgeInsets.fromLTRB(24.w, 4.h, 24.w, 16.h + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           if (searchMode == _MobilePrepaidSearchMode.abc) ...[
@@ -426,8 +422,7 @@ class _SearchModeToggle extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      width: 75.w,
+    return SizedBox(width: 75.w,
       height: 22.h,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -471,7 +466,7 @@ class _SectionHeader extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
-              height: 22 / 16,
+              height: 22.h / 16,
               color: const Color(0xFF292D32),
             ),
           ),
@@ -490,7 +485,7 @@ class _SectionHeader extends StatelessWidget {
                   color: const Color(0xFFDD5428),
                   fontWeight: FontWeight.w700,
                   fontSize: 14.sp,
-                  height: 19 / 14,
+                  height: 19.h / 14,
                 ),
               ),
             ),
@@ -514,7 +509,7 @@ class _LastOnLabel extends StatelessWidget {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 9.sp,
         fontWeight: FontWeight.w500,
-        height: 14 / 9,
+        height: 14.h / 9,
         color: const Color(0xFF7C7C7C),
       ),
     );
@@ -573,8 +568,7 @@ class _OrangePillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 96.w,
+    return SizedBox(width: 96.w,
       height: 27.h,
       child: ElevatedButton(
         onPressed: onPressed,
@@ -726,8 +720,7 @@ class _RecentRechargeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget buildScroller(Widget child) {
-      return SizedBox(
-        height: 22.h + 16.h + 45.h + 4.h,
+      return SizedBox(height: 22.h + 16.h + 45.h + 4.h,
         child: child,
       );
     }
@@ -876,7 +869,7 @@ class _RecentRechargeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final showBadge = (badgeLabel ?? '').trim().isNotEmpty;
     final radius = 16.r;
-    final maxCardWidth = MediaQuery.sizeOf(context).width - 48.w;
+    final maxCardWidth = 1.sw - 48.w;
     final cardWidth = 300.w > maxCardWidth ? maxCardWidth : 300.w;
     return SizedBox(
       width: cardWidth,
@@ -1007,11 +1000,7 @@ class _PlanSection extends HookWidget {
         return false;
       },
       child: ListView(
-        padding: EdgeInsets.fromLTRB(
-          0,
-          0,
-          0,
-          24.h + MediaQuery.of(context).viewPadding.bottom,
+        padding: EdgeInsets.fromLTRB(0.w, 0.h, 0.w, 24.h + MediaQuery.of(context).viewPadding.bottom,
         ),
         children: [
           // Suggested plans block should be at the top (edge-to-edge gradient).
@@ -1043,7 +1032,7 @@ class _PlanSection extends HookWidget {
 
           // Search field
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final barWidth = constraints.maxWidth < 392.w
@@ -1092,9 +1081,8 @@ class _PlanSection extends HookWidget {
 
           // Filters row
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
-            child: SizedBox(
-              height: 34.h,
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
+            child: SizedBox(height: 34.h,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: 1 + quickFilters.length,
@@ -1165,7 +1153,7 @@ class _PlanSection extends HookWidget {
 
           // Categories + plan list content
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
             child: _CategoryTabs(
               categories: state.categories,
               selected: state.selectedCategory,
@@ -1173,7 +1161,7 @@ class _PlanSection extends HookWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
             child: Builder(
               builder: (context) {
                 if (state.isFetching && state.currentPlans.isEmpty) {
@@ -1206,7 +1194,7 @@ class _PlanSection extends HookWidget {
           ),
           if (state.isFetchingMorePlans)
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0.h),
               child: Center(
                 child: SpinKitCircle(
                   color: AppColors.primary,
@@ -1261,8 +1249,7 @@ class _PayNowSection extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        SizedBox(
-                          width: 81.w,
+                        SizedBox(width: 81.w,
                           height: 44.h,
                           child: Align(
                             alignment: Alignment.centerLeft,
@@ -1276,7 +1263,7 @@ class _PayNowSection extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 40.sp,
-                                  height: 44 / 40,
+                                  height: 44.h / 40,
                                   color: const Color(0xFF000000),
                                 ),
                               ),
@@ -1363,7 +1350,7 @@ class _PayNowSection extends StatelessWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14.sp,
-                                      height: 17 / 14,
+                                      height: 17.h / 14,
                                       color: const Color(0xFFDD5428),
                                     ),
                                   ),
@@ -1389,8 +1376,7 @@ class _PayNowSection extends StatelessWidget {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SizedBox(
-                                      width: 83.w,
+                                    SizedBox(width: 83.w,
                                       height: 17.h,
                                       child: FittedBox(
                                         fit: BoxFit.scaleDown,
@@ -1403,15 +1389,14 @@ class _PayNowSection extends StatelessWidget {
                                             color: const Color(0xFFFFFFFF),
                                             fontWeight: FontWeight.w500,
                                             fontSize: 14.sp,
-                                            height: 17 / 14,
+                                            height: 17.h / 14,
                                           ),
                                         ),
                                       ),
                                     ),
                                     SizedBox(width: 7.w),
-                                    SizedBox(
-                                      width: 16.w,
-                                      height: 16.h,
+                                    SizedBox(width: 16.r,
+                                      height: 16.r,
                                       child: Icon(
                                         Icons.sync,
                                         size: 16.w,
@@ -1433,11 +1418,7 @@ class _PayNowSection extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: EdgeInsets.fromLTRB(
-            16.w,
-            10.h,
-            16.w,
-            16.h + MediaQuery.of(context).viewPadding.bottom,
+          padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h + MediaQuery.of(context).viewPadding.bottom,
           ),
           child: SizedBox(
             width: double.infinity,
@@ -1467,9 +1448,8 @@ class _PayNowSection extends StatelessWidget {
                 elevation: 0,
               ),
               child: state.isRecharging
-                  ? SizedBox(
-                      height: 20.h,
-                      width: 20.w,
+                  ? SizedBox(height: 20.r,
+                      width: 20.r,
                       child: SpinKitCircle(
                         color: Colors.white,
                         size: 20.r,
@@ -1534,7 +1514,6 @@ Future<void> _openOperatorSheet(
         final regionContext = navigatorKey.currentContext;
         if (regionContext == null) return;
         Navigator.of(regionContext).pop();
-        final size = MediaQuery.of(regionContext).size;
         KDialog.instance.openConstraintsSheet(
           dialog: _RegionSelectSheet(
             onSelected: (region) async {
@@ -1542,11 +1521,11 @@ Future<void> _openOperatorSheet(
               await onSelected(operator, region);
             },
           ),
-          maxHeight: size.height * 0.65,
+          maxHeight: 0.65.sh,
         );
       },
     ),
-    maxHeight: MediaQuery.of(currentContext).size.height * 0.6,
+    maxHeight: 0.6.sh,
   );
 }
 
@@ -1560,9 +1539,9 @@ class _OperatorSelectSheet extends ConsumerWidget {
     final meta = ref.watch(prepaidMetaControllerProvider);
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1585,8 +1564,8 @@ class _OperatorSelectSheet extends ConsumerWidget {
           ),
           Divider(color: AppColors.lightBorder.withOpacity(0.7)),
           if (meta.isLoadingOperators)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.h),
               child: SpinKitCircle(
                 color: AppColors.primary,
                 size: 48,
@@ -1623,9 +1602,9 @@ class _OperatorSelectSheet extends ConsumerWidget {
                           ),
                           Transform.rotate(
                             angle: -0.65,
-                            child: const Icon(
+                            child: Icon(
                               Icons.arrow_forward,
-                              size: 20,
+                              size: 20.r,
                             ),
                           ),
                         ],
@@ -1671,9 +1650,9 @@ class _RegionSelectSheetState extends ConsumerState<_RegionSelectSheet> {
 
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1710,8 +1689,8 @@ class _RegionSelectSheetState extends ConsumerState<_RegionSelectSheet> {
           ),
           SizedBox(height: 8.h),
           if (meta.isLoadingRegions)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.h),
               child: SpinKitCircle(
                 color: AppColors.primary,
                 size: 48,
@@ -1831,7 +1810,7 @@ class _PlanFilterChip extends StatelessWidget {
     final isFilter = icon != null;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(8.r),
       child: Container(
         height: isFilter ? 32.h : 34.h,
         padding: EdgeInsets.symmetric(horizontal: 10.w),
@@ -1864,8 +1843,8 @@ class _PlanFilterChip extends StatelessWidget {
               ),
             ),
             if (icon != null) ...[
-              const SizedBox(width: 4),
-              Icon(icon, size: 14, color: AppColors.textPrimary),
+              SizedBox(width: 4.w),
+              Icon(icon, size: 14.r, color: AppColors.textPrimary),
             ],
           ],
         ),
@@ -1886,8 +1865,7 @@ class _SuggestedPlanCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayPlans = plans.take(5).toList();
-    return SizedBox(
-      height: 105.h,
+    return SizedBox(height: 105.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
@@ -1943,8 +1921,7 @@ class _SuggestedPlanCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 71.w,
+                  SizedBox(width: 71.w,
                     height: 29.h,
                     child: Align(
                       alignment: Alignment.centerLeft,
@@ -1966,8 +1943,7 @@ class _SuggestedPlanCard extends StatelessWidget {
                   ),
                   if (validity.isNotEmpty) ...[
                     SizedBox(height: 4.h),
-                    SizedBox(
-                      width: 180.w,
+                    SizedBox(width: 180.w,
                       height: 14.h,
                       child: Align(
                         alignment: Alignment.centerLeft,
@@ -1988,8 +1964,7 @@ class _SuggestedPlanCard extends StatelessWidget {
                   ],
                   const Spacer(),
                   if (description.isNotEmpty)
-                    SizedBox(
-                      height: 15.h,
+                    SizedBox(height: 15.h,
                       child: Text(
                         description,
                         maxLines: 1,
@@ -1997,14 +1972,13 @@ class _SuggestedPlanCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w400,
                           fontSize: 12.sp,
-                          height: 15 / 12,
+                          height: 15.h / 12,
                           color: const Color(0xFF222222),
                         ),
                       ),
                     ),
                   SizedBox(height: 4.h),
-                  SizedBox(
-                    height: 15.h,
+                  SizedBox(height: 15.h,
                     child: GestureDetector(
                       onTap: onTap,
                       child: Text(
@@ -2015,7 +1989,7 @@ class _SuggestedPlanCard extends StatelessWidget {
                           color: const Color(0xFFDD5428),
                           fontWeight: FontWeight.w600,
                           fontSize: 12.sp,
-                          height: 15 / 12,
+                          height: 15.h / 12,
                           decoration: TextDecoration.underline,
                           decorationColor: const Color(0xFFDD5428),
                           decorationStyle: TextDecorationStyle.solid,
@@ -2032,8 +2006,8 @@ class _SuggestedPlanCard extends StatelessWidget {
               top: 12.h,
               child: IgnorePointer(
                 child: Container(
-                  width: 28.w,
-                  height: 28.h,
+                  width: 28.r,
+                  height: 28.r,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
@@ -2196,8 +2170,7 @@ class _CategoryTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
-    return SizedBox(
-      height: 24.h,
+    return SizedBox(height: 24.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -2284,7 +2257,7 @@ class _EmptyPlansState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: EdgeInsets.symmetric(vertical: 24.h),
       child: Center(
         child: Text(
           query.isEmpty

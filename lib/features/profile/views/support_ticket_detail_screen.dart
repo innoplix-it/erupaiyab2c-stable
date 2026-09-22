@@ -524,7 +524,7 @@ class _ReopenTicketSheet extends HookConsumerWidget {
             onTap: pickScreenshot,
             borderRadius: BorderRadius.circular(14.r),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14.r),

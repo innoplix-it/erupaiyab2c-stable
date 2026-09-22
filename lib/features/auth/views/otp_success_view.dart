@@ -11,6 +11,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class OtpSuccessView extends HookConsumerWidget {
   const OtpSuccessView({super.key});
@@ -40,18 +41,18 @@ class OtpSuccessView extends HookConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 48),
+                SizedBox(height: 48.h),
                 Center(
                   child: Image.asset(
                     FileConstants.erupaiyaLogo,
-                    height: 48,
+                    height: 48.h,
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32.h),
                 Text(
                   'OTP Verified Successfully',
                   textAlign: TextAlign.center,
@@ -60,7 +61,7 @@ class OtpSuccessView extends HookConsumerWidget {
                         color: AppColors.textPrimary,
                       ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 Text(
                   'Your number has been verified.\nRedirecting you to the home page...',
                   textAlign: TextAlign.center,
@@ -68,7 +69,7 @@ class OtpSuccessView extends HookConsumerWidget {
                         color: AppColors.textPrimary.withOpacity(0.75),
                       ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   'Redirecting in ${remainingSeconds.value.clamp(0, 5)} sec',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -78,13 +79,13 @@ class OtpSuccessView extends HookConsumerWidget {
                 const Spacer(),
                 Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 14,
                       backgroundColor: Colors.black,
                       child: Icon(Icons.info_outline,
-                          size: 16, color: Colors.white),
+                          size: 16.r, color: Colors.white),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12.w),
                     Expanded(
                       child: Text(
                         'Protect your account and keep every transaction secure.',
@@ -95,13 +96,13 @@ class OtpSuccessView extends HookConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
                 CustomElevatedButton(
                   onPressed: () => context.go(RouteConstants.addPin),
                   label: 'Secure app',
                   showArrow: false,
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
               ],
             ),
           ),

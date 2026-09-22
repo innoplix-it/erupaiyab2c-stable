@@ -83,9 +83,9 @@ class _GoldSipTab extends StatelessWidget {
                             shape: BoxShape.circle,
                             color: Color(0xFF22C55E),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.check,
-                            size: 12,
+                            size: 12.r,
                             color: Colors.white,
                           ),
                         ),
@@ -372,8 +372,7 @@ class _GoldSipTab extends StatelessWidget {
         child: Container(
           color: bg,
           padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 14.h),
-          child: SizedBox(
-            height: 44.h,
+          child: SizedBox(height: 44.h,
             child: ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(

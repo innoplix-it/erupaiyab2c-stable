@@ -7,6 +7,7 @@ import '../constants/api_constants.dart';
 import '../constants/app_colors.dart';
 import '../services/dio_service.dart';
 import 'app_snackbar.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class RatingBottomSheet extends StatefulWidget {
   const RatingBottomSheet({
@@ -107,14 +108,14 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
       curve: Curves.easeOut,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         child: SafeArea(
           top: false,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -122,10 +123,10 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
                   alignment: Alignment.topRight,
                   child: InkWell(
                     onTap: () => Navigator.of(context).pop(),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20.r),
                     child: Container(
-                      width: 32,
-                      height: 32,
+                      width: 32.r,
+                      height: 32.r,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F1F1),
                         shape: BoxShape.circle,
@@ -133,15 +134,15 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
                           color: const Color(0xFFE0E0E0),
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.close,
-                        size: 18,
+                        size: 18.r,
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   'Rate Us & Earn eCoins',
                   textAlign: TextAlign.center,
@@ -150,7 +151,7 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
                         fontWeight: FontWeight.w700,
                       ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   'Share your experience and get rewarded\ninstantly',
                   textAlign: TextAlign.center,
@@ -159,12 +160,12 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
                         height: 1.4,
                       ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (index) => _buildStar(index + 1)),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14.h),
                 TextField(
                   controller: _reviewController,
                   minLines: 3,
@@ -175,22 +176,22 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
                     hintStyle: TextStyle(
                       color: AppColors.textPrimary.withOpacity(0.35),
                     ),
-                    contentPadding: const EdgeInsets.all(14),
+                    contentPadding: EdgeInsets.all(14.w),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                       borderSide: const BorderSide(color: Color(0xFFE4DFDA)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                       borderSide: const BorderSide(color: Color(0xFFE4DFDA)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                       borderSide: const BorderSide(color: AppColors.primary),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18.h),
                 Row(
                   children: [
                     Expanded(
@@ -202,15 +203,15 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
                           backgroundColor: const Color(0xFFF1F1F1),
                           foregroundColor: AppColors.textPrimary,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(24.r),
                           ),
                         ),
                         child: const Text('Maybe Later'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12.w),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _isSubmitting ? null : _submitRating,
@@ -218,9 +219,9 @@ class _RatingBottomSheetState extends State<RatingBottomSheet> {
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(24.r),
                           ),
                         ),
                         child: Text(

@@ -33,9 +33,9 @@ class ReferralMilestonesView extends HookWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const ReferAndEarnAppBar(
+            ReferAndEarnAppBar(
               title: 'Referral Milestones',
-              height: 200,
+              height: 200.h,
             ),
             Transform.translate(
               offset: Offset(0, -26.h),
@@ -252,8 +252,8 @@ class _MilestoneCard extends HookWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),

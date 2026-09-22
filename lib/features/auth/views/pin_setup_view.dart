@@ -74,7 +74,7 @@ class PinSetupView extends HookConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: EdgeInsets.fromLTRB(8.w, 6.h, 16.w, 0),
+                padding: EdgeInsets.fromLTRB(8.w, 6.h, 16.w, 0.h),
                 child: Row(
                   children: [
                     IconButton(
@@ -100,7 +100,7 @@ class PinSetupView extends HookConsumerWidget {
               SizedBox(height: 8.h),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+                  padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 16.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

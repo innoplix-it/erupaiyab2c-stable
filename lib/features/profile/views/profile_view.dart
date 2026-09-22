@@ -91,7 +91,7 @@ class ProfileView extends HookConsumerWidget {
                   const Divider(height: 1, color: AppColors.lightBorder),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(0, 16.h, 0, 24.h),
+                      padding: EdgeInsets.fromLTRB(0.w, 16.h, 0.w, 24.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -291,7 +291,7 @@ class _ProfileHeaderCard extends StatelessWidget {
           onTap: onEdit,
           child: Row(
             children: [
-              // const Icon(Icons.edit, size: 18, color: AppColors.primary),
+              // const Icon(Icons.edit, size: 18.r, color: AppColors.primary),
               // SizedBox(width: 4.w),
               Text(
                 'Manage',
@@ -362,8 +362,7 @@ class _InviteEarnCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          SizedBox(
-            height: 32.h,
+          SizedBox(height: 32.h,
             child: CustomElevatedButton(
               onPressed: onInvite,
               label: 'Invite Now',
@@ -450,7 +449,7 @@ class _ProfileKycStatusCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: config.gradient,
-        borderRadius: BorderRadius.circular(0),
+        borderRadius: BorderRadius.circular(0.r),
       ),
       child: Stack(
         clipBehavior: Clip.none,
@@ -515,8 +514,7 @@ class _ProfileKycStatusCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 10.w),
-                SizedBox(
-                  height: 30.h,
+                SizedBox(height: 30.h,
                   child: ElevatedButton(
                     onPressed: onTap,
                     style: ElevatedButton.styleFrom(
@@ -966,7 +964,7 @@ class UpdateProfileView extends HookConsumerWidget {
         builder: (dialogContext) {
           return AlertDialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16.r),
             ),
             title: const Text('Discard changes?'),
             content: const Text(
@@ -1237,14 +1235,14 @@ class UpdateProfileView extends HookConsumerWidget {
                                             BoxShadow(
                                               color: Colors.black
                                                   .withOpacity(0.15),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 2),
+                                              blurRadius: 6.r,
+                                              offset: Offset(0.w, 2.h),
                                             ),
                                           ],
                                         ),
-                                        child: const Icon(
+                                        child: Icon(
                                           Icons.camera_alt_outlined,
-                                          size: 12,
+                                          size: 12.r,
                                           color: AppColors.primary,
                                         ),
                                       ),
@@ -1432,8 +1430,7 @@ class UpdateProfileView extends HookConsumerWidget {
                               ? Column(
                                   children: [
                                     Padding(
-                                      padding: EdgeInsets.fromLTRB(
-                                          16.w, 4.h, 16.w, 6.h),
+                                      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 6.h),
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: Text(
@@ -1450,16 +1447,14 @@ class UpdateProfileView extends HookConsumerWidget {
                                     ),
                                     Expanded(
                                       child: BankAccountsSection(
-                                        padding: EdgeInsets.fromLTRB(
-                                            16.w, 0, 16.w, 12.h),
+                                        padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 12.h),
                                       ),
                                     ),
                                   ],
                                 )
                               : SingleChildScrollView(
                                   controller: deliveryScrollController,
-                                  padding: EdgeInsets.fromLTRB(
-                                      16.w, 4.h, 16.w, 90.h),
+                                  padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 90.h),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -1616,7 +1611,7 @@ class UpdateProfileView extends HookConsumerWidget {
             ? SafeArea(
                 top: false,
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+                  padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 16.h),
                   child: CustomElevatedButton(
                     onPressed: state.isUpdating ||
                             (selectedTab.value == 0 && !canSave)
@@ -1730,19 +1725,19 @@ class _UpdateProfileLoadingState extends State<_UpdateProfileLoading>
                 },
                 blendMode: BlendMode.srcATop,
                 child: Container(
-                  width: 260,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 16,
+                  width: 260.w,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 18.w,
+                    vertical: 16.h,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16.r),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.08),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
+                        blurRadius: 18.r,
+                        offset: Offset(0.w, 10.h),
                       ),
                     ],
                   ),
@@ -1750,19 +1745,19 @@ class _UpdateProfileLoadingState extends State<_UpdateProfileLoading>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        height: 36,
-                        width: 36,
+                        height: 36.r,
+                        width: 36.r,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.cloud_upload_outlined,
                           color: AppColors.primary,
-                          size: 20,
+                          size: 20.r,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12.h),
                       Text(
                         'Updating profile',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -1770,22 +1765,22 @@ class _UpdateProfileLoadingState extends State<_UpdateProfileLoading>
                               fontWeight: FontWeight.w700,
                             ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8.h),
                       Container(
-                        height: 10,
-                        width: 140,
+                        height: 10.h,
+                        width: 140.w,
                         decoration: BoxDecoration(
                           color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(6.r),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6.h),
                       Container(
-                        height: 10,
-                        width: 110,
+                        height: 10.h,
+                        width: 110.w,
                         decoration: BoxDecoration(
                           color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(6.r),
                         ),
                       ),
                     ],
@@ -1882,7 +1877,7 @@ class _EmailUpdateSheet extends HookConsumerWidget {
 
     return Padding(
       padding: MediaQuery.of(context).viewInsets +
-          const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1894,21 +1889,21 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                   color: AppColors.textPrimary,
                 ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Text(
             'Current email: $currentEmail',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textPrimary.withOpacity(0.7),
                 ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           CustomTextField(
             labelText: 'New Email',
             enabled: true,
             textEditingController: emailController,
             keyboardType: TextInputType.emailAddress,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           if (!otpSent.value)
             SizedBox(
               width: double.infinity,
@@ -1918,9 +1913,9 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
                   elevation: 0,
                 ),
                 child: isSending.value
@@ -1937,7 +1932,7 @@ class _EmailUpdateSheet extends HookConsumerWidget {
               ),
             ),
           if (otpSent.value) ...[
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
             Text(
               'Enter OTP',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -1945,7 +1940,7 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                     color: AppColors.textPrimary,
                   ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             Center(
               child: Pinput(
                 length: 6,
@@ -2001,7 +1996,7 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                 errorText: otpErrorText.value,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Row(
               children: [
                 TextButton(
@@ -2016,7 +2011,7 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                   onPressed: isVerifying.value ? null : verifyOtp,
                   label: isVerifying.value ? 'Saving...' : 'Update',
                   showArrow: false,
-                  width: 140,
+                  width: 140.w,
                 ),
               ],
             ),

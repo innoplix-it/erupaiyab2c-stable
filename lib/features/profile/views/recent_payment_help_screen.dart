@@ -108,10 +108,9 @@ class RecentPaymentHelpScreen extends HookConsumerWidget {
                   if (state.isLoading && state.items.isEmpty)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 14.h),
-                      child: const Center(
-                        child: SizedBox(
-                          height: 26,
-                          width: 26,
+                      child: Center(
+                        child: SizedBox(height: 26.r,
+                          width: 26.r,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: AppColors.primary,

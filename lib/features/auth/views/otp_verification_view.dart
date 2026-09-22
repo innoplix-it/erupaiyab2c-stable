@@ -401,7 +401,7 @@ class OtpVerificationView extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: EdgeInsets.fromLTRB(8.w, 6.h, 16.w, 0),
+                      padding: EdgeInsets.fromLTRB(8.w, 6.h, 16.w, 0.h),
                       child: Row(
                         children: [
                           IconButton(
@@ -469,7 +469,7 @@ class OtpVerificationView extends HookConsumerWidget {
                                   .textTheme
                                   .bodyMedium
                                   ?.copyWith(
-                                    fontSize: 12,
+                                    fontSize: 12.sp,
                                     color:
                                         AppColors.textPrimary.withOpacity(0.7),
                                     height: 1.45,
@@ -556,7 +556,7 @@ class OtpVerificationView extends HookConsumerWidget {
                                     ),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(14.r),
                                   border: Border.all(
                                     color: const Color(0xFFD6D6D6),
                                   ),
@@ -574,7 +574,7 @@ class OtpVerificationView extends HookConsumerWidget {
                                     ),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(14.r),
                                   border: Border.all(color: Colors.red),
                                 ),
                               ),
@@ -661,7 +661,7 @@ class _OtpCustomSuccessDialog extends StatelessWidget {
                 color: Color(0xFF1B8E36),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check, color: Colors.white, size: 40),
+              child: Icon(Icons.check, color: Colors.white, size: 40.r),
             ),
             SizedBox(height: 18.h),
             Text(
@@ -747,9 +747,9 @@ class _IdentityOtpSection extends StatelessWidget {
         SizedBox(height: 10.h),
         Row(
           children: [
-            const Icon(
+            Icon(
               Icons.access_time,
-              size: 14,
+              size: 14.r,
               color: AppColors.textPrimary,
             ),
             SizedBox(width: 4.w),
@@ -767,7 +767,7 @@ class _IdentityOtpSection extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.refresh,
-                    size: 14,
+                    size: 14.r,
                     color: canResend
                         ? AppColors.textPrimary
                         : AppColors.textPrimary.withOpacity(0.35),

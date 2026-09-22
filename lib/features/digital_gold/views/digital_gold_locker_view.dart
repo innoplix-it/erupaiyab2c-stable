@@ -61,7 +61,7 @@ class DigitalGoldLockerView extends HookConsumerWidget {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

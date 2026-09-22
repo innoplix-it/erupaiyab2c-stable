@@ -214,9 +214,8 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                               suffixIcon: state.isCheckingMobile
                                   ? Padding(
                                       padding: EdgeInsets.all(12.r),
-                                      child: const SizedBox(
-                                        height: 18,
-                                        width: 18,
+                                      child: SizedBox(height: 18.r,
+                                        width: 18.r,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           color: AppColors.primary,
@@ -287,8 +286,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                         SizedBox(height: 8.h),
                         Row(
                           children: [
-                            SizedBox(
-                              height: 14.r,
+                            SizedBox(height: 14.r,
                               width: 14.r,
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
@@ -414,8 +412,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                           SizedBox(height: 8.h),
                           Row(
                             children: [
-                              SizedBox(
-                                height: 14.r,
+                              SizedBox(height: 14.r,
                                 width: 14.r,
                                 child: const CircularProgressIndicator(
                                   strokeWidth: 2,
@@ -496,7 +493,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
+              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 20.h),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

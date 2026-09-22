@@ -12,6 +12,7 @@ import '../components/offer_card.dart';
 import '../models/offer_model.dart';
 import '../repositories/offers_repository.dart';
 import 'offer_detail_view.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 final offersRepositoryProvider =
     Provider<OffersRepository>((ref) => OffersRepository());
@@ -60,7 +61,7 @@ class OffersView extends HookConsumerWidget {
                 onRefresh: () => ref.refresh(offersProvider.future),
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+                  padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 32.h),
                   children: [
                     Text(
                       'Failed to load offers. Pull to refresh.',
@@ -78,7 +79,7 @@ class OffersView extends HookConsumerWidget {
                 child: offers.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+                        padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 32.h),
                         children: [
                           ScreenWrapper(
                             isFetching: false,
@@ -88,16 +89,16 @@ class OffersView extends HookConsumerWidget {
                                 'Check back soon for fresh deals and rewards.',
                             imageAsset:
                                 'assets/images/png/home_icon/offers.png',
-                            height: MediaQuery.of(context).size.height * 0.6,
+                            height: 0.6.sh,
                             child: const SizedBox.shrink(),
                           ),
                         ],
                       )
                     : ListView.separated(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                        padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 32.h),
                         itemCount: offers.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 20),
+                        separatorBuilder: (_, __) => SizedBox(height: 20.h),
                         itemBuilder: (context, index) {
                           return OfferCard(
                             offer: offers[index],

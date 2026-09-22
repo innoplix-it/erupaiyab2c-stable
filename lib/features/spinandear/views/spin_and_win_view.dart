@@ -20,6 +20,7 @@ import '../components/spin_wheel.dart';
 import '../controllers/spin_options_controller.dart';
 import '../models/spin_reward.dart';
 import '../repositories/spin_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 const _staticRewards = [
   SpinReward(label: 'Better Luck\nNext Time', type: SpinRewardType.betterLuck),
@@ -255,7 +256,7 @@ class SpinAndWinView extends HookConsumerWidget {
                 ),
                 SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    padding: EdgeInsets.symmetric(horizontal: 14.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -274,21 +275,21 @@ class SpinAndWinView extends HookConsumerWidget {
                             ),
                             const Spacer(),
                             Container(
-                              height: 36,
-                              width: 36,
+                              height: 36.r,
+                              width: 36.r,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.16),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.help_outline,
                                 color: Colors.white,
-                                size: 18,
+                                size: 18.r,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6.h),
                         Text(
                           'Spin The Wheel',
                           style:
@@ -297,7 +298,7 @@ class SpinAndWinView extends HookConsumerWidget {
                                     fontWeight: FontWeight.w800,
                                   ),
                         ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6.h),
                         Text(
                           'And Add More Points To Your Wallet',
                           textAlign: TextAlign.center,
@@ -307,15 +308,15 @@ class SpinAndWinView extends HookConsumerWidget {
                                     height: 1.4,
                                   ),
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10.h),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14.w,
+                            vertical: 6.h,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.16),
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(18.r),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.3),
                             ),
@@ -329,7 +330,7 @@ class SpinAndWinView extends HookConsumerWidget {
                                     ),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18.h),
                         Expanded(
                           child: Center(
                             child: SizedBox(
@@ -347,12 +348,12 @@ class SpinAndWinView extends HookConsumerWidget {
                                             ? Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  const Icon(
+                                                  Icon(
                                                     Icons.error_outline,
                                                     color: Colors.white,
-                                                    size: 40,
+                                                    size: 40.r,
                                                   ),
-                                                  const SizedBox(height: 8),
+                                                  SizedBox(height: 8.h),
                                                   Text(
                                                     'Failed to load.\nPlease try again.',
                                                     textAlign: TextAlign.center,
@@ -363,7 +364,7 @@ class SpinAndWinView extends HookConsumerWidget {
                                                           color: Colors.white,
                                                         ),
                                                   ),
-                                                  const SizedBox(height: 10),
+                                                  SizedBox(height: 10.h),
                                                   TextButton(
                                                     onPressed: () => ref
                                                         .read(
@@ -398,17 +399,17 @@ class SpinAndWinView extends HookConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
                         SizedBox(
                           width: constraints.maxWidth * 0.55,
-                          height: 46,
+                          height: 46.h,
                           child: ElevatedButton(
                             onPressed: (isSpinning.value) ? null : handleSpin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0B5E5A),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: BorderRadius.circular(24.r),
                               ),
                               elevation: 0,
                             ),
@@ -424,7 +425,7 @@ class SpinAndWinView extends HookConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
                         Text(
                           'You have $totalSpins free spin'
                           '${totalSpins == 1 ? '' : 's'} left today.',
@@ -434,7 +435,7 @@ class SpinAndWinView extends HookConsumerWidget {
                                     color: Colors.white.withOpacity(0.8),
                                   ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
                       ],
                     ),
                   ),
@@ -546,15 +547,14 @@ class _NoSpinsLeftDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+      insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 16.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              height: 120,
+            SizedBox(height: 120.h,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -570,8 +570,8 @@ class _NoSpinsLeftDialog extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    height: 62,
-                    width: 62,
+                    height: 62.r,
+                    width: 62.r,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: const Color(0xFFF3FAF9),
@@ -586,7 +586,7 @@ class _NoSpinsLeftDialog extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.h),
             Text(
               'All spins used!',
               textAlign: TextAlign.center,
@@ -595,7 +595,7 @@ class _NoSpinsLeftDialog extends StatelessWidget {
                     color: const Color(0xFF0B5E5A),
                   ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               'You\u2019ve finished today\u2019s free spins.\nCome back tomorrow for more chances to win.',
               textAlign: TextAlign.center,
@@ -604,17 +604,17 @@ class _NoSpinsLeftDialog extends StatelessWidget {
                     height: 1.35,
                   ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             SizedBox(
               width: double.infinity,
-              height: 44,
+              height: 44.h,
               child: ElevatedButton(
                 onPressed: onClose,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0B5E5A),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(14.r),
                   ),
                   elevation: 0,
                 ),
@@ -672,10 +672,10 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
         builder: (context, _) {
           final shimmer = _controller.value * 3 - 1;
           return Container(
-            width: 320,
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            width: 320.w,
+            padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 16.h),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(24.r),
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -687,8 +687,8 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.28),
-                  blurRadius: 28,
-                  offset: const Offset(0, 16),
+                  blurRadius: 28.r,
+                  offset: Offset(0.w, 16.h),
                 ),
               ],
             ),
@@ -696,7 +696,7 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
               children: [
                 Positioned.fill(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(24.r),
                     child: ShaderMask(
                       shaderCallback: (rect) {
                         return LinearGradient(
@@ -720,8 +720,8 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      height: 56,
-                      width: 56,
+                      height: 56.r,
+                      width: 56.r,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white.withOpacity(0.16),
@@ -729,13 +729,13 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                           color: Colors.white.withOpacity(0.25),
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.casino_outlined,
                         color: Colors.white,
-                        size: 28,
+                        size: 28.r,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12.h),
                     Text(
                       'Wheel is Spinning',
                       textAlign: TextAlign.center,
@@ -744,7 +744,7 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                             fontWeight: FontWeight.w800,
                           ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6.h),
                     Text(
                       'Leaving now may lose your reward.\nWant to exit anyway?',
                       textAlign: TextAlign.center,
@@ -753,7 +753,7 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                             height: 1.4,
                           ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     Row(
                       children: [
                         Expanded(
@@ -765,13 +765,13 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                                 color: Colors.white.withOpacity(0.5),
                               ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(18.r),
                               ),
                             ),
                             child: const Text('Wait'),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12.w),
                         Expanded(
                           child: ElevatedButton(
                             onPressed: widget.onExit,
@@ -779,7 +779,7 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF0B5E5A),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(18.r),
                               ),
                             ),
                             child: const Text('Exit Anyway'),

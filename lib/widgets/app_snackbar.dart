@@ -2,6 +2,7 @@ import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import 'k_dialog.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppSnackbar {
   static final messengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -156,26 +157,26 @@ class _BottomSnackBarContent extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
             color: accentColor.withOpacity(0.25),
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: Color(0x1A000000),
-              blurRadius: 18,
-              offset: Offset(0, 10),
+              blurRadius: 18.r,
+              offset: Offset(0.w, 10.h),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 30.r,
+                height: 30.r,
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.12),
                   shape: BoxShape.circle,
@@ -183,10 +184,10 @@ class _BottomSnackBarContent extends StatelessWidget {
                 child: Icon(
                   icon,
                   color: accentColor,
-                  size: 18,
+                  size: 18.r,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10.w),
               Expanded(
                 child: Text(
                   message,
@@ -197,15 +198,15 @@ class _BottomSnackBarContent extends StatelessWidget {
                       ),
                 ),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: 6.w),
               InkWell(
                 onTap: onClose,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(14.r),
                 child: Padding(
-                  padding: const EdgeInsets.all(6),
+                  padding: EdgeInsets.all(6.w),
                   child: Icon(
                     Icons.close_rounded,
-                    size: 18,
+                    size: 18.r,
                     color: textColor.withOpacity(0.75),
                   ),
                 ),
@@ -312,9 +313,9 @@ class _TopSnackBarState extends State<_TopSnackBar>
                           final width = constraints.maxWidth;
                           final sheenX = (width + 120) * _controller.value - 60;
                           return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 14.h,
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -325,13 +326,13 @@ class _TopSnackBarState extends State<_TopSnackBar>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(18.r),
                               boxShadow: [
                                 BoxShadow(
                                   color: widget.backgroundColor
                                       .withOpacity(0.25 * _glow.value),
-                                  blurRadius: 26,
-                                  offset: const Offset(0, 12),
+                                  blurRadius: 26.r,
+                                  offset: Offset(0.w, 12.h),
                                 ),
                               ],
                               border: Border.all(
@@ -349,7 +350,7 @@ class _TopSnackBarState extends State<_TopSnackBar>
                                     width: 4,
                                     decoration: BoxDecoration(
                                       color: Colors.white.withOpacity(0.55),
-                                      borderRadius: BorderRadius.circular(4),
+                                      borderRadius: BorderRadius.circular(4.r),
                                     ),
                                   ),
                                 ),
@@ -357,15 +358,15 @@ class _TopSnackBarState extends State<_TopSnackBar>
                                   top: -40,
                                   left: sheenX,
                                   child: Container(
-                                    width: 80,
-                                    height: 80,
+                                    width: 80.r,
+                                    height: 80.r,
                                     decoration: BoxDecoration(
                                       color: Colors.white.withOpacity(0.08),
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
                                           color: Colors.white.withOpacity(0.12),
-                                          blurRadius: 24,
+                                          blurRadius: 24.r,
                                         ),
                                       ],
                                     ),
@@ -374,8 +375,8 @@ class _TopSnackBarState extends State<_TopSnackBar>
                                 Row(
                                   children: [
                                     Container(
-                                      width: 28,
-                                      height: 28,
+                                      width: 28.r,
+                                      height: 28.r,
                                       decoration: BoxDecoration(
                                         color: Colors.white.withOpacity(0.18),
                                         shape: BoxShape.circle,
@@ -387,14 +388,14 @@ class _TopSnackBarState extends State<_TopSnackBar>
                                         size: 16,
                                       ),
                                     ),
-                                    const SizedBox(width: 10),
+                                    SizedBox(width: 10.w),
                                     Expanded(
                                       child: Text(
                                         widget.message,
                                         style: TextStyle(
                                           color: widget.textColor,
                                           fontWeight: FontWeight.w700,
-                                          fontSize: 14.5,
+                                          fontSize: 14.5.sp,
                                           height: 1.25,
                                         ),
                                       ),

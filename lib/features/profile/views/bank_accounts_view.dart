@@ -24,7 +24,7 @@ class BankAccountsView extends HookWidget {
       // bottomNavigationBar: SafeArea(
       //   top: false,
       //   child: Padding(
-      //     padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
+      //     padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
       //     child: CustomElevatedButton(
       //       label: 'Add New Bank Account',
       //       onPressed: openAddBank,
@@ -40,7 +40,7 @@ class BankAccountsView extends HookWidget {
               ReferAndEarnAppBar(
                 title: 'Bank Accounts',
                 onHelp: () {},
-                height: 260,
+                height: 260.h,
                 body: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -51,10 +51,10 @@ class BankAccountsView extends HookWidget {
                         color: Colors.white.withOpacity(0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.account_balance_outlined,
                         color: Colors.white,
-                        size: 30,
+                        size: 30.r,
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -321,8 +321,8 @@ class _BankAccountSummaryCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -417,8 +417,8 @@ class _BankAccountDetailsCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -533,27 +533,27 @@ class _ConfirmDeleteBankDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 12.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 72.r,
+              height: 72.r,
               decoration: const BoxDecoration(
                 color: Color(0xFFFFECE8),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.account_balance,
-                size: 40,
+                size: 40.r,
                 color: Color(0xFFE85A2C),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               'Delete Bank Account',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -561,7 +561,7 @@ class _ConfirmDeleteBankDialog extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             Text(
               'Are you sure you want to delete $bankName?',
               textAlign: TextAlign.center,
@@ -569,7 +569,7 @@ class _ConfirmDeleteBankDialog extends StatelessWidget {
                     color: AppColors.textPrimary.withOpacity(0.75),
                   ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18.h),
             Row(
               children: [
                 Expanded(
@@ -581,7 +581,7 @@ class _ConfirmDeleteBankDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onConfirm,
@@ -606,11 +606,11 @@ class _BankAccountsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _Shimmer(
+    return _Shimmer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardSkeleton(height: 84),
+          _CardSkeleton(height: 84.h),
         ],
       ),
     );
@@ -643,9 +643,9 @@ class _CardSkeleton extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _Line(width: 120, height: 12),
+                      _Line(width: 120.w, height: 12.h),
                       SizedBox(height: 8.h),
-                      const _Line(width: 90, height: 10),
+                      _Line(width: 90.w, height: 10.h),
                     ],
                   ),
                 ),

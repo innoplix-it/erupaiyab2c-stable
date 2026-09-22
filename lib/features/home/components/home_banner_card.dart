@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HomeBannerCard extends StatelessWidget {
   const HomeBannerCard({
@@ -34,13 +35,13 @@ class HomeBannerCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
       ),
-      // padding: const EdgeInsets.all(16),
+      // padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -53,7 +54,7 @@ class HomeBannerCard extends StatelessWidget {
                       ),
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6.h),
                   Text(
                     subtitle!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -62,16 +63,15 @@ class HomeBannerCard extends StatelessWidget {
                   ),
                 ],
                 if (buttonLabel != null) ...[
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 40,
+                  SizedBox(height: 14.h),
+                  SizedBox(height: 40.h,
                     child: ElevatedButton(
                       onPressed: onPressed,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(10.r),
                         ),
                       ),
                       child: Text(
@@ -84,10 +84,10 @@ class HomeBannerCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(top: 20.0),
+              padding: EdgeInsets.only(top: 20.0.h),
               child: Image.asset(
                 FileConstants.iphone,
                 height: height,

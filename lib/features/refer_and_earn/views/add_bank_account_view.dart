@@ -232,7 +232,7 @@ class AddBankAccountView extends HookConsumerWidget {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
+          padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -249,8 +249,7 @@ class AddBankAccountView extends HookConsumerWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        height: 20.w,
+                      SizedBox(height: 20.w,
                         width: 20.w,
                         child: Checkbox(
                           value: confirmChecked.value,
@@ -298,7 +297,7 @@ class AddBankAccountView extends HookConsumerWidget {
             ReferAndEarnAppBar(
               title: isEdit ? 'Edit Bank Account' : 'Add Bank Account',
               onHelp: () {},
-              height: 300,
+              height: 300.h,
               body: Column(
                 children: [
                   Container(
@@ -592,8 +591,7 @@ class _PrimaryButton extends HookWidget {
         ),
         alignment: Alignment.center,
         child: loading
-            ? SizedBox(
-                width: 22.w,
+            ? SizedBox(width: 22.w,
                 height: 22.w,
                 child: const Center(
                   child: SpinKitCircle(
@@ -641,7 +639,7 @@ class _KycMismatchDialog extends HookWidget {
                 color: Color(0xFFE85A2C),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.info, color: Colors.white, size: 28),
+              child: Icon(Icons.info, color: Colors.white, size: 28.r),
             ),
             SizedBox(height: 12.h),
             Text(

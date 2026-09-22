@@ -13,10 +13,10 @@ class _InfoNoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
           color: AppColors.lightBorder.withValues(alpha: 0.7),
         ),
@@ -25,15 +25,15 @@ class _InfoNoteCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (showLogo) ...[
-            Image.asset(FileConstants.bharatConnectColor, height: 18),
-            const SizedBox(width: 8),
+            Image.asset(FileConstants.bharatConnectColor, height: 18.h),
+            SizedBox(width: 8.w),
           ],
           Expanded(
             child: Text(
               text,
               softWrap: true,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 10,
+                    fontSize: 10.sp,
                     color: Colors.black,
                     height: 1.5,
                   ),
@@ -54,15 +54,15 @@ class _GasPolicyBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: const Color(0xFFDB0101),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -87,30 +87,30 @@ class _GasErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: const Color(0xFFDB0101),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
+          Padding(
+            padding: EdgeInsets.only(top: 2.h),
             child: Icon(
               Icons.info_outline,
               color: Colors.white,
-              size: 18,
+              size: 18.r,
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.w),
           Expanded(
             child: Text(
               message.trim(),
@@ -160,7 +160,7 @@ class _SubscriptionSummaryCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6.h),
           Text(
             value,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -175,19 +175,19 @@ class _SubscriptionSummaryCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(color: AppColors.lightBorder.withValues(alpha: 0.7)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           stackedField(label: 'Mobile Number', value: resolvedMobile),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           stackedField(label: 'Plan', value: resolvedPlan),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
           Row(
             children: [
               Text(
@@ -203,7 +203,7 @@ class _SubscriptionSummaryCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w900,
-                      fontSize: 24,
+                      fontSize: 24.sp,
                     ),
               ),
             ],
@@ -342,11 +342,11 @@ class _MaskedPrefix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
       child: Text(
         '\u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022',
@@ -379,16 +379,16 @@ class _NoBillDueDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 72.r,
+              height: 72.r,
               decoration: const BoxDecoration(
                 color: Color(0xFFE5F8EA),
                 shape: BoxShape.circle,
@@ -399,7 +399,7 @@ class _NoBillDueDialog extends StatelessWidget {
                 size: 44,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -407,7 +407,7 @@ class _NoBillDueDialog extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               message,
               textAlign: TextAlign.center,
@@ -415,23 +415,23 @@ class _NoBillDueDialog extends StatelessWidget {
                     color: AppColors.textPrimary.withValues(alpha: 0.75),
                   ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22.h),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                   ),
                 ),
                 onPressed: onContinue,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
                   child: Text(
                     'Got it',
                     style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
                         color: AppColors.white),
                   ),
@@ -458,28 +458,28 @@ class _BillFetchFailedDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 65,
-              height: 65,
+              width: 65.r,
+              height: 65.r,
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF1EB),
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFFF2B9A6)),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.info_outline_rounded,
                 color: AppColors.primary,
-                size: 44,
+                size: 44.r,
               ),
             ),
-            // const SizedBox(height: 16),
+            // SizedBox(height: 16.h),
             // Text(
             //   'Unable to fetch bill',
             //   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -487,7 +487,7 @@ class _BillFetchFailedDialog extends StatelessWidget {
             //         color: AppColors.textPrimary,
             //       ),
             // ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               message.trim().isEmpty
                   ? 'We couldn\u2019t fetch your bill right now. Please recheck the details and try again in a moment.'
@@ -497,7 +497,7 @@ class _BillFetchFailedDialog extends StatelessWidget {
                     color: AppColors.textPrimary.withValues(alpha: 0.75),
                   ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22.h),
             SizedBox(
               width: double.infinity,
               child: CustomElevatedButton(
@@ -598,8 +598,8 @@ Future<String?> _pickContactNumber(
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
     ),
     builder: (context) {
       return _ContactPickerSheetHost(
@@ -633,21 +633,20 @@ class _ContactPickerSheetHost extends HookConsumerWidget {
     final error = state.errorMessage;
 
     if (isLoading && contacts.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 24),
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: 8),
-            SizedBox(
-              height: 24,
-              width: 24,
+            SizedBox(height: 8.h),
+            SizedBox(height: 24.r,
+              width: 24.r,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 color: AppColors.primary,
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 10.h),
             Text('Loading contacts...'),
           ],
         ),
@@ -656,7 +655,7 @@ class _ContactPickerSheetHost extends HookConsumerWidget {
 
     if (error != null && error.isNotEmpty && contacts.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -667,7 +666,7 @@ class _ContactPickerSheetHost extends HookConsumerWidget {
                     fontWeight: FontWeight.w700,
                   ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -730,19 +729,19 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
     }).toList();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 44,
+            width: 44.w,
             height: 4,
             decoration: BoxDecoration(
               color: Colors.black12,
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(100.r),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Text(
             'Select Contact',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -750,13 +749,13 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
                   color: AppColors.textPrimary,
                 ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           SearchTextfield(
             hintText: 'Search contacts',
             controller: _searchController,
             onChange: (value) => setState(() => _query = value),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Flexible(
             child: filtered.isEmpty
                 ? Center(
@@ -891,16 +890,16 @@ class _CompactBillSection extends StatelessWidget {
                     children: [
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 18.h),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16.r),
                           border: Border.all(color: const Color(0xFFE2E2E2)),
-                          boxShadow: const [
+                          boxShadow: [
                             BoxShadow(
                               color: AppColors.cardShadow,
-                              blurRadius: 14,
-                              offset: Offset(0, 6),
+                              blurRadius: 14.r,
+                              offset: Offset(0.w, 6.h),
                             ),
                           ],
                         ),
@@ -939,10 +938,10 @@ class _CompactBillSection extends StatelessWidget {
                     children: [
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16.w),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(14.r),
                         ),
                         child: Column(
                           children: [
@@ -961,7 +960,7 @@ class _CompactBillSection extends StatelessWidget {
                       Align(
                         alignment: Alignment.centerRight,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: EdgeInsets.symmetric(vertical: 8.h),
                           child: _ToggleArrowButton(
                             isExpanded: false,
                             onTap: onToggle,
@@ -978,12 +977,12 @@ class _CompactBillSection extends StatelessWidget {
             child: _AmountDisplayCard(bill: bill),
           ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
 
         // Additional fee note (prefer API `note` for Electricity)
         if (isElectricity && note.isNotEmpty) ...[
           _AdditionalNoteCard(text: note),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
         ] else if (!isElectricity && bill.latePaymentFormatted.isNotEmpty) ...[
           Text(
             'Payments made after ${bill.dueDate} will incur an additional charge of ${_additionalCharge()}.',
@@ -992,10 +991,10 @@ class _CompactBillSection extends StatelessWidget {
                   height: 1.5,
                 ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
         ],
 
-        const SizedBox(height: 8),
+        SizedBox(height: 8.h),
 
         // Bill Amount field
         Text(
@@ -1005,7 +1004,7 @@ class _CompactBillSection extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.h),
         ValueListenableBuilder<TextEditingValue>(
           valueListenable: billAmountController,
           builder: (context, value, _) {
@@ -1068,34 +1067,34 @@ class _CompactBillSection extends StatelessWidget {
                 filled: true,
                 fillColor: Colors.grey.shade50,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: const BorderSide(color: AppColors.lightBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: const BorderSide(color: AppColors.lightBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: const BorderSide(color: AppColors.primary),
                 ),
                 errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: const BorderSide(color: Colors.red),
                 ),
                 focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: const BorderSide(color: Colors.red),
                 ),
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
               ),
             );
           },
         ),
         if (allowCustomAmount &&
             (minimumCustomAmount != null || maximumCustomAmount != null)) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Text(
             [
               if (minimumCustomAmount != null)
@@ -1137,10 +1136,10 @@ class _AmountDisplayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.35),
           width: 1.5,
@@ -1156,10 +1155,10 @@ class _AmountDisplayCard extends StatelessWidget {
               if (_hasValidBillPeriod(_resolveBillMonth(bill)))
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
                     'Bill for ${_formatBillPeriod(_resolveBillMonth(bill))}',
@@ -1179,7 +1178,7 @@ class _AmountDisplayCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
           // Amount
           Text(
             _resolvedAmountText(),
@@ -1313,16 +1312,16 @@ class _FullDetailsSection extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 18.h),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(color: const Color(0xFFE2E2E2)),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
                     color: AppColors.cardShadow,
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
+                    blurRadius: 12.r,
+                    offset: Offset(0.w, 4.h),
                   ),
                 ],
               ),
@@ -1441,8 +1440,8 @@ class _ToggleArrowButton extends StatelessWidget {
     return GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 38,
-          height: 38,
+          width: 38.r,
+          height: 38.r,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
@@ -1457,7 +1456,7 @@ class _ToggleArrowButton extends StatelessWidget {
           child: Icon(
             isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
             color: Colors.white,
-            size: 24,
+            size: 24.r,
           ),
         ));
   }
@@ -1475,7 +1474,7 @@ class _ColonInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1488,7 +1487,7 @@ class _ColonInfoRow extends StatelessWidget {
                   ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.w),
           Text(
             ':',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -1496,7 +1495,7 @@ class _ColonInfoRow extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.w),
           Expanded(
             child: Text(
               value,
@@ -1522,25 +1521,25 @@ class _AdditionalNoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7F4),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         border:
             Border.all(color: const Color(0xFFE85A2C).withValues(alpha: 0.4)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
+          Padding(
+            padding: EdgeInsets.only(top: 2.h),
             child: Icon(
               Icons.info_outline,
               color: Color(0xFFE85A2C),
               size: 18,
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.w),
           Expanded(
             child: Text(
               text,
@@ -1572,7 +1571,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1585,7 +1584,7 @@ class _InfoRow extends StatelessWidget {
                   ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             flex: 3,
             child: Text(

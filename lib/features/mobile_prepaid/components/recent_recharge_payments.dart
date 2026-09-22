@@ -44,8 +44,7 @@ class RecentRechargePayments extends StatelessWidget {
             children: [
               _Header(onViewAll: onViewAll),
               SizedBox(height: 12.h),
-              SizedBox(
-                height: 75,
+              SizedBox(height: 75.h,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: EdgeInsets.zero,
@@ -212,8 +211,7 @@ class _RecentPaymentsShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Shimmer(
-      child: SizedBox(
-        height: 78.h,
+      child: SizedBox(height: 78.h,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: 3,

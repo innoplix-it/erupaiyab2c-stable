@@ -177,11 +177,11 @@ class _DigitalGoldSellConfirmViewState
                     border: Border.all(
                       color: AppColors.lightBorder.withOpacity(0.6),
                     ),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
                         color: Color.fromRGBO(0, 0, 0, 0.05),
-                        blurRadius: 18,
-                        offset: Offset(0, 10),
+                        blurRadius: 18.r,
+                        offset: Offset(0.w, 10.h),
                       ),
                     ],
                   ),
@@ -233,14 +233,14 @@ class _DigitalGoldSellConfirmViewState
                         ),
                       ),
                       Container(
-                        width: 22,
-                        height: 22,
+                        width: 22.r,
+                        height: 22.r,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: Color(0xFFE85A2C),
                         ),
-                        child: const Icon(Icons.add,
-                            color: Colors.white, size: 22),
+                        child: Icon(Icons.add,
+                            color: Colors.white, size: 22.r),
                       ),
                     ],
                   ),
@@ -252,8 +252,8 @@ class _DigitalGoldSellConfirmViewState
                   children: [
                     Image.asset(
                       FileConstants.resetPinIcon,
-                      width: 25,
-                      height: 25,
+                      width: 25.r,
+                      height: 25.r,
                     ),
                     SizedBox(width: 8.w),
                     Text(

@@ -45,11 +45,11 @@ class BillSampleTermsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),

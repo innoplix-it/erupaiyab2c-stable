@@ -116,7 +116,7 @@ class HomeSearchView extends HookConsumerWidget {
               onBack: () => Navigator.of(context).pop(),
               onHelp: () {},
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               child: LayoutBuilder(
@@ -154,7 +154,7 @@ class HomeSearchView extends HookConsumerWidget {
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             if (bannerError.value == null && banners.value.isNotEmpty)
               SizedBox(
                 height: _bannerHeight,
@@ -180,13 +180,13 @@ class HomeSearchView extends HookConsumerWidget {
                   },
                 ),
               ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             if (isLoading.value)
               const _HomeSearchLoadingSkeleton()
             else if (error.value != null)
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
                 child: Text(
                   error.value!,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -197,7 +197,7 @@ class HomeSearchView extends HookConsumerWidget {
             else if (hasFetched.value && results.value.isEmpty)
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
                 child: Text(
                   'No services found',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -211,11 +211,7 @@ class HomeSearchView extends HookConsumerWidget {
                 child: ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    8,
-                    16,
-                    12 + MediaQuery.of(context).padding.bottom,
+                  padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12 + MediaQuery.of(context).padding.bottom,
                   ),
                   itemCount: results.value.length,
                   itemBuilder: (context, index) {
@@ -300,12 +296,12 @@ class _HomeSearchLoadingSkeleton extends StatelessWidget {
       enabled: true,
       child: IgnorePointer(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 24.h),
           child: Column(
             children: _mockCategories
                 .map(
                   (category) => Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
+                    padding: EdgeInsets.only(bottom: 24.h),
                     child: _CategorySection(
                       category: category,
                       onServiceTap: (_) {},
@@ -346,14 +342,14 @@ class _CategorySection extends HookWidget {
         ? category.services.take(maxCollapsedItems).toList()
         : category.services;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: 16.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
             onTap: canExpand ? () => expanded.value = !expanded.value : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: EdgeInsets.symmetric(vertical: 4.h),
               child: Row(
                 children: [
                   Expanded(
@@ -370,23 +366,23 @@ class _CategorySection extends HookWidget {
                       expanded.value
                           ? Icons.keyboard_arrow_up_rounded
                           : Icons.keyboard_arrow_down_rounded,
-                      size: 26,
+                      size: 26.r,
                       color: AppColors.textPrimary,
                     ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.h),
           AnimatedSize(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 22),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 22.h),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(14.r),
                 border: Border.all(color: AppColors.lightBorder),
               ),
               child: LayoutBuilder(

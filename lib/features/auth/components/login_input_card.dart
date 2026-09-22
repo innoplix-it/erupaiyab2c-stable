@@ -32,11 +32,11 @@ class LoginInputCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28.r),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 30,
-            offset: Offset(0, 14),
+            blurRadius: 30.r,
+            offset: Offset(0.w, 14.h),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/core/barrel_file.dart';
 import 'package:e_rupaiya/features/home/components/quick_action_header_card.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SimpleQuickActionCard extends StatelessWidget {
   const SimpleQuickActionCard({

@@ -152,11 +152,11 @@ class _HelpCenterInputBar extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),

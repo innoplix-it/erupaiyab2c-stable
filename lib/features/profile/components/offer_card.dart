@@ -25,21 +25,21 @@ class OfferCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap ?? onViewOffer,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
               BoxShadow(
                 color: AppColors.cardShadow,
-                blurRadius: 16,
-                offset: Offset(0, 6),
+                blurRadius: 16.r,
+                offset: Offset(0.w, 6.h),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.r),
             child: Stack(
               children: [
                 Column(
@@ -47,19 +47,19 @@ class OfferCard extends StatelessWidget {
                   children: [
                     // Top row: orange pill + valid until
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
+                      padding: EdgeInsets.fromLTRB(0.w, 0.h, 16.w, 0.h),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Orange pill badge
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: const BoxDecoration(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 14.w, vertical: 8.h),
+                            decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(16),
-                                bottomRight: Radius.circular(16),
+                                topLeft: Radius.circular(16.r),
+                                bottomRight: Radius.circular(16.r),
                               ),
                             ),
                             child: Text(
@@ -76,7 +76,7 @@ class OfferCard extends StatelessWidget {
                           ),
                           const Spacer(),
                           Padding(
-                            padding: const EdgeInsets.only(top: 10),
+                            padding: EdgeInsets.only(top: 10.h),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
@@ -111,19 +111,19 @@ class OfferCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     // Icon + description
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            height: 36,
-                            width: 36,
+                            height: 36.r,
+                            width: 36.r,
                             decoration: BoxDecoration(
                               color: AppColors.primary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(8.r),
                             ),
                             child: Center(
                               child: Icon(
@@ -133,10 +133,10 @@ class OfferCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12.w),
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.only(right: 56),
+                              padding: EdgeInsets.only(right: 56.w),
                               child: Text(
                                 offer.summary,
                                 style: Theme.of(context)
@@ -153,10 +153,10 @@ class OfferCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14.h),
                     // View Offer
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 0, 20),
+                      padding: EdgeInsets.fromLTRB(16.w, 0.h, 0.w, 20.h),
                       child: GestureDetector(
                         onTap: onViewOffer ?? onTap,
                         child: Text(
@@ -181,8 +181,8 @@ class OfferCard extends StatelessWidget {
                   right: 0,
                   child: Image.asset(
                     FileConstants.frame213,
-                    height: 60.h,
-                    width: 60.w,
+                    height: 60.r,
+                    width: 60.r,
                     fit: BoxFit.contain,
                   ),
                 ),

@@ -56,11 +56,7 @@ class _GoldHomeTab extends ConsumerWidget {
               },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  16.w,
-                  10.h,
-                  16.w,
-                  16.h + MediaQuery.of(context).viewPadding.bottom,
+                padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h + MediaQuery.of(context).viewPadding.bottom,
                 ),
                 children: [
                 Text(

@@ -34,7 +34,7 @@ class DigitalGoldSipSuccessView extends ConsumerWidget {
                 shape: BoxShape.circle,
                 color: Color(0xFF0B8A3B),
               ),
-              child: const Icon(Icons.check, color: Colors.white, size: 28),
+              child: Icon(Icons.check, color: Colors.white, size: 28.r),
             ),
             SizedBox(height: 14.h),
             Text(
@@ -146,7 +146,7 @@ class _RowItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
         children: [
           Expanded(

@@ -63,7 +63,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     //                     end: Alignment.bottomCenter,
     //                   ),
     //             borderRadius: const BorderRadius.vertical(
-    //               bottom: Radius.circular(28),
+    //               bottom: Radius.circular(28.r),
     //             ),
     //           ),
     //         ),
@@ -73,11 +73,11 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     //         right: 0,
     //         bottom: -1,
     //         child: Container(
-    //           height: 32,
+    //           height: 32.h,
     //           decoration: const BoxDecoration(
     //             color: Colors.white,
     //             borderRadius: BorderRadius.vertical(
-    //               top: Radius.circular(28),
+    //               top: Radius.circular(28.r),
     //             ),
     //           ),
     //         ),
@@ -85,7 +85,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     //       SafeArea(
     //         bottom: false,
     //         child: Padding(
-    //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+    //           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
     //           child: Row(
     //             children: [
     //               IconButton(
@@ -97,7 +97,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     //                 ),
     //                 onPressed: onBack ?? () => Navigator.of(context).maybePop(),
     //               ),
-    //               const SizedBox(width: 4),
+    //               SizedBox(width: 4.w),
     //               Expanded(
     //                 child: Text(
     //                   title,
@@ -142,7 +142,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                 height: kToolbarHeight,
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   child: Row(
                     children: [
                       IconButton(
@@ -155,7 +155,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                         onPressed:
                             onBack ?? () => Navigator.of(context).maybePop(),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
                           title,

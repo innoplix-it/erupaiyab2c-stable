@@ -23,6 +23,7 @@ import '../controllers/biller_listing_controller.dart';
 import '../controllers/service_extras_controller.dart';
 import '../models/biller_detail_args.dart';
 import '../models/biller_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CreditCardListingView extends HookConsumerWidget {
   const CreditCardListingView({super.key});
@@ -108,7 +109,7 @@ class CreditCardListingView extends HookConsumerWidget {
             onBack: () => context.pop(),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             child: SearchTextfield(
               hintText: 'Search bank name',
               controller: searchController,
@@ -148,7 +149,7 @@ class CreditCardListingView extends HookConsumerWidget {
                           ? ListView.builder(
                               primary: false,
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
+                                  EdgeInsets.symmetric(horizontal: 16.w),
                               itemCount: billers.length +
                                   (listingState.isFetchingMore ? 1 : 0),
                               itemBuilder: (context, index) {
@@ -192,8 +193,8 @@ class CreditCardListingView extends HookConsumerWidget {
                                     onAction: () {},
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16.w),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -208,7 +209,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                                 color: AppColors.textPrimary,
                                               ),
                                         ),
-                                        const SizedBox(height: 12),
+                                        SizedBox(height: 12.h),
                                         LayoutBuilder(
                                           builder: (context, constraints) {
                                             const spacing = 12.0;
@@ -256,7 +257,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                           },
                                         ),
                                         if (remaining.isNotEmpty) ...[
-                                          const SizedBox(height: 18),
+                                          SizedBox(height: 18.h),
                                           Text(
                                             'All Banks',
                                             style: Theme.of(context)
@@ -267,7 +268,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                                   color: AppColors.textPrimary,
                                                 ),
                                           ),
-                                          const SizedBox(height: 12),
+                                          SizedBox(height: 12.h),
                                           Column(
                                             children: [
                                               for (final biller in remaining)
@@ -301,7 +302,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                         ],
                                         if (listingState.isFetchingMore)
                                           const _CreditCardListingFooterSkeleton(),
-                                        const SizedBox(height: 12),
+                                        SizedBox(height: 12.h),
                                       ],
                                     ),
                                   ),
@@ -328,18 +329,18 @@ class _BillerGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16.r),
       child: Container(
         constraints: const BoxConstraints.tightFor(height: _tileHeight),
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.all(10.w),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              blurRadius: 12.r,
+              offset: Offset(0.w, 6.h),
             ),
           ],
         ),
@@ -350,14 +351,13 @@ class _BillerGridTile extends StatelessWidget {
               child: _BillerIcon(
                 name: biller.billerName,
                 iconUrl: biller.iconUrl,
-                size: 38,
+                size: 38.r,
                 backgroundColor: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(14.r),
               ),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 32,
+            SizedBox(height: 10.h),
+            SizedBox(height: 32.h,
               child: Text(
                 biller.billerName,
                 maxLines: 2,
@@ -388,7 +388,7 @@ class _BillerListTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: EdgeInsets.symmetric(vertical: 10.h),
         child: Row(
           children: [
             _ProviderIconFrame(
@@ -396,12 +396,12 @@ class _BillerListTile extends StatelessWidget {
               child: _BillerIcon(
                 name: biller.billerName,
                 iconUrl: biller.iconUrl,
-                size: 38,
+                size: 38.r,
                 backgroundColor: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(14.r),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(
               child: Text(
                 biller.billerName,
@@ -413,8 +413,8 @@ class _BillerListTile extends StatelessWidget {
             ),
             Image.asset(
               FileConstants.tiltArrow,
-              height: 22,
-              width: 22,
+              height: 22.r,
+              width: 22.r,
               fit: BoxFit.contain,
             ),
           ],
@@ -497,19 +497,19 @@ class _CreditCardListingSkeleton extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               child: Container(
-                height: 52,
+                height: 52.h,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(14.r),
                   border: Border.all(color: AppColors.lightBorder),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
                 child: Row(
                   children: [
                     const Icon(Icons.search, color: AppColors.textPrimary),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10.w),
                     Expanded(
                       child: Text(
                         'Search bank name',
@@ -525,7 +525,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
             Expanded(
               child: isSearching
                   ? ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
                       itemCount: _mockBillers.length,
                       itemBuilder: (_, index) => _BillerListTile(
                         biller: _mockBillers[index],
@@ -533,7 +533,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                       ),
                     )
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -547,7 +547,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                                   color: AppColors.textPrimary,
                                 ),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12.h),
                           LayoutBuilder(
                             builder: (context, constraints) {
                               const spacing = 12.0;
@@ -571,7 +571,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                               );
                             },
                           ),
-                          const SizedBox(height: 18),
+                          SizedBox(height: 18.h),
                           Text(
                             'All Banks',
                             style: Theme.of(context)
@@ -582,7 +582,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                                   color: AppColors.textPrimary,
                                 ),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12.h),
                           for (final biller in _mockBillers)
                             _BillerListTile(biller: biller, onTap: () {}),
                         ],
@@ -601,11 +601,11 @@ class _CreditCardListingFooterSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Skeletonizer(
+    return Skeletonizer(
       enabled: true,
       child: IgnorePointer(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
           child: _BillerListTile(
             biller: Biller(billerId: '1', billerName: 'Loading Credit Card'),
             onTap: null,
@@ -630,10 +630,10 @@ class _ProviderIconFrame extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      padding: const EdgeInsets.all(3),
+      padding: EdgeInsets.all(3.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18.r),
         border: Border.all(color: AppColors.lightBorder, width: 1),
       ),
       child: child,

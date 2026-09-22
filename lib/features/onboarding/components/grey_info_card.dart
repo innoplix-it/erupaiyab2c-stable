@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class GreyInfoCard extends StatelessWidget {
   const GreyInfoCard({
@@ -14,16 +15,16 @@ class GreyInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 14,
-            offset: Offset(0, 8),
+            blurRadius: 14.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -31,7 +32,7 @@ class GreyInfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: entries.entries.map((entry) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: 8.h),
             child: RichText(
               text: TextSpan(
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(

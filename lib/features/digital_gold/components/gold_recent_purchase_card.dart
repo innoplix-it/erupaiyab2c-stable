@@ -33,7 +33,7 @@ class GoldRecentPurchaseCard extends StatelessWidget {
         '${dateTime.day.toString().padLeft(2, '0')}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.year}';
 
     return Container(
-      padding: EdgeInsets.fromLTRB(12.w, 12.h, 0, 14.h),
+      padding: EdgeInsets.fromLTRB(12.w, 12.h, 0.w, 14.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
@@ -145,7 +145,7 @@ class GoldRecentPurchaseCardShimmer extends StatelessWidget {
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
       child: Container(
-        padding: EdgeInsets.fromLTRB(12.w, 12.h, 0, 14.h),
+        padding: EdgeInsets.fromLTRB(12.w, 12.h, 0.w, 14.h),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),

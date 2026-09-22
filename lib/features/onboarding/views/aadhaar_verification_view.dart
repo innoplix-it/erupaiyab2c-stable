@@ -9,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AadhaarVerificationView extends HookConsumerWidget {
   const AadhaarVerificationView({super.key});
@@ -31,7 +32,7 @@ class AadhaarVerificationView extends HookConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -42,23 +43,23 @@ class AadhaarVerificationView extends HookConsumerWidget {
                         fontWeight: FontWeight.w700,
                       ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   'To use e-Rupaiya and earn rewards, please complete your KYC.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppColors.textPrimary.withOpacity(0.8),
                       ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
                 Center(
                   child: Image.asset(
                     FileConstants.aadhaar,
-                    height: 64,
-                    width: 64,
+                    height: 64.r,
+                    width: 64.r,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
                 Text(
                   'This screen has been replaced with the secure KYC verification flow.',
                   textAlign: TextAlign.center,
@@ -66,7 +67,7 @@ class AadhaarVerificationView extends HookConsumerWidget {
                         color: AppColors.textPrimary.withOpacity(0.75),
                       ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 Text(
                   'Redirecting you now.',
                   textAlign: TextAlign.center,
@@ -81,7 +82,7 @@ class AadhaarVerificationView extends HookConsumerWidget {
                   showArrow: false,
                   uppercaseLabel: false,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
               ],
             ),
           ),

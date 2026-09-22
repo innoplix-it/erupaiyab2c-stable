@@ -291,12 +291,12 @@ class HomeView extends HookConsumerWidget {
         items: navItems,
         navBarStyle: NavBarStyle.simple,
         decoration: NavBarDecoration(
-          borderRadius: BorderRadius.circular(0),
+          borderRadius: BorderRadius.circular(0.r),
           // color: Colors.white,
           colorBehindNavBar: Colors.white,
         ),
         navBarHeight: 65,
-        padding: const EdgeInsets.only(top: 6, bottom: 10),
+        padding: EdgeInsets.only(top: 6.h, bottom: 10.h),
         backgroundColor: Colors.white,
         hideNavigationBarWhenKeyboardAppears: true,
         confineToSafeArea: true,
@@ -323,7 +323,7 @@ class HomeView extends HookConsumerWidget {
     //   items: navItems,
     //   navBarStyle: NavBarStyle.style15,
     //   decoration: NavBarDecoration(
-    //     borderRadius: BorderRadius.circular(0),
+    //     borderRadius: BorderRadius.circular(0.r),
     //     gradient: const LinearGradient(
     //       colors: [Color(0xffFFEAE3), Color(0xffF6F4F3)],
     //       begin: Alignment.topCenter,
@@ -336,7 +336,7 @@ class HomeView extends HookConsumerWidget {
     //       true, // This needs to be true if you want to move up the screen on a non-scrollable screen when keyboard appears. Default is true.
     //   stateManagement: true, // Default is true.
     //   hideNavigationBarWhenKeyboardAppears: true,
-    //   padding: const EdgeInsets.only(top: 2),
+    //   padding: EdgeInsets.only(top: 2.h),
     //   backgroundColor: Colors.grey.shade900,
     //   isVisible: true,
     //   animationSettings: const NavBarAnimationSettings(

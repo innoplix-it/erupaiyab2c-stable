@@ -1,5 +1,6 @@
 import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/core/barrel_file.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class OtpDigitBox extends StatelessWidget {
   const OtpDigitBox({
@@ -25,9 +26,8 @@ class OtpDigitBox extends StatelessWidget {
             ? AppColors.primary
             : const Color(0xFFD9D9D9);
 
-    return SizedBox(
-      width: 40.w,
-      height: 40.h,
+    return SizedBox(width: 40.r,
+      height: 40.r,
       child: TextField(
         controller: controller,
         focusNode: focusNode,
@@ -44,16 +44,16 @@ class OtpDigitBox extends StatelessWidget {
           filled: true,
           fillColor: Colors.white,
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8.r),
             borderSide: BorderSide(color: borderColor, width: 1.4),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8.r),
             borderSide: BorderSide(
                 color: isError ? Colors.red : AppColors.primary, width: 1.6),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8.r),
             borderSide: const BorderSide(color: Colors.red, width: 1.4),
           ),
         ),

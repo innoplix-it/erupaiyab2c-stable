@@ -47,8 +47,8 @@ class ContactsPermissionCard extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
+                    blurRadius: 18.r,
+                    offset: Offset(0.w, 10.h),
                   ),
                 ],
               ),

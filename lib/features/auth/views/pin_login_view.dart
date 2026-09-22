@@ -226,11 +226,11 @@ class PinLoginView extends HookConsumerWidget {
                 children: [
                   Container(
                     height: headerHeight,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: AppColors.authBackgroundGradient,
                       borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(20.r),
+                        bottomRight: Radius.circular(20.r),
                       ),
                     ),
                   ),
@@ -351,11 +351,11 @@ class _ForgotPinCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28.r),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 30,
-            offset: Offset(0, 14),
+            blurRadius: 30.r,
+            offset: Offset(0.w, 14.h),
           ),
         ],
       ),
@@ -394,9 +394,9 @@ class _ForgotPinCard extends StatelessWidget {
             SizedBox(height: 10.h),
             Row(
               children: [
-                const Icon(Icons.access_time,
-                    size: 18, color: AppColors.textPrimary),
-                const SizedBox(width: 6),
+                Icon(Icons.access_time,
+                    size: 18.r, color: AppColors.textPrimary),
+                SizedBox(width: 6.w),
                 Text(
                   '${(remainingSeconds ~/ 60).toString().padLeft(2, '0')}:${(remainingSeconds % 60).toString().padLeft(2, '0')}',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(

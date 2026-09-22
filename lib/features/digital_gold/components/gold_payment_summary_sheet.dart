@@ -164,8 +164,7 @@ class GoldPaymentSummarySheet extends HookConsumerWidget {
                       ),
                 ),
               ),
-              SizedBox(
-                width: 56.w,
+              SizedBox(width: 56.w,
                 child: TextField(
                   controller: walletController,
                   keyboardType: TextInputType.number,

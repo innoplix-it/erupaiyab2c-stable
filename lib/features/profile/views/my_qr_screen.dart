@@ -107,11 +107,11 @@ class _QrCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24.r),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 16,
-            offset: Offset(0, 8),
+            blurRadius: 16.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),

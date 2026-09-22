@@ -62,9 +62,9 @@ class EducationAddCardSheet extends StatelessWidget {
             SizedBox(height: 16.h),
             const _Label(text: 'Card Number'),
             SizedBox(height: 8.h),
-            const _InputField(
+            _InputField(
               hint: '**** **** **** ****',
-              suffix: Icon(Icons.credit_card, size: 18),
+              suffix: Icon(Icons.credit_card, size: 18.r),
             ),
             SizedBox(height: 12.h),
             Row(
@@ -86,9 +86,9 @@ class EducationAddCardSheet extends StatelessWidget {
                     children: [
                       const _Label(text: 'CVV'),
                       SizedBox(height: 8.h),
-                      const _InputField(
+                      _InputField(
                         hint: '123',
-                        suffix: Icon(Icons.visibility, size: 18),
+                        suffix: Icon(Icons.visibility, size: 18.r),
                       ),
                     ],
                   ),
@@ -112,7 +112,7 @@ class EducationAddCardSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4.r),
                     ),
                     child:
-                        const Icon(Icons.check, size: 12, color: Colors.white),
+                        Icon(Icons.check, size: 12.r, color: Colors.white),
                   ),
                   SizedBox(width: 8.w),
                   Expanded(

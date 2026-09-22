@@ -96,7 +96,7 @@ class WithdrawECoinsView extends HookConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
+        padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
         child: SafeArea(
           top: false,
           child: InkWell(
@@ -167,7 +167,7 @@ class WithdrawECoinsView extends HookConsumerWidget {
             ReferAndEarnAppBar(
               title: 'Withdraw E-Coins',
               onHelp: () {},
-              height: 300,
+              height: 300.h,
               body: Column(
                 children: [
                   Row(
@@ -662,8 +662,8 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
+                      blurRadius: 8.r,
+                      offset: Offset(0.w, 4.h),
                     ),
                   ],
                 ),
@@ -676,10 +676,10 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                         color: Color(0xFF1A56A1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.account_balance,
                         color: Colors.white,
-                        size: 20,
+                        size: 20.r,
                       ),
                     ),
                     SizedBox(width: 10.w),
@@ -774,8 +774,7 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                 ),
               ),
               child: isSubmitting.value
-                  ? SizedBox(
-                      width: 20.w,
+                  ? SizedBox(width: 20.w,
                       height: 20.w,
                       child: const Center(
                         child: SpinKitCircle(

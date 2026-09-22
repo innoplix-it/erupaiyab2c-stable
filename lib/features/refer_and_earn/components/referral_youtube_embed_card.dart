@@ -28,13 +28,13 @@ class _ReferralYoutubeEmbedCardState extends State<ReferralYoutubeEmbedCard> {
         padding: 0;
         background: #000;
         overflow: hidden;
-        height: 100%;
-        width: 100%;
+        height: 100.h%;
+        width: 100.w%;
       }
       iframe {
         border: 0;
-        width: 100%;
-        height: 100%;
+        width: 100.w%;
+        height: 100.h%;
       }
     </style>
   </head>

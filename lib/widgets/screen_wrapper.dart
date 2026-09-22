@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ScreenWrapper extends StatelessWidget {
   const ScreenWrapper({
@@ -91,8 +92,8 @@ class _StateMessage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (imageAsset != null) ...[
-              Image.asset(imageAsset!, height: 72),
-              const SizedBox(height: 16),
+              Image.asset(imageAsset!, height: 72.h),
+              SizedBox(height: 16.h),
             ],
             Text(
               title,
@@ -103,9 +104,8 @@ class _StateMessage extends StatelessWidget {
                   ),
             ),
             if (description != null && description!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 260,
+              SizedBox(height: 8.h),
+              SizedBox(width: 260.w,
                 child: Text(
                   description!,
                   textAlign: TextAlign.center,
@@ -116,7 +116,7 @@ class _StateMessage extends StatelessWidget {
               ),
             ],
             if ((actions ?? []).isNotEmpty) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               ...actions!,
             ],
           ],

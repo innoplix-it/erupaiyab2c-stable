@@ -344,9 +344,9 @@ class AppLockView extends HookConsumerWidget {
                                 SizedBox(height: 10.h),
                                 Row(
                                   children: [
-                                    const Icon(Icons.access_time,
-                                        size: 18, color: AppColors.textPrimary),
-                                    const SizedBox(width: 6),
+                                    Icon(Icons.access_time,
+                                        size: 18.r, color: AppColors.textPrimary),
+                                    SizedBox(width: 6.w),
                                     Text(
                                       '${(forgotRemainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(forgotRemainingSeconds.value % 60).toString().padLeft(2, '0')}',
                                       style: Theme.of(context)
@@ -498,8 +498,8 @@ class AppLockView extends HookConsumerWidget {
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.12),
-                                blurRadius: 18,
-                                offset: const Offset(0, 10),
+                                blurRadius: 18.r,
+                                offset: Offset(0.w, 10.h),
                               ),
                             ],
                           ),
@@ -570,11 +570,11 @@ class _LockOptionButton extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.grey.shade100,
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
                   color: AppColors.cardShadow,
-                  blurRadius: 10,
-                  offset: Offset(0, 6),
+                  blurRadius: 10.r,
+                  offset: Offset(0.w, 6.h),
                 ),
               ],
             ),

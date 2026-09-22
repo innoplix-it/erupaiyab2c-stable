@@ -28,7 +28,7 @@ class SelectBankView extends HookWidget {
             ReferAndEarnAppBar(
               title: 'Add Bank Account',
               onHelp: () {},
-              height: 300,
+              height: 300.h,
               body: Column(
                 children: [
                   Container(
@@ -208,8 +208,8 @@ class _SearchField extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),

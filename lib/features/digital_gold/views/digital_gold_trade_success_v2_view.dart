@@ -55,7 +55,7 @@ class DigitalGoldTradeSuccessV2View extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: Color(0xFF0B8A3B),
               ),
-              child: const Icon(Icons.check, color: Colors.white, size: 32),
+              child: Icon(Icons.check, color: Colors.white, size: 32.r),
             ),
             SizedBox(height: 14.h),
             Text(

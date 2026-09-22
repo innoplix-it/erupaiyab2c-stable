@@ -3,31 +3,32 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileShimmer extends StatelessWidget {
   const ProfileShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const _Shimmer(
+    return _Shimmer(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 18),
+            SizedBox(height: 18.h),
             Row(
               children: [
                 _Circle(size: 48),
-                SizedBox(width: 14),
-                _Line(width: 120, height: 16),
+                SizedBox(width: 14.w),
+                _Line(width: 120.w, height: 16.h),
                 Spacer(),
-                _Line(width: 18, height: 18),
+                _Line(width: 18.w, height: 18.h),
               ],
             ),
-            SizedBox(height: 18),
-            _Card(height: 84),
-            SizedBox(height: 18),
+            SizedBox(height: 18.h),
+            _Card(height: 84.h),
+            SizedBox(height: 18.h),
             _MenuRow(),
             _MenuRow(),
             _MenuRow(),
@@ -37,9 +38,9 @@ class ProfileShimmer extends StatelessWidget {
             _MenuRow(),
             _MenuRow(),
             _MenuRow(),
-            SizedBox(height: 18),
-            Center(child: _Line(width: 120, height: 12)),
-            SizedBox(height: 12),
+            SizedBox(height: 18.h),
+            Center(child: _Line(width: 120.w, height: 12.h)),
+            SizedBox(height: 12.h),
           ],
         ),
       ),
@@ -127,7 +128,7 @@ class _Line extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
     );
   }
@@ -162,7 +163,7 @@ class _Card extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18.r),
       ),
     );
   }
@@ -173,13 +174,13 @@ class _MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 12),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
       child: Row(
         children: [
-          _Line(width: 22, height: 22),
-          SizedBox(width: 16),
-          _Line(width: 160, height: 14),
+          _Line(width: 22.w, height: 22.h),
+          SizedBox(width: 16.w),
+          _Line(width: 160.w, height: 14.h),
         ],
       ),
     );

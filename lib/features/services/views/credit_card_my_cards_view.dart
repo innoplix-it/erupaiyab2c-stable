@@ -247,11 +247,11 @@ class CreditCardMyCardTile extends HookWidget {
                     : AppColors.lightBorder,
                 width: 1.2,
               ),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
                   color: AppColors.cardShadow,
-                  blurRadius: 10,
-                  offset: Offset(0, 6),
+                  blurRadius: 10.r,
+                  offset: Offset(0.w, 6.h),
                 ),
               ],
             ),
@@ -399,8 +399,7 @@ class CreditCardMyCardTile extends HookWidget {
                               borderRadius: BorderRadius.circular(22.r),
                             ),
                             child: isPayNowLoading.value
-                                ? SizedBox(
-                                    width: 16.sp,
+                                ? SizedBox(width: 16.sp,
                                     height: 16.sp,
                                     child: const CircularProgressIndicator(
                                       strokeWidth: 2,
@@ -608,8 +607,7 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 40.h,
+                  child: SizedBox(height: 40.h,
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
@@ -632,8 +630,7 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: SizedBox(
-                    height: 40.h,
+                  child: SizedBox(height: 40.h,
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: ElevatedButton.styleFrom(

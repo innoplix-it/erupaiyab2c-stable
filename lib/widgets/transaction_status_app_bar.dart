@@ -39,8 +39,8 @@ class TransactionStatusAppBar extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(28),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(28.r),
                 ),
               ),
             ),
@@ -51,10 +51,10 @@ class TransactionStatusAppBar extends StatelessWidget {
             bottom: -1,
             child: Container(
               height: 32.h,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28),
+                  top: Radius.circular(28.r),
                 ),
               ),
             ),
@@ -81,9 +81,8 @@ class TransactionStatusAppBar extends StatelessWidget {
                   ),
                   if (trailing != null) trailing!,
                   if (trailing == null)
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
+                    SizedBox(width: 24.r,
+                      height: 24.r,
                     ),
                 ],
               ),

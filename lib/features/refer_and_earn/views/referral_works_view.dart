@@ -27,7 +27,7 @@ class ReferralWorksView extends HookWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const ReferAndEarnAppBar(title: 'How It Works', height: 160),
+            ReferAndEarnAppBar(title: 'How It Works', height: 160.h),
             Transform.translate(
               offset: Offset(0, -26.h),
               child: Container(
@@ -237,8 +237,7 @@ class _ExampleNode extends HookWidget {
           ),
         ),
         SizedBox(height: 6.h),
-        SizedBox(
-          width: 80.w,
+        SizedBox(width: 80.w,
           child: Text(
             label,
             textAlign: TextAlign.center,

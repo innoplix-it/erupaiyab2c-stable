@@ -35,8 +35,8 @@
 //         boxShadow: [
 //           BoxShadow(
 //             color: Colors.black.withOpacity(0.08),
-//             blurRadius: 25,
-//             offset: const Offset(0, 8),
+//             blurRadius: 25.r,
+//             offset: const Offset(0.w, 8.h),
 //           ),
 //         ],
 //       ),
@@ -164,11 +164,11 @@ class PhoneNumberInputCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28.r),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 30,
-              offset: Offset(0, 14),
+              blurRadius: 30.r,
+              offset: Offset(0.w, 14.h),
             ),
           ],
         ),
@@ -268,7 +268,7 @@ class PhoneNumberInputCard extends StatelessWidget {
                 children: [
                   Checkbox(
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(4.r),
                     ),
                     value: isConsentAllowed,
                     onChanged: enabled

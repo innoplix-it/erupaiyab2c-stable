@@ -68,7 +68,7 @@ class HelpSupportScreen extends HookConsumerWidget {
                     onRefresh: controller.fetch,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(0, 4.h, 0, 0.h),
+                      padding: EdgeInsets.fromLTRB(0.w, 4.h, 0.w, 0.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -94,8 +94,7 @@ class HelpSupportScreen extends HookConsumerWidget {
                                       ),
                                 ),
                                 SizedBox(height: 12.h),
-                                SizedBox(
-                                  height: 90.h,
+                                SizedBox(height: 90.h,
                                   child: state.isLoading &&
                                           state.latestTransactions.isEmpty
                                       ? Skeletonizer(
@@ -211,8 +210,7 @@ class HelpSupportScreen extends HookConsumerWidget {
                                     text: 'Recommended Videos',
                                   ),
                                   SizedBox(height: 10.h),
-                                  SizedBox(
-                                    height: 108.h,
+                                  SizedBox(height: 108.h,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
                                       itemCount: videoTopics.length,
@@ -416,11 +414,11 @@ class _VideoTopicCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    shadows: const [
+                    shadows: [
                       Shadow(
-                        blurRadius: 10,
+                        blurRadius: 10.r,
                         color: Colors.black54,
-                        offset: Offset(0, 2),
+                        offset: Offset(0.w, 2.h),
                       ),
                     ],
                   ),
@@ -564,7 +562,7 @@ class _ContactRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, color: Colors.white, size: 18),
+        Icon(icon, color: Colors.white, size: 18.r),
         SizedBox(width: 10.w),
         Text(
           text,
@@ -759,7 +757,7 @@ class _ReactionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(24.r),
       child: Container(
         height: 38.h,
         width: 38.h,
@@ -772,7 +770,7 @@ class _ReactionButton extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          size: 18,
+          size: 18.r,
           color: isSelected
               ? AppColors.primary
               : AppColors.textPrimary.withOpacity(0.7),

@@ -74,7 +74,7 @@ class _PaymentThankYouScreenState extends State<PaymentThankYouScreen>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
+      begin: Offset(0.w, 1.h),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animationController,
@@ -122,8 +122,8 @@ class _PaymentThankYouScreenState extends State<PaymentThankYouScreen>
                 const Spacer(flex: 5),
                 Image.asset(
                   widget.gifPath,
-                  height: 84.h,
-                  width: 84.w,
+                  height: 84.r,
+                  width: 84.r,
                   fit: BoxFit.contain,
                 ),
                 SizedBox(height: 24.h),
@@ -323,16 +323,16 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                 children: [
                   Container(
                     height: headerHeight,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(28),
-                        bottomRight: Radius.circular(28),
+                        bottomLeft: Radius.circular(28.r),
+                        bottomRight: Radius.circular(28.r),
                       ),
                     ),
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(28),
-                        bottomRight: Radius.circular(28),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(28.r),
+                        bottomRight: Radius.circular(28.r),
                       ),
                       child: Stack(
                         fit: StackFit.expand,
@@ -387,7 +387,7 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                       details: widget.details,
                     ),
                     if (widget.showFailureActions) ...[
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14.h),
                       Row(
                         children: [
                           Expanded(
@@ -405,17 +405,17 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                                   color: AppColors.lightBorder.withOpacity(0.8),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(14.r),
                                 ),
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                    EdgeInsets.symmetric(vertical: 14.h),
                                 textStyle: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12.w),
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: widget.onShareReceipt == null ||
@@ -434,10 +434,10 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                                   color: AppColors.lightBorder.withOpacity(0.8),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(14.r),
                                 ),
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                    EdgeInsets.symmetric(vertical: 14.h),
                                 textStyle: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -458,48 +458,48 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 60,
-                      height: 60,
+                      width: 60.r,
+                      height: 60.r,
                       alignment: Alignment.center,
                       child: Center(
                         child: widget.statusIconAsset.trim().isNotEmpty
                             ? Image.asset(
                                 widget.statusIconAsset,
-                                width: 44,
-                                height: 44,
+                                width: 44.r,
+                                height: 44.r,
                                 fit: BoxFit.contain,
                               )
                             : Icon(
                                 widget.statusIcon,
                                 color: widget.statusIconColor,
-                                size: 44,
+                                size: 44.r,
                               ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     Text(
                       widget.title,
                       textAlign: TextAlign.center,
                       style:
                           Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontSize: 18,
+                                fontSize: 18.sp,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
                               ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     if (widget.emphasizeSubtitle)
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 10.h,
                         ),
                         decoration: BoxDecoration(
                           color: widget.subtitleBackgroundColor ??
                               (widget.showBackButton
                                   ? const Color(0xFF470601)
                                   : const Color(0xFF09301A)),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Text(
                           widget.subtitle,
@@ -542,7 +542,7 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                 child: SafeArea(
                   top: false,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    padding: EdgeInsets.fromLTRB(24.w, 0.h, 24.w, 24.h),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -571,7 +571,7 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                           uppercaseLabel: false,
                           showArrow: false,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.h),
                         Text(
                           widget.poweredByText,
                           style: Theme.of(context)
@@ -581,7 +581,7 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                                 color: AppColors.textPrimary.withOpacity(0.65),
                               ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8.h),
                         Image.asset(
                           widget.poweredByLogo.isEmpty
                               ? FileConstants.bharatConnectColor
@@ -1013,15 +1013,15 @@ class _TransactionDetailsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 12.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(18.r),
+        boxShadow: [
           BoxShadow(
             color: Color(0x14000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
+            blurRadius: 18.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -1039,12 +1039,12 @@ class _TransactionDetailsCard extends StatelessWidget {
               shadows: const [],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Divider(color: AppColors.lightBorder.withOpacity(0.6)),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           ...details.map(
             (item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: EdgeInsets.symmetric(vertical: 6.h),
               child: Row(
                 children: [
                   Text(
@@ -1055,7 +1055,7 @@ class _TransactionDetailsCard extends StatelessWidget {
                           color: AppColors.textPrimary.withOpacity(0.7),
                         ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Flexible(
                     flex: 2,
                     child: Row(
@@ -1073,7 +1073,7 @@ class _TransactionDetailsCard extends StatelessWidget {
                                 ?.copyWith(
                                   color: AppColors.textPrimary,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 13,
+                                  fontSize: 13.sp,
                                 ),
                           ),
                         ),
@@ -1091,12 +1091,12 @@ class _TransactionDetailsCard extends StatelessWidget {
                                 textColor: Colors.white,
                               );
                             },
-                            borderRadius: BorderRadius.circular(8),
-                            child: const Padding(
-                              padding: EdgeInsets.all(4),
+                            borderRadius: BorderRadius.circular(8.r),
+                            child: Padding(
+                              padding: EdgeInsets.all(4.w),
                               child: Icon(
                                 Icons.copy_rounded,
-                                size: 16,
+                                size: 16.r,
                                 color: AppColors.textPrimary,
                               ),
                             ),

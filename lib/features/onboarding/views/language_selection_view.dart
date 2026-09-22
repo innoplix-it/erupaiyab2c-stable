@@ -12,6 +12,7 @@ import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/grey_radio_tile.dart';
 import '../models/language_option.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LanguageSelectionView extends HookConsumerWidget {
   const LanguageSelectionView({
@@ -52,22 +53,22 @@ class LanguageSelectionView extends HookConsumerWidget {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Text(
                 'Select your preferred language to personalize your app experience.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: AppColors.textPrimary.withOpacity(0.8),
                     ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20.h),
               Expanded(
                 child: ListView.separated(
                   itemCount: languageOptions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                  separatorBuilder: (_, __) => SizedBox(height: 14.h),
                   itemBuilder: (context, index) {
                     final option = languageOptions[index];
                     return GreyRadioTile(
@@ -78,15 +79,15 @@ class LanguageSelectionView extends HookConsumerWidget {
                         option.value == 'en'
                             ? FileConstants.ennglish
                             : FileConstants.hindi,
-                        height: 28,
-                        width: 28,
+                        height: 28.r,
+                        width: 28.r,
                         fit: BoxFit.contain,
                       ),
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               CustomElevatedButton(
                 onPressed: handleContinue,
                 label: 'Continue',

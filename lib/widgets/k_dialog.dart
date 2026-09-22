@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../constants/app_colors.dart';
@@ -45,15 +46,14 @@ class KDialog {
     bool barrierDismissible = true,
   }) async {
     final context = _context;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
+    final isMobile = 1.sw < 600;
 
     if (isMobile) {
       showModalBottomSheet(
         backgroundColor: Colors.white,
         context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
         ),
         isScrollControlled: true,
         useSafeArea: true,
@@ -80,10 +80,10 @@ class KDialog {
         builder: (context) {
           return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16.r),
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 550),
+              constraints: BoxConstraints(maxWidth: 550.w),
               child: dialog,
             ),
           );
@@ -97,12 +97,12 @@ class KDialog {
     double? maxHeight,
   }) async {
     final context = _context;
-    final screenHeight = MediaQuery.of(context).size.height;
+    final screenHeight = 1.sh;
 
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
       isScrollControlled: true,
       constraints: BoxConstraints(
@@ -136,7 +136,7 @@ class HeadingH extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 12.w),
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleLarge?.copyWith(

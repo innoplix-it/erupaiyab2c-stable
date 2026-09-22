@@ -92,7 +92,7 @@ class _AboutParagraph extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(

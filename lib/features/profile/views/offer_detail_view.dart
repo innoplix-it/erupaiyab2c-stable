@@ -56,7 +56,7 @@ class OfferDetailView extends StatelessWidget {
           // ),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
+              padding: EdgeInsets.fromLTRB(20.w, 0.h, 20.w, 24.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -238,7 +238,7 @@ class OfferDetailView extends StatelessWidget {
     return Image.asset(
       FileConstants.homeBanner2,
       width: double.infinity,
-      height: 150,
+      height: 150.h,
       fit: BoxFit.cover,
     );
   }

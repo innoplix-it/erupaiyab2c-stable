@@ -7,6 +7,7 @@ import '../../../services/secure_storage_service.dart';
 import '../../../services/logger_service.dart';
 import '../../../utils/utils.dart';
 import '../../auth/controllers/auth_controller.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppDrawer extends HookConsumerWidget {
   const AppDrawer({super.key});
@@ -45,14 +46,14 @@ class AppDrawer extends HookConsumerWidget {
                 return UserAccountsDrawerHeader(
                   accountName: Text(
                     userId,
-                    style: const TextStyle(fontSize: 18),
+                    style: TextStyle(fontSize: 18.sp),
                   ),
                   accountEmail: Text(userId),
                   currentAccountPictureSize: const Size.square(70),
                   currentAccountPicture: CircleAvatar(
                     child: Text(
                       initials,
-                      style: const TextStyle(fontSize: 30),
+                      style: TextStyle(fontSize: 30.sp),
                     ),
                   ),
                 );
@@ -90,7 +91,7 @@ class AppDrawer extends HookConsumerWidget {
                 } else if (snapshot.hasData) {
                   return Text(
                     'App Version: ${snapshot.data}',
-                    style: const TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16.sp),
                   );
                 } else {
                   return const Text('App version not found');

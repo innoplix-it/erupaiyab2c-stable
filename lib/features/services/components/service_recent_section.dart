@@ -36,7 +36,7 @@ class ServiceRecentSection extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0.h),
               child: _SectionHeader(
                 title: title,
                 actionText: actionText,
@@ -61,7 +61,7 @@ class ServiceRecentSection extends StatelessWidget {
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0.h),
                 child: _SectionHeader(
                   title: title,
                   actionText: actionText,
@@ -145,8 +145,7 @@ class _SectionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (savedBillersStyle)
-          SizedBox(
-            width: 106.w,
+          SizedBox(width: 106.w,
             height: 23.h,
             child: Align(
               alignment: Alignment.centerLeft,
@@ -161,8 +160,7 @@ class _SectionHeader extends StatelessWidget {
           InkWell(
             onTap: onAction,
             child: savedBillersStyle
-                ? SizedBox(
-                    width: 58.w,
+                ? SizedBox(width: 58.w,
                     height: 20.h,
                     child: Align(
                       alignment: Alignment.centerRight,
@@ -190,8 +188,7 @@ class _RecentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return recentTransactions.when(
-      loading: () => SizedBox(
-        height: 126.h,
+      loading: () => SizedBox(height: 126.h,
         child: ListView.separated(
           padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
           clipBehavior: Clip.none,
@@ -209,7 +206,7 @@ class _RecentRow extends StatelessWidget {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
-            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+            padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 8.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -224,8 +221,7 @@ class _RecentRow extends StatelessWidget {
             ),
           );
         }
-        return SizedBox(
-          height: 126.h,
+        return SizedBox(height: 126.h,
           child: ListView.separated(
             padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
             clipBehavior: Clip.none,
@@ -254,11 +250,11 @@ class _RecentCardShimmer extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              blurRadius: 12.r,
+              offset: Offset(0.w, 6.h),
             ),
           ],
         ),
@@ -420,8 +416,7 @@ class _SavedBillerCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          height: 18.h,
+                        SizedBox(height: 18.h,
                           child: Text(
                             billerTitle,
                             maxLines: 1,
@@ -438,8 +433,7 @@ class _SavedBillerCard extends StatelessWidget {
                         if (customerName.isNotEmpty ||
                             consumerNo.isNotEmpty) ...[
                           SizedBox(height: 4.h),
-                          SizedBox(
-                            height: 15.h,
+                          SizedBox(height: 15.h,
                             child: Row(
                               children: [
                                 if (customerName.isNotEmpty)
@@ -520,8 +514,7 @@ class _SavedBillerCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          height: 15.h,
+                        SizedBox(height: 15.h,
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -540,8 +533,7 @@ class _SavedBillerCard extends StatelessWidget {
                         ),
                         if (lastPaid.isNotEmpty) ...[
                           SizedBox(height: 4.h),
-                          SizedBox(
-                            height: 14.h,
+                          SizedBox(height: 14.h,
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
@@ -618,8 +610,7 @@ class _VerticalDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 16.w,
+    return SizedBox(width: 16.w,
       height: 14.17.h,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -666,11 +657,11 @@ class _RecentCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -771,8 +762,7 @@ class _RecentCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 12.w),
-                SizedBox(
-                  height: 30.h,
+                SizedBox(height: 30.h,
                   child: ElevatedButton(
                     onPressed: onPayNow,
                     style: ElevatedButton.styleFrom(

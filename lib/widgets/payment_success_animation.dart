@@ -6,6 +6,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Future<void> showPaymentSuccessDialog(
   BuildContext context, {
@@ -18,7 +19,7 @@ Future<void> showPaymentSuccessDialog(
     context: context,
     barrierDismissible: false,
     builder: (context) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       child: PaymentSuccessAnimation(
         title: title,
         subtitle: subtitle,
@@ -75,16 +76,16 @@ class _PaymentSuccessAnimationState extends State<PaymentSuccessAnimation> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 20.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
             'assets/gif/success.gif',
-            height: 140,
+            height: 140.h,
             fit: BoxFit.contain,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Text(
             widget.title,
             textAlign: TextAlign.center,
@@ -93,7 +94,7 @@ class _PaymentSuccessAnimationState extends State<PaymentSuccessAnimation> {
                   color: AppColors.textPrimary,
                 ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6.h),
           Text(
             widget.subtitle,
             textAlign: TextAlign.center,

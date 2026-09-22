@@ -102,7 +102,7 @@ class _CreditCardTransactionsScreenState
                               final item = items[index];
                               return Padding(
                                 padding:
-                                    EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+                                    EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 12.h),
                                 child: _TransactionTile(
                                   item: item,
                                   onTap: () => context.push(

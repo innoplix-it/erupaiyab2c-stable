@@ -103,11 +103,7 @@ class _GoldAlertsTabState extends ConsumerState<_GoldAlertsTab> {
               },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  16.w,
-                  10.h,
-                  16.w,
-                  16.h + MediaQuery.of(context).viewPadding.bottom,
+                padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h + MediaQuery.of(context).viewPadding.bottom,
                 ),
                 children: [
                 if (dashboardAsync.isLoading)
@@ -153,8 +149,7 @@ class _GoldAlertsTabState extends ConsumerState<_GoldAlertsTab> {
         padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h),
         child: SafeArea(
           top: false,
-          child: SizedBox(
-            height: 40.h,
+          child: SizedBox(height: 40.h,
             child: ElevatedButton.icon(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
@@ -165,7 +160,7 @@ class _GoldAlertsTabState extends ConsumerState<_GoldAlertsTab> {
                   borderRadius: BorderRadius.circular(999.r),
                 ),
               ),
-              icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+              icon: Icon(Icons.add_circle_outline_rounded, size: 18.r),
               label: Text(
                 'Create Alert',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -234,8 +229,7 @@ class _AlertFormCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: SizedBox(
-                  height: 44.h,
+                child: SizedBox(height: 44.h,
                   child: _AlertToggleButton(
                     selected: dropsBelow,
                     label: 'Price Drops Below',
@@ -246,8 +240,7 @@ class _AlertFormCard extends StatelessWidget {
               ),
               SizedBox(width: 10.w),
               Expanded(
-                child: SizedBox(
-                  height: 44.h,
+                child: SizedBox(height: 44.h,
                   child: _AlertToggleButton(
                     selected: !dropsBelow,
                     label: 'Price Rise Above',
@@ -444,8 +437,7 @@ class _RadioOption extends StatelessWidget {
     const accent = Color(0xFFE85A2C);
     return InkWell(
       onTap: onTap,
-      child: SizedBox(
-        height: 52.h,
+      child: SizedBox(height: 52.h,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

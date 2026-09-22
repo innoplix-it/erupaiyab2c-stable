@@ -41,12 +41,12 @@ class QuickActionCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 18,
-              offset: Offset(0, 8),
+              blurRadius: 18.r,
+              offset: Offset(0.w, 8.h),
             ),
           ],
         ),
@@ -54,26 +54,26 @@ class QuickActionCard extends StatelessWidget {
           children: [
             if (showLeadingImage)
               Padding(
-                padding: const EdgeInsets.only(left: 14, top: 14, bottom: 14),
+                padding: EdgeInsets.only(left: 14.w, top: 14.h, bottom: 14.h),
                 child: imageUrl != null
                     ? AppNetworkImage(
                         url: imageUrl,
-                        height: 56,
-                        width: 56,
+                        height: 56.r,
+                        width: 56.r,
                         fit: BoxFit.contain,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(16.r),
                       )
                     : ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(16.r),
                         child: Image.asset(
                           imageAsset ?? FileConstants.mahavitaran,
-                          height: 56,
-                          width: 56,
+                          height: 56.r,
+                          width: 56.r,
                           fit: BoxFit.cover,
                         ),
                       ),
               ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 6.h),
@@ -91,7 +91,7 @@ class QuickActionCard extends StatelessWidget {
                           ),
                     ),
                     if (hasSubtitle) ...[
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.h),
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -105,16 +105,16 @@ class QuickActionCard extends StatelessWidget {
             ),
             if (showTail)
               ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(18),
-                  bottomRight: Radius.circular(18),
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(18.r),
+                  bottomRight: Radius.circular(18.r),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     Image.asset(
                       FileConstants.quickAction,
-                      height: 84,
+                      height: 84.h,
                       fit: BoxFit.cover,
                     ),
                     if (hasTailContent)
@@ -131,7 +131,7 @@ class QuickActionCard extends StatelessWidget {
                                   fontWeight: FontWeight.w800,
                                 ),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2.h),
                           Text(
                             buttonLabel,
                             style: Theme.of(context)
@@ -146,10 +146,10 @@ class QuickActionCard extends StatelessWidget {
                         ],
                       )
                     else
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward,
                         color: Colors.white,
-                        size: 30,
+                        size: 30.r,
                       ),
                   ],
                 ),

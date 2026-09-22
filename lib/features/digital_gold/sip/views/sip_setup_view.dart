@@ -111,7 +111,7 @@ class DigitalGoldSipSetupView extends HookConsumerWidget {
                     height: 4.h,
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(999.r),
                     ),
                   ),
                 ),
@@ -158,7 +158,7 @@ class DigitalGoldSipSetupView extends HookConsumerWidget {
                     height: 4.h,
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(999.r),
                     ),
                   ),
                 ),
@@ -218,8 +218,8 @@ class DigitalGoldSipSetupView extends HookConsumerWidget {
                             onHelp: () {},
                             chipLeading: Image.asset(
                               FileConstants.liveSignal,
-                              width: 12.w,
-                              height: 12.h,
+                              width: 12.r,
+                              height: 12.r,
                             ),
                           ),
                         ),
@@ -235,11 +235,11 @@ class DigitalGoldSipSetupView extends HookConsumerWidget {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(999.r),
-                              boxShadow: const [
+                              boxShadow: [
                                 BoxShadow(
                                   color: Color.fromRGBO(0, 0, 0, 0.06),
-                                  blurRadius: 18,
-                                  offset: Offset(0, 10),
+                                  blurRadius: 18.r,
+                                  offset: Offset(0.w, 10.h),
                                 ),
                               ],
                             ),
@@ -270,8 +270,7 @@ class DigitalGoldSipSetupView extends HookConsumerWidget {
                       SizedBox(height: 30.h),
                       if (!isSip) ...[
                         Center(
-                          child: SizedBox(
-                            width: 280.w,
+                          child: SizedBox(width: 280.w,
                             child: SipSegmentedControl<SipUnit>(
                               value: effectiveUnit,
                               items: const [
@@ -310,8 +309,8 @@ class DigitalGoldSipSetupView extends HookConsumerWidget {
                         SizedBox(height: 14.h),
                       ],
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 6.w, vertical: 2.h),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12.r),
@@ -815,7 +814,7 @@ class _RoundIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(999.r),
       child: Container(
         width: 44.r,
         height: 44.r,
@@ -848,12 +847,12 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(999.r),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFFFDE7DE) : Colors.white,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(999.r),
           border: Border.all(
             color: selected ? const Color(0xFFE85A2C) : AppColors.lightBorder,
           ),

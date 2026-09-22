@@ -30,7 +30,7 @@ class DigitalGoldTitleLiveBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding ?? EdgeInsets.fromLTRB(8.w, 0, 10.w, 2.h),
+      padding: padding ?? EdgeInsets.fromLTRB(8.w, 0.h, 10.w, 2.h),
       child: Row(
         children: [
           if (showBack)

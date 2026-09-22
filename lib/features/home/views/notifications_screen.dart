@@ -92,16 +92,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   : notificationsState.errorMessage != null
                       ? ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 40),
+                          children: [
+                            SizedBox(height: 40.h),
                             _NotificationsEmptyState(),
                           ],
                         )
                       : items.isEmpty
                           ? ListView(
                               physics: const AlwaysScrollableScrollPhysics(),
-                              children: const [
-                                SizedBox(height: 40),
+                              children: [
+                                SizedBox(height: 40.h),
                                 _NotificationsEmptyState(),
                               ],
                             )
@@ -147,8 +147,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                         const AlwaysScrollableScrollPhysics(),
                                     slivers: [
                                       SliverPadding(
-                                        padding: EdgeInsets.fromLTRB(
-                                            16.w, 8.h, 16.w, 0),
+                                        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
                                         sliver: SliverList(
                                           delegate: SliverChildBuilderDelegate(
                                             (context, index) {
@@ -458,8 +457,8 @@ class _NotificationCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            blurRadius: 16.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -521,7 +520,7 @@ class _NotificationCard extends StatelessWidget {
                 children: [
                   InkWell(
                     onTap: onClose,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(999.r),
                     child: Padding(
                       padding: EdgeInsets.all(6.r),
                       child: Icon(
@@ -568,7 +567,7 @@ class _NotificationCard extends StatelessWidget {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(999.r),
                   ),
                   elevation: 0,
                 ),
@@ -585,8 +584,7 @@ class _NotificationCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 30.h,
+                  child: SizedBox(height: 30.h,
                     child: OutlinedButton(
                       onPressed: (hasSecondary && !secondaryLoading)
                           ? onSecondary
@@ -599,12 +597,11 @@ class _NotificationCard extends StatelessWidget {
                           ),
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(999.r),
                         ),
                       ),
                       child: secondaryLoading
-                          ? SizedBox(
-                              height: 18.h,
+                          ? SizedBox(height: 18.h,
                               width: 18.h,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
@@ -636,15 +633,14 @@ class _NotificationCard extends StatelessWidget {
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
-                  child: SizedBox(
-                    height: 30.h,
+                  child: SizedBox(height: 30.h,
                     child: ElevatedButton(
                       onPressed: onPrimary,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(999.r),
                         ),
                         elevation: 0,
                       ),
@@ -717,8 +713,8 @@ class _NotificationCardSkeleton extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            blurRadius: 16.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -769,7 +765,7 @@ class _NotificationCardSkeleton extends StatelessWidget {
                 height: 26.r,
                 decoration: BoxDecoration(
                   color: AppColors.textPrimary.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(999.r),
                 ),
               ),
             ],
@@ -778,24 +774,22 @@ class _NotificationCardSkeleton extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: SizedBox(
-                  height: 30.h,
+                child: SizedBox(height: 30.h,
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.textPrimary.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(999.r),
                     ),
                   ),
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
-                child: SizedBox(
-                  height: 30.h,
+                child: SizedBox(height: 30.h,
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.textPrimary.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(999.r),
                     ),
                   ),
                 ),

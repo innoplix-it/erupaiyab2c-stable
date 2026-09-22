@@ -320,7 +320,7 @@ class _SettingsTile extends StatelessWidget {
             BoxShadow(
               color: AppColors.cardShadow,
               blurRadius: 14.r,
-              offset: const Offset(0, 6),
+              offset: Offset(0.w, 6.h),
             ),
           ],
         ),
@@ -386,7 +386,7 @@ class _DeleteAccountCard extends StatelessWidget {
           BoxShadow(
             color: AppColors.cardShadow,
             blurRadius: 14.r,
-            offset: const Offset(0, 6),
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -495,8 +495,7 @@ class _DeleteAccountConfirmDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 40.h,
+                  child: SizedBox(height: 40.h,
                     child: ElevatedButton(
                       onPressed: onConfirm,
                       style: ElevatedButton.styleFrom(
@@ -521,8 +520,7 @@ class _DeleteAccountConfirmDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: SizedBox(
-                    height: 40.h,
+                  child: SizedBox(height: 40.h,
                     child: OutlinedButton(
                       onPressed: () => navigatorKey.currentState?.pop(),
                       style: OutlinedButton.styleFrom(
@@ -602,8 +600,7 @@ class _DisableNotificationsDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 44.h,
+                  child: SizedBox(height: 44.h,
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: ElevatedButton.styleFrom(
@@ -628,8 +625,7 @@ class _DisableNotificationsDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: SizedBox(
-                    height: 44.h,
+                  child: SizedBox(height: 44.h,
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
@@ -708,8 +704,7 @@ class _DisableLocationDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 44.h,
+                  child: SizedBox(height: 44.h,
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: ElevatedButton.styleFrom(
@@ -734,8 +729,7 @@ class _DisableLocationDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: SizedBox(
-                    height: 44.h,
+                  child: SizedBox(height: 44.h,
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
@@ -872,8 +866,7 @@ class _DeleteAccountOtpDialog extends HookWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 42.h,
+                  child: SizedBox(height: 42.h,
                     child: OutlinedButton(
                       onPressed: isLoading.value
                           ? null
@@ -898,8 +891,7 @@ class _DeleteAccountOtpDialog extends HookWidget {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: SizedBox(
-                    height: 42.h,
+                  child: SizedBox(height: 42.h,
                     child: ElevatedButton(
                       onPressed: isLoading.value ? null : verifyOtp,
                       style: ElevatedButton.styleFrom(

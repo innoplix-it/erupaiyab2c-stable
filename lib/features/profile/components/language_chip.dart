@@ -47,10 +47,10 @@ class LanguageChip extends StatelessWidget {
                 ),
           ),
           if (isInteractive) ...[
-            const SizedBox(width: 6),
+            SizedBox(width: 6.w),
             Icon(
               Icons.keyboard_arrow_down,
-              size: 18,
+              size: 18.r,
               color: AppColors.textPrimary.withOpacity(0.7),
             ),
           ],

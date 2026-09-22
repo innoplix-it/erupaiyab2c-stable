@@ -113,7 +113,7 @@ class ReferAndEarnView extends HookConsumerWidget {
                               },
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12.w),
                           Expanded(
                             child: _ActionMiniCard(
                               title: 'How It\nWorks ?',
@@ -245,8 +245,7 @@ class _ContactsStrip extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final items = contacts.take(6).toList();
-    return SizedBox(
-      height: 84.h,
+    return SizedBox(height: 84.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -320,7 +319,7 @@ class _PrimaryPillButton extends HookWidget {
                   ),
             ),
             SizedBox(width: 8.w),
-            const Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+            Icon(Icons.arrow_forward, color: Colors.white, size: 16.r),
           ],
         ),
       ),
@@ -361,7 +360,7 @@ class _ActionMiniCard extends HookWidget {
                     ),
               ),
             ),
-            const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+            Icon(Icons.arrow_forward, color: Colors.white, size: 18.r),
           ],
         ),
       ),
@@ -422,8 +421,7 @@ class _ContactAvatar extends HookWidget {
           ),
         ),
         SizedBox(height: 6.h),
-        SizedBox(
-          width: 70.w,
+        SizedBox(width: 70.w,
           child: Text(
             item.name,
             textAlign: TextAlign.center,

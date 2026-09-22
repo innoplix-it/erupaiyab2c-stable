@@ -45,7 +45,7 @@ class ServiceErrorBanner extends StatelessWidget {
             SizedBox(width: 10.w),
             InkWell(
               onTap: onClose,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(999.r),
               child: Padding(
                 padding: EdgeInsets.all(4.w),
                 child: Icon(

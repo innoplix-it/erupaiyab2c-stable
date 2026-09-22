@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HomeShimmer extends StatelessWidget {
   const HomeShimmer({super.key});
@@ -16,23 +17,23 @@ class HomeShimmer extends StatelessWidget {
         child: Align(
           alignment: Alignment.topCenter,
           child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24.r),
+              topRight: Radius.circular(24.r),
             ),
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.cardShadow,
-                    blurRadius: 20,
+                    blurRadius: 20.r,
                     offset: Offset(0, -10),
                   ),
                 ],
               ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
                 child: _ShimmerBody(),
               ),
             ),
@@ -48,65 +49,65 @@ class _ShimmerBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _Shimmer(
+    return _Shimmer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: _ShimmerLine(width: 140, height: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: _ShimmerLine(width: 140.w, height: 16.h),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: _ShimmerBox(
-              height: 76,
-              radius: 16,
+              height: 76.h,
+              radius: 16.r,
               child: Row(
                 children: [
-                  SizedBox(width: 16),
+                  SizedBox(width: 16.w),
                   _ShimmerCircle(size: 34),
-                  SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _ShimmerLine(width: double.infinity, height: 12),
-                        SizedBox(height: 6),
-                        _ShimmerLine(width: 180, height: 10),
+                        _ShimmerLine(width: double.infinity, height: 12.h),
+                        SizedBox(height: 6.h),
+                        _ShimmerLine(width: 180.w, height: 10.h),
                       ],
                     ),
                   ),
-                  SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   _ShimmerBox(
-                    height: 48,
-                    width: 90,
-                    radius: 14,
+                    height: 48.h,
+                    width: 90.w,
+                    radius: 14.r,
                   ),
-                  SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                 ],
               ),
             ),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 10.h),
           _PagerDotsShimmer(),
-          SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: _ShimmerLine(width: 120, height: 14),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: _ShimmerLine(width: 120.w, height: 14.h),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 12.h),
           _IconGridShimmer(rows: 2, columns: 4),
-          SizedBox(height: 18),
+          SizedBox(height: 18.h),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: _ShimmerLine(width: 150, height: 14),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: _ShimmerLine(width: 150.w, height: 14.h),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 12.h),
           _IconGridShimmer(rows: 2, columns: 4),
-          SizedBox(height: 12),
+          SizedBox(height: 12.h),
         ],
       ),
     );
@@ -220,7 +221,7 @@ class _ShimmerLine extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
     );
   }
@@ -254,21 +255,18 @@ class _IconGridShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = rows * columns;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Wrap(
-        spacing: 16,
-        runSpacing: 16,
+        spacing: 16.w,
+        runSpacing: 16.h,
         children: List.generate(items, (index) {
           return SizedBox(
-            width: (MediaQuery.of(context).size.width -
-                    16 * 2 -
-                    16 * (columns - 1)) /
-                columns,
-            child: const Column(
+            width: (1.sw - 16.w * 2 - 16.w * (columns - 1)) / columns,
+            child: Column(
               children: [
-                _ShimmerBox(height: 56, width: 56, radius: 16),
-                SizedBox(height: 8),
-                _ShimmerLine(width: 56, height: 10),
+                _ShimmerBox(height: 56.h, width: 56.w, radius: 16.r),
+                SizedBox(height: 8.h),
+                _ShimmerLine(width: 56.w, height: 10.h),
               ],
             ),
           );
@@ -283,14 +281,14 @@ class _PagerDotsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Dot(width: 24),
-        SizedBox(width: 6),
-        _Dot(width: 8),
-        SizedBox(width: 6),
-        _Dot(width: 8),
+        _Dot(width: 24.w),
+        SizedBox(width: 6.w),
+        _Dot(width: 8.w),
+        SizedBox(width: 6.w),
+        _Dot(width: 8.w),
       ],
     );
   }
@@ -308,7 +306,7 @@ class _Dot extends StatelessWidget {
       height: 6,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
     );
   }

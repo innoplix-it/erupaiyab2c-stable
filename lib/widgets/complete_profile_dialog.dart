@@ -372,7 +372,7 @@ class _CompleteProfileDialogState extends State<CompleteProfileDialog> {
             color: Color(0xFF0B8F3A),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.person, color: Colors.white, size: 30),
+          child: Icon(Icons.person, color: Colors.white, size: 30.r),
         );
       case _ProfileStep.otp:
         return Container(
@@ -399,7 +399,7 @@ class _CompleteProfileDialogState extends State<CompleteProfileDialog> {
             color: Color(0xFF0B8F3A),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check, color: Colors.white, size: 40),
+          child: Icon(Icons.check, color: Colors.white, size: 40.r),
         );
     }
   }
@@ -434,7 +434,7 @@ class _CompleteProfileDialogState extends State<CompleteProfileDialog> {
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.textPrimary.withOpacity(0.12)),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -442,8 +442,8 @@ class _CompleteProfileDialogState extends State<CompleteProfileDialog> {
             // Simple "G" mark without extra assets.
             Image.asset(
               FileConstants.googleLogo,
-              width: 18.w,
-              height: 18.h,
+              width: 18.r,
+              height: 18.r,
               fit: BoxFit.contain,
             ),
             SizedBox(width: 10.w),
@@ -605,7 +605,7 @@ class _CompleteProfileDialogState extends State<CompleteProfileDialog> {
         SizedBox(height: 12.h),
         Row(
           children: [
-            const Icon(Icons.access_time, size: 20, color: Colors.black),
+            Icon(Icons.access_time, size: 20.r, color: Colors.black),
             SizedBox(width: 10.w),
             Text(
               _formatOtpTimer(_otpSecondsRemaining),
@@ -619,14 +619,14 @@ class _CompleteProfileDialogState extends State<CompleteProfileDialog> {
               onTap: (_otpSecondsRemaining == 0 && !_isSubmitting)
                   ? _resendOtp
                   : null,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10.r),
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 6.w),
                 child: Row(
                   children: [
                     Icon(
                       Icons.refresh,
-                      size: 18,
+                      size: 18.r,
                       color: (_otpSecondsRemaining == 0 && !_isSubmitting)
                           ? AppColors.textPrimary.withOpacity(0.65)
                           : AppColors.textPrimary.withOpacity(0.25),
@@ -769,12 +769,12 @@ class _OtpBanner extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: fgColor, size: 18),
+          Icon(icon, color: fgColor, size: 18.r),
           SizedBox(width: 6.w),
           Flexible(
             child: Text(
@@ -825,19 +825,19 @@ class _InputBox extends StatelessWidget {
         filled: true,
         fillColor: Colors.white,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14.r),
           borderSide:
               BorderSide(color: AppColors.textPrimary.withOpacity(0.12)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14.r),
           borderSide:
               BorderSide(color: AppColors.textPrimary.withOpacity(0.12)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14.r),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
         ),
       ),

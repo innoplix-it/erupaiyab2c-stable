@@ -55,7 +55,7 @@ class CreditCardTransactionDetailScreen extends StatelessWidget {
         children: [
           MyAppBar(
             title: meta.label,
-            height: 150,
+            height: 150.h,
             backgroundColor: meta.color,
             onBack: () => context.pop(),
           ),
@@ -117,11 +117,11 @@ class _SummaryCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),

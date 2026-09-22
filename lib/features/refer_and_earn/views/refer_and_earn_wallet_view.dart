@@ -54,7 +54,7 @@ class ReferAndEarnWalletView extends HookWidget {
             ReferAndEarnAppBar(
               title: 'Wallet',
               onHelp: () {},
-              height: 280,
+              height: 280.h,
               body: Column(
                 children: [
                   SizedBox(height: 32.h),
@@ -168,8 +168,8 @@ class _MilestoneCard extends HookWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -277,8 +277,7 @@ class _MilestoneDotRow extends HookWidget {
       count,
       (index) => (index + 1).toString().padLeft(2, '0'),
     );
-    return SizedBox(
-      height: 46.h,
+    return SizedBox(height: 46.h,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -363,8 +362,8 @@ class _TrackReferralsCard extends HookWidget {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
+              blurRadius: 10.r,
+              offset: Offset(0.w, 6.h),
             ),
           ],
         ),
@@ -447,8 +446,8 @@ class _EarningsCard extends HookWidget {
             child: Center(
               child: Image.asset(
                 FileConstants.coin_3d,
-                width: 45.w,
-                height: 45.h,
+                width: 45.r,
+                height: 45.r,
               ),
             ),
           ),
@@ -498,7 +497,7 @@ class _SegmentButton extends HookWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: active ? Colors.white : AppColors.textPrimary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 12,
+                    fontSize: 12.sp,
                   ),
             ),
           ],
@@ -573,7 +572,7 @@ Widget _buildBody(
               },
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(child: _EarningsCard(totalEarnings: totalEarnings)),
         ],
       ),
@@ -695,7 +694,7 @@ class _WalletHeaderBalance extends HookWidget {
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Colors.white.withOpacity(0.9),
                 fontWeight: FontWeight.w600,
-                fontSize: 18,
+                fontSize: 18.sp,
               ),
         ),
         SizedBox(height: 8.h),
@@ -828,8 +827,8 @@ class _TeamListTile extends HookWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -899,7 +898,7 @@ class _TeamListTile extends HookWidget {
             ),
           ),
           SizedBox(width: 6.w),
-          const Icon(Icons.more_vert, size: 18),
+          Icon(Icons.more_vert, size: 18.r),
         ],
       ),
     );
@@ -925,8 +924,8 @@ class _RecentReferralTile extends HookWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),
@@ -999,7 +998,7 @@ class _RecentReferralTile extends HookWidget {
             ),
           ),
           SizedBox(width: 6.w),
-          const Icon(Icons.more_vert, size: 18),
+          Icon(Icons.more_vert, size: 18.r),
         ],
       ),
     );

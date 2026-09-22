@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../constants/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class VerificationTextField extends StatelessWidget {
   const VerificationTextField({
@@ -30,16 +31,16 @@ class VerificationTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 58,
+      height: 58.h,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 14,
-            offset: Offset(0, 8),
+            blurRadius: 14.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -55,11 +56,11 @@ class VerificationTextField extends StatelessWidget {
           counterText: '',
           border: InputBorder.none,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              EdgeInsets.symmetric(horizontal: 18.w, vertical: 16.h),
           prefixIcon: prefix == null
               ? null
               : Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 12),
+                  padding: EdgeInsets.only(left: 16.w, right: 12.w),
                   child: prefix,
                 ),
           prefixIconConstraints:
@@ -67,7 +68,7 @@ class VerificationTextField extends StatelessWidget {
           suffixIcon: suffix == null
               ? null
               : Padding(
-                  padding: const EdgeInsets.only(right: 16, left: 12),
+                  padding: EdgeInsets.only(right: 16.w, left: 12.w),
                   child: suffix,
                 ),
           suffixIconConstraints:

@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/file_constants.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppNetworkImage extends StatelessWidget {
   const AppNetworkImage({
@@ -88,7 +89,7 @@ class AppNetworkImage extends StatelessWidget {
     final uri = Uri.tryParse(rawUrl);
     if (uri == null) return rawUrl;
     if (uri.queryParameters.containsKey('w')) return rawUrl;
-    final logicalWidth = width ?? MediaQuery.sizeOf(context).width;
+    final logicalWidth = width ?? 1.sw;
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final targetWidth = (logicalWidth * devicePixelRatio).round();
     if (targetWidth <= 0) return rawUrl;
@@ -122,8 +123,8 @@ class AppNetworkImage extends StatelessWidget {
           Center(
             child: Image.asset(
               FileConstants.loadingGif,
-              width: 32,
-              height: 32,
+              width: 32.r,
+              height: 32.r,
               fit: BoxFit.contain,
             ),
           ),
@@ -148,7 +149,7 @@ class _FallbackBox extends StatelessWidget {
       alignment: Alignment.center,
       child: Icon(
         Icons.image_outlined,
-        size: 18,
+        size: 18.r,
         color: AppColors.textPrimary.withOpacity(0.5),
       ),
     );

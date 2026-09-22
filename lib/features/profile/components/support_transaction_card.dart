@@ -51,8 +51,8 @@ class SupportTransactionCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 6.h),
           ),
         ],
       ),

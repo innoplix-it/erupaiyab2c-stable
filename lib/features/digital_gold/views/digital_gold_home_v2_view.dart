@@ -121,11 +121,11 @@ class _DigitalGoldHomeV2ViewState extends ConsumerState<DigitalGoldHomeV2View> {
         items: navItems,
         navBarStyle: NavBarStyle.simple,
         decoration: NavBarDecoration(
-          borderRadius: BorderRadius.circular(0),
+          borderRadius: BorderRadius.circular(0.r),
           colorBehindNavBar: Colors.white,
         ),
         navBarHeight: 62,
-        padding: const EdgeInsets.only(top: 2, bottom: 8),
+        padding: EdgeInsets.only(top: 2.h, bottom: 8.h),
         backgroundColor: Colors.white,
         hideNavigationBarWhenKeyboardAppears: true,
         confineToSafeArea: true,
@@ -231,8 +231,8 @@ class _PortfolioHeaderCard extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     chipLeading: Image.asset(
                       FileConstants.liveSignal,
-                      width: 12.w,
-                      height: 12.h,
+                      width: 12.r,
+                      height: 12.r,
                     ),
                   ),
                   SizedBox(height: 8.h),
@@ -709,8 +709,7 @@ class _GoldPriceCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 10.w),
-          SizedBox(
-            width: 150.w,
+          SizedBox(width: 150.w,
             height: 60.h,
             child: data.graphImageUrl.trim().isEmpty
                 ? const SizedBox.shrink()
@@ -1061,19 +1060,18 @@ class _QuickActionNetworkTile extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: AppColors.lightBorder.withOpacity(0.7)),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              blurRadius: 12.r,
+              offset: Offset(0.w, 6.h),
             ),
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 30.w,
+            SizedBox(width: 30.w,
               height: 30.w,
               child: Image.network(
                 imageUrl,
@@ -1134,11 +1132,11 @@ class _QuickActionTile extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: AppColors.lightBorder.withOpacity(0.7)),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              blurRadius: 12.r,
+              offset: Offset(0.w, 6.h),
             ),
           ],
         ),

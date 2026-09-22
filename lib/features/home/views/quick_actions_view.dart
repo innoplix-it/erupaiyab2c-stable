@@ -60,7 +60,7 @@ class QuickActionsView extends HookConsumerWidget {
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
                           child: Text(
                             'Quick Actions',
                             style: AppTextStyles.tabLabel(context,
@@ -84,7 +84,7 @@ class QuickActionsView extends HookConsumerWidget {
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
                           child: Text(
                             'Actions Needed',
                             style: AppTextStyles.tabLabel(context,
@@ -113,10 +113,10 @@ class QuickActionsView extends HookConsumerWidget {
                         child: Text('No quick actions available'),
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.w, vertical: 16.h),
                         itemCount: allQuickActions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, __) => SizedBox(height: 12.h),
                         itemBuilder: (context, index) {
                           final item = allQuickActions[index];
                           final title =
@@ -226,8 +226,8 @@ class QuickActionsView extends HookConsumerWidget {
                                         left: 0,
                                         child: Image.asset(
                                           FileConstants.ellipse8,
-                                          height: 58.h,
-                                          width: 58.w,
+                                          height: 58.r,
+                                          width: 58.r,
                                           fit: BoxFit.contain,
                                         ),
                                       ),
@@ -247,15 +247,14 @@ class QuickActionsView extends HookConsumerWidget {
                                       ),
                                       // Card content
                                       Padding(
-                                        padding: EdgeInsets.fromLTRB(
-                                            16.w, 20.h, 80.w, 48.h),
+                                        padding: EdgeInsets.fromLTRB(16.w, 20.h, 80.w, 48.h),
                                         child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.center,
                                           children: [
                                             Container(
-                                              height: 40.h,
-                                              width: 40.w,
+                                              height: 40.r,
+                                              width: 40.r,
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFFFF0E8),
                                                 borderRadius:
@@ -308,8 +307,8 @@ class QuickActionsView extends HookConsumerWidget {
                                         right: 0,
                                         child: Image.asset(
                                           FileConstants.frame213,
-                                          height: 60.h,
-                                          width: 60.w,
+                                          height: 60.r,
+                                          width: 60.r,
                                           fit: BoxFit.contain,
                                         ),
                                       ),

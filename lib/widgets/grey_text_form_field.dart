@@ -63,8 +63,8 @@ class GreyTextFormField extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            blurRadius: 18.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -84,7 +84,7 @@ class GreyTextFormField extends StatelessWidget {
         textAlignVertical: TextAlignVertical.center,
         cursorHeight: fontSize + 2,
         cursorWidth: 1.6,
-        cursorRadius: const Radius.circular(2),
+        cursorRadius: Radius.circular(2.r),
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hintText ?? (isNumber ? '1234567890' : labelText),

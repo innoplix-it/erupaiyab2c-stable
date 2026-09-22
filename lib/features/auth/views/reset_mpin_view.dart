@@ -269,7 +269,7 @@ class ResetMpinView extends HookConsumerWidget {
               SizedBox(height: 12.h),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+                  padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 16.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -339,15 +339,15 @@ class ResetMpinView extends HookConsumerWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.green.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(999),
+                                  borderRadius: BorderRadius.circular(999.r),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.verified,
                                       color: AppColors.green,
-                                      size: 16,
+                                      size: 16.r,
                                     ),
                                     SizedBox(width: 6.w),
                                     Text(
@@ -367,12 +367,12 @@ class ResetMpinView extends HookConsumerWidget {
                             SizedBox(height: 10.h),
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.access_time,
-                                  size: 18,
+                                  size: 18.r,
                                   color: AppColors.textPrimary,
                                 ),
-                                const SizedBox(width: 6),
+                                SizedBox(width: 6.w),
                                 Text(
                                   '${(remainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(remainingSeconds.value % 60).toString().padLeft(2, '0')}',
                                   style: Theme.of(context)

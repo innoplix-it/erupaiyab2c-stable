@@ -63,7 +63,7 @@ class DigitalGoldSipPortfolioView extends ConsumerWidget {
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFEDD8),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(999.r),
                         border: Border.all(color: AppColors.lightBorder),
                       ),
                       child: Row(

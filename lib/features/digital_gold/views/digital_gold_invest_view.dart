@@ -34,11 +34,7 @@ class DigitalGoldInvestView extends ConsumerWidget {
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                16.w,
-                8.h,
-                16.w,
-                16.h + MediaQuery.of(context).viewPadding.bottom,
+              padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h + MediaQuery.of(context).viewPadding.bottom,
               ),
               children: [
                 Text(
@@ -190,7 +186,7 @@ class _MiniMarketRow extends StatelessWidget {
             asset: FileConstants.digitalSilverGif,
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.w),
         Expanded(
           child: _MiniMarketCard(
             title: 'Platinum',
@@ -265,8 +261,7 @@ class _MiniMarketCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          SizedBox(
-            width: 44.w,
+          SizedBox(width: 44.w,
             height: 36.h,
             child: Image.asset(
               asset,
@@ -348,11 +343,11 @@ class _QuickActionTile extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: AppColors.lightBorder.withOpacity(0.7)),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              blurRadius: 12.r,
+              offset: Offset(0.w, 6.h),
             ),
           ],
         ),
@@ -493,7 +488,7 @@ class _PriceCardShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 100,
+      height: 100.h,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),

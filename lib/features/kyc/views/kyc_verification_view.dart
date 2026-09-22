@@ -256,7 +256,7 @@ class KycVerificationView extends HookConsumerWidget {
           ? SafeArea(
               top: false,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
+                padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
                 child: CustomElevatedButton(
                   label: 'Back To Home',
                   uppercaseLabel: false,
@@ -274,7 +274,7 @@ class KycVerificationView extends HookConsumerWidget {
           : SafeArea(
               top: false,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
+                padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
                 child: CustomElevatedButton(
                   label: step.value == _KycStep.pan
                       ? 'Verify PAN'
@@ -440,7 +440,7 @@ class _StepIndicator extends HookWidget {
           ),
           alignment: Alignment.center,
           child: completed
-              ? const Icon(Icons.check, size: 14, color: Colors.white)
+              ? Icon(Icons.check, size: 14.r, color: Colors.white)
               : Text(
                   index.toString(),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -654,10 +654,10 @@ class _KycSuccessDialog extends StatelessWidget {
                 color: const Color(0xFF0A8A40),
                 border: Border.all(color: Colors.white, width: 2),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check,
                 color: Colors.white,
-                size: 36,
+                size: 36.r,
               ),
             ),
             SizedBox(height: 16.h),
@@ -685,8 +685,7 @@ class _KycSuccessDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 44.h,
+                  child: SizedBox(height: 44.h,
                     child: OutlinedButton(
                       onPressed: onNotNow,
                       style: OutlinedButton.styleFrom(
@@ -707,8 +706,7 @@ class _KycSuccessDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
-                  child: SizedBox(
-                    height: 44.h,
+                  child: SizedBox(height: 44.h,
                     child: ElevatedButton(
                       onPressed: onAddBankAccount,
                       style: ElevatedButton.styleFrom(
@@ -997,7 +995,7 @@ class _ConsentRow extends HookWidget {
               ),
             ),
             child: isChecked.value
-                ? const Icon(Icons.check, size: 12, color: Colors.white)
+                ? Icon(Icons.check, size: 12.r, color: Colors.white)
                 : null,
           ),
         ),

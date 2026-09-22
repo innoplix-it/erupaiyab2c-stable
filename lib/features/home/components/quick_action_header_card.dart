@@ -42,11 +42,11 @@ class QuickActionHeaderCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18.r),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 18,
-              offset: Offset(0, 8),
+              blurRadius: 18.r,
+              offset: Offset(0.w, 8.h),
             ),
           ],
         ),
@@ -97,8 +97,7 @@ class QuickActionHeaderCard extends StatelessWidget {
               ),
             ),
             if (hasAction)
-              SizedBox(
-                width: 88.w,
+              SizedBox(width: 88.w,
                 height: 72.h,
                 child: ClipRRect(
                   borderRadius: BorderRadius.only(

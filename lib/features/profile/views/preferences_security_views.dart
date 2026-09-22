@@ -114,7 +114,7 @@ class PreferencesView extends HookConsumerWidget {
         onHelp: () {},
       ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(0, 8.h, 0, 24.h),
+        padding: EdgeInsets.fromLTRB(0.w, 8.h, 0.w, 24.h),
         children: [
           _SettingsListRow(
             icon: Icons.translate_outlined,
@@ -598,12 +598,12 @@ class _SettingsListRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         child: Column(
           children: [
             Row(
               children: [
-                Icon(icon, size: 22, color: AppColors.textPrimary),
+                Icon(icon, size: 22.r, color: AppColors.textPrimary),
                 SizedBox(width: 14.w),
                 Expanded(
                   child: Column(
@@ -643,7 +643,7 @@ class _SettingsListRow extends StatelessWidget {
               ],
             ),
             if (showDivider) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
               const Divider(height: 1, color: AppColors.lightBorder),
             ],
           ],
@@ -690,7 +690,7 @@ class _PermissionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 0),
+      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 0.h),
       child: Column(
         children: [
           Row(
@@ -729,8 +729,7 @@ class _PermissionTile extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 12.w),
-              SizedBox(
-                height: 24.r,
+              SizedBox(height: 24.r,
                 width: 24.r,
                 child: Checkbox(
                   value: value,

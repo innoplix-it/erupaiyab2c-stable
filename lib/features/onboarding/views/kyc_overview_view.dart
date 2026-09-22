@@ -9,6 +9,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../components/kyc_action_tile.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class KycOverviewView extends HookConsumerWidget {
   const KycOverviewView({super.key, this.selectedLanguage});
@@ -29,7 +30,7 @@ class KycOverviewView extends HookConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -47,7 +48,7 @@ class KycOverviewView extends HookConsumerWidget {
                     const SizedBox.shrink(),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   'To use e-Rupaiya and earn rewards, please complete your KYC.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -55,7 +56,7 @@ class KycOverviewView extends HookConsumerWidget {
                       ),
                 ),
                 // if (selectedLanguage != null) ...[
-                //   const SizedBox(height: 6),
+                //   SizedBox(height: 6.h),
                 //   Text(
                 //     'Selected language: $selectedLanguage',
                 //     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -63,7 +64,7 @@ class KycOverviewView extends HookConsumerWidget {
                 //         ),
                 //   ),
                 // ],
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
                 Expanded(
                   child: ListView(
                     children: [
@@ -72,7 +73,7 @@ class KycOverviewView extends HookConsumerWidget {
                         iconAsset: FileConstants.pan,
                         onTap: navigateToRealKyc,
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14.h),
                       KycActionTile(
                         title: 'Aadhaar Verification',
                         iconAsset: FileConstants.aadhaar,

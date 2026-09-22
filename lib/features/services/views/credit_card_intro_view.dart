@@ -7,6 +7,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CreditCardIntroView extends StatelessWidget {
   const CreditCardIntroView({super.key});
@@ -51,7 +52,7 @@ class CreditCardIntroView extends StatelessWidget {
                 child: SafeArea(
                   bottom: false,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
                     child: Row(
                       children: [
                         IconButton(
@@ -59,7 +60,7 @@ class CreditCardIntroView extends StatelessWidget {
                               const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => context.pop(),
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4.w),
                         Text(
                           'Add New Card',
                           style:
@@ -95,7 +96,7 @@ class CreditCardIntroView extends StatelessWidget {
                           ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     Text(
                       'Link your cards to E-Rupaiya for fast\nand secure digital payments.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(

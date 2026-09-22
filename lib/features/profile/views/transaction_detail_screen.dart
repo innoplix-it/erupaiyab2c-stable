@@ -249,16 +249,16 @@ class TransactionDetailScreen extends StatelessWidget {
                 children: [
                   Container(
                     height: headerHeight,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(28),
-                        bottomRight: Radius.circular(28),
+                        bottomLeft: Radius.circular(28.r),
+                        bottomRight: Radius.circular(28.r),
                       ),
                     ),
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(28),
-                        bottomRight: Radius.circular(28),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(28.r),
+                        bottomRight: Radius.circular(28.r),
                       ),
                       child: Container(
                         decoration: BoxDecoration(
@@ -655,11 +655,11 @@ class _TransactionResultCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18.r),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Color(0x14000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
+            blurRadius: 18.r,
+            offset: Offset(0.w, 8.h),
           ),
         ],
       ),
@@ -876,21 +876,20 @@ class _ResultActionButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16.r),
-      child: SizedBox(
-        width: 96.w,
+      child: SizedBox(width: 96.w,
         child: Column(
           children: [
             Container(
               width: 44.w,
               height: 44.w,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Color(0xFFFFEFE8),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
                     color: Color(0x0F000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
+                    blurRadius: 10.r,
+                    offset: Offset(0.w, 4.h),
                   ),
                 ],
               ),
