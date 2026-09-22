@@ -2159,7 +2159,9 @@ class _HomeContent extends HookConsumerWidget {
       } else if (serviceName == 'Tuition Fees' ||
           serviceName == 'Tution Fees' ||
           serviceName == 'School Fees' ||
-          serviceName == 'College Fees') {
+          serviceName == 'College Fees' ||
+          serviceName.toLowerCase().contains('house rent') ||
+          serviceName.toLowerCase().contains('shop rent')) {
         context.push(
           RouteConstants.educationFeesAmount,
           extra: serviceName,

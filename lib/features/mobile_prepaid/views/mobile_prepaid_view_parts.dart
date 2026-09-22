@@ -68,12 +68,17 @@ class _ContactsSection extends StatelessWidget {
         return false;
       },
       child: ListView(
-        clipBehavior: Clip.none,
-        padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 16.h),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(
+          24.w,
+          4.h,
+          24.w,
+          16.h + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           if (searchMode == _MobilePrepaidSearchMode.abc) ...[
             const _MobilePrepaidBanner(),
-            SizedBox(height: 14.h),
+            SizedBox(height: 10.h),
           ],
           _MobilePrepaidSearchSwitcher(
             searchMode: searchMode,
@@ -88,7 +93,7 @@ class _ContactsSection extends StatelessWidget {
           ),
           if (searchMode == _MobilePrepaidSearchMode.numeric) ...[
             SizedBox(height: 12.h),
-            const _SectionHeader(title: 'My Contacts', contactsStyle: true),
+            const _SectionHeader(title: 'My Contacts'),
             SizedBox(height: 10.h),
             if (!hasContactsPermission)
               ContactsPermissionCard(
@@ -133,22 +138,22 @@ class _ContactsSection extends StatelessWidget {
               ],
             ],
           ] else ...[
-            SizedBox(height: 18.h),
+            SizedBox(height: 12.h),
             _MyNumberSection(
               numberForApi: myNumberForApi,
               recentPayments: recentPayments,
               onSelect: onSelect,
               onRecharge: onMyNumberRecharge,
             ),
-            SizedBox(height: 18.h),
+            SizedBox(height: 12.h),
             _RecentRechargesSection(
               recentPayments: recentPayments,
               onRepeatRecent: onRepeatRecent,
               onViewAllRecent: onViewAllRecent,
             ),
-            SizedBox(height: 18.h),
+            SizedBox(height: 10.h),
             SizedBox(key: contactsSectionKey),
-            const _SectionHeader(title: 'My Contacts', contactsStyle: true),
+            const _SectionHeader(title: 'My Contacts'),
             SizedBox(height: 10.h),
             if (!hasContactsPermission)
               ContactsPermissionCard(
@@ -257,77 +262,91 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
 
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          height: 36.h,
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(
-              color: Colors.black.withOpacity(0.08),
-              width: 0.5,
-            ),
-          ),
-          child: Row(
-            children: [
-              if (!isNumeric) ...[
-                Image.asset(
-                  FileConstants.orangeSearch,
-                  width: 20.w,
-                  height: 20.h,
-                  fit: BoxFit.contain,
+        Align(
+          alignment: Alignment.center,
+          child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(maxWidth: 392.w),
+            height: 54.h,
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.all(Radius.circular(12.r)),
+              border: Border.all(
+                color: const Color(0xFFD7D7D7),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x0F000000),
+                  offset: Offset(0, 4.h),
+                  blurRadius: 16.r,
                 ),
-                SizedBox(width: 10.w),
               ],
-              Expanded(
-                child: TextField(
-                  controller: isNumeric ? numericController : alphaController,
-                  focusNode: isNumeric ? numericFocusNode : alphaFocusNode,
-                  autofocus: true,
-                  keyboardType:
-                      isNumeric ? TextInputType.phone : TextInputType.text,
-                  textInputAction:
-                      isNumeric ? TextInputAction.done : TextInputAction.search,
-                  inputFormatters: isNumeric
-                      ? [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ]
-                      : const [],
-                  onChanged: isNumeric ? null : onAlphaChanged,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    hintText: isNumeric
-                        ? 'Enter mobile number'
-                        : 'Search by number or name',
-                    prefixText: isNumeric ? '+91 ' : null,
-                    prefixStyle: GoogleFonts.plusJakartaSans(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
-                    ),
-                    hintStyle: GoogleFonts.plusJakartaSans(
-                      color: AppColors.textPrimary.withOpacity(0.45),
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
-                    ),
+            ),
+            child: Row(
+              children: [
+                if (!isNumeric) ...[
+                  SizedBox(
+                    width: 18.w,
+                    height: 18.h,
+                    child: TwotoneSearchIcon(size: 18.w, strokeWidth: 1.5),
                   ),
-                  style: GoogleFonts.plusJakartaSans(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
+                  SizedBox(width: 10.w),
+                ],
+                Expanded(
+                  child: TextField(
+                    controller:
+                        isNumeric ? numericController : alphaController,
+                    focusNode:
+                        isNumeric ? numericFocusNode : alphaFocusNode,
+                    autofocus: true,
+                    keyboardType: isNumeric
+                        ? TextInputType.phone
+                        : TextInputType.text,
+                    textInputAction: isNumeric
+                        ? TextInputAction.done
+                        : TextInputAction.search,
+                    inputFormatters: isNumeric
+                        ? [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(10),
+                          ]
+                        : const [],
+                    onChanged: isNumeric ? null : onAlphaChanged,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: isNumeric
+                          ? 'Enter mobile number'
+                          : 'Search by number or name',
+                      prefixText: isNumeric ? '+91 ' : null,
+                      prefixStyle: GoogleFonts.plusJakartaSans(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
+                      ),
+                      hintStyle: GoogleFonts.plusJakartaSans(
+                        color: AppColors.textPrimary.withOpacity(0.45),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(width: 8.w),
-              _SearchModeToggle(
-                mode: searchMode,
-                onChanged: onSearchModeChange,
-              ),
-            ],
+                SizedBox(width: 8.w),
+                _SearchModeToggle(
+                  mode: searchMode,
+                  onChanged: onSearchModeChange,
+                ),
+              ],
+            ),
           ),
         ),
         if (isNumeric)
@@ -338,10 +357,10 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
               final isEnabled = numericDigits.length == 10;
               return Column(
                 children: [
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14.h),
                   SizedBox(
                     width: double.infinity,
-                    height: 46,
+                    height: 46.h,
                     child: ElevatedButton(
                       onPressed:
                           isEnabled ? () => onProceed(numericDigits) : null,
@@ -352,7 +371,7 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
                             AppColors.primary.withOpacity(0.35),
                         disabledForegroundColor: Colors.white.withOpacity(0.9),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(14.r),
                         ),
                         elevation: 0,
                       ),
@@ -393,7 +412,6 @@ class _SearchModeToggle extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           alignment: Alignment.center,
-          height: double.infinity,
           padding: EdgeInsets.symmetric(horizontal: 4.w),
           decoration: BoxDecoration(
             color: active ? const Color(0xFFDD5428) : Colors.transparent,
@@ -439,66 +457,44 @@ class _SectionHeader extends StatelessWidget {
     required this.title,
     this.actionText,
     this.onAction,
-    this.contactsStyle = false,
   });
 
   final String title;
   final String? actionText;
   final VoidCallback? onAction;
-  final bool contactsStyle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        contactsStyle
-            ? SizedBox(
-                width: 107.w,
-                height: 22.h,
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18.sp,
-                    height: 1,
-                    letterSpacing: 18.sp * -0.02,
-                    color: const Color(0xFF292D32),
-                  ),
-                ),
-              )
-            : Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16.sp,
-                  height: 22 / 16,
-                  color: const Color(0xFF292D32),
-                ),
-              ),
-        const Spacer(),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700,
+              fontSize: 16.sp,
+              height: 22 / 16,
+              color: const Color(0xFF292D32),
+            ),
+          ),
+        ),
         if (actionText != null && onAction != null)
           InkWell(
             onTap: onAction,
             child: Padding(
-              padding: EdgeInsets.only(top: 2.h),
-              child: SizedBox(
-                width: 59.w,
-                height: 19.h,
-                child: Text(
-                  actionText!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.plusJakartaSans(
-                    color: const Color(0xFFDD5428),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14.sp,
-                    height: 19 / 14,
-                  ),
+              padding: EdgeInsets.only(left: 8.w, top: 2.h),
+              child: Text(
+                actionText!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: GoogleFonts.plusJakartaSans(
+                  color: const Color(0xFFDD5428),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14.sp,
+                  height: 19 / 14,
                 ),
               ),
             ),
@@ -515,24 +511,15 @@ class _LastOnLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 115.w,
-      height: 14.h,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Text(
-          'Last on $lastOn',
-          maxLines: 2,
-          softWrap: false,
-          overflow: TextOverflow.visible,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 9.sp,
-            fontWeight: FontWeight.w500,
-            height: 14 / 9,
-            color: const Color(0xFF7C7C7C),
-          ),
-        ),
+    return Text(
+      'Last on $lastOn',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 9.sp,
+        fontWeight: FontWeight.w500,
+        height: 14 / 9,
+        color: const Color(0xFF7C7C7C),
       ),
     );
   }
@@ -555,8 +542,7 @@ class _MyNumberDueBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 84.w,
-      height: 18.h,
+      constraints: BoxConstraints(minHeight: 18.h),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 3.h),
       alignment: Alignment.center,
       decoration: BoxDecoration(
@@ -565,18 +551,15 @@ class _MyNumberDueBadge extends StatelessWidget {
           bottomRight: Radius.circular(8.r),
         ),
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.visible,
-          style: GoogleFonts.plusJakartaSans(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 10.sp,
-            height: 1,
-          ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: GoogleFonts.plusJakartaSans(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 10.sp,
+          height: 1,
         ),
       ),
     );
@@ -607,18 +590,22 @@ class _OrangePillButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(23.r),
           ),
+          visualDensity: VisualDensity.compact,
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 11.sp,
-            fontWeight: FontWeight.w600,
-            height: 1,
-            color: Colors.white,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+              height: 1,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -646,66 +633,68 @@ class _MyNumberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasDue = (dueLabel ?? '').trim().isNotEmpty;
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(16.w, hasDue ? 26.h : 16.h, 16.w, 16.h),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: const Color(0xFFE2E2E2), width: 0.5),
-            ),
-            child: Row(
-              children: [
-                _OperatorBrandLogo(
-                  operatorLabel: operatorLabel,
-                  operatorIconUrl: operatorIconUrl,
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
+    final radius = 16.r;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: const Color(0xFFE2E2E2), width: 0.5),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                16.w,
+                hasDue ? 26.h : 16.h,
+                16.w,
+                16.h,
+              ),
+              child: Row(
+                children: [
+                  _OperatorBrandLogo(
+                    operatorLabel: operatorLabel,
+                    operatorIconUrl: operatorIconUrl,
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
                           mobile,
                           maxLines: 1,
-                          softWrap: false,
-                          overflow: TextOverflow.visible,
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w600,
                             fontSize: 13.sp,
                             color: const Color(0xFF000000),
                           ),
                         ),
-                      ),
-                      SizedBox(height: 2.h),
-                      _LastOnLabel(lastOn),
-                    ],
+                        SizedBox(height: 2.h),
+                        _LastOnLabel(lastOn),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(width: 8.w),
-                _OrangePillButton(
-                  label: 'Recharge',
-                  onPressed: onRecharge,
-                ),
-              ],
+                  SizedBox(width: 8.w),
+                  _OrangePillButton(
+                    label: 'Recharge',
+                    onPressed: onRecharge,
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (hasDue)
-            Positioned(
-              top: 0,
-              left: 0,
-              child: _MyNumberDueBadge(dueLabel!.trim()),
-            ),
-        ],
+            if (hasDue)
+              Positioned(
+                top: 0,
+                left: 0,
+                child: _MyNumberDueBadge(dueLabel!.trim()),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -741,23 +730,9 @@ class _RecentRechargeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget buildScroller(Widget child) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final height =
-              constraints.hasBoundedHeight ? constraints.maxHeight : 108.h;
-          return SizedBox(
-            height: height,
-            child: OverflowBox(
-              alignment: Alignment.centerLeft,
-              minWidth: constraints.maxWidth,
-              maxWidth: constraints.maxWidth + 16,
-              child: SizedBox(
-                width: constraints.maxWidth + 16,
-                child: child,
-              ),
-            ),
-          );
-        },
+      return SizedBox(
+        height: 22.h + 16.h + 45.h + 4.h,
+        child: child,
       );
     }
 
@@ -771,26 +746,32 @@ class _RecentRechargeRow extends StatelessWidget {
           itemCount: 2,
         ),
       ),
-      error: (_, __) => Center(
-        child: Text(
-          'Unable to load recents',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary.withOpacity(0.5),
+      error: (_, __) => Padding(
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        child: Center(
+          child: Text(
+            'Unable to load recents',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary.withOpacity(0.5),
+            ),
           ),
         ),
       ),
       data: (items) {
         final display = items.take(10).toList();
         if (display.isEmpty) {
-          return Center(
-            child: Text(
-              'No recent recharges',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary.withOpacity(0.5),
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            child: Center(
+              child: Text(
+                'No recent recharges',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary.withOpacity(0.5),
+                ),
               ),
             ),
           );
@@ -898,60 +879,74 @@ class _RecentRechargeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showBadge = (badgeLabel ?? '').trim().isNotEmpty;
-    return Stack(
-      clipBehavior: Clip.hardEdge,
-      children: [
-        Container(
-          width: 300.w,
-          padding: EdgeInsets.fromLTRB(16.w, showBadge ? 22.h : 16.h, 16.w, 16.h),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: const Color(0xFFE2E2E2), width: 0.5),
-          ),
-          child: Row(
+    final radius = 16.r;
+    final maxCardWidth = MediaQuery.sizeOf(context).width - 48.w;
+    final cardWidth = 300.w > maxCardWidth ? maxCardWidth : 300.w;
+    return SizedBox(
+      width: cardWidth,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(color: const Color(0xFFE2E2E2), width: 0.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Stack(
             children: [
-              _OperatorIconBadge(
-                label: title,
-                iconUrl: iconUrl,
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16.w,
+                  showBadge ? 22.h : 16.h,
+                  16.w,
+                  16.h,
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      mobile,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF292D32),
-                        height: 1.1,
+                    _OperatorIconBadge(
+                      label: title,
+                      iconUrl: iconUrl,
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            mobile,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF292D32),
+                              height: 1.1,
+                            ),
+                          ),
+                          SizedBox(height: 3.h),
+                          _LastOnLabel(lastOn),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 3.h),
-                    _LastOnLabel(lastOn),
+                    SizedBox(width: 8.w),
+                    _OrangePillButton(
+                      label: 'Repeat',
+                      onPressed: onRepeat,
+                    ),
                   ],
                 ),
               ),
-              SizedBox(width: 8.w),
-              _OrangePillButton(
-                label: 'Repeat',
-                onPressed: onRepeat,
-              ),
+              if (showBadge)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: _ExpiryPill(badgeLabel!.trim()),
+                ),
             ],
           ),
         ),
-        if (showBadge)
-          Positioned(
-            top: 0,
-            left: 0,
-            child: _ExpiryPill(badgeLabel!.trim()),
-          ),
-      ],
+      ),
     );
   }
 }
@@ -1018,7 +1013,7 @@ class _PlanSection extends HookWidget {
       child: ListView(
         padding: EdgeInsets.fromLTRB(
           0,
-          10.h,
+          0,
           0,
           24.h + MediaQuery.of(context).viewPadding.bottom,
         ),
@@ -1028,7 +1023,7 @@ class _PlanSection extends HookWidget {
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(gradient: suggestedGradient),
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 14.h),
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 10.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1041,7 +1036,7 @@ class _PlanSection extends HookWidget {
                       height: 1,
                     ),
                   ),
-                  SizedBox(height: 14.h),
+                  SizedBox(height: 10.h),
                   _SuggestedPlanCards(
                     plans: state.currentPlans,
                     onSelect: controller.selectPlan,
@@ -1052,23 +1047,76 @@ class _PlanSection extends HookWidget {
 
           // Search field
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
-            child: SearchTextfield(
-              hintText: 'Search a plan, eg 299, 5g, etc.',
-              controller: planSearchController,
-              onChange: onPlanSearchChanged,
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final barWidth = constraints.maxWidth < 392.w
+                    ? constraints.maxWidth
+                    : 392.w;
+                return Align(
+                  alignment: Alignment.center,
+                  child: SearchTextfield(
+                    hintText: 'Search a plan, eg 299, 5g,etc.',
+                    controller: planSearchController,
+                    onChange: onPlanSearchChanged,
+                    width: barWidth,
+                    height: 54.h,
+                    radius: 12.r,
+                    fillColor: const Color(0xFFFFFFFF),
+                    borderColor: const Color(0xFFD7D7D7),
+                    borderWidth: 0.5,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0x0F000000),
+                        offset: Offset(0, 4.h),
+                        blurRadius: 16.r,
+                      ),
+                    ],
+                    contentPadding:
+                        EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
+                    hintStyle: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14.sp,
+                      height: 1,
+                      color: const Color(0xFF7C7C7C),
+                    ),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.sp,
+                      height: 1,
+                      color: Colors.black,
+                    ),
+                    prefixIconConstraints: BoxConstraints(
+                      minWidth: 42.w,
+                      minHeight: 14.25.h,
+                    ),
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.only(left: 20.w, right: 8.w),
+                      child: SizedBox(
+                        width: 14.25.w,
+                        height: 14.25.h,
+                        child: TwotoneSearchIcon(
+                          size: 14.25.w,
+                          color: const Color(0xFFDD5428),
+                          strokeWidth: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
           // Filters row
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
             child: SizedBox(
-              height: 34,
+              height: 34.h,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: 1 + quickFilters.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 4),
+                separatorBuilder: (_, __) => SizedBox(width: 8.w),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return _PlanFilterChip(
@@ -1135,7 +1183,7 @@ class _PlanSection extends HookWidget {
 
           // Categories + plan list content
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
             child: _CategoryTabs(
               categories: state.categories,
               selected: state.selectedCategory,
@@ -1175,12 +1223,12 @@ class _PlanSection extends HookWidget {
             ),
           ),
           if (state.isFetchingMorePlans)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
               child: Center(
                 child: SpinKitCircle(
                   color: AppColors.primary,
-                  size: 28,
+                  size: 28.r,
                 ),
               ),
             ),
@@ -1210,61 +1258,103 @@ class _PayNowSection extends StatelessWidget {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h),
+            padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
             child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(
-                    color: AppColors.lightBorder,
-                    width: 1.w,
-                  ),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: AppColors.lightBorder,
+                  width: 1.w,
                 ),
-                clipBehavior: Clip.hardEdge,
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 20.h),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 83.w,
-                            child: Text(
-                              '₹ ${plan.amount}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 32.sp,
-                                height: 1,
-                                color: const Color(0xFF000000),
+              ),
+              clipBehavior: Clip.hardEdge,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(top: 14.h, left: 20.w),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 81.w,
+                          height: 44.h,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '₹ ${plan.amount}',
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 40.sp,
+                                  height: 44 / 40,
+                                  color: const Color(0xFF000000),
+                                ),
                               ),
                             ),
                           ),
-                          SizedBox(height: 6.h),
-                          _buildInfoRow(context, plan),
-                          SizedBox(height: 12.h),
-                          Text(
-                            plan.description.isEmpty
-                                ? 'No description available.'
-                                : plan.description,
-                            maxLines: 10,
-                            overflow: TextOverflow.visible,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFF222222),
-                              height: 1.4,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w400,
+                        ),
+                        const Spacer(),
+                        GetAssuredCoinsBadge(
+                          label: plan.assuredBadgeLabel,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20.w, 4.h, 16.w, 16.h),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        PlanInfoRow(
+                          plan: plan,
+                          onBenefitsTap: () => KDialog.instance.openSheet(
+                            dialog: PlanDetailsSheet(
+                              plan: plan,
+                              onProceedToPay: () =>
+                                  KDialog.instance.openSheet(
+                                dialog: PrepaidPaymentBottomSheet(
+                                  plan: plan,
+                                  billerName:
+                                      state.operatorInfo?.operatorName ??
+                                          'Mobile Prepaid',
+                                  ecoinsRestrictionsPercent:
+                                      state.ecoinsRestrictionsPercent,
+                                ),
+                              ),
                             ),
                           ),
-                          SizedBox(height: 12.h),
-                          // Category name + Change Plan row
-                          Row(
-                            children: [
-                              Expanded(
+                        ),
+                        SizedBox(height: 10.h),
+                        const PlanValidityDivider(),
+                        SizedBox(height: 12.h),
+                        Text(
+                          plan.description.isEmpty
+                              ? 'No description available.'
+                              : plan.description,
+                          maxLines: 10,
+                          overflow: TextOverflow.visible,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFF222222),
+                            height: 1.4,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
                                 child: GestureDetector(
                                   onTap: () => KDialog.instance.openSheet(
                                     dialog: PlanDetailsSheet(
@@ -1276,8 +1366,8 @@ class _PayNowSection extends StatelessWidget {
                                           billerName: state.operatorInfo
                                                   ?.operatorName ??
                                               'Mobile Prepaid',
-                                          ecoinsRestrictionsPercent:
-                                              state.ecoinsRestrictionsPercent,
+                                          ecoinsRestrictionsPercent: state
+                                              .ecoinsRestrictionsPercent,
                                         ),
                                       ),
                                     ),
@@ -1288,7 +1378,7 @@ class _PayNowSection extends StatelessWidget {
                                         : 'Entertainment',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.bricolageGrotesque(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14.sp,
                                       height: 17 / 14,
@@ -1297,71 +1387,74 @@ class _PayNowSection extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 20.w),
-                              GestureDetector(
-                                onTap: () => controller.deselectPlan(),
-                                child: Container(
-                                  width: 118.w,
-                                  height: 30.h,
-                                  padding: EdgeInsets.fromLTRB(
-                                    14.w,
-                                    6.h,
-                                    14.w,
-                                    6.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF084591),
-                                    borderRadius: BorderRadius.circular(48.r),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Flexible(
+                            ),
+                            SizedBox(width: 8.w),
+                            GestureDetector(
+                              onTap: () => controller.deselectPlan(),
+                              child: Container(
+                                width: 146.w,
+                                height: 37.h,
+                                padding: EdgeInsets.fromLTRB(
+                                  20.w,
+                                  10.h,
+                                  20.w,
+                                  10.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF084591),
+                                  borderRadius: BorderRadius.circular(48.r),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 83.w,
+                                      height: 17.h,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.center,
                                         child: Text(
                                           'Change Plan',
                                           maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
                                           style:
-                                              GoogleFonts.bricolageGrotesque(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 11.sp,
-                                            height: 1,
+                                              GoogleFonts.plusJakartaSans(
+                                            color: const Color(0xFFFFFFFF),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 14.sp,
+                                            height: 17 / 14,
                                           ),
                                         ),
                                       ),
-                                      SizedBox(width: 6.w),
-                                      Icon(
+                                    ),
+                                    SizedBox(width: 7.w),
+                                    SizedBox(
+                                      width: 16.w,
+                                      height: 16.h,
+                                      child: Icon(
                                         Icons.sync,
-                                        size: 12.sp,
-                                        color: Colors.white,
+                                        size: 16.w,
+                                        color: const Color(0xFFFFFFFF),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    Positioned(
-                      top: 27.h,
-                      right: 0,
-                      child: GetAssuredCoinsBadge(
-                        label: plan.assuredBadgeLabel,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
           ),
         ),
         Padding(
           padding: EdgeInsets.fromLTRB(
-            24.w,
+            16.w,
             10.h,
-            24.w,
+            16.w,
             16.h + MediaQuery.of(context).viewPadding.bottom,
           ),
           child: SizedBox(
@@ -1395,20 +1488,23 @@ class _PayNowSection extends StatelessWidget {
                   ? SizedBox(
                       height: 20.h,
                       width: 20.w,
-                      child: const SpinKitCircle(
+                      child: SpinKitCircle(
                         color: Colors.white,
-                        size: 20,
+                        size: 20.r,
                       ),
                     )
-                  : Text(
-                      'Proceed to Pay',
-                      maxLines: 1,
-                      overflow: TextOverflow.visible,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
-                        height: 1,
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Proceed to Pay',
+                        maxLines: 1,
+                        overflow: TextOverflow.visible,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp,
+                          height: 1,
+                        ),
                       ),
                     ),
             ),
@@ -1418,157 +1514,6 @@ class _PayNowSection extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, PlanItem plan) {
-    final hasValidity = plan.validity.isNotEmpty;
-    final hasData = plan.data.isNotEmpty;
-    final hasBenefitImages = plan.additionalBenefits.isNotEmpty;
-
-    if (!hasValidity && !hasData && !hasBenefitImages) {
-      return const SizedBox.shrink();
-    }
-
-    return Row(
-      children: [
-        if (hasValidity)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Validity',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textPrimary.withOpacity(0.5),
-                      fontSize: 12,
-                    ),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                plan.validity,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                    ),
-              ),
-            ],
-          ),
-        if (hasValidity && hasData)
-          Container(
-            width: 1,
-            height: 32,
-            margin: const EdgeInsets.symmetric(horizontal: 12),
-            color: Colors.grey.shade300,
-          ),
-        if (hasData)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Data',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textPrimary.withOpacity(0.5),
-                      fontSize: 12,
-                    ),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                plan.data,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                    ),
-              ),
-            ],
-          ),
-        if ((hasValidity || hasData) && hasBenefitImages) const Spacer(),
-        if (hasBenefitImages) _buildBenefitImages(context, plan),
-      ],
-    );
-  }
-
-  Widget _buildBenefitImages(BuildContext context, PlanItem plan) {
-    const maxVisible = 5;
-    final benefits = plan.additionalBenefits;
-    final visibleBenefits = benefits.take(maxVisible).toList();
-    final remaining = benefits.length - maxVisible;
-
-    return GestureDetector(
-      onTap: () => KDialog.instance.openSheet(
-        dialog: PlanDetailsSheet(
-          plan: plan,
-          onProceedToPay: () => KDialog.instance.openSheet(
-            dialog: PrepaidPaymentBottomSheet(
-              plan: plan,
-              billerName: state.operatorInfo?.operatorName ?? 'Mobile Prepaid',
-              ecoinsRestrictionsPercent: state.ecoinsRestrictionsPercent,
-            ),
-          ),
-        ),
-      ),
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: (visibleBenefits.length * 26.0) + 10,
-            height: 36,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                for (int i = 0; i < visibleBenefits.length; i++)
-                  Positioned(
-                    left: i * 26.0,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: visibleBenefits[i].image == null
-                            ? Container(
-                                color: Colors.grey.shade200,
-                                child: const Icon(
-                                  Icons.card_giftcard,
-                                  size: 16,
-                                ),
-                              )
-                            : Image.network(
-                                visibleBenefits[i].image!,
-                                width: 36,
-                                height: 36,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(Icons.image, size: 16),
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (remaining > 0)
-            Text(
-              '+$remaining',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
-                  ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 Future<void> _openOperatorSheet(
@@ -1906,8 +1851,8 @@ class _PlanFilterChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        height: 34,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        height: isFilter ? 32.h : 34.h,
+        padding: EdgeInsets.symmetric(horizontal: 10.w),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isFilter
@@ -1915,7 +1860,7 @@ class _PlanFilterChip extends StatelessWidget {
               : selected
                   ? AppColors.primary.withOpacity(0.1)
                   : Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           border: Border.all(
             color: selected && !isFilter
                 ? AppColors.primary.withOpacity(0.35)
@@ -2001,7 +1946,6 @@ class _SuggestedPlanCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: AppColors.lightBorder, width: 1.w),
           boxShadow: [
             BoxShadow(
               color: const Color.fromARGB(26, 130, 128, 128),
@@ -2012,86 +1956,119 @@ class _SuggestedPlanCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned(
-              left: 18.w,
-              top: 8.h,
-              right: 44.w,
+            Padding(
+              padding: EdgeInsets.fromLTRB(18.w, 8.h, 44.w, 8.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '₹ ${plan.amount}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 22.sp,
-                      color: Colors.black,
-                      height: 1,
+                  SizedBox(
+                    width: 71.w,
+                    height: 29.h,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '₹ ${plan.amount}'.toUpperCase(),
+                          maxLines: 1,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 24.sp,
+                            color: Colors.black,
+                            height: 1,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   if (validity.isNotEmpty) ...[
-                    SizedBox(height: 6.h),
-                    Text(
-                      'Validity: $validity',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
-                        color: const Color(0xFF222222),
-                        height: 1,
+                    SizedBox(height: 4.h),
+                    SizedBox(
+                      width: 180.w,
+                      height: 14.h,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Validity: $validity',
+                          textAlign: TextAlign.left,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.sp,
+                            color: const Color(0xFF222222),
+                            height: 1,
+                          ),
+                        ),
                       ),
                     ),
                   ],
+                  const Spacer(),
+                  if (description.isNotEmpty)
+                    SizedBox(
+                      height: 15.h,
+                      child: Text(
+                        description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12.sp,
+                          height: 15 / 12,
+                          color: const Color(0xFF222222),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: 4.h),
+                  SizedBox(
+                    height: 15.h,
+                    child: GestureDetector(
+                      onTap: onTap,
+                      child: Text(
+                        'Details',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFFDD5428),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.sp,
+                          height: 15 / 12,
+                          decoration: TextDecoration.underline,
+                          decorationColor: const Color(0xFFDD5428),
+                          decorationStyle: TextDecorationStyle.solid,
+                          decorationThickness: 1,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            if (description.isNotEmpty)
-              Positioned(
-                left: 18.w,
-                top: 58.h,
-                width: 198.w,
-                child: Text(
-                  description,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w400,
-                    fontSize: 12.sp,
-                    height: 15 / 12,
-                    color: const Color(0xFF222222),
-                  ),
-                ),
-              ),
             Positioned(
-              left: 18.w,
-              top: 76.h,
-              width: 40.w,
-              height: 15.h,
-              child: GestureDetector(
-                onTap: onTap,
-                child: Text(
-                  'Details',
-                  maxLines: 1,
-                  style: GoogleFonts.plusJakartaSans(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
-                    height: 15 / 12,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.primary,
-                    decorationStyle: TextDecorationStyle.solid,
-                    decorationThickness: 1,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 212.w,
+              right: 12.w,
               top: 12.h,
               child: IgnorePointer(
-                child: Image.asset(
-                  FileConstants.orangeRight,
+                child: Container(
                   width: 28.w,
                   height: 28.h,
-                  fit: BoxFit.contain,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFFF835C),
+                        Color(0xFFDD5428),
+                      ],
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                    size: 18.sp,
+                  ),
                 ),
               ),
             ),
@@ -2099,9 +2076,6 @@ class _SuggestedPlanCard extends StatelessWidget {
         ),
       ),
     );
-
-
-
   }
 }
 
@@ -2156,12 +2130,12 @@ class _MyNumberSection extends ConsumerWidget {
     if (resolved.isEmpty) return const SizedBox.shrink();
     final myNumberInfo = ref.watch(mobilePrepaidMyNumberProvider(resolved));
     return myNumberInfo.when(
-      loading: () => const Column(
+      loading: () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(title: 'My Number'),
-          SizedBox(height: 10),
-          MobilePrepaidMyNumberCardShimmer(),
+          const _SectionHeader(title: 'My Number'),
+          SizedBox(height: 10.h),
+          const MobilePrepaidMyNumberCardShimmer(),
         ],
       ),
       error: (_, __) => const SizedBox.shrink(),
@@ -2208,26 +2182,20 @@ class _RecentRechargesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 144.h,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeader(
-            title: 'Recents',
-            actionText: 'View All',
-            onAction: onViewAllRecent,
-          ),
-          SizedBox(height: 10.h),
-          Expanded(
-            child: _RecentRechargeRow(
-              recentPayments: recentPayments,
-              onRepeat: onRepeatRecent,
-            ),
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Recents',
+          actionText: 'View All',
+          onAction: onViewAllRecent,
+        ),
+        SizedBox(height: 10.h),
+        _RecentRechargeRow(
+          recentPayments: recentPayments,
+          onRepeat: onRepeatRecent,
+        ),
+      ],
     );
   }
 }
@@ -2247,7 +2215,7 @@ class _CategoryTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 36.h,
+      height: 24.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -2273,7 +2241,7 @@ class _CategoryTabs extends StatelessWidget {
                       height: 1,
                     ),
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 4.h),
                   Container(
                     height: 2.h,
                     width: double.infinity,

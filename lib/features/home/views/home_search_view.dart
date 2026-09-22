@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -117,12 +118,52 @@ class HomeSearchView extends HookConsumerWidget {
             ),
             const SizedBox(height: 12),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: SearchTextfield(
-                hintText: 'Search Services',
-                controller: searchController,
-                onChange: (value) {
-                  query.value = value;
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final barWidth = constraints.maxWidth < 392.w
+                      ? constraints.maxWidth
+                      : 392.w;
+                  return Align(
+                    alignment: Alignment.center,
+                    child: SearchTextfield(
+                      hintText: 'Search Services',
+                      controller: searchController,
+                      onChange: (value) {
+                        query.value = value;
+                      },
+                      width: barWidth,
+                      height: 54.h,
+                      radius: 12.r,
+                      fillColor: const Color(0xFFFFFFFF),
+                      borderColor: const Color(0xFFD7D7D7),
+                      borderWidth: 0.5,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0x0F000000),
+                          offset: Offset(0, 4.h),
+                          blurRadius: 16.r,
+                        ),
+                      ],
+                      contentPadding:
+                          EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
+                      prefixIconConstraints: BoxConstraints(
+                        minWidth: 46.w,
+                        minHeight: 18.h,
+                      ),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.only(left: 20.w, right: 8.w),
+                        child: SizedBox(
+                          width: 18.w,
+                          height: 18.h,
+                          child: TwotoneSearchIcon(
+                            size: 18.w,
+                            strokeWidth: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
@@ -207,6 +248,16 @@ class HomeSearchView extends HookConsumerWidget {
                         } else if (normalized == 'digital silver') {
                           context.push(
                             '${RouteConstants.digitalGold}?metal=silver&entry=home',
+                          );
+                        } else if (normalized == 'tuition fees' ||
+                            normalized == 'tution fees' ||
+                            normalized == 'school fees' ||
+                            normalized == 'college fees' ||
+                            normalized.contains('house rent') ||
+                            normalized.contains('shop rent')) {
+                          context.push(
+                            RouteConstants.educationFeesAmount,
+                            extra: serviceName,
                           );
                         } else {
                           context.push(

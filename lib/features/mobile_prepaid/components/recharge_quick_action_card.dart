@@ -15,6 +15,7 @@ class SimpleQuickActionCard extends StatelessWidget {
     this.onTap,
     this.actionLabel,
     this.onAction,
+    this.showShadow = true,
   });
 
   final String title;
@@ -24,6 +25,7 @@ class SimpleQuickActionCard extends StatelessWidget {
   final VoidCallback? onTap;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool showShadow;
 
   @override
   Widget build(BuildContext context) {
@@ -40,43 +42,45 @@ class SimpleQuickActionCard extends StatelessWidget {
           color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: AppColors.lightBorder, width: 1.w),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0x1A707070),
-              offset: Offset(0, 10.h),
-              blurRadius: 22.r,
-            ),
-            BoxShadow(
-              color: const Color(0x17707070),
-              offset: Offset(0, 41.h),
-              blurRadius: 41.r,
-            ),
-            BoxShadow(
-              color: const Color(0x0D707070),
-              offset: Offset(0, 91.h),
-              blurRadius: 55.r,
-            ),
-            BoxShadow(
-              color: const Color(0x03707070),
-              offset: Offset(0, 163.h),
-              blurRadius: 65.r,
-            ),
-            BoxShadow(
-              color: const Color(0x00707070),
-              offset: Offset(0, 254.h),
-              blurRadius: 71.r,
-            ),
-          ],
+          boxShadow: showShadow
+              ? [
+                  BoxShadow(
+                    color: const Color(0x1A707070),
+                    offset: Offset(0, 10.h),
+                    blurRadius: 22.r,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x17707070),
+                    offset: Offset(0, 41.h),
+                    blurRadius: 41.r,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x0D707070),
+                    offset: Offset(0, 91.h),
+                    blurRadius: 55.r,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x03707070),
+                    offset: Offset(0, 163.h),
+                    blurRadius: 65.r,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x00707070),
+                    offset: Offset(0, 254.h),
+                    blurRadius: 71.r,
+                  ),
+                ]
+              : const [],
         ),
         child: Row(
           children: [
-            // Sim Card Container & Icon Size Proper Alignment
             SimCardIconContainer(
               asset: leadingAsset,
               url: leadingImageUrl,
+              width: 42.w,
+              height: 38.h,
             ),
             SizedBox(width: 12.w),
-            // Sim Card Name (Title) & State Name (Subtitle)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +88,7 @@ class SimpleQuickActionCard extends StatelessWidget {
                 children: [
                   if (title.trim().isNotEmpty)
                     Text(
-                      title, // Sim Card Name (eg. Jio / Airtel)
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
@@ -97,7 +101,7 @@ class SimpleQuickActionCard extends StatelessWidget {
                     SizedBox(height: 2.h),
                   if (subtitle.trim().isNotEmpty)
                     Text(
-                      subtitle, // State Name (eg. Maharashtra)
+                      subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
@@ -147,16 +151,20 @@ class SimCardIconContainer extends StatelessWidget {
     super.key,
     this.asset,
     this.url,
+    this.width,
+    this.height,
   });
 
   final String? asset;
   final String? url;
+  final double? width;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 50.w,
-      height: 45.h,
+      width: width ?? 50.w,
+      height: height ?? 45.h,
       padding: EdgeInsets.all(8.w),
       decoration: BoxDecoration(
         color: Colors.white,

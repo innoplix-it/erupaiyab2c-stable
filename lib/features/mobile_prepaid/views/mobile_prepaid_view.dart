@@ -519,7 +519,7 @@ class MobilePrepaidView extends HookConsumerWidget {
         body: Column(
           children: [
             if (showOperatorCard) ...[
-              SizedBox(height: 12.h),
+              SizedBox(height: 8.h),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Center(
@@ -530,12 +530,13 @@ class MobilePrepaidView extends HookConsumerWidget {
                     leadingImageUrl: state.operatorInfo?.iconUrl,
                     actionLabel: 'Change',
                     onAction: handleChange,
+                    showShadow: !hasPlanSelected,
                   ),
                 ),
               ),
               SizedBox(height: 12.h),
             ] else
-              SizedBox(height: 12.h),
+              SizedBox(height: 4.h),
             Expanded(
               child: state.isFetching
                   ? const MobilePrepaidContentShimmer() 

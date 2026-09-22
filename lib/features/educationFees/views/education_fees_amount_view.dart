@@ -98,7 +98,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          'Education Fees',
+          resolvedFeeType,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -153,7 +153,10 @@ class EducationFeesAmountView extends HookConsumerWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.school_outlined,
+                                  (resolvedFeeType == 'House Rent' ||
+                                          resolvedFeeType == 'Shop Rent')
+                                      ? Icons.home_outlined
+                                      : Icons.school_outlined,
                                   color: AppColors.textPrimary,
                                   size: 18.r,
                                 ),
@@ -323,19 +326,26 @@ String _normalizeFeeType(String? rawValue) {
     return 'Tuition Fees';
   }
   final value = rawValue.trim();
-  switch (value.toLowerCase()) {
-    case 'tuition fees':
-    case 'tution fees':
-      return 'Tuition Fees';
-    case 'school fees':
-      return 'School Fees';
-    case 'college fees':
-      return 'College Fees';
-    case 'education fees':
-      return 'Education Fees';
-    default:
-      return value;
+  final lower = value.toLowerCase();
+  if (lower.contains('tuition') || lower.contains('tution')) {
+    return 'Tuition Fees';
   }
+  if (lower.contains('school fee')) {
+    return 'School Fees';
+  }
+  if (lower.contains('college fee')) {
+    return 'College Fees';
+  }
+  if (lower.contains('house rent')) {
+    return 'House Rent';
+  }
+  if (lower.contains('shop rent')) {
+    return 'Shop Rent';
+  }
+  if (lower.contains('education')) {
+    return 'Education Fees';
+  }
+  return value;
 }
 
 String _feeChipLabel(String feeType) {
@@ -346,9 +356,14 @@ String _feeChipLabel(String feeType) {
       return 'College Fee';
     case 'Education Fees':
       return 'Education Fee';
+    case 'House Rent':
+      return 'House Rent';
+    case 'Shop Rent':
+      return 'Shop Rent';
     case 'Tuition Fees':
-    default:
       return 'Tuition Fee';
+    default:
+      return feeType;
   }
 }
 
@@ -361,7 +376,11 @@ String _toApiFeeType(String feeType) {
     case 'Tuition Fees':
     case 'Tution Fees':
       return 'Tuition Fee';
+    case 'House Rent':
+      return 'House Rent';
+    case 'Shop Rent':
+      return 'Shop Rent';
     default:
-      return 'Tuition Fee';
+      return feeType;
   }
 }

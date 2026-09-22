@@ -6,6 +6,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -285,13 +286,53 @@ class _StandardBillerListingBody extends HookConsumerWidget {
       children: [
         if (showSearch)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: SearchTextfield(
-              hintText: 'Search Service',
-              controller: searchController,
-              onChange: (value) => ref
-                  .read(billerListingControllerProvider.notifier)
-                  .updateSearch(value),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final barWidth = constraints.maxWidth < 392.w
+                    ? constraints.maxWidth
+                    : 392.w;
+                return Align(
+                  alignment: Alignment.center,
+                  child: SearchTextfield(
+                    hintText: 'Search Provider',
+                    controller: searchController,
+                    onChange: (value) => ref
+                        .read(billerListingControllerProvider.notifier)
+                        .updateSearch(value),
+                    width: barWidth,
+                    height: 60.h,
+                    radius: 12.r,
+                    fillColor: const Color(0xFFFFFFFF),
+                    borderColor: const Color(0xFFE2E2E2),
+                    borderWidth: 1,
+                    contentPadding:
+                        EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
+                    hintStyle: GoogleFonts.bricolageGrotesque(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.sp,
+                      color: AppColors.textPrimary.withOpacity(0.45),
+                    ),
+                    style: GoogleFonts.bricolageGrotesque(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.sp,
+                      color: Colors.black,
+                    ),
+                    prefixIconConstraints: BoxConstraints(
+                      minWidth: 52.w,
+                      minHeight: 24.h,
+                    ),
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.only(left: 20.w, right: 8.w),
+                      child: SizedBox(
+                        width: 24.w,
+                        height: 24.h,
+                        child: TwotoneSearchIcon(size: 24.w),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         Expanded(
@@ -398,12 +439,52 @@ class _ElectricityFlow extends HookConsumerWidget {
             16.w,
             12.h,
           ),
-          child: SearchTextfield(
-            hintText: 'Search by biller',
-            controller: searchController,
-            onChange: (value) => ref
-                .read(billerListingControllerProvider.notifier)
-                .updateSearch(value),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final barWidth = constraints.maxWidth < 392.w
+                  ? constraints.maxWidth
+                  : 392.w;
+              return Align(
+                alignment: Alignment.center,
+                child: SearchTextfield(
+                  hintText: 'Search Provider',
+                  controller: searchController,
+                  onChange: (value) => ref
+                      .read(billerListingControllerProvider.notifier)
+                      .updateSearch(value),
+                  width: barWidth,
+                  height: 60.h,
+                  radius: 12.r,
+                  fillColor: const Color(0xFFFFFFFF),
+                  borderColor: const Color(0xFFE2E2E2),
+                  borderWidth: 1,
+                  contentPadding:
+                      EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
+                  hintStyle: GoogleFonts.bricolageGrotesque(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14.sp,
+                    color: AppColors.textPrimary.withOpacity(0.45),
+                  ),
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14.sp,
+                    color: Colors.black,
+                  ),
+                  prefixIconConstraints: BoxConstraints(
+                    minWidth: 52.w,
+                    minHeight: 24.h,
+                  ),
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.only(left: 20.w, right: 8.w),
+                    child: SizedBox(
+                      width: 24.w,
+                      height: 24.h,
+                      child: TwotoneSearchIcon(size: 24.w),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
         Expanded(

@@ -97,17 +97,17 @@ class MobilePrepaidMyNumberCardShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Shimmer(
       child: Container(
-        height: 86,
+        height: 22.h + 16.h + 45.h,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: const Color(0xFFE2E2E2)),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Row(
           children: [
-            _ShimmerBox(height: 44, width: 44, radius: 14),
-            const SizedBox(width: 12),
+            _ShimmerBox(height: 44.h, width: 44.w, radius: 14.r),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -119,8 +119,8 @@ class MobilePrepaidMyNumberCardShimmer extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            _ShimmerBox(height: 32, width: 86, radius: 22),
+            SizedBox(width: 12.w),
+            _ShimmerBox(height: 27.h, width: 86.w, radius: 22.r),
           ],
         ),
       ),
@@ -135,18 +135,18 @@ class MobilePrepaidRecentRechargeCardShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Shimmer(
       child: Container(
-        width: 295,
-        height: 96,
+        width: 300.w,
+        height: 22.h + 16.h + 45.h,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: const Color(0xFFE2E2E2)),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         child: Row(
           children: [
-            _ShimmerBox(height: 44, width: 44, radius: 14),
-            const SizedBox(width: 12),
+            _ShimmerBox(height: 44.h, width: 44.w, radius: 14.r),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -155,13 +155,11 @@ class MobilePrepaidRecentRechargeCardShimmer extends StatelessWidget {
                   _ShimmerLine(width: 150.w, height: 12.h),
                   SizedBox(height: 7.h),
                   _ShimmerLine(width: 120.w, height: 10.h),
-                  SizedBox(height: 7.h),
-                  _ShimmerLine(width: 110.w, height: 10.h),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            _ShimmerBox(height: 32, width: 78, radius: 22),
+            SizedBox(width: 10.w),
+            _ShimmerBox(height: 27.h, width: 78.w, radius: 22.r),
           ],
         ),
       ),

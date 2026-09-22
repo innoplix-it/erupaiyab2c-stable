@@ -56,57 +56,91 @@ class PlanCard extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.hardEdge,
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 14.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.only(top: 14.h, left: 20.w),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Padding(
-                    padding: EdgeInsets.only(right: 171.w),
-                    child: Text(
-                      '₹ ${plan.amount}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 24.sp,
-                        color: Colors.black,
-                        height: 1,
+                  SizedBox(
+                    width: 81.w,
+                    height: 44.h,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '₹ ${plan.amount}',
+                          maxLines: 1,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 40.sp,
+                            color: Colors.black,
+                            height: 44 / 40,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(height: 10.h),
-                  _PlanInfoRow(
+                  const Spacer(),
+                  GetAssuredCoinsBadge(label: assuredLabel),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 4.h, 16.w, 10.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PlanInfoRow(
                     plan: plan,
                     onBenefitsTap: () => _openPlanDetailsSheet(context),
                   ),
                   SizedBox(height: 10.h),
+                  const PlanValidityDivider(),
+                  SizedBox(height: 8.h),
                   if (plan.description.trim().isNotEmpty) ...[
-                    Text(
-                      plan.description,
-                      maxLines: 8,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 11.sp,
-                        height: 15 / 12,
-                        color: const Color(0xFF222222),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44.h,
+                      child: Text(
+                        plan.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12.sp,
+                          height: 22 / 12,
+                          color: const Color(0xFF222222),
+                        ),
                       ),
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: 8.h),
                   ] else
-                    SizedBox(height: 16.h),
+                    SizedBox(height: 8.h),
                   Row(
                     children: [
                       GestureDetector(
                         onTap: onViewDetails ?? onTap,
-                        child: Text(
-                          'View Details',
-                          style: GoogleFonts.bricolageGrotesque(
-                            color: const Color(0xFFDD5428),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
-                            height: 17 / 14,
+                        child: SizedBox(
+                          width: 83.w,
+                          height: 17.h,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'View Details',
+                              textAlign: TextAlign.left,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFFDD5428),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                                height: 17 / 14,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -123,12 +157,26 @@ class PlanCard extends StatelessWidget {
                 ],
               ),
             ),
-            Positioned(
-              top: 16.h,
-              right: 0,
-              child: GetAssuredCoinsBadge(label: assuredLabel),
-            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class PlanValidityDivider extends StatelessWidget {
+  const PlanValidityDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 356.w),
+        child: Container(
+          width: double.infinity,
+          height: 0.5,
+          color: const Color(0xFFBABABA),
         ),
       ),
     );
@@ -165,7 +213,7 @@ class GetAssuredCoinsBadge extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.bricolageGrotesque(
+              style: GoogleFonts.plusJakartaSans(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
                 fontSize: 11.sp,
@@ -179,8 +227,9 @@ class GetAssuredCoinsBadge extends StatelessWidget {
   }
 }
 
-class _PlanInfoRow extends StatelessWidget {
-  const _PlanInfoRow({
+class PlanInfoRow extends StatelessWidget {
+  const PlanInfoRow({
+    super.key,
     required this.plan,
     this.onBenefitsTap,
   });
@@ -250,29 +299,46 @@ class _PlanInfoColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            color: const Color(0xFF7C7C7C),
-            fontWeight: FontWeight.w400,
-            fontSize: 12.sp,
-            height: 1,
+    return SizedBox(
+      height: 32.h,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 36.w,
+            height: 16.h,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: GoogleFonts.plusJakartaSans(
+                  color: const Color(0xFF898989),
+                  fontWeight: FontWeight.w400,
+                  fontSize: 10.sp,
+                  height: 16 / 10,
+                ),
+              ),
+            ),
           ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-            fontSize: 12.sp,
-            height: 1,
+          SizedBox(
+            height: 16.h,
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF000000),
+                fontSize: 12.sp,
+                height: 16 / 12,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -315,10 +381,11 @@ class _PlanBenefitImages extends StatelessWidget {
           if (remaining > 0)
             Text(
               '+$remaining',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                     fontSize: 13.sp,
+                    height: 1,
                   ),
             ),
         ],
