@@ -621,65 +621,43 @@ class _CurvedIconGrid extends StatelessWidget {
   _CreditCardIconSpec _iconSpecFor(QuickActionService service) {
     final name = service.name.trim().toLowerCase();
     if (name.contains('school')) {
-      return _CreditCardIconSpec(
-        width: 34.r,
-        height: 34.r,
+      return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/schoolfees.png',
       );
     }
     if (name.contains('college')) {
-      return _CreditCardIconSpec(
-        width: 26.72.w,
-        height: 35.15.h,
+      return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/collegefees.png',
       );
     }
     if (name.contains('tuition') || name.contains('tution')) {
-      return _CreditCardIconSpec(
-        width: 32.33.w,
-        height: 34.21.h,
+      return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/tuitionfees.png',
       );
     }
     if (name.contains('gym')) {
-      return _CreditCardIconSpec(
-        width: 30.r,
-        height: 30.r,
+      return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/gymmembership.png',
       );
     }
     if (name.contains('house rent') || name == 'house') {
-      return _CreditCardIconSpec(
-        width: 28.5.w,
-        height: 24.65.h,
+      return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/houserent.png',
       );
     }
     if (name.contains('shop rent') || name == 'shop') {
-      return _CreditCardIconSpec(
-        width: 28.w,
-        height: 24.45.h,
-        topOffset: 1.78,
+      return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/shoprent.png',
       );
     }
-    if (name.contains('life')) {
-      return _CreditCardIconSpec(width: 24.65.w, height: 30.26.h);
-    }
-    if (name.contains('health')) {
-      return _CreditCardIconSpec(width: 26.5.w, height: 29.58.h);
-    }
-    if (name.contains('general')) {
-      return _CreditCardIconSpec(width: 26.5.w, height: 28.78.h);
-    }
-    return _CreditCardIconSpec(width: 28.w, height: 28.h);
+    return const _CreditCardIconSpec();
   }
 }
 
 class _CreditCardIconSpec {
   const _CreditCardIconSpec({
-    required this.width,
-    required this.height,
+    this.width = 28,
+    this.height = 28,
     this.topOffset = 0,
     this.localAsset,
   });
@@ -714,8 +692,8 @@ class _CurvedIconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayLabel = _capitalizeLabel(label.trim());
-    final iconSizeW = iconWidth.w;
-    final iconSizeH = iconHeight.w;
+    final iconSizeW = iconWidth.r;
+    final iconSizeH = iconHeight.r;
     Widget iconWidget = localIconAsset != null
         ? Image.asset(
             localIconAsset!,
@@ -748,7 +726,7 @@ class _CurvedIconTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _creditCardIconCircle(iconWidget),
-        SizedBox(height: 10.h),
+        SizedBox(height: 4.h),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 2.w),
           child: _creditCardIconLabel(displayLabel),
@@ -797,11 +775,10 @@ class _CurvedIconTile extends StatelessWidget {
   }
 
   Widget _creditCardIconCircle(Widget iconWidget) {
-    final size = 68.w;
+    final size = 54.r;
     return Container(
       width: size,
       height: size,
-      padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
@@ -848,7 +825,7 @@ class _CurvedIconTile extends StatelessWidget {
     final words = label.trim().split(RegExp(r'\s+'));
     final last = words.isEmpty ? '' : words.last.toLowerCase();
     final wrapsTwoLines = words.length == 2 &&
-        (last == 'insurance' || last == 'rent');
+        (last == 'insurance' || last == 'rent' || last == 'membership');
     final text = wrapsTwoLines ? '${words[0]}\n${words[1]}' : label;
     return Text(
       text,
@@ -2836,6 +2813,9 @@ class _HomeMainSections extends StatelessWidget {
                     labelBuilder: (service) {
                       final name = service.name.trim();
                       final lower = name.toLowerCase();
+                      if (lower.contains('gym')) {
+                        return 'Gym Membership';
+                      }
                       if (lower.contains('house rent')) {
                         return 'House Rent';
                       }

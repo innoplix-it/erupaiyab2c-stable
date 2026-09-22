@@ -1,6 +1,7 @@
 String displayServiceName(String name) {
   if (name == 'Landline Postpaid') return 'Landline';
   if (name == 'Broadband Postpaid') return 'Broadband';
+  if (name.trim().toLowerCase().contains('gym')) return 'Gym Membership';
   return name;
 }
 
