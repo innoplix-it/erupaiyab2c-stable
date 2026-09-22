@@ -15,6 +15,8 @@ class LatestTransaction {
     this.dueDate,
     this.transactionTime,
     this.daysLeft,
+    this.customerName = '',
+    this.autoPayActive = false,
   });
 
   final String id;
@@ -32,6 +34,8 @@ class LatestTransaction {
   final String? dueDate;
   final String? transactionTime;
   final int? daysLeft;
+  final String customerName;
+  final bool autoPayActive;
 
   factory LatestTransaction.fromJson(Map<String, dynamic> json) {
     return LatestTransaction(
@@ -59,10 +63,47 @@ class LatestTransaction {
       dueDate: json['due_date']?.toString(),
       transactionTime: json['transaction_time']?.toString(),
       daysLeft: _parseDaysLeft(json['days_left'] ?? json['daysLeft']),
+      customerName: _readCustomerName(json),
+      autoPayActive: _parseAutoPay(json),
     );
   }
 
   bool get isSuccess => status.trim().toLowerCase() == 'success';
+
+  static String _readCustomerName(Map<String, dynamic> json) {
+    const keys = [
+      'customer_name',
+      'user_name',
+      'consumer_name',
+      'customerName',
+      'userName',
+    ];
+    for (final key in keys) {
+      final text = json[key]?.toString().trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    final name = (json['name'] ?? '').toString().trim();
+    final biller = (json['biller_name'] ?? '').toString().trim();
+    if (name.isNotEmpty && name.toLowerCase() != biller.toLowerCase()) {
+      return name;
+    }
+    return '';
+  }
+
+  static bool _parseAutoPay(Map<String, dynamic> json) {
+    final value = json['autopay'] ??
+        json['auto_pay'] ??
+        json['autopay_status'] ??
+        json['is_autopay'] ??
+        json['autopayActive'];
+    if (value is bool) return value;
+    final text = value?.toString().trim().toLowerCase() ?? '';
+    return text == 'true' ||
+        text == '1' ||
+        text == 'active' ||
+        text == 'yes' ||
+        text == 'enabled';
+  }
 
   static int? _parseDaysLeft(Object? value) {
     if (value == null) return null;

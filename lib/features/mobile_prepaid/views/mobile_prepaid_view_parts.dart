@@ -287,12 +287,8 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
             child: Row(
               children: [
                 if (!isNumeric) ...[
-                  SizedBox(
-                    width: 18.w,
-                    height: 18.h,
-                    child: TwotoneSearchIcon(size: 18.w, strokeWidth: 1.5),
-                  ),
-                  SizedBox(width: 10.w),
+                  TwotoneSearchIcon(size: 18.w),
+                  SizedBox(width: 8.w),
                 ],
                 Expanded(
                   child: TextField(
@@ -1072,8 +1068,7 @@ class _PlanSection extends HookWidget {
                         blurRadius: 16.r,
                       ),
                     ],
-                    contentPadding:
-                        EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
+                    contentPadding: EdgeInsets.only(right: 16.w),
                     hintStyle: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w400,
                       fontSize: 14.sp,
@@ -1086,22 +1081,9 @@ class _PlanSection extends HookWidget {
                       height: 1,
                       color: Colors.black,
                     ),
-                    prefixIconConstraints: BoxConstraints(
-                      minWidth: 42.w,
-                      minHeight: 14.25.h,
-                    ),
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.only(left: 20.w, right: 8.w),
-                      child: SizedBox(
-                        width: 14.25.w,
-                        height: 14.25.h,
-                        child: TwotoneSearchIcon(
-                          size: 14.25.w,
-                          color: const Color(0xFFDD5428),
-                          strokeWidth: 1.5,
-                        ),
-                      ),
-                    ),
+                    prefixIconConstraints:
+                        SearchBarLeadingIcon.constraints(fieldHeight: 54.h),
+                    prefixIcon: SearchBarLeadingIcon(fieldHeight: 54.h),
                   ),
                 );
               },

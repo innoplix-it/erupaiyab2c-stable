@@ -17,6 +17,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../config/app_env.dart';
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
 import '../../../services/permission_service.dart';
 import '../../../utils/date_format_helper.dart';
@@ -983,22 +984,26 @@ class BillerDetailView extends HookConsumerWidget {
                                       bill,
                                     )
                                   : null;
+                              final entered = enteredAmount ?? 0;
+                              final fastTagBelowFloor =
+                                  isFastTag && entered > 0 && entered < 100;
                               final shouldDisablePay = showSubscriptionSummary
                                   ? (subscriptionAmount ?? 0) <= 0
                                   : (bill != null &&
-                                      ((enteredAmount ?? 0) <= 0 ||
+                                      (entered <= 0 ||
                                           (isFastTag &&
+                                              !fastTagBelowFloor &&
                                               ((fastTagMinAmount != null &&
-                                                      (enteredAmount ?? 0) <
+                                                      entered <
                                                           fastTagMinAmount) ||
                                                   (fastTagMaxAmount != null &&
-                                                      (enteredAmount ?? 0) >
+                                                      entered >
                                                           fastTagMaxAmount))) ||
                                           (isPipedGas &&
-                                              ((enteredAmount ?? 0) <
+                                              (entered <
                                                       PipedGasBillSection
                                                           .minAmount ||
-                                                  (enteredAmount ?? 0) >
+                                                  entered >
                                                       PipedGasBillSection
                                                           .maxAmount))));
                               return CustomElevatedButton(
@@ -1143,6 +1148,14 @@ class BillerDetailView extends HookConsumerWidget {
                                                       'We are verifying your payment. Please wait a moment.',
                                                 );
                                               },
+                                            );
+                                            return;
+                                          }
+                                          if (bill != null &&
+                                              isFastTag &&
+                                              (enteredAmount ?? 0) < 100) {
+                                            AppSnackbar.show(
+                                              AppErrorMessages.minAmount100,
                                             );
                                             return;
                                           }

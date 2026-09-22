@@ -306,8 +306,7 @@ class _StandardBillerListingBody extends HookConsumerWidget {
                     fillColor: const Color(0xFFFFFFFF),
                     borderColor: const Color(0xFFE2E2E2),
                     borderWidth: 1,
-                    contentPadding:
-                        EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
+                    contentPadding: EdgeInsets.only(right: 16.w),
                     hintStyle: GoogleFonts.bricolageGrotesque(
                       fontWeight: FontWeight.w500,
                       fontSize: 14.sp,
@@ -318,18 +317,9 @@ class _StandardBillerListingBody extends HookConsumerWidget {
                       fontSize: 14.sp,
                       color: Colors.black,
                     ),
-                    prefixIconConstraints: BoxConstraints(
-                      minWidth: 52.w,
-                      minHeight: 24.h,
-                    ),
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.only(left: 20.w, right: 8.w),
-                      child: SizedBox(
-                        width: 24.w,
-                        height: 24.h,
-                        child: TwotoneSearchIcon(size: 24.w),
-                      ),
-                    ),
+                    prefixIconConstraints:
+                        SearchBarLeadingIcon.constraints(fieldHeight: 60.h),
+                    prefixIcon: SearchBarLeadingIcon(fieldHeight: 60.h),
                   ),
                 );
               },
@@ -372,10 +362,6 @@ class _ElectricityFlow extends HookConsumerWidget {
         ref.watch(serviceLatestTransactionsProvider(categoryName.trim()));
 
     final billers = listingState.billers;
-    final showRecentSection = recentTransactions.maybeWhen(
-      data: (items) => items.isNotEmpty,
-      orElse: () => false,
-    );
 
     void openBiller(Biller biller) {
       ref.read(billerDetailControllerProvider.notifier).selectBiller(
@@ -391,119 +377,159 @@ class _ElectricityFlow extends HookConsumerWidget {
       );
     }
 
-    return Column(
-      children: [
-        ServiceRecentSection(
-          recentTransactions: recentTransactions,
-          onPayNow: (txn) {
-            final biller = _findRecentBillerMatch(
-              txn: txn,
-              billers: billers,
-            );
-            if (biller == null) {
-              AppSnackbar.show(
-                  'Provider not found. Please select from the list.');
-              return;
-            }
-            final identifier = (txn.serviceNoFull ?? '').trim().isNotEmpty
-                ? txn.serviceNoFull!.trim()
-                : txn.serviceNo.trim();
-            final isMaskedIdentifier = identifier.contains('*') ||
-                identifier.toLowerCase().contains('x');
-
-            ref.read(billerDetailControllerProvider.notifier).selectBiller(
-                  biller,
-                  categoryName: categoryName,
+    return InfiniteScrollListener(
+      isLoading: listingState.isFetchingMore,
+      hasMore: listingState.hasMore,
+      onEndReached: () =>
+          ref.read(billerListingControllerProvider.notifier).fetchNextPage(),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: ServiceRecentSection(
+              recentTransactions: recentTransactions,
+              title: 'Saved Billers',
+              actionText: 'View all',
+              savedBillersStyle: true,
+              onPayNow: (txn) {
+                final biller = _findRecentBillerMatch(
+                  txn: txn,
+                  billers: billers,
                 );
-            context.push(
-              RouteConstants.billerDetail,
-              extra: BillerDetailArgs(
-                biller: biller,
-                paymentType: categoryName,
-                mobileNumber: identifier,
-                autoFetchBill: !isMaskedIdentifier,
-                autoOpenPaymentSheet: !isMaskedIdentifier,
-              ),
-            );
+                if (biller == null) {
+                  AppSnackbar.show(
+                    'Provider not found. Please select from the list.',
+                  );
+                  return;
+                }
+                final identifier = (txn.serviceNoFull ?? '').trim().isNotEmpty
+                    ? txn.serviceNoFull!.trim()
+                    : txn.serviceNo.trim();
+                final isMaskedIdentifier = identifier.contains('*') ||
+                    identifier.toLowerCase().contains('x');
 
-            if (isMaskedIdentifier) {
-              AppSnackbar.show(
-                  'Enter full consumer number to fetch bill again.');
-            }
-          },
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            16.w,
-            showRecentSection ? 0 : 12.h,
-            16.w,
-            12.h,
+                ref.read(billerDetailControllerProvider.notifier).selectBiller(
+                      biller,
+                      categoryName: categoryName,
+                    );
+                context.push(
+                  RouteConstants.billerDetail,
+                  extra: BillerDetailArgs(
+                    biller: biller,
+                    paymentType: categoryName,
+                    mobileNumber: identifier,
+                    autoFetchBill: !isMaskedIdentifier,
+                    autoOpenPaymentSheet: !isMaskedIdentifier,
+                  ),
+                );
+
+                if (isMaskedIdentifier) {
+                  AppSnackbar.show(
+                    'Enter full consumer number to fetch bill again.',
+                  );
+                }
+              },
+            ),
           ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final barWidth = constraints.maxWidth < 392.w
-                  ? constraints.maxWidth
-                  : 392.w;
-              return Align(
-                alignment: Alignment.center,
-                child: SearchTextfield(
-                  hintText: 'Search Provider',
-                  controller: searchController,
-                  onChange: (value) => ref
-                      .read(billerListingControllerProvider.notifier)
-                      .updateSearch(value),
-                  width: barWidth,
-                  height: 60.h,
-                  radius: 12.r,
-                  fillColor: const Color(0xFFFFFFFF),
-                  borderColor: const Color(0xFFE2E2E2),
-                  borderWidth: 1,
-                  contentPadding:
-                      EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
-                  hintStyle: GoogleFonts.bricolageGrotesque(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14.sp,
-                    color: AppColors.textPrimary.withOpacity(0.45),
-                  ),
-                  style: GoogleFonts.bricolageGrotesque(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14.sp,
-                    color: Colors.black,
-                  ),
-                  prefixIconConstraints: BoxConstraints(
-                    minWidth: 52.w,
-                    minHeight: 24.h,
-                  ),
-                  prefixIcon: Padding(
-                    padding: EdgeInsets.only(left: 20.w, right: 8.w),
-                    child: SizedBox(
-                      width: 24.w,
-                      height: 24.h,
-                      child: TwotoneSearchIcon(size: 24.w),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bannerWidth = constraints.maxWidth;
+                  final bannerHeight = bannerWidth * (117 / 392);
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Image.asset(
+                      FileConstants.electricityBanner,
+                      width: bannerWidth,
+                      height: bannerHeight,
+                      fit: BoxFit.fill,
                     ),
-                  ),
+                  );
+                },
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+              child: SearchTextfield(
+                hintText: 'Search by billers',
+                controller: searchController,
+                onChange: (value) => ref
+                    .read(billerListingControllerProvider.notifier)
+                    .updateSearch(value),
+                height: 54.h,
+                radius: 12.r,
+                fillColor: const Color(0xFFFFFFFF),
+                borderColor: const Color(0xFFE2E2E2),
+                borderWidth: 1,
+                contentPadding: EdgeInsets.only(right: 16.w),
+                hintStyle: GoogleFonts.bricolageGrotesque(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14.sp,
+                  color: AppColors.textPrimary.withOpacity(0.45),
                 ),
-              );
-            },
+                style: GoogleFonts.bricolageGrotesque(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14.sp,
+                  color: Colors.black,
+                ),
+                prefixIconConstraints:
+                    SearchBarLeadingIcon.constraints(fieldHeight: 54.h),
+                prefixIcon: SearchBarLeadingIcon(fieldHeight: 54.h),
+              ),
+            ),
           ),
-        ),
-        Expanded(
-          child: _BillerListPane(
-            isFetching: listingState.isFetching,
-            errorMessage: listingState.errorMessage,
-            billers: billers,
-            isFetchingMore: listingState.isFetchingMore,
-            hasMore: listingState.hasMore,
-            onRetry: () => ref
-                .read(billerListingControllerProvider.notifier)
-                .fetchBillers(categoryName: categoryName),
-            onEndReached: () => ref
-                .read(billerListingControllerProvider.notifier)
-                .fetchNextPage(),
-            onTapBiller: openBiller,
-          ),
-        ),
-      ],
+          if (listingState.isFetching &&
+              billers.isEmpty &&
+              listingState.errorMessage == null)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: _BillerListingSkeleton(),
+            )
+          else if (listingState.errorMessage != null || billers.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: ScreenWrapper(
+                isFetching: false,
+                isEmpty: billers.isEmpty && listingState.errorMessage == null,
+                emptyMessage: 'No providers found',
+                errorMessage: listingState.errorMessage,
+                actions: listingState.errorMessage != null
+                    ? [
+                        TextButton(
+                          onPressed: () => ref
+                              .read(billerListingControllerProvider.notifier)
+                              .fetchBillers(categoryName: categoryName),
+                          child: const Text('Retry'),
+                        ),
+                      ]
+                    : null,
+                child: const SizedBox.shrink(),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    if (index >= billers.length) {
+                      return const _BillerListingFooterSkeleton();
+                    }
+                    return _BillerTile(
+                      biller: billers[index],
+                      onTap: () => openBiller(billers[index]),
+                    );
+                  },
+                  childCount:
+                      billers.length + (listingState.isFetchingMore ? 1 : 0),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

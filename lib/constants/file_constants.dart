@@ -25,6 +25,8 @@ class FileConstants {
   static String ellipse7 = 'assets/images/png/Ellipse 7.png';
   static String sampleBill = 'assets/images/png/sample_bill.png';
   static String orangeSearch = 'assets/images/png/home_icon/orangeSearch.png';
+  static String searchIcon = 'assets/images/png/searchicon.png';
+  static String electricityBanner = 'assets/images/png/electricitybanner.png';
   static String kycBgIcon = 'assets/images/png/kyc_bg_icon.png';
 
   // GIFS

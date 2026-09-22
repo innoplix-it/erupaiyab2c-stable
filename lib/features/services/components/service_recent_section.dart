@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../widgets/app_network_image.dart';
+import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 
 class ServiceRecentSection extends StatelessWidget {
@@ -14,6 +16,7 @@ class ServiceRecentSection extends StatelessWidget {
     this.title = 'Recent',
     this.actionText = 'View all',
     this.onAction,
+    this.savedBillersStyle = false,
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
@@ -21,12 +24,15 @@ class ServiceRecentSection extends StatelessWidget {
   final String title;
   final String actionText;
   final VoidCallback? onAction;
+  final bool savedBillersStyle;
 
   @override
   Widget build(BuildContext context) {
+    final sectionBottom = savedBillersStyle ? 0.0 : 16.h;
+    final headerGap = savedBillersStyle ? 12.h : 10.h;
     return recentTransactions.when(
       loading: () => Padding(
-        padding: EdgeInsets.only(bottom: 16.h),
+        padding: EdgeInsets.only(bottom: sectionBottom),
         child: Column(
           children: [
             Padding(
@@ -35,12 +41,14 @@ class ServiceRecentSection extends StatelessWidget {
                 title: title,
                 actionText: actionText,
                 onAction: onAction,
+                savedBillersStyle: savedBillersStyle,
               ),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: headerGap),
             _RecentRow(
               recentTransactions: recentTransactions,
               onPayNow: onPayNow,
+              savedBillersStyle: savedBillersStyle,
             ),
           ],
         ),
@@ -49,7 +57,7 @@ class ServiceRecentSection extends StatelessWidget {
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();
         return Padding(
-          padding: EdgeInsets.only(bottom: 16.h),
+          padding: EdgeInsets.only(bottom: sectionBottom),
           child: Column(
             children: [
               Padding(
@@ -58,12 +66,14 @@ class ServiceRecentSection extends StatelessWidget {
                   title: title,
                   actionText: actionText,
                   onAction: onAction,
+                  savedBillersStyle: savedBillersStyle,
                 ),
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: headerGap),
               _RecentRow(
                 recentTransactions: AsyncValue.data(items),
                 onPayNow: onPayNow,
+                savedBillersStyle: savedBillersStyle,
               ),
             ],
           ),
@@ -78,35 +88,88 @@ class _SectionHeader extends StatelessWidget {
     required this.title,
     required this.actionText,
     required this.onAction,
+    this.savedBillersStyle = false,
   });
 
   final String title;
   final String actionText;
   final VoidCallback? onAction;
+  final bool savedBillersStyle;
 
   @override
   Widget build(BuildContext context) {
+    final titleStyle = savedBillersStyle
+        ? GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w600,
+            fontSize: 18.sp,
+            height: 1,
+            letterSpacing: -0.02 * 18.sp,
+            color: const Color(0xFF000000),
+          )
+        : Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            );
+    final actionStyle = savedBillersStyle
+        ? GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w500,
+            fontSize: 16.sp,
+            height: 1,
+            letterSpacing: 0,
+            color: const Color(0xFFDD5428),
+            decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFFDD5428),
+            decorationThickness: 1,
+          )
+        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFFE85A2C),
+              fontWeight: FontWeight.w700,
+              decoration: TextDecoration.underline,
+            );
+
+    final titleText = Text(
+      savedBillersStyle ? _capitalizeWords(title) : title,
+      maxLines: 1,
+      overflow: TextOverflow.visible,
+      style: titleStyle,
+    );
+    final actionLabel = Text(
+      actionText,
+      textAlign: TextAlign.right,
+      maxLines: 1,
+      overflow: TextOverflow.visible,
+      style: actionStyle,
+    );
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-        ),
+        if (savedBillersStyle)
+          SizedBox(
+            width: 106.w,
+            height: 23.h,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: titleText,
+            ),
+          )
+        else
+          titleText,
         const Spacer(),
-        if (actionText.trim().isNotEmpty && onAction != null)
+        if (actionText.trim().isNotEmpty &&
+            (savedBillersStyle || onAction != null))
           InkWell(
             onTap: onAction,
-            child: Text(
-              actionText,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFE85A2C),
-                    fontWeight: FontWeight.w700,
-                    decoration: TextDecoration.underline,
-                  ),
-            ),
+            child: savedBillersStyle
+                ? SizedBox(
+                    width: 58.w,
+                    height: 20.h,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: actionLabel,
+                    ),
+                  )
+                : actionLabel,
           ),
       ],
     );
@@ -117,17 +180,19 @@ class _RecentRow extends StatelessWidget {
   const _RecentRow({
     required this.recentTransactions,
     required this.onPayNow,
+    this.savedBillersStyle = false,
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
   final ValueChanged<LatestTransaction> onPayNow;
+  final bool savedBillersStyle;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 126.h,
-      child: recentTransactions.when(
-        loading: () => ListView.separated(
+    return recentTransactions.when(
+      loading: () => SizedBox(
+        height: 126.h,
+        child: ListView.separated(
           padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
           clipBehavior: Clip.none,
           scrollDirection: Axis.horizontal,
@@ -135,11 +200,33 @@ class _RecentRow extends StatelessWidget {
           separatorBuilder: (_, __) => SizedBox(width: 12.w),
           itemBuilder: (_, __) => const _RecentCardShimmer(),
         ),
-        error: (_, __) => const SizedBox.shrink(),
-        data: (items) {
-          if (items.isEmpty) return const SizedBox.shrink();
-          final display = items.take(10).toList();
-          return ListView.separated(
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+        final display = items.take(10).toList();
+        if (savedBillersStyle) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0; index < display.length; index++) ...[
+                  if (index > 0) SizedBox(width: 12.w),
+                  _SavedBillerCard(
+                    txn: display[index],
+                    onPayNow: () => onPayNow(display[index]),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }
+        return SizedBox(
+          height: 126.h,
+          child: ListView.separated(
             padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
             clipBehavior: Clip.none,
             scrollDirection: Axis.horizontal,
@@ -149,9 +236,9 @@ class _RecentRow extends StatelessWidget {
               txn: display[index],
               onPayNow: () => onPayNow(display[index]),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -279,6 +366,286 @@ class _RecentCardShimmer extends StatelessWidget {
       ),
     );
   }
+}
+
+
+class _SavedBillerCard extends StatelessWidget {
+  const _SavedBillerCard({
+    required this.txn,
+    required this.onPayNow,
+  });
+
+  final LatestTransaction txn;
+  final VoidCallback onPayNow;
+
+  @override
+  Widget build(BuildContext context) {
+    final billerTitle = txn.billerName.trim();
+    final customerName = _capitalizeWords(txn.customerName.trim());
+    final consumerNo = (txn.serviceNoFull ?? txn.serviceNo).trim();
+    final lastPaid = _formatWasPaidOn(txn);
+
+    return GestureDetector(
+      onTap: onPayNow,
+      child: Container(
+        width: 328.w,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E2E2), width: 1.w),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 12.r,
+              offset: Offset(0, 6.h),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(12.w, 10.h, 8.w, 8.h),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SimCardIconContainer(
+                    url: txn.icon.trim().isEmpty ? null : txn.icon.trim(),
+                    width: 42.w,
+                    height: 38.h,
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 18.h,
+                          child: Text(
+                            billerTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.sp,
+                              height: 1,
+                              letterSpacing: -0.02 * 14.sp,
+                              color: const Color(0xFF000000),
+                            ),
+                          ),
+                        ),
+                        if (customerName.isNotEmpty ||
+                            consumerNo.isNotEmpty) ...[
+                          SizedBox(height: 4.h),
+                          SizedBox(
+                            height: 15.h,
+                            child: Row(
+                              children: [
+                                if (customerName.isNotEmpty)
+                                  Flexible(
+                                    child: Text(
+                                      customerName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12.sp,
+                                        height: 1,
+                                        letterSpacing: -0.02 * 12.sp,
+                                        color: const Color(0xFF696969),
+                                      ),
+                                    ),
+                                  ),
+                                if (customerName.isNotEmpty &&
+                                    consumerNo.isNotEmpty)
+                                  Text(
+                                    '  •  ',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12.sp,
+                                      height: 1,
+                                      color: const Color(0xFF696969),
+                                    ),
+                                  ),
+                                if (consumerNo.isNotEmpty)
+                                  Flexible(
+                                    child: Text(
+                                      consumerNo,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12.sp,
+                                        height: 1,
+                                        letterSpacing: -0.02 * 12.sp,
+                                        color: const Color(0xFF696969),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    padding: EdgeInsets.zero,
+                    child: const _VerticalDots(),
+                    onSelected: (value) {
+                      if (value == 'pay') onPayNow();
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem<String>(
+                        value: 'pay',
+                        child: Text('Pay Now'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Divider(
+              height: 1.h,
+              thickness: 1.h,
+              color: AppColors.lightBorder.withValues(alpha: 0.7),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 8.h),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 15.h,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'AutoPay Active',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.sp,
+                                height: 1,
+                                letterSpacing: -0.02 * 12.sp,
+                                color: const Color(0xFFDD5428),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (lastPaid.isNotEmpty) ...[
+                          SizedBox(height: 4.h),
+                          SizedBox(
+                            height: 14.h,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                lastPaid,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11.sp,
+                                  height: 1,
+                                  letterSpacing: -0.02 * 11.sp,
+                                  color: const Color(0xFF000000),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  const _AutoPayBadge(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AutoPayBadge extends StatelessWidget {
+  const _AutoPayBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 25.h,
+      padding: EdgeInsets.symmetric(horizontal: 10.w),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFF058337),
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.bolt,
+            size: 12.sp,
+            color: const Color(0xFFFFFFFF),
+          ),
+          SizedBox(width: 4.w),
+          Text(
+            'AutoPay',
+            maxLines: 1,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w600,
+              fontSize: 10.sp,
+              height: 1,
+              letterSpacing: -0.02 * 10.sp,
+              color: const Color(0xFFFFFFFF),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerticalDots extends StatelessWidget {
+  const _VerticalDots();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 16.w,
+      height: 14.17.h,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List<Widget>.generate(
+          3,
+          (_) => Container(
+            width: 2.5.w,
+            height: 2.5.w,
+            decoration: const BoxDecoration(
+              color: Color(0xFF000000),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _capitalizeWords(String value) {
+  return value
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .map((part) =>
+          '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}')
+      .join(' ');
 }
 
 class _RecentCard extends StatelessWidget {
@@ -433,6 +800,38 @@ class _RecentCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatWasPaidOn(LatestTransaction txn) {
+  final raw = (txn.transactionTime ?? txn.createdAt ?? '').trim();
+  if (raw.isEmpty) return '';
+  final parsed = DateTime.tryParse(raw);
+  final amountText = '₹${txn.amount.toStringAsFixed(2)}';
+  if (parsed == null) return '$amountText Was Paid On $raw';
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sept',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final day = parsed.day;
+  final suffix = (day >= 11 && day <= 13)
+      ? 'th'
+      : switch (day % 10) {
+          1 => 'st',
+          2 => 'nd',
+          3 => 'rd',
+          _ => 'th',
+        };
+  return '$amountText Was Paid On $day$suffix ${months[parsed.month - 1]} ${parsed.year}';
 }
 
 String _formatDueDate(String? raw) {

@@ -13,4 +13,5 @@ class AppErrorMessages {
       'Secure connection failed. Please try again later.';
   static const String serverUnavailable =
       'Server unavailable. Please try again later.';
+  static const String minAmount100 = 'Please add at least ₹100';
 }

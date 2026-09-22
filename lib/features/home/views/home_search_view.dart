@@ -145,23 +145,10 @@ class HomeSearchView extends HookConsumerWidget {
                           blurRadius: 16.r,
                         ),
                       ],
-                      contentPadding:
-                          EdgeInsets.fromLTRB(0, 18.h, 20.w, 18.h),
-                      prefixIconConstraints: BoxConstraints(
-                        minWidth: 46.w,
-                        minHeight: 18.h,
-                      ),
-                      prefixIcon: Padding(
-                        padding: EdgeInsets.only(left: 20.w, right: 8.w),
-                        child: SizedBox(
-                          width: 18.w,
-                          height: 18.h,
-                          child: TwotoneSearchIcon(
-                            size: 18.w,
-                            strokeWidth: 1.5,
-                          ),
-                        ),
-                      ),
+                      contentPadding: EdgeInsets.only(right: 16.w),
+                      prefixIconConstraints:
+                          SearchBarLeadingIcon.constraints(fieldHeight: 54.h),
+                      prefixIcon: SearchBarLeadingIcon(fieldHeight: 54.h),
                     ),
                   );
                 },

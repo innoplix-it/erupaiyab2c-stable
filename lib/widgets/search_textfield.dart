@@ -1,72 +1,83 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:e_rupaiya/constants/file_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../constants/app_colors.dart';
+
+const String _orangeSearchSvg = '''
+<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M8.625 15.75C12.56 15.75 15.75 12.56 15.75 8.625C15.75 4.68997 12.56 1.5 8.625 1.5C4.68997 1.5 1.5 4.68997 1.5 8.625C1.5 12.56 4.68997 15.75 8.625 15.75Z" stroke="#DD5428" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path opacity="0.4" d="M16.5 16.5L15 15" stroke="#DD5428" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+''';
 
 class TwotoneSearchIcon extends StatelessWidget {
   const TwotoneSearchIcon({
     super.key,
-    required this.size,
+    this.size,
     this.color = const Color(0xFFDD5428),
-    this.strokeWidth = 1.5,
   });
 
-  final double size;
+  final double? size;
   final Color color;
-  final double strokeWidth;
+
+  static const _defaultColor = Color(0xFFDD5428);
 
   @override
   Widget build(BuildContext context) {
+    final resolved = size ?? 18.w;
     return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _TwotoneSearchPainter(
-          color: color,
-          strokeWidth: strokeWidth,
-        ),
+      width: resolved,
+      height: resolved,
+      child: SvgPicture.string(
+        _orangeSearchSvg,
+        width: resolved,
+        height: resolved,
+        fit: BoxFit.contain,
+        colorFilter: color == _defaultColor
+            ? null
+            : ColorFilter.mode(color, BlendMode.srcIn),
       ),
     );
   }
 }
 
-class _TwotoneSearchPainter extends CustomPainter {
-  const _TwotoneSearchPainter({
-    required this.color,
-    required this.strokeWidth,
+class SearchBarLeadingIcon extends StatelessWidget {
+  const SearchBarLeadingIcon({
+    super.key,
+    this.fieldHeight,
+    this.leftPadding,
+    this.gap,
   });
 
-  final Color color;
-  final double strokeWidth;
+  final double? fieldHeight;
+  final double? leftPadding;
+  final double? gap;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final stroke = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-    final fill = Paint()
-      ..color = color.withOpacity(0.18)
-      ..style = PaintingStyle.fill;
-
-    final center = Offset(size.width * 0.42, size.height * 0.42);
-    final radius = size.width * 0.30;
-    canvas.drawCircle(center, radius, fill);
-    canvas.drawCircle(center, radius, stroke);
-    canvas.drawLine(
-      Offset(center.dx + radius * 0.68, center.dy + radius * 0.68),
-      Offset(size.width * 0.86, size.height * 0.86),
-      stroke,
+  static BoxConstraints constraints({double? fieldHeight}) {
+    return BoxConstraints(
+      minWidth: 16.w + 18.w + 8.w,
+      minHeight: fieldHeight ?? 18.w,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _TwotoneSearchPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: leftPadding ?? 16.w,
+        right: gap ?? 8.w,
+      ),
+      child: SizedBox(
+        height: fieldHeight,
+        width: 18.w,
+        child: const Center(
+          child: TwotoneSearchIcon(),
+        ),
+      ),
+    );
   }
 }
 
@@ -141,16 +152,9 @@ class SearchTextfield extends StatelessWidget {
                   fontSize: 12.sp,
                 ),
             prefixIcon: prefixIcon ??
-                Padding(
-                  padding: EdgeInsets.all(12.w),
-                  child: Image.asset(
-                    FileConstants.orangeSearch,
-                    width: 18.w,
-                    height: 18.h,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-            prefixIconConstraints: prefixIconConstraints,
+                SearchBarLeadingIcon(fieldHeight: height),
+            prefixIconConstraints: prefixIconConstraints ??
+                SearchBarLeadingIcon.constraints(fieldHeight: height),
             suffixIcon: onFilterPressed == null
                 ? (value.text.isNotEmpty
                     ? IconButton(
