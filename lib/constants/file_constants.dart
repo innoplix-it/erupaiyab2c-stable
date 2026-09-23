@@ -27,10 +27,18 @@ class FileConstants {
   static String orangeSearch = 'assets/images/png/home_icon/orangeSearch.png';
   static String searchIcon = 'assets/images/png/searchicon.png';
   static String electricityBanner = 'assets/images/png/electricitybanner.png';
+  static String homeScreenImg = 'assets/images/png/homescreenimg.png';
+  static String cibilImg = 'assets/images/png/cibilimg.png';
+  static String homeLoans = 'assets/images/png/homeloans.png';
+  static String homeBank = 'assets/images/png/bank.png';
+  static String businessLoans = 'assets/images/png/businessloans.png';
+  static String personalLoans = 'assets/images/png/personalloans.png';
+  static String secureFuture = 'assets/images/png/securefuture.png';
   static String kycBgIcon = 'assets/images/png/kyc_bg_icon.png';
 
   // GIFS
   static String loadingGif = 'assets/images/png/loading.gif';
+  static String promoBannerGif = 'assets/gif/promobanner.gif';
   static String gasGif = 'assets/gif/gasGif.gif';
   static String digitalSilver = 'assets/gif/gasGif.gif';
   static String homeBannerGif = 'assets/gif/homeBanner.gif';

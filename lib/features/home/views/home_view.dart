@@ -1,8 +1,10 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:e_rupaiya/constants/app_text_styles.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:e_rupaiya/features/home/components/home_shimmer.dart';
 import 'package:e_rupaiya/features/home/models/banner_model.dart';
 import 'package:e_rupaiya/features/spinandear/views/spin_and_win_view.dart';
