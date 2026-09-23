@@ -239,6 +239,8 @@ class FileConstants {
   //Education
   static String greenBanner = 'assets/images/tutionFeesBanner.png';
   static String tutionFeesBanner = 'assets/images/tutionFeesBanner.png';
+  static String houseRentBanner = 'assets/images/houseRentBanner.png';
+  static String shopRentBanner = 'assets/images/shopRentBanner.png';
   static String amountBanner = 'assets/images/amountBanner.png';
 
   //Digital Gold & Silver

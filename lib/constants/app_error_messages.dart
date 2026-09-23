@@ -14,4 +14,6 @@ class AppErrorMessages {
   static const String serverUnavailable =
       'Server unavailable. Please try again later.';
   static const String minAmount100 = 'Please add at least ₹100';
+  static const String maxAmount100000 =
+      'Maximum amount allowed is ₹1,00,000';
 }

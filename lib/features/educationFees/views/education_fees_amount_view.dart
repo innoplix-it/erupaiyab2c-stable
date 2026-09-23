@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
@@ -63,8 +64,12 @@ class EducationFeesAmountView extends HookConsumerWidget {
     }, [resolvedFeeType]);
 
     useListenable(amountController);
-    final hasValidAmount = _parseAmount(amountController.text) > 0;
+    final amountValue = _parseAmount(amountController.text);
+    final exceedsMaxAmount = isCappedPayViaCreditCardFee(resolvedFeeType) &&
+        amountValue > 100000;
+    final hasValidAmount = amountValue > 0;
     final canContinue = hasValidAmount &&
+        !exceedsMaxAmount &&
         !state.isValidatingAmount &&
         !isFetchingTutors.value;
 
@@ -144,7 +149,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
                       clipBehavior: Clip.none,
                       children: [
                         Image.asset(
-                          FileConstants.tutionFeesBanner,
+                          _feeBannerAsset(resolvedFeeType),
                           height: 140.h,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -254,7 +259,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                     textBaseline: TextBaseline.alphabetic,
                                     children: [
                                       Padding(
-                                        padding: EdgeInsets.only(left: 45.w),
+                                        padding: EdgeInsets.only(left: 16.w),
                                         child: Text(
                                           '₹',
                                           style: amountTextStyle,
@@ -297,10 +302,13 @@ class EducationFeesAmountView extends HookConsumerWidget {
                               ),
                             ],
                           ),
-                          if (state.amountErrorMessage != null) ...[
+                          if (exceedsMaxAmount ||
+                              state.amountErrorMessage != null) ...[
                             SizedBox(height: 8.h),
                             Text(
-                              state.amountErrorMessage!,
+                              exceedsMaxAmount
+                                  ? AppErrorMessages.maxAmount100000
+                                  : state.amountErrorMessage!,
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
@@ -371,6 +379,17 @@ String _normalizeFeeType(String? rawValue) {
     return 'Education Fees';
   }
   return value;
+}
+
+String _feeBannerAsset(String feeType) {
+  switch (feeType) {
+    case 'House Rent':
+      return FileConstants.houseRentBanner;
+    case 'Shop Rent':
+      return FileConstants.shopRentBanner;
+    default:
+      return FileConstants.tutionFeesBanner;
+  }
 }
 
 String _feeChipLabel(String feeType) {

@@ -18,7 +18,7 @@ import '../services/logger_service.dart';
 import 'k_dialog.dart';
 import 'payment_processing_loader.dart';
 
-void openEducationPaymentProcessing(Map<String, dynamic> extra) {
+void _openOnNavigator(void Function(BuildContext context) action) {
   var opened = false;
 
   void open() {
@@ -26,7 +26,7 @@ void openEducationPaymentProcessing(Map<String, dynamic> extra) {
     final context = navigatorKey.currentContext;
     if (context == null || !context.mounted) return;
     opened = true;
-    context.go(RouteConstants.paymentProcessing, extra: extra);
+    action(context);
   }
 
   open();
@@ -44,6 +44,45 @@ void openEducationPaymentProcessing(Map<String, dynamic> extra) {
       open();
     },
   );
+}
+
+void openEducationPaymentProcessing(Map<String, dynamic> extra) {
+  _openOnNavigator(
+    (context) => context.go(RouteConstants.paymentProcessing, extra: extra),
+  );
+}
+
+void openEducationPaymentFailed(Map<String, dynamic> extra) {
+  _openOnNavigator((context) {
+    final referenceId = (extra['transactionRefId'] as String? ?? '').trim();
+    final paymentType =
+        (extra['paymentType'] as String? ?? 'Education Fees').trim();
+    final fallbackAmount = extra['fallbackAmount'] as String? ?? '';
+    final result = EducationPaymentStatusResponse(
+      status: false,
+      message: '',
+      transactionId: referenceId,
+      paymentStatus: 'FAILED',
+      amount: fallbackAmount,
+      updatedAt: DateTime.now().toIso8601String(),
+      paymentType: paymentType.isEmpty ? 'Education Fees' : paymentType,
+    );
+    context.go(
+      RouteConstants.transactionDetailForStatus('FAILED'),
+      extra: <String, dynamic>{
+        'entry': _buildTransactionEntry(
+          result: result,
+          transactionRefId: referenceId,
+          paymentType: paymentType,
+          recipientName: extra['recipientName'] as String? ?? '',
+          maskedAccount: extra['maskedAccount'] as String? ?? '',
+          fallbackAmount: fallbackAmount,
+          paymentId: extra['paymentId'] as String? ?? '',
+        ),
+        'fromPaymentFlow': true,
+      },
+    );
+  });
 }
 
 const _statusRetryInterval = Duration(seconds: 1);
@@ -516,26 +555,27 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
         });
       }
 
-      void goToPending() {
+      void goToStatus(String paymentStatus) {
         complete(() {
           final referenceId = transactionRefId.trim();
+          final normalized = paymentStatus.trim().toUpperCase();
           final result = lastResult ??
               EducationPaymentStatusResponse(
-                status: true,
+                status: normalized != 'FAILED',
                 message: '',
                 transactionId: referenceId,
-                paymentStatus: 'PENDING',
+                paymentStatus: normalized,
                 amount: fallbackAmount,
                 updatedAt: DateTime.now().toIso8601String(),
                 paymentType: paymentType,
               );
-          final pendingResult = EducationPaymentStatusResponse(
+          final statusResult = EducationPaymentStatusResponse(
             status: result.status,
             message: result.message,
             transactionId: result.transactionId.isNotEmpty
                 ? result.transactionId
                 : referenceId,
-            paymentStatus: 'PENDING',
+            paymentStatus: normalized,
             amount: result.amount.isNotEmpty ? result.amount : fallbackAmount,
             updatedAt: result.updatedAt.isNotEmpty
                 ? result.updatedAt
@@ -546,12 +586,12 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
             payableAmount: result.payableAmount,
             bannerImage: result.bannerImage,
           );
-          logger.info('Payment PENDING timeout for $referenceId');
+          logger.info('Payment $normalized for $referenceId');
           context.go(
-            RouteConstants.transactionDetailForStatus('PENDING'),
+            RouteConstants.transactionDetailForStatus(normalized),
             extra: <String, dynamic>{
               'entry': _buildTransactionEntry(
-                result: pendingResult,
+                result: statusResult,
                 transactionRefId: referenceId,
                 paymentType: paymentType,
                 recipientName: recipientName,
@@ -564,6 +604,8 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
           );
         });
       }
+
+      void goToPending() => goToStatus('PENDING');
 
       Future<void> pollStatus() async {
         final referenceId = transactionRefId.trim();
@@ -589,6 +631,10 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
               goToSuccess(result);
               return;
             }
+            if (result.isFailed) {
+              goToStatus('FAILED');
+              return;
+            }
           } catch (error, stackTrace) {
             if (cancelled || completed) return;
             logger.error(
@@ -612,7 +658,11 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
         remaining -= 1;
         if (remaining <= 0) {
           timer.cancel();
-          goToPending();
+          if (lastResult?.isFailed == true) {
+            goToStatus('FAILED');
+          } else {
+            goToPending();
+          }
         }
       });
 

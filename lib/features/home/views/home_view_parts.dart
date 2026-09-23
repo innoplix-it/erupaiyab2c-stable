@@ -803,52 +803,69 @@ class _CurvedIconGrid extends StatelessWidget {
     final name = service.name.trim().toLowerCase();
     if (name.contains('school')) {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/schoolfees.png',
+        localAsset: 'assets/images/svg/school_fees.svg',
       );
     }
     if (name.contains('college')) {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/collegefees.png',
+        localAsset: 'assets/images/svg/college_fees.svg',
       );
     }
     if (name.contains('tuition') || name.contains('tution')) {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/tuitionfees.png',
+        localAsset: 'assets/images/svg/tuition_fees.svg',
       );
     }
     if (name.contains('gym')) {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/gymmembership.png',
+        localAsset: 'assets/images/svg/gym_membership.svg',
       );
     }
     if (name.contains('house rent') || name == 'house') {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/houserent.png',
+        localAsset: 'assets/images/svg/house_rent.svg',
       );
     }
     if (name.contains('shop rent') || name == 'shop') {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/shoprent.png',
+        localAsset: 'assets/images/svg/shop_rent.svg',
       );
     }
     if (name.contains('home loan')) {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/homeloans.png',
+        localAsset: 'assets/images/svg/home_loan.svg',
       );
     }
-    if (name == 'bank' || name == 'banking') {
+    if (name.contains('zero balance') ||
+        name == 'bank' ||
+        name == 'banking') {
       return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/bank.png',
       );
     }
     if (name.contains('business loan')) {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/businessloans.png',
+        localAsset: 'assets/images/svg/business_loan.svg',
       );
     }
     if (name.contains('personal loan')) {
       return const _CreditCardIconSpec(
-        localAsset: 'assets/images/png/personalloans.png',
+        localAsset: 'assets/images/svg/personal_loan.svg',
+      );
+    }
+    if (name.contains('life')) {
+      return const _CreditCardIconSpec(
+        localAsset: 'assets/images/svg/life_insurance.svg',
+      );
+    }
+    if (name.contains('health')) {
+      return const _CreditCardIconSpec(
+        localAsset: 'assets/images/svg/health_insurance.svg',
+      );
+    }
+    if (name.contains('general')) {
+      return const _CreditCardIconSpec(
+        localAsset: 'assets/images/svg/general_insurance.svg',
       );
     }
     return const _CreditCardIconSpec();
@@ -896,12 +913,19 @@ class _CurvedIconTile extends StatelessWidget {
     final iconSizeW = iconWidth.r;
     final iconSizeH = iconHeight.r;
     Widget iconWidget = localIconAsset != null
-        ? Image.asset(
-      localIconAsset!,
-      width: iconSizeW,
-      height: iconSizeH,
-      fit: BoxFit.contain,
-    )
+        ? (localIconAsset!.toLowerCase().endsWith('.svg')
+            ? SvgPicture.asset(
+                localIconAsset!,
+                width: iconSizeW,
+                height: iconSizeH,
+                fit: BoxFit.contain,
+              )
+            : Image.asset(
+                localIconAsset!,
+                width: iconSizeW,
+                height: iconSizeH,
+                fit: BoxFit.contain,
+              ))
         : AppNetworkImage(
       url: iconUrl,
       width: iconSizeW,
@@ -1031,16 +1055,21 @@ class _CurvedIconTile extends StatelessWidget {
     final style = GoogleFonts.plusJakartaSans(
       fontSize: 11.sp,
       fontWeight: FontWeight.w600,
-      height: wrapsTwoLines ? 1.2 : 1,
+      fontStyle: FontStyle.normal,
+      height: 1,
       letterSpacing: 0,
       color: const Color(0xFF000000),
     );
-    return Text(
-      text,
-      maxLines: wrapsTwoLines ? 2 : 1,
-      textAlign: TextAlign.center,
-      overflow: TextOverflow.ellipsis,
-      style: style,
+    return SizedBox(
+      width: 71.w,
+      height: wrapsTwoLines ? 30.h : 15.h,
+      child: Text(
+        text,
+        maxLines: wrapsTwoLines ? 2 : 1,
+        textAlign: TextAlign.center,
+        overflow: TextOverflow.ellipsis,
+        style: style,
+      ),
     );
   }
 
@@ -1449,7 +1478,7 @@ class _InvestmentTile extends StatelessWidget {
               label,
               style: GoogleFonts.plusJakartaSans(
                 textStyle: Theme.of(context).textTheme.bodySmall,
-                fontSize: 10.sp,
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w600,
                 color: textColor,
               ),
@@ -1609,20 +1638,24 @@ class _TrustedByIndians extends StatelessWidget {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: 'Trusted by ',
+                          text: 'Trusted By ',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
+                            fontStyle: FontStyle.normal,
                             height: 1,
+                            letterSpacing: 0,
                             color: const Color(0xFF000000),
                           ),
                         ),
                         TextSpan(
-                          text: '1 million',
+                          text: '1 Million',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w700,
+                            fontStyle: FontStyle.normal,
                             height: 1,
+                            letterSpacing: 0,
                             color: const Color(0xFFDD5428),
                           ),
                         ),
@@ -1630,8 +1663,10 @@ class _TrustedByIndians extends StatelessWidget {
                           text: ' Indians',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
+                            fontStyle: FontStyle.normal,
                             height: 1,
+                            letterSpacing: 0,
                             color: const Color(0xFF000000),
                           ),
                         ),
@@ -1657,7 +1692,9 @@ class _TrustedByIndians extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w500,
-                      height: 18.h / 10.sp,
+                      fontStyle: FontStyle.normal,
+                      height: 16.h / 10.sp,
+                      letterSpacing: 0,
                       color: const Color(0xFF000000),
                     ),
                   ),
@@ -1913,7 +1950,7 @@ class _InsuranceBannerItem extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 10.h),
-
+  
                 /// APPLY BUTTON
                 InkWell(
                   onTap: onApply,
@@ -3187,7 +3224,7 @@ class _HomeMainSections extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: 22.h),
                     Opacity(
                       opacity: 1,
                       child: LayoutBuilder(
@@ -3323,7 +3360,7 @@ class _HomeMainSections extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
-                          if (middleBanners.isNotEmpty) SizedBox(height: 18.h),
+                          if (middleBanners.isNotEmpty) SizedBox(height: 2.h),
                           if (middleBanners.isNotEmpty)
                             _HomeBleedBanner(
                               designWidth: 440,
@@ -3360,12 +3397,12 @@ class _HomeMainSections extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          if (middleBanners.isNotEmpty) SizedBox(height: 16.h),
+                          if (middleBanners.isNotEmpty) SizedBox(height: 8.h),
                         ],
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 1.h, 16.w, 2.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 13.h, 16.w, 2.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -3398,12 +3435,12 @@ class _HomeMainSections extends StatelessWidget {
                               return name;
                             },
                           ),
-                          SizedBox(height: 8.h),
+                          SizedBox(height: 2.h),
                         ],
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 13.h, 16.w, 2.h),
                       child: const _CibilBanner(),
                     ),
                     Padding(
@@ -3441,17 +3478,72 @@ class _HomeMainSections extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 12.h),
-                    _HomeBleedBanner(
-                      asset: FileConstants.secureFuture,
-                      designWidth: 440,
-                      designHeight: 180,
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0.h),
-                      child: const Align(
-                        alignment: Alignment.centerLeft,
-                        child: _TrustedByIndians(),
-                      ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
+                        double frame(double px) => width * px / 440;
+                        return ColoredBox(
+                          color: const Color(0xFFFDFDFD),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Image.asset(
+                                FileConstants.secureFuture,
+                                width: width,
+                                height: frame(180),
+                                fit: BoxFit.fill,
+                              ),
+                              SizedBox(height: frame(45)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: frame(24),
+                                ),
+                                child: const _TrustedByIndians(),
+                              ),
+                              SizedBox(height: frame(26)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: frame(24),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 59.w,
+                                      height: 13.h,
+                                      child: Text(
+                                        'Powered By',
+                                        maxLines: 1,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.w600,
+                                          fontStyle: FontStyle.normal,
+                                          height: 1,
+                                          letterSpacing: 0,
+                                          color: const Color(0xFF000000),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 6.h),
+                                    SizedBox(
+                                      width: 61.w,
+                                      height: 24.h,
+                                      child: Image.asset(
+                                        FileConstants.bharatConnectColor,
+                                        width: 61.w,
+                                        height: 24.h,
+                                        fit: BoxFit.contain,
+                                        alignment: Alignment.centerLeft,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 40.h),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                     /*
             Padding(
@@ -3537,28 +3629,6 @@ class _HomeMainSections extends StatelessWidget {
                 ),
             ],
             */
-                    Container(
-                      decoration: const BoxDecoration(color: Color(0XFFFDFDFD)),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 24.h),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Powered by',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            SizedBox(width: 6.w),
-                            Image.asset(
-                              FileConstants.bharatConnectColor,
-                              height: 25.h,
-                              fit: BoxFit.contain,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

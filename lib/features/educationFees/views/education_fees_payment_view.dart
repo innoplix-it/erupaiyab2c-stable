@@ -119,16 +119,21 @@ class EducationFeesPaymentView extends HookConsumerWidget {
                   'paymentId': paymentId,
                 });
               },
-              onFailure: (message) {
+              onFailure: (message, {bool cancelled = false}) {
                 if (processingNavigationStarted.value) return;
                 processingNavigationStarted.value = true;
-                openEducationPaymentProcessing({
+                final extra = {
                   'transactionRefId': order.transactionRefId,
                   'paymentType': 'Education Fees',
                   'recipientName': state.recipientName,
                   'maskedAccount': _maskAccount(state.accountNumber),
                   'fallbackAmount': payable.toStringAsFixed(2),
-                });
+                };
+                if (cancelled) {
+                  openEducationPaymentFailed(extra);
+                  return;
+                }
+                openEducationPaymentProcessing(extra);
               },
             );
           },

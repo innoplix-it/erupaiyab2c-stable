@@ -4,10 +4,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../constants/app_colors.dart';
-import '../../../constants/app_text_styles.dart';
 import '../../../constants/file_constants.dart';
 import '../../../widgets/app_network_image.dart';
 
@@ -78,8 +78,20 @@ class _HomeIconTileState extends State<HomeIconTile>
 
   @override
   Widget build(BuildContext context) {
-    final labelTextStyle = AppTextStyles.bodySmallSemibold(context);
-    final labelWords = widget.label.trim().split(RegExp(r'\s+'));
+    final labelTextStyle = GoogleFonts.plusJakartaSans(
+      fontSize: 11.sp,
+      fontWeight: FontWeight.w600,
+      fontStyle: FontStyle.normal,
+      height: 1,
+      letterSpacing: 0,
+      color: const Color(0xFF000000),
+    );
+    final labelWords = widget.label
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .map(_capitalizeWord)
+        .toList();
     final isTwoWordLabel = labelWords.length == 2;
 
     final ringSize = 62.r;
@@ -235,27 +247,20 @@ class _HomeIconTileState extends State<HomeIconTile>
               ],
             ),
             SizedBox(height: widget.labelSpacing ?? 6.h),
-            SizedBox(
-              width: double.infinity,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final displayLabel = isTwoWordLabel
+            Center(
+              child: SizedBox(
+                width: 71.w,
+                height: isTwoWordLabel ? 30.h : 15.h,
+                child: Text(
+                  isTwoWordLabel
                       ? '${labelWords.first}\n${labelWords.last}'
-                      : _truncateSingleWordLabel(
-                          widget.label,
-                          constraints.maxWidth,
-                          labelTextStyle,
-                        );
-
-                  return Text(
-                    displayLabel,
-                    maxLines: isTwoWordLabel ? 2 : 1,
-                    softWrap: isTwoWordLabel,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: labelTextStyle,
-                  );
-                },
+                      : labelWords.join(' '),
+                  maxLines: isTwoWordLabel ? 2 : 1,
+                  softWrap: isTwoWordLabel,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: labelTextStyle,
+                ),
               ),
             ),
           ],
@@ -264,39 +269,9 @@ class _HomeIconTileState extends State<HomeIconTile>
     );
   }
 
-  String _truncateSingleWordLabel(
-    String label,
-    double maxWidth,
-    TextStyle? style,
-  ) {
-    final trimmed = label.trim();
-    if (trimmed.isEmpty || trimmed.contains(' ')) return trimmed;
-
-    final fullTextPainter = TextPainter(
-      text: TextSpan(text: trimmed, style: style),
-      maxLines: 1,
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: maxWidth);
-
-    if (!fullTextPainter.didExceedMaxLines) {
-      return trimmed;
-    }
-
-    const suffix = '..';
-    for (var end = trimmed.length - 1; end > 0; end--) {
-      final candidate = '${trimmed.substring(0, end)}$suffix';
-      final candidatePainter = TextPainter(
-        text: TextSpan(text: candidate, style: style),
-        maxLines: 1,
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: maxWidth);
-
-      if (!candidatePainter.didExceedMaxLines) {
-        return candidate;
-      }
-    }
-
-    return suffix;
+  String _capitalizeWord(String word) {
+    if (word.isEmpty) return word;
+    return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../constants/app_error_messages.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../services/push_notification_service.dart';
 import '../models/education_account_type.dart';
@@ -53,6 +54,13 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     final amount = int.tryParse(raw.replaceAll(RegExp(r'\D'), '')) ?? 0;
     if (amount <= 0) {
       state = state.copyWith(amountErrorMessage: 'Enter a valid amount.');
+      return false;
+    }
+    if (isCappedPayViaCreditCardFee(state.feeType) && amount > 100000) {
+      state = state.copyWith(
+        amountValidated: false,
+        amountErrorMessage: AppErrorMessages.maxAmount100000,
+      );
       return false;
     }
     state = state.copyWith(isValidatingAmount: true, amountErrorMessage: null);
@@ -374,4 +382,14 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       return false;
     }
   }
+}
+
+bool isCappedPayViaCreditCardFee(String? feeType) {
+  final value = (feeType ?? '').trim().toLowerCase();
+  return value.contains('school') ||
+      value.contains('college') ||
+      value.contains('tuition') ||
+      value.contains('tution') ||
+      value.contains('house rent') ||
+      value.contains('shop rent');
 }

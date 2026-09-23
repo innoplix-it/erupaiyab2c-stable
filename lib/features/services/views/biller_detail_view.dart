@@ -1134,7 +1134,38 @@ class BillerDetailView extends HookConsumerWidget {
                                                       'Your payment was completed successfully.',
                                                 );
                                               },
-                                              onFailure: (message) async {
+                                              onFailure: (
+                                                message, {
+                                                bool cancelled = false,
+                                              }) async {
+                                                if (cancelled) {
+                                                  if (!context.mounted) return;
+                                                  final entry =
+                                                      buildPaymentFlowTransactionEntryFromRechargeStatus(
+                                                    status: null,
+                                                    fallbackStatus: 'FAILED',
+                                                    fallbackPaymentType: args
+                                                            ?.paymentType ??
+                                                        detail
+                                                            .billerCategoryName,
+                                                    fallbackBillerName: name,
+                                                    fallbackAmount: amountToPay,
+                                                    fallbackTransactionId:
+                                                        order.transactionRef,
+                                                  );
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          TransactionDetailScreen(
+                                                        entry: entry,
+                                                        doneLabel: 'Continue',
+                                                        navigateHomeOnExit:
+                                                            true,
+                                                      ),
+                                                    ),
+                                                  );
+                                                  return;
+                                                }
                                                 await verifyAndShowResult(
                                                   fallbackMessage: message
                                                           .isEmpty

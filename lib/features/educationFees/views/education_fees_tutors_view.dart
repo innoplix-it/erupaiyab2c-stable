@@ -100,16 +100,21 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                   'paymentId': paymentId,
                 });
               },
-              onFailure: (message) {
+              onFailure: (message, {bool cancelled = false}) {
                 if (processingNavigationStarted.value) return;
                 processingNavigationStarted.value = true;
-                openEducationPaymentProcessing({
+                final extra = {
                   'transactionRefId': order.transactionRefId,
                   'paymentType': 'Education Fees',
                   'recipientName': tutor.name,
                   'maskedAccount': tutor.accountMasked,
                   'fallbackAmount': payable.toStringAsFixed(2),
-                });
+                };
+                if (cancelled) {
+                  openEducationPaymentFailed(extra);
+                  return;
+                }
+                openEducationPaymentProcessing(extra);
               },
             );
           },
