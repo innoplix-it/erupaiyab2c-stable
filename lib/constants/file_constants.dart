@@ -27,7 +27,7 @@ class FileConstants {
   static String orangeSearch = 'assets/images/png/home_icon/orangeSearch.png';
   static String searchIcon = 'assets/images/png/searchicon.png';
   static String electricityBanner = 'assets/images/png/electricitybanner.png';
-  static String homeScreenImg = 'assets/images/png/homescreenimg.png';
+  static String homeScreenImg = 'assets/images/png/homescreenimghome.png';
   static String cibilImg = 'assets/images/png/cibilimg.png';
   static String homeLoans = 'assets/images/png/homeloans.png';
   static String homeBank = 'assets/images/png/bank.png';
@@ -45,6 +45,7 @@ class FileConstants {
   static String creditCardGif = 'assets/gif/creditcard.gif';
   static String splashGif = 'assets/gif/splash_gif.gif';
   static String splashLottie = 'assets/lottie/logo-verticle.json';
+  static String electricityBulbLottie = 'assets/lottie/electricitybulb.json';
   static String giftGif = 'assets/gif/gift.gif';
   static String goodGif = 'assets/gif/good.gif';
   static String notGoodGif = 'assets/gif/notGood.gif';

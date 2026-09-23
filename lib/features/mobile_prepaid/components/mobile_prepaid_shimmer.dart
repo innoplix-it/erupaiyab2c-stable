@@ -121,7 +121,7 @@ class MobilePrepaidMyNumberCardShimmer extends StatelessWidget {
             _ShimmerBox(height: 27.h, width: 86.w, radius: 22.r),
           ],
         ),
-      ),
+    ),
     );
   }
 }

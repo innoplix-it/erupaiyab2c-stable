@@ -32,15 +32,9 @@ class EducationFeesAmountView extends HookConsumerWidget {
     final resolvedFeeType = _normalizeFeeType(feeType);
     final feeChipLabel = _feeChipLabel(resolvedFeeType);
 
-    final amountController = useTextEditingController(text: state.amountInput);
+    final amountController = useTextEditingController();
     final amountFocusNode = useFocusNode();
-
-    useEffect(() {
-      if (amountController.text != state.amountInput) {
-        amountController.text = state.amountInput;
-      }
-      return null;
-    }, [state.amountInput]);
+    final suppressAmountSync = useRef(false);
 
     useEffect(() {
       Future.microtask(amountFocusNode.requestFocus);
@@ -52,6 +46,20 @@ class EducationFeesAmountView extends HookConsumerWidget {
         () => controller.updateFeeType(_toApiFeeType(resolvedFeeType)),
       );
       return null;
+    }, [resolvedFeeType]);
+
+    useEffect(() {
+      suppressAmountSync.value = true;
+      amountController.clear();
+      Future.microtask(() {
+        suppressAmountSync.value = false;
+        controller.updateAmountInput('');
+      });
+      return () {
+        suppressAmountSync.value = true;
+        amountController.clear();
+        Future.microtask(() => controller.updateAmountInput(''));
+      };
     }, [resolvedFeeType]);
 
     useListenable(amountController);
@@ -92,7 +100,15 @@ class EducationFeesAmountView extends HookConsumerWidget {
       }
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) return;
+        suppressAmountSync.value = true;
+        amountController.clear();
+        controller.updateAmountInput('');
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -106,7 +122,12 @@ class EducationFeesAmountView extends HookConsumerWidget {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () {
+            suppressAmountSync.value = true;
+            amountController.clear();
+            controller.updateAmountInput('');
+            Navigator.of(context).maybePop();
+          },
         ),
       ),
       body: SafeArea(
@@ -262,8 +283,12 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                             isDense: true,
                                             contentPadding: EdgeInsets.zero,
                                           ),
-                                          onChanged:
-                                              controller.updateAmountInput,
+                                          onChanged: (value) {
+                                            if (suppressAmountSync.value) {
+                                              return;
+                                            }
+                                            controller.updateAmountInput(value);
+                                          },
                                         ),
                                       ),
                                     ],
@@ -310,6 +335,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

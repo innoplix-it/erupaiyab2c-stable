@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_text_styles.dart';
@@ -17,20 +18,24 @@ class HomeIconTile extends StatefulWidget {
     this.onTap,
     this.iconSize = 28,
     this.iconUrl,
+    this.lottieAsset,
     this.offer,
     this.labelSpacing,
     this.showHalfRing = false,
     this.isLoading = false,
+    this.creditCardCircle = false,
   });
 
   final String label;
   final VoidCallback? onTap;
   final double iconSize;
   final String? iconUrl;
+  final String? lottieAsset;
   final int? offer;
   final double? labelSpacing;
   final bool showHalfRing;
   final bool isLoading;
+  final bool creditCardCircle;
 
   @override
   State<HomeIconTile> createState() => _HomeIconTileState();
@@ -114,17 +119,56 @@ class _HomeIconTileState extends State<HomeIconTile>
                 Container(
                   height: 54.r,
                   width: 54.r,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      center: Alignment.center,
-                      radius: 0.5,
-                      colors: [
-                        Color(0xFFF9F9F9),
-                        Color(0xFFF6F6F6),
-                      ],
-                    ),
-                  ),
+                  decoration: widget.creditCardCircle
+                      ? BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFFFFFFF),
+                            width: 2.w,
+                          ),
+                          gradient: const RadialGradient(
+                            center: Alignment(0, 0),
+                            radius: 0.7868,
+                            colors: [
+                              Color(0xFFFFFFFF),
+                              Color(0xFFEEF3FD),
+                            ],
+                            stops: [0.0, 1.0],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xD9EEF3FD),
+                              offset: Offset(0.w, 1.h),
+                              blurRadius: 1.r,
+                            ),
+                            BoxShadow(
+                              color: const Color(0x80EEF3FD),
+                              offset: Offset(0.w, 2.h),
+                              blurRadius: 1.r,
+                            ),
+                            BoxShadow(
+                              color: const Color(0x26EEF3FD),
+                              offset: Offset(0.w, 3.h),
+                              blurRadius: 1.r,
+                            ),
+                            BoxShadow(
+                              color: const Color(0x05EEF3FD),
+                              offset: Offset(0.w, 5.h),
+                              blurRadius: 1.r,
+                            ),
+                          ],
+                        )
+                      : const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            center: Alignment.center,
+                            radius: 0.5,
+                            colors: [
+                              Color(0xFFF9F9F9),
+                              Color(0xFFF6F6F6),
+                            ],
+                          ),
+                        ),
                   child: Center(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 220),
@@ -140,20 +184,28 @@ class _HomeIconTileState extends State<HomeIconTile>
                                 ),
                               ),
                             )
-                          : AppNetworkImage(
-                              key: const ValueKey('icon'),
-                              url: widget.iconUrl,
-                              width: iconSize,
-                              height: iconSize,
-                              fit: BoxFit.contain,
-                              showShimmer: false,
-                              errorWidget: Image.asset(
-                                FileConstants.appLogo,
-                                height: iconSize,
-                                width: iconSize,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
+                          : widget.lottieAsset != null
+                              ? Lottie.asset(
+                                  widget.lottieAsset!,
+                                  key: const ValueKey('lottie-icon'),
+                                  width: iconSize,
+                                  height: iconSize,
+                                  fit: BoxFit.contain,
+                                )
+                              : AppNetworkImage(
+                                  key: const ValueKey('icon'),
+                                  url: widget.iconUrl,
+                                  width: iconSize,
+                                  height: iconSize,
+                                  fit: BoxFit.contain,
+                                  showShimmer: false,
+                                  errorWidget: Image.asset(
+                                    FileConstants.appLogo,
+                                    height: iconSize,
+                                    width: iconSize,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
                     ),
                   ),
                 ),
