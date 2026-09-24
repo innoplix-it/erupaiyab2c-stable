@@ -1,7 +1,9 @@
 import 'package:e_rupaiya/constants/file_constants.dart';
+import 'package:e_rupaiya/constants/routes_constant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MyAppBar({
@@ -13,6 +15,10 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.trailing,
     this.height,
     this.backgroundColor,
+    this.titleStyle,
+    this.bharatConnectWidth,
+    this.bharatConnectHeight,
+    this.helpIconSize,
   });
 
   final String title;
@@ -22,6 +28,10 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? trailing;
   final double? height;
   final Color? backgroundColor;
+  final TextStyle? titleStyle;
+  final double? bharatConnectWidth;
+  final double? bharatConnectHeight;
+  final double? helpIconSize;
 
   double get _platformTopPadding {
     final views = WidgetsBinding.instance.platformDispatcher.views;
@@ -159,7 +169,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style:
+                          style: titleStyle ??
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     color: backgroundColor == null
                                         ? Colors.black
@@ -172,15 +182,27 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                       if (showHelp) ...[
                         Image.asset(
                           FileConstants.bharatConnectColor,
-                          height: 15.h,
-                          width: 50.w,
+                          height: (bharatConnectHeight ?? 15).h,
+                          width: (bharatConnectWidth ?? 50).w,
+                          fit: BoxFit.contain,
                         ),
                         IconButton(
-                          onPressed: onHelp ?? () {},
+                          onPressed: onHelp ??
+                              () => context.push(RouteConstants.helpSupport),
+                          padding: helpIconSize == null
+                              ? const EdgeInsets.all(8)
+                              : EdgeInsets.zero,
+                          constraints: helpIconSize == null
+                              ? null
+                              : BoxConstraints.tightFor(
+                                  width: 32.w,
+                                  height: 32.w,
+                                ),
                           icon: Icon(
                             Icons.help_outline,
+                            size: helpIconSize?.w,
                             color: backgroundColor == null
-                                ? Colors.black
+                                ? const Color(0xFF000000)
                                 : Colors.white,
                           ),
                         ),

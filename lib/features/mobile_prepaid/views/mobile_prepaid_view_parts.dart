@@ -205,22 +205,25 @@ class _MobilePrepaidBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 70.h,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFC7C7C7), width: 0.5),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.r),
-        child: Image.asset(
-          FileConstants.mobileRecharge,
-          width: double.infinity,
-          height: 70.h,
-          fit: BoxFit.fill,
-          alignment: Alignment.center,
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        width: 392.w,
+        height: 70.h,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: const Color(0xFFC7C7C7), width: 0.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: Image.asset(
+            FileConstants.mobileRecharge,
+            width: 392.w,
+            height: 70.h,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
         ),
       ),
     );
@@ -261,10 +264,9 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
         Align(
           alignment: Alignment.center,
           child: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(maxWidth: 392.w),
-            height: 54.h,
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            width: 392.w,
+            height: 48.h,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.all(Radius.circular(12.r)),
@@ -283,7 +285,11 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
             child: Row(
               children: [
                 if (!isNumeric) ...[
-                  TwotoneSearchIcon(size: 18.w),
+                  SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: Center(child: TwotoneSearchIcon(size: 20.w)),
+                  ),
                   SizedBox(width: 8.w),
                 ],
                 Expanded(
@@ -396,25 +402,27 @@ class _SearchModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget chip(String label, _MobilePrepaidSearchMode value) {
+    Widget chip({
+      required String label,
+      required _MobilePrepaidSearchMode value,
+    }) {
       final active = mode == value;
       return InkWell(
         onTap: () => onChanged(value),
-        borderRadius: BorderRadius.circular(70.r),
+        borderRadius: BorderRadius.circular(90.r),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
           decoration: BoxDecoration(
             color: active ? const Color(0xFFDD5428) : Colors.transparent,
-            borderRadius: BorderRadius.circular(70.r),
+            borderRadius: BorderRadius.circular(90.r),
           ),
           child: Text(
             label,
             style: GoogleFonts.plusJakartaSans(
-              color: active ? Colors.white : AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-              fontSize: 9.sp,
+              color: active ? const Color(0xFFFFFFFF) : const Color(0xFF000000),
+              fontWeight: FontWeight.w400,
+              fontSize: 10.sp,
               height: 1,
             ),
           ),
@@ -422,22 +430,17 @@ class _SearchModeToggle extends StatelessWidget {
       );
     }
 
-    return SizedBox(width: 75.w,
-      height: 22.h,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0x21DD5428),
-          borderRadius: BorderRadius.circular(70.r),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(1.5.w),
-          child: Row(
-            children: [
-              Expanded(child: chip('ABC', _MobilePrepaidSearchMode.abc)),
-              Expanded(child: chip('123', _MobilePrepaidSearchMode.numeric)),
-            ],
-          ),
-        ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x21DD5428),
+        borderRadius: BorderRadius.circular(90.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          chip(label: 'ABC', value: _MobilePrepaidSearchMode.abc),
+          chip(label: '123', value: _MobilePrepaidSearchMode.numeric),
+        ],
       ),
     );
   }
@@ -503,13 +506,13 @@ class _LastOnLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Last on $lastOn',
+      'Last On - $lastOn',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: GoogleFonts.plusJakartaSans(
-        fontSize: 9.sp,
-        fontWeight: FontWeight.w500,
-        height: 14.h / 9,
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w400,
+        height: 14.h / 11,
         color: const Color(0xFF7C7C7C),
       ),
     );
@@ -533,8 +536,8 @@ class _MyNumberDueBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(minHeight: 18.h),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 3.h),
+      constraints: BoxConstraints(minWidth: 54.w, minHeight: 18.h),
+      padding: EdgeInsets.fromLTRB(8.w, 3.h, 12.w, 3.h),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFF801900),
@@ -568,15 +571,15 @@ class _OrangePillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(width: 96.w,
-      height: 27.h,
+    return SizedBox(
+      height: 32.h,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFDD5428),
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: EdgeInsets.fromLTRB(16.w, 5.h, 16.w, 5.h),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(23.r),
           ),
@@ -584,18 +587,16 @@ class _OrangePillButton extends StatelessWidget {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w600,
-              height: 1,
-              color: Colors.white,
-            ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w700,
+            height: 1,
+            color: const Color(0xFFFFFFFF),
           ),
         ),
       ),
@@ -626,6 +627,7 @@ class _MyNumberCard extends StatelessWidget {
     final radius = 16.r;
     return Container(
       width: double.infinity,
+      height: 81.h,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(radius),
@@ -636,12 +638,7 @@ class _MyNumberCard extends StatelessWidget {
         child: Stack(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                16.w,
-                hasDue ? 26.h : 16.h,
-                16.w,
-                16.h,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Row(
                 children: [
                   _OperatorBrandLogo(
@@ -652,6 +649,7 @@ class _MyNumberCard extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
@@ -660,7 +658,8 @@ class _MyNumberCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w600,
-                            fontSize: 13.sp,
+                            fontSize: 16.sp,
+                            height: 22.h / 16,
                             color: const Color(0xFF000000),
                           ),
                         ),
@@ -669,7 +668,7 @@ class _MyNumberCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: 12.w),
                   _OrangePillButton(
                     label: 'Recharge',
                     onPressed: onRecharge,
@@ -953,6 +952,8 @@ class _OperatorIconBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return SimCardIconContainer(
       url: iconUrl,
+      width: 50.w,
+      height: 45.h,
     );
   }
 }
@@ -1040,14 +1041,12 @@ class _PlanSection extends HookWidget {
                     : 392.w;
                 return Align(
                   alignment: Alignment.center,
-                  child: SearchTextfield(
+                  child: CommonSearchBar(
                     hintText: 'Search a plan, eg 299, 5g,etc.',
                     controller: planSearchController,
-                    onChange: onPlanSearchChanged,
+                    onChanged: onPlanSearchChanged,
                     width: barWidth,
                     height: 54.h,
-                    radius: 12.r,
-                    fillColor: const Color(0xFFFFFFFF),
                     borderColor: const Color(0xFFD7D7D7),
                     borderWidth: 0.5,
                     boxShadow: [
@@ -1057,7 +1056,6 @@ class _PlanSection extends HookWidget {
                         blurRadius: 16.r,
                       ),
                     ],
-                    contentPadding: EdgeInsets.only(right: 16.w),
                     hintStyle: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w400,
                       fontSize: 14.sp,
@@ -1070,9 +1068,6 @@ class _PlanSection extends HookWidget {
                       height: 1,
                       color: Colors.black,
                     ),
-                    prefixIconConstraints:
-                        SearchBarLeadingIcon.constraints(fieldHeight: 54.h),
-                    prefixIcon: SearchBarLeadingIcon(fieldHeight: 54.h),
                   ),
                 );
               },

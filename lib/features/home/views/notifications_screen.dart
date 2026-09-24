@@ -80,7 +80,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               }
               ref.read(homeTabControllerProvider).jumpToTab(0);
             },
-            onHelp: () {},
           ),
           Expanded(
             child: RefreshIndicator(

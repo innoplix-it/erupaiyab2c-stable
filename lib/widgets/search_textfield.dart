@@ -89,6 +89,7 @@ class SearchTextfield extends StatelessWidget {
     this.prefixIcon,
     this.onChange,
     this.onFilterPressed,
+    this.searchIconOnRight = false,
     this.hintStyle,
     this.style,
     this.prefixIconConstraints,
@@ -107,6 +108,7 @@ class SearchTextfield extends StatelessWidget {
   final Widget? prefixIcon;
   final ValueChanged<String>? onChange;
   final VoidCallback? onFilterPressed;
+  final bool searchIconOnRight;
   final TextStyle? hintStyle;
   final TextStyle? style;
   final BoxConstraints? prefixIconConstraints;
@@ -151,27 +153,45 @@ class SearchTextfield extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                   fontSize: 12.sp,
                 ),
-            prefixIcon: prefixIcon ??
-                SearchBarLeadingIcon(fieldHeight: height),
-            prefixIconConstraints: prefixIconConstraints ??
-                SearchBarLeadingIcon.constraints(fieldHeight: height),
-            suffixIcon: onFilterPressed == null
-                ? (value.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear, size: 20.sp),
-                        onPressed: () {
-                          controller.clear();
-                          onChange?.call('');
-                        },
-                      )
-                    : null)
-                : IconButton(
-                    onPressed: onFilterPressed,
-                    icon: Icon(
-                      Icons.filter_list,
-                      color: AppColors.textPrimary.withOpacity(0.6),
+            prefixIcon: searchIconOnRight
+                ? prefixIcon
+                : (prefixIcon ?? SearchBarLeadingIcon(fieldHeight: height)),
+            prefixIconConstraints: searchIconOnRight
+                ? prefixIconConstraints
+                : (prefixIconConstraints ??
+                    SearchBarLeadingIcon.constraints(fieldHeight: height)),
+            suffixIcon: searchIconOnRight
+                ? Padding(
+                    padding: EdgeInsets.only(right: 16.w),
+                    child: SizedBox(
+                      height: height,
+                      width: 18.w,
+                      child: const Center(child: TwotoneSearchIcon()),
                     ),
-                  ),
+                  )
+                : onFilterPressed == null
+                    ? (value.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, size: 20.sp),
+                            onPressed: () {
+                              controller.clear();
+                              onChange?.call('');
+                            },
+                          )
+                        : null)
+                    : IconButton(
+                        onPressed: onFilterPressed,
+                        icon: Icon(
+                          Icons.filter_list,
+                          color: AppColors.textPrimary.withOpacity(0.6),
+                        ),
+                      ),
+            suffixIconConstraints: searchIconOnRight
+                ? BoxConstraints(
+                    minWidth: 16.w + 18.w,
+                    minHeight: height ?? 18.w,
+                  )
+                : null,
             filled: true,
             fillColor: resolvedFill,
             border: useOuterChrome

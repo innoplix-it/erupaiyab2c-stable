@@ -240,7 +240,9 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
         ? _PaymentOutcome.pending
         : (normalized == 'SUCCESS'
             ? _PaymentOutcome.success
-            : (normalized == 'PENDING'
+            : (normalized == 'PENDING' ||
+                    normalized == 'PROCESSING' ||
+                    normalized.isEmpty
                 ? _PaymentOutcome.pending
                 : _PaymentOutcome.failure));
     final txId = (status?.transactionId.trim().isNotEmpty == true)
@@ -297,30 +299,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
           fallbackMessage: 'Your payment was completed successfully.',
         );
       },
-      onFailure: (message, {bool cancelled = false}) async {
-        if (cancelled) {
-          if (!mounted) return;
-          final detailState = ref.read(billerDetailControllerProvider);
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
-          _openPaymentResultFlow(
-            navigatorKey.currentContext ?? context,
-            outcome: _PaymentOutcome.failure,
-            amount: widget.amount,
-            billerName: billerName,
-            txId: transactionRef,
-            rechargeStatus: RechargeStatusResult(
-              status: 'FAILED',
-              message: message,
-              transactionId: transactionRef,
-              updatedAt: DateTime.now().toIso8601String(),
-              raw: const {},
-            ),
-            paymentTypeOverride: _resolvePaymentType(detailState),
-          );
-          return;
-        }
+      onFailure: (message) async {
         await _verifyAndShow(
           transactionRef: transactionRef,
           amount: widget.amount,
@@ -653,18 +632,7 @@ class _PrepaidPaymentBottomSheetState
           );
         }
       },
-      onFailure: (message, {bool cancelled = false}) async {
-        if (cancelled) {
-          if (!mounted) return;
-          _openPaymentResultFlow(
-            context,
-            outcome: _PaymentOutcome.failure,
-            amount: widget.plan.amount.toDouble(),
-            billerName: billerName,
-            txId: transactionRef,
-          );
-          return;
-        }
+      onFailure: (message) async {
         if (!mounted) return;
         final wait = await _runWithVerificationLoader(() async {
           await ref

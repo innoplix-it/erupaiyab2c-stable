@@ -69,7 +69,6 @@ class _CreditCardTransactionsScreenState
             title: 'Card Transactions',
             showHelp: true,
             onBack: () => context.pop(),
-            onHelp: () {},
           ),
           Expanded(
             child: state.isLoading

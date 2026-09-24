@@ -122,7 +122,6 @@ class DigitalGoldTradeView extends HookConsumerWidget {
           MyAppBar(
             title: isSell ? 'Sell ${theme.label}' : 'Buy ${theme.label}',
             onBack: () => context.pop(),
-            onHelp: () {},
             showHelp: true,
           ),
           Expanded(

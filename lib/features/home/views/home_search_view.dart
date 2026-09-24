@@ -12,8 +12,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
+import '../../../widgets/common_search_bar.dart';
 import '../../../widgets/my_app_bar.dart';
-import '../../../widgets/search_textfield.dart';
 import '../components/home_icon_tile.dart';
 import '../components/service_utils.dart';
 import '../controllers/home_controller.dart';
@@ -114,7 +114,6 @@ class HomeSearchView extends HookConsumerWidget {
               title: 'All Services',
               showHelp: false,
               onBack: () => Navigator.of(context).pop(),
-              onHelp: () {},
             ),
             SizedBox(height: 12.h),
             Padding(
@@ -126,16 +125,14 @@ class HomeSearchView extends HookConsumerWidget {
                       : 392.w;
                   return Align(
                     alignment: Alignment.center,
-                    child: SearchTextfield(
+                    child: CommonSearchBar(
                       hintText: 'Search Services',
                       controller: searchController,
-                      onChange: (value) {
+                      onChanged: (value) {
                         query.value = value;
                       },
                       width: barWidth,
                       height: 54.h,
-                      radius: 12.r,
-                      fillColor: const Color(0xFFFFFFFF),
                       borderColor: const Color(0xFFD7D7D7),
                       borderWidth: 0.5,
                       boxShadow: [
@@ -145,10 +142,6 @@ class HomeSearchView extends HookConsumerWidget {
                           blurRadius: 16.r,
                         ),
                       ],
-                      contentPadding: EdgeInsets.only(right: 16.w),
-                      prefixIconConstraints:
-                          SearchBarLeadingIcon.constraints(fieldHeight: 54.h),
-                      prefixIcon: SearchBarLeadingIcon(fieldHeight: 54.h),
                     ),
                   );
                 },

@@ -100,21 +100,16 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                   'paymentId': paymentId,
                 });
               },
-              onFailure: (message, {bool cancelled = false}) {
+              onFailure: (message) {
                 if (processingNavigationStarted.value) return;
                 processingNavigationStarted.value = true;
-                final extra = {
+                openEducationPaymentProcessing({
                   'transactionRefId': order.transactionRefId,
                   'paymentType': 'Education Fees',
                   'recipientName': tutor.name,
                   'maskedAccount': tutor.accountMasked,
                   'fallbackAmount': payable.toStringAsFixed(2),
-                };
-                if (cancelled) {
-                  openEducationPaymentFailed(extra);
-                  return;
-                }
-                openEducationPaymentProcessing(extra);
+                });
               },
             );
           },
@@ -128,7 +123,6 @@ class EducationFeesTutorsView extends HookConsumerWidget {
         title: 'Tutors',
         showHelp: true,
         onBack: () => Navigator.of(context).maybePop(),
-        onHelp: () {},
       ),
       body: SafeArea(
         top: false,

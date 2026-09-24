@@ -215,7 +215,6 @@ class DigitalGoldSipSetupView extends HookConsumerWidget {
                             title: 'SIP',
                             rateText: '16,144.25/gm',
                             onBack: () => context.pop(),
-                            onHelp: () {},
                             chipLeading: Image.asset(
                               FileConstants.liveSignal,
                               width: 12.r,

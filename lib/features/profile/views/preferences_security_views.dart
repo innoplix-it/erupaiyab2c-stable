@@ -111,7 +111,6 @@ class PreferencesView extends HookConsumerWidget {
       appBar: MyAppBar(
         title: 'Preferences',
         onBack: () => context.pop(),
-        onHelp: () {},
       ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(0.w, 8.h, 0.w, 24.h),
@@ -261,7 +260,6 @@ class SecurityView extends StatelessWidget {
       appBar: MyAppBar(
         title: 'Security',
         onBack: () => context.pop(),
-        onHelp: () {},
       ),
       body: ListView(
         padding: EdgeInsets.only(top: 8.h),
@@ -331,7 +329,6 @@ class PermissionsView extends HookWidget {
       appBar: MyAppBar(
         title: 'Permissions',
         onBack: () => context.pop(),
-        onHelp: () {},
       ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
@@ -468,7 +465,6 @@ class LocationAccessView extends HookWidget {
       appBar: MyAppBar(
         title: 'Location Access',
         onBack: () => context.pop(),
-        onHelp: () {},
       ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
@@ -550,7 +546,6 @@ class BiometricScreenLockView extends HookWidget {
       appBar: MyAppBar(
         title: 'Biometric & Screen Lock',
         onBack: () => context.pop(),
-        onHelp: () {},
       ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),

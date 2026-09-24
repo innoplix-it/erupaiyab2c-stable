@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
-import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
@@ -65,11 +65,9 @@ class EducationFeesAmountView extends HookConsumerWidget {
 
     useListenable(amountController);
     final amountValue = _parseAmount(amountController.text);
-    final exceedsMaxAmount = isCappedPayViaCreditCardFee(resolvedFeeType) &&
-        amountValue > 100000;
+    final amountError = state.amountErrorMessage;
     final hasValidAmount = amountValue > 0;
     final canContinue = hasValidAmount &&
-        !exceedsMaxAmount &&
         !state.isValidatingAmount &&
         !isFetchingTutors.value;
 
@@ -155,6 +153,18 @@ class EducationFeesAmountView extends HookConsumerWidget {
                           fit: BoxFit.cover,
                         ),
                         Positioned(
+                          top: 42.h - 10.r,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: _feeChipIcon(
+                              resolvedFeeType,
+                              color: Colors.white,
+                              size: 20.r,
+                            ),
+                          ),
+                        ),
+                        Positioned(
                           bottom: -20.h,
                           child: Container(
                             padding: EdgeInsets.symmetric(
@@ -178,14 +188,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  (resolvedFeeType == 'House Rent' ||
-                                          resolvedFeeType == 'Shop Rent')
-                                      ? Icons.home_outlined
-                                      : Icons.school_outlined,
-                                  color: AppColors.textPrimary,
-                                  size: 18.r,
-                                ),
+                                _feeChipIcon(resolvedFeeType),
                                 SizedBox(width: 8.w),
                                 Text(
                                   feeChipLabel,
@@ -218,17 +221,20 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
-                          SizedBox(height: 6.h),
-                          Text(
-                            'Enter the amount for $resolvedFeeType payment',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: AppColors.textPrimary.withOpacity(0.6),
-                                ),
-                          ),
+                          if (amountError != null) ...[
+                            SizedBox(height: 6.h),
+                            Text(
+                              amountError,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ],
                           SizedBox(height: 16.h),
                           Stack(
                             alignment: Alignment.center,
@@ -302,23 +308,6 @@ class EducationFeesAmountView extends HookConsumerWidget {
                               ),
                             ],
                           ),
-                          if (exceedsMaxAmount ||
-                              state.amountErrorMessage != null) ...[
-                            SizedBox(height: 8.h),
-                            Text(
-                              exceedsMaxAmount
-                                  ? AppErrorMessages.maxAmount100000
-                                  : state.amountErrorMessage!,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -383,6 +372,10 @@ String _normalizeFeeType(String? rawValue) {
 
 String _feeBannerAsset(String feeType) {
   switch (feeType) {
+    case 'School Fees':
+      return FileConstants.schoolFeesBanner;
+    case 'College Fees':
+      return FileConstants.collegeFeesBanner;
     case 'House Rent':
       return FileConstants.houseRentBanner;
     case 'Shop Rent':
@@ -390,6 +383,46 @@ String _feeBannerAsset(String feeType) {
     default:
       return FileConstants.tutionFeesBanner;
   }
+}
+
+String? _feeChipIconAsset(String feeType) {
+  switch (feeType) {
+    case 'School Fees':
+      return 'assets/images/svg/school_fees.svg';
+    case 'College Fees':
+      return 'assets/images/svg/college_fees.svg';
+    case 'Tuition Fees':
+      return 'assets/images/svg/tuition_fees.svg';
+    case 'House Rent':
+      return 'assets/images/svg/house_rent.svg';
+    case 'Shop Rent':
+      return 'assets/images/svg/shop_rent.svg';
+    default:
+      return null;
+  }
+}
+
+Widget _feeChipIcon(String feeType, {Color? color, double? size}) {
+  final iconSize = size ?? 18.r;
+  final asset = _feeChipIconAsset(feeType);
+  if (asset != null) {
+    return SvgPicture.asset(
+      asset,
+      width: iconSize,
+      height: iconSize,
+      fit: BoxFit.contain,
+      colorFilter: color == null
+          ? null
+          : ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+  return Icon(
+    (feeType == 'House Rent' || feeType == 'Shop Rent')
+        ? Icons.home_outlined
+        : Icons.school_outlined,
+    color: color ?? AppColors.textPrimary,
+    size: iconSize,
+  );
 }
 
 String _feeChipLabel(String feeType) {

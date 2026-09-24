@@ -30,6 +30,20 @@ const String _profileIconSvg = '''
 
 double _homeMin(double a, double b) => a < b ? a : b;
 
+/// Figma SVG exports that wrap a PNG. flutter_svg cannot paint those
+/// `<image>` patterns, so we render the extracted PNG sibling instead.
+String _rasterHomeAsset(String asset) {
+  const mapped = {
+    'assets/images/svg/invest_gold.svg': 'assets/images/png/invest_gold.png',
+    'assets/images/svg/invest_silver.svg':
+        'assets/images/png/invest_silver.png',
+    'assets/images/svg/zero_balance_account.svg':
+        'assets/images/png/zero_balance_account.png',
+    'assets/images/svg/zerobalance.svg': 'assets/images/png/zerobalance.png',
+  };
+  return mapped[asset] ?? asset;
+}
+
 class _Dot extends StatelessWidget {
   const _Dot({required this.active});
   final bool active;
@@ -342,9 +356,14 @@ class _HomeTopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          GestureDetector(
-            onTap: onReferTap,
-            child: _ReferAndEarnChip(compact: compact),
+          Flexible(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: onReferTap,
+                child: _ReferAndEarnChip(compact: compact),
+              ),
+            ),
           ),
           SizedBox(width: 8.w),
           GestureDetector(
@@ -378,44 +397,42 @@ class _HomeTopBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(50.r),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Image.asset(
             FileConstants.favicon,
-            width: 20.w,
-            height: 20.h,
+            width: 18.w,
+            height: 18.h,
             fit: BoxFit.contain,
           ),
-          SizedBox(width: 6.w),
-          if (isWalletLoading)
-            SizedBox(
-              width: 12.w,
-              height: 12.h,
-              child: const CircularProgressIndicator(
-                strokeWidth: 1.8,
-                color: AppColors.textPrimary,
-              ),
-            )
-          else
-            SizedBox(
-              width: 24.w,
-              height: 17.h,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  displayBalance,
-                  maxLines: 1,
-                  style: textStyle.copyWith(
-                    color: const Color(0xFF000000),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14.sp,
-                    height: 1,
-                    letterSpacing: 0,
+          SizedBox(width: 4.w),
+          Expanded(
+            child: isWalletLoading
+                ? Center(
+                    child: SizedBox(
+                      width: 12.w,
+                      height: 12.h,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 1.8,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  )
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      displayBalance,
+                      maxLines: 1,
+                      style: textStyle.copyWith(
+                        color: const Color(0xFF000000),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
+                        height: 1,
+                        letterSpacing: 0,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
+          ),
         ],
       ),
     );
@@ -434,13 +451,13 @@ class _ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final side = size.r;
+    final side = size.w;
     final photoUrl = profilePhotoUrl?.trim() ?? '';
     return SizedBox(
       width: side,
       height: side,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(side / 2),
+        borderRadius: BorderRadius.circular(24.r),
         child: photoUrl.isEmpty
             ? _ProfileInitials(initials: initials, side: side)
             : AppNetworkImage(
@@ -503,6 +520,7 @@ class _ReferAndEarnChip extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
+          width: 111.w,
           height: 31.h,
           padding: EdgeInsets.symmetric(horizontal: 10.w),
           decoration: BoxDecoration(
@@ -521,8 +539,6 @@ class _ReferAndEarnChip extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
                 FileConstants.giftGif,
@@ -532,15 +548,21 @@ class _ReferAndEarnChip extends StatelessWidget {
                 gaplessPlayback: true,
               ),
               SizedBox(width: 4.w),
-              Text(
-                'Refer & Earn',
-                maxLines: 1,
-                style: GoogleFonts.plusJakartaSans(
-                  color: const Color(0xFF000000),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.sp,
-                  height: 1,
-                  letterSpacing: 0,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Refer & Earn',
+                    maxLines: 1,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xFF000000),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
+                      height: 1,
+                      letterSpacing: 0,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -601,8 +623,10 @@ class _SectionHeader extends StatelessWidget {
       color: const Color(0xFF000000),
     )
         : GoogleFonts.plusJakartaSans(
-      fontSize: 14.sp,
+      fontSize: 12.sp,
       fontWeight: FontWeight.w700,
+      height: 1,
+      letterSpacing: -0.02 * 12.sp,
       color: const Color(0xFF000000),
     );
     final actionStyle = payBillsStyle
@@ -610,6 +634,7 @@ class _SectionHeader extends StatelessWidget {
       fontSize: 12.sp,
       fontWeight: FontWeight.w600,
       height: 1,
+      letterSpacing: 0,
       color: const Color(0xFFDD5428),
     )
         : GoogleFonts.plusJakartaSans(
@@ -630,7 +655,7 @@ class _SectionHeader extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  payBillsStyle ? title.toUpperCase() : title,
+                  title.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: titleStyle,
@@ -645,19 +670,36 @@ class _SectionHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(18.r),
             child: Row(
               children: [
-                Text(
-                  payBillsStyle ? actionLabel!.toUpperCase() : actionLabel!,
-                  style: actionStyle,
-                ),
-                SizedBox(width: 6.w),
                 if (payBillsStyle)
                   SizedBox(
-                    width: 16.r,
-                    height: 16.r,
+                    width: 53.w,
+                    height: 15.h,
+                    child: Text(
+                      actionLabel!.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: actionStyle,
+                    ),
+                  )
+                else
+                  Text(
+                    actionLabel!,
+                    style: actionStyle,
+                  ),
+                SizedBox(width: 6.w),
+                if (payBillsStyle)
+                  Container(
+                    width: 16.w,
+                    height: 16.w,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFDD5428),
+                      shape: BoxShape.circle,
+                    ),
                     child: SvgPicture.string(
                       _myBillsArrowSvg,
-                      width: 16.r,
-                      height: 16.r,
+                      width: 16.w,
+                      height: 16.w,
                       fit: BoxFit.contain,
                     ),
                   )
@@ -689,7 +731,7 @@ class _HomeIconGrid extends StatelessWidget {
     required this.onTap,
     this.maxItems = 8,
     this.columns = 4,
-    this.tileWidth = 64,
+    this.tileWidth = 80,
   });
 
   final List<QuickActionService> services;
@@ -706,8 +748,7 @@ class _HomeIconGrid extends StatelessWidget {
         final maxWidth = constraints.maxWidth;
         final spacing = 12.w;
         final computedTileSize = (maxWidth - spacing * (columns - 1)) / columns;
-        final tileSize =
-        computedTileSize > tileWidth.r ? tileWidth.r : computedTileSize;
+        final tileSize = computedTileSize < 68.w ? 68.w : computedTileSize;
         return Wrap(
           spacing: spacing.w,
           runSpacing: 16.h,
@@ -831,6 +872,14 @@ class _CurvedIconGrid extends StatelessWidget {
         localAsset: 'assets/images/svg/shop_rent.svg',
       );
     }
+    if (name.contains('against property') ||
+        name.contains('loan against')) {
+      return const _CreditCardIconSpec(
+        localAsset: 'assets/images/svg/loan_against_property.svg',
+        width: 34,
+        height: 34,
+      );
+    }
     if (name.contains('home loan')) {
       return const _CreditCardIconSpec(
         localAsset: 'assets/images/svg/home_loan.svg',
@@ -874,8 +923,8 @@ class _CurvedIconGrid extends StatelessWidget {
 
 class _CreditCardIconSpec {
   const _CreditCardIconSpec({
-    this.width = 28,
-    this.height = 28,
+    this.width = 34,
+    this.height = 34,
     this.topOffset = 0,
     this.localAsset,
   });
@@ -892,8 +941,8 @@ class _CurvedIconTile extends StatelessWidget {
     required this.iconUrl,
     required this.onTap,
     this.localIconAsset,
-    this.iconWidth = 28,
-    this.iconHeight = 28,
+    this.iconWidth = 34,
+    this.iconHeight = 34,
     this.iconTopOffset = 0,
     this.showCardFrame = true,
   });
@@ -951,11 +1000,8 @@ class _CurvedIconTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _creditCardIconCircle(iconWidget),
-        SizedBox(height: 4.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 2.w),
-          child: _creditCardIconLabel(displayLabel),
-        ),
+        SizedBox(height: _usesCompactLabelGap(displayLabel) ? 2.h : 6.h),
+        _creditCardIconLabel(displayLabel),
       ],
     );
 
@@ -1000,17 +1046,18 @@ class _CurvedIconTile extends StatelessWidget {
   }
 
   Widget _creditCardIconCircle(Widget iconWidget) {
-    final size = 54.r;
+    final size = 68.w;
     return Container(
       width: size,
       height: size,
+      padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(80.r),
         border: Border.all(
-          color: Color(0xFFFFFFFF),
+          color: const Color(0xFFFFFFFF),
           width: 2.w,
         ),
-        gradient: RadialGradient(
+        gradient: const RadialGradient(
           center: Alignment(0, 0),
           radius: 0.7868,
           colors: [
@@ -1021,22 +1068,22 @@ class _CurvedIconTile extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0xD9EEF3FD),
+            color: const Color(0xD9EEF3FD),
             offset: Offset(0.w, 1.h),
             blurRadius: 1.r,
           ),
           BoxShadow(
-            color: Color(0x80EEF3FD),
+            color: const Color(0x80EEF3FD),
             offset: Offset(0.w, 2.h),
             blurRadius: 1.r,
           ),
           BoxShadow(
-            color: Color(0x26EEF3FD),
+            color: const Color(0x26EEF3FD),
             offset: Offset(0.w, 3.h),
             blurRadius: 1.r,
           ),
           BoxShadow(
-            color: Color(0x05EEF3FD),
+            color: const Color(0x05EEF3FD),
             offset: Offset(0.w, 5.h),
             blurRadius: 1.r,
           ),
@@ -1049,28 +1096,72 @@ class _CurvedIconTile extends StatelessWidget {
   Widget _creditCardIconLabel(String label) {
     final words = label.trim().split(RegExp(r'\s+'));
     final last = words.isEmpty ? '' : words.last.toLowerCase();
-    final wrapsTwoLines = words.length == 2 &&
-        (last == 'insurance' || last == 'rent' || last == 'loans');
-    final text = wrapsTwoLines ? '${words[0]}\n${words[1]}' : label;
+    final lower = label.toLowerCase();
+    final isGym = lower.contains('gym');
+    final isOneLineFee = lower.contains('school') ||
+        lower.contains('college') ||
+        lower.contains('tuition') ||
+        lower.contains('tution');
+    final isHouseRent = lower.contains('house') && lower.contains('rent');
+    final wrapsTwoLines = !isGym &&
+        !isOneLineFee &&
+        ((words.length == 2 &&
+                (last == 'insurance' ||
+                    last == 'rent' ||
+                    last == 'loan' ||
+                    last == 'loans')) ||
+            last == 'property');
+    final text = isHouseRent
+        ? 'House\nRent'
+        : last == 'property' && words.length > 2
+            ? '${words.sublist(0, words.length - 1).join(' ')}\n${words.last}'
+            : (words.length == 2 && wrapsTwoLines
+                ? '${words[0]}\n${words[1]}'
+                : label);
     final style = GoogleFonts.plusJakartaSans(
-      fontSize: 11.sp,
+      fontSize: 12.sp,
       fontWeight: FontWeight.w600,
       fontStyle: FontStyle.normal,
       height: 1,
       letterSpacing: 0,
       color: const Color(0xFF000000),
     );
-    return SizedBox(
-      width: 71.w,
-      height: wrapsTwoLines ? 30.h : 15.h,
-      child: Text(
-        text,
-        maxLines: wrapsTwoLines ? 2 : 1,
-        textAlign: TextAlign.center,
-        overflow: TextOverflow.ellipsis,
-        style: style,
-      ),
+    final labelText = Text(
+      text,
+      maxLines: (isGym || isOneLineFee) ? 1 : 2,
+      softWrap: !isOneLineFee,
+      textAlign: TextAlign.center,
+      overflow: isOneLineFee ? TextOverflow.visible : TextOverflow.ellipsis,
+      style: style,
     );
+    if (isOneLineFee) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          return SizedBox(
+            width: maxWidth.isFinite ? maxWidth : 82.w,
+            height: 16.h,
+            child: labelText,
+          );
+        },
+      );
+    }
+    return SizedBox(
+      width: 59.w,
+      height: isGym ? 16.h : 30.h,
+      child: labelText,
+    );
+  }
+
+  bool _usesCompactLabelGap(String label) {
+    final lower = label.toLowerCase();
+    return lower.contains('school') ||
+        lower.contains('college') ||
+        lower.contains('tuition') ||
+        lower.contains('tution') ||
+        lower.contains('gym') ||
+        (lower.contains('house') && lower.contains('rent')) ||
+        (lower.contains('shop') && lower.contains('rent'));
   }
 
   String _capitalizeLabel(String input) {
@@ -1147,7 +1238,7 @@ class _PayBillsCard extends StatelessWidget {
       lottieAsset:
       isElectricity ? FileConstants.electricityBulbLottie : null,
       offer: _hidesOfferBadge(service) ? null : service.offers,
-      labelSpacing: 4.h,
+      labelSpacing: 6.h,
       showHalfRing: _isBookGasService(service),
       creditCardCircle: true,
       isLoading: isCreditCardLoading && _isCreditCardService(service),
@@ -1192,101 +1283,67 @@ class _PayBillsCard extends StatelessWidget {
       credit ?? _nextUnused(used),
     ];
 
-    const imageAspectRatio = 1960 / 1380;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final height = width / imageAspectRatio - 4.h;
-            final tileWidth = width * 0.18;
-            final bookTileWidth = width * 0.2;
-            final horizontalInset = width * 0.06;
-            final topRowSpacing =
-                (width - (horizontalInset * 2) - (tileWidth * 4)) / 3;
-            final firstTileCenter = horizontalInset + (tileWidth / 2);
-
-            Widget positionedTile({
-              required double x,
-              required double y,
-              required QuickActionService? service,
-              required double tileW,
-            }) {
-              if (service == null) return const SizedBox.shrink();
-              return Positioned(
-                left: x - (tileW / 2),
-                top: y,
-                width: tileW,
-                child: _serviceTile(service),
-              );
-            }
-
-            return SizedBox(
-              width: width,
-              height: height,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(
-                    child: Image.asset(
-                      FileConstants.homeIconSection,
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-                  positionedTile(
-                    x: firstTileCenter,
-                    y: height * 0.08,
-                    service: topRow[0],
-                    tileW: tileWidth,
-                  ),
-                  positionedTile(
-                    x: firstTileCenter + tileWidth + topRowSpacing,
-                    y: height * 0.08,
-                    service: topRow[1],
-                    tileW: tileWidth,
-                  ),
-                  positionedTile(
-                    x: firstTileCenter + ((tileWidth + topRowSpacing) * 2),
-                    y: height * 0.08,
-                    service: topRow[2],
-                    tileW: tileWidth,
-                  ),
-                  positionedTile(
-                    x: firstTileCenter + ((tileWidth + topRowSpacing) * 3),
-                    y: height * 0.08,
-                    service: topRow[3],
-                    tileW: tileWidth,
-                  ),
-                  positionedTile(
-                    x: width * 0.15,
-                    y: height * 0.5,
-                    service: bookGas,
-                    tileW: bookTileWidth,
-                  ),
-                  if (bookGas != null)
-                    Positioned(
-                      left: width * 0.32,
-                      right: 0,
-                      top: height * 0.54,
-                      child: _PromoStrip(
-                        asset: FileConstants.bookLpgStrip,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(FileConstants.homeIconSection),
+              fit: BoxFit.fill,
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(8.w, 14.h, 8.w, 8.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final service in topRow)
+                      Expanded(
+                        child: service == null
+                            ? const SizedBox.shrink()
+                            : _serviceTile(service),
+                      ),
+                  ],
+                ),
+                SizedBox(height: 11.h),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (bookGas != null)
+                      SizedBox(
+                        width: 80.w,
+                        child: _serviceTile(bookGas),
+                      ),
+                    if (bookGas != null) SizedBox(width: 8.w),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (bookGas != null) ...[
+                            SizedBox(height: 18.h),
+                            _PromoStrip(
+                              asset: FileConstants.bookLpgStrip,
+                            ),
+                            SizedBox(height: 16.h),
+                          ],
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: _ExploreUtilitiesRow(onTap: onExploreTap),
+                          ),
+                        ],
                       ),
                     ),
-                  Positioned(
-                    right: width * 0.01,
-                    // left: width * 0.01,
-                    bottom: height * 0.01,
-                    child: _ExploreUtilitiesRow(onTap: onExploreTap),
-                  ),
-                ],
-              ),
-            );
-          },
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-        // SizedBox(height: 18.h),
-        // const _ReferStrip(),
       ],
     );
   }
@@ -1434,6 +1491,152 @@ class _ReferStrip extends StatelessWidget {
   }
 }
 
+class _InvestmentCircleRow extends StatelessWidget {
+  const _InvestmentCircleRow({
+    required this.onZeroBalanceTap,
+    required this.onGoldTap,
+    required this.onSilverTap,
+  });
+
+  final VoidCallback onZeroBalanceTap;
+  final VoidCallback onGoldTap;
+  final VoidCallback onSilverTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _InvestmentCircleTile(
+            label: 'Zero Balance\nAccount',
+            iconAsset: FileConstants.zeroBalanceAccountIcon,
+            onTap: onZeroBalanceTap,
+          ),
+        ),
+        Expanded(
+          child: _InvestmentCircleTile(
+            label: 'Invest in\nGold',
+            iconAsset: FileConstants.investGoldIcon,
+            onTap: onGoldTap,
+          ),
+        ),
+        Expanded(
+          child: _InvestmentCircleTile(
+            label: 'Invest in\nSilver',
+            iconAsset: FileConstants.investSilverIcon,
+            onTap: onSilverTap,
+          ),
+        ),
+        const Expanded(child: SizedBox.shrink()),
+      ],
+    );
+  }
+}
+
+class _InvestmentCircleTile extends StatelessWidget {
+  const _InvestmentCircleTile({
+    required this.label,
+    required this.iconAsset,
+    required this.onTap,
+  });
+
+  final String label;
+  final String iconAsset;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayAsset = _rasterHomeAsset(iconAsset);
+    final isSvg = displayAsset.toLowerCase().endsWith('.svg');
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 68.w,
+            height: 68.w,
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(80.r),
+              border: Border.all(
+                color: const Color(0xFFFFFFFF),
+                width: 2.w,
+              ),
+              gradient: const RadialGradient(
+                center: Alignment(0, 0),
+                radius: 0.7868,
+                colors: [
+                  Color(0xFFFFFFFF),
+                  Color(0xFFEEF3FD),
+                ],
+                stops: [0.0, 1.0],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xD9EEF3FD),
+                  offset: Offset(0.w, 1.h),
+                  blurRadius: 1.r,
+                ),
+                BoxShadow(
+                  color: const Color(0x80EEF3FD),
+                  offset: Offset(0.w, 2.h),
+                  blurRadius: 1.r,
+                ),
+                BoxShadow(
+                  color: const Color(0x26EEF3FD),
+                  offset: Offset(0.w, 3.h),
+                  blurRadius: 1.r,
+                ),
+                BoxShadow(
+                  color: const Color(0x05EEF3FD),
+                  offset: Offset(0.w, 5.h),
+                  blurRadius: 1.r,
+                ),
+              ],
+            ),
+            child: Center(
+              child: isSvg
+                  ? SvgPicture.asset(
+                      displayAsset,
+                      width: 34.w,
+                      height: 34.w,
+                      fit: BoxFit.contain,
+                    )
+                  : Image.asset(
+                      displayAsset,
+                      width: 34.w,
+                      height: 34.w,
+                      fit: BoxFit.contain,
+                    ),
+            ),
+          ),
+          SizedBox(height: 6.h),
+          SizedBox(
+            width: double.infinity,
+            height: 30.h,
+            child: Text(
+              label,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                fontStyle: FontStyle.normal,
+                height: 1,
+                letterSpacing: 0,
+                color: const Color(0xFF000000),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InvestmentTile extends StatelessWidget {
   const _InvestmentTile({
     required this.label,
@@ -1547,21 +1750,32 @@ class _HomeBleedBanner extends StatelessWidget {
         final height = designWidth <= 0
             ? designHeight
             : width * designHeight / designWidth;
+        final sourceAsset = asset;
+        final resolvedAsset =
+            sourceAsset == null ? null : _rasterHomeAsset(sourceAsset);
+        final isSvg = (resolvedAsset ?? '').toLowerCase().endsWith('.svg');
         return Center(
           child: SizedBox(
             width: width,
             height: height,
             child: child ??
-                Image.asset(
-                  asset!,
-                  width: width,
-                  height: height,
-                  fit: fit,
-                  alignment: Alignment.center,
-                  gaplessPlayback: isGif,
-                  filterQuality:
-                  isGif ? FilterQuality.medium : FilterQuality.low,
-                ),
+                (isSvg
+                    ? SvgPicture.asset(
+                        resolvedAsset!,
+                        width: width,
+                        height: height,
+                        fit: fit,
+                      )
+                    : Image.asset(
+                        resolvedAsset!,
+                        width: width,
+                        height: height,
+                        fit: fit,
+                        alignment: Alignment.center,
+                        gaplessPlayback: isGif,
+                        filterQuality:
+                        isGif ? FilterQuality.medium : FilterQuality.low,
+                      )),
           ),
         );
       },
@@ -1577,33 +1791,33 @@ class _CibilBanner extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = _homeMin(392.w, constraints.maxWidth);
-        final height = width * (136 / 392);
+        final height = width * (136 / 393);
         return Center(
-          child: Container(
-            width: width,
-            height: height,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.r),
-              gradient: const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Color(0xFF084591),
-                  Color(0xFF005365),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: Stack(
+                children: [
+                  SvgPicture.asset(
+                    FileConstants.cibilImg,
+                    width: width,
+                    height: height,
+                    fit: BoxFit.fill,
+                    alignment: Alignment.center,
+                  ),
+                  Positioned(
+                    left: width * 8.25 / 393,
+                    top: height * 4.25 / 137,
+                    width: width * 32 / 393,
+                    height: height * 14 / 137,
+                    child: Image.asset(
+                      FileConstants.cibilLogoPng,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ],
-                stops: [0.0, 1.0],
-                transform: GradientRotation(0.1294),
-              ),
-            ),
-            child: Opacity(
-              opacity: 1,
-              child: Image.asset(
-                FileConstants.cibilImg,
-                width: width,
-                height: height,
-                fit: BoxFit.fill,
-                alignment: Alignment.center,
               ),
             ),
           ),
@@ -2810,8 +3024,13 @@ class _HomeContent extends HookConsumerWidget {
       onServiceTap: handleServiceTap,
       onMyBillsTap: () => context.push(RouteConstants.quickActions),
       onExploreUtilitiesTap: () => context.push(RouteConstants.homeSearchView),
-      onGoldTap: _showInvestmentComingSoonMessage,
-      onSilverTap: _showInvestmentComingSoonMessage,
+      onGoldTap: () => context.push(
+        '${RouteConstants.digitalGold}?entry=home',
+      ),
+      onSilverTap: () => context.push(
+        '${RouteConstants.digitalGold}?metal=silver&entry=home',
+      ),
+      onZeroBalanceTap: () => handleServiceTap('Zero Balance'),
       bankingInvestmentBanners: bankingInvestmentBanners,
       bankingBannerController: bankingBannerController,
       bankingBannerPage: bankingBannerPage.value,
@@ -2884,6 +3103,7 @@ class _HomeScaffoldBody extends StatelessWidget {
     required this.onExploreUtilitiesTap,
     required this.onGoldTap,
     required this.onSilverTap,
+    required this.onZeroBalanceTap,
     required this.bankingInvestmentBanners,
     required this.bankingBannerController,
     required this.bankingBannerPage,
@@ -2935,6 +3155,7 @@ class _HomeScaffoldBody extends StatelessWidget {
   final VoidCallback onExploreUtilitiesTap;
   final VoidCallback onGoldTap;
   final VoidCallback onSilverTap;
+  final VoidCallback onZeroBalanceTap;
   final List<BannerModel> bankingInvestmentBanners;
   final PageController bankingBannerController;
   final int bankingBannerPage;
@@ -2998,6 +3219,8 @@ class _HomeScaffoldBody extends StatelessWidget {
                         onExploreUtilitiesTap: onExploreUtilitiesTap,
                         onGoldTap: onGoldTap,
                         onSilverTap: onSilverTap,
+                        onZeroBalanceTap: onZeroBalanceTap,
+                        onReferTap: onReferTap,
                         bankingInvestmentBanners: bankingInvestmentBanners,
                         bankingBannerController: bankingBannerController,
                         bankingBannerPage: bankingBannerPage,
@@ -3109,6 +3332,8 @@ class _HomeMainSections extends StatelessWidget {
     required this.onExploreUtilitiesTap,
     required this.onGoldTap,
     required this.onSilverTap,
+    required this.onZeroBalanceTap,
+    required this.onReferTap,
     required this.bankingInvestmentBanners,
     required this.bankingBannerController,
     required this.bankingBannerPage,
@@ -3137,6 +3362,8 @@ class _HomeMainSections extends StatelessWidget {
   final VoidCallback onExploreUtilitiesTap;
   final VoidCallback onGoldTap;
   final VoidCallback onSilverTap;
+  final VoidCallback onZeroBalanceTap;
+  final VoidCallback onReferTap;
   final List<BannerModel> bankingInvestmentBanners;
   final PageController bankingBannerController;
   final int bankingBannerPage;
@@ -3209,12 +3436,12 @@ class _HomeMainSections extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _SectionHeader(
-                            title: 'Pay Bills & Recharges',
+                            title: 'Bills & Recharges',
                             actionLabel: 'My Bills',
                             onAction: onMyBillsTap,
                             payBillsStyle: true,
                           ),
-                          SizedBox(height: 14.h),
+                          SizedBox(height: 12.h),
                           _PayBillsCard(
                             services: payBillsServices,
                             onTap: onServiceTap,
@@ -3224,70 +3451,52 @@ class _HomeMainSections extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 22.h),
+                    SizedBox(height: 16.h),
                     Opacity(
                       opacity: 1,
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final width = constraints.maxWidth;
                           final height = width * 165 / 440;
-                          return SizedBox(
-                            width: width,
-                            height: height,
-                            child: Image.asset(
-                              FileConstants.promoBannerGif,
+                          return GestureDetector(
+                            onTap: onReferTap,
+                            child: SizedBox(
                               width: width,
                               height: height,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              gaplessPlayback: true,
-                              filterQuality: FilterQuality.medium,
+                              child: Image.asset(
+                                FileConstants.promoBannerGif,
+                                width: width,
+                                height: height,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                                gaplessPlayback: true,
+                                filterQuality: FilterQuality.medium,
+                              ),
                             ),
                           );
                         },
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 2.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _SectionHeader(title: 'Banking & Investments'),
+                          const _SectionHeader(
+                            title: 'Investments',
+                            payBillsStyle: true,
+                          ),
                           SizedBox(height: 10.h),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: onGoldTap,
-                                  child: _InvestmentTile(
-                                    label: 'Buy Gold',
-                                    iconAsset: FileConstants.digitalGoldGif,
-                                    arrowAsset: FileConstants.goldArrow,
-                                    borderColor: const Color(0xFFE0C46A),
-                                    textColor: const Color(0xFF8B6B12),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: onSilverTap,
-                                  child: _InvestmentTile(
-                                    label: 'Buy Silver',
-                                    iconAsset: FileConstants.digitalSilverGif,
-                                    arrowAsset: FileConstants.silverArrow,
-                                    borderColor: const Color(0xFFE1E1E1),
-                                    textColor: const Color(0xFF6B6B6B),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          _InvestmentCircleRow(
+                            onZeroBalanceTap: onZeroBalanceTap,
+                            onGoldTap: onGoldTap,
+                            onSilverTap: onSilverTap,
                           ),
                         ],
                       ),
                     ),
                     if (bankingInvestmentBanners.isNotEmpty) ...[
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 4.h),
                       InkWell(
                         onTap: onBankingBannerTap,
                         child: SizedBox(
@@ -3313,14 +3522,14 @@ class _HomeMainSections extends StatelessWidget {
                       ),
                     ],
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 2.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'PAY VIA CREDIT CARD',
+                              'Pay via Credit Card'.toUpperCase(),
                               textAlign: TextAlign.left,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12.sp,
@@ -3352,7 +3561,7 @@ class _HomeMainSections extends StatelessWidget {
                               return name;
                             },
                           ),
-                          SizedBox(height: middleBanners.isNotEmpty ? 0.h : 18.h),
+                          SizedBox(height: middleBanners.isNotEmpty ? 0.h : 10.h),
                         ],
                       ),
                     ),
@@ -3360,56 +3569,28 @@ class _HomeMainSections extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
-                          if (middleBanners.isNotEmpty) SizedBox(height: 2.h),
-                          if (middleBanners.isNotEmpty)
-                            _HomeBleedBanner(
+                          SizedBox(height: 6.h),
+                          GestureDetector(
+                            onTap: onZeroBalanceTap,
+                            child: _HomeBleedBanner(
                               designWidth: 440,
                               designHeight: 90,
-                              child: PageView.builder(
-                                controller: middleBannerController,
-                                onPageChanged: onMiddleBannerPageChanged,
-                                itemCount: middleBanners.length,
-                                itemBuilder: (_, index) => GestureDetector(
-                                  onTap: () => onMiddleBannerTap(index),
-                                  child: AppNetworkImage(
-                                    url: middleBanners[index].image,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.fill,
-                                    placeholder: const AppNetworkImage(
-                                      url: '',
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              asset: FileConstants.zeroBalanceBanner,
                             ),
-                          if (middleBanners.isNotEmpty) SizedBox(height: 3.h),
-                          if (middleBanners.length > 1)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                middleBanners.length,
-                                    (index) => Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 3.w),
-                                  child: _Dot(active: middleBannerPage == index),
-                                ),
-                              ),
-                            ),
-                          if (middleBanners.isNotEmpty) SizedBox(height: 8.h),
+                          ),
+                          SizedBox(height: 12.h),
                         ],
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 13.h, 16.w, 2.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'INSURANCE',
+                              'Insurance Premium'.toUpperCase(),
                               textAlign: TextAlign.left,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12.sp,
@@ -3435,23 +3616,23 @@ class _HomeMainSections extends StatelessWidget {
                               return name;
                             },
                           ),
-                          SizedBox(height: 2.h),
+                          SizedBox(height: 8.h),
                         ],
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 13.h, 16.w, 2.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
                       child: const _CibilBanner(),
                     ),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 2.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'BANKING & LOANS',
+                              'Loans'.toUpperCase(),
                               textAlign: TextAlign.left,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12.sp,
@@ -3465,10 +3646,10 @@ class _HomeMainSections extends StatelessWidget {
                           SizedBox(height: 10.h),
                           _CurvedIconGrid(
                             services: const [
-                              QuickActionService(name: 'Home Loans'),
-                              QuickActionService(name: 'Bank'),
-                              QuickActionService(name: 'Business Loans'),
-                              QuickActionService(name: 'Personal Loans'),
+                              QuickActionService(name: 'Personal Loan'),
+                              QuickActionService(name: 'Business Loan'),
+                              QuickActionService(name: 'Home Loan'),
+                              QuickActionService(name: 'Loan Against Property'),
                             ],
                             onTap: (_) async => _showInvestmentComingSoonMessage(),
                             showCardFrame: false,

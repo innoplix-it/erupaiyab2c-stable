@@ -543,7 +543,6 @@ class BillerDetailView extends HookConsumerWidget {
                 context.pop();
               }
             },
-            onHelp: () {},
           ),
         ),
         body: biller == null
@@ -1086,11 +1085,9 @@ class BillerDetailView extends HookConsumerWidget {
                                                       .toUpperCase() ??
                                                   '');
                                               final fallbackStatus =
-                                                  wait.timedOut
-                                                      ? 'PENDING'
-                                                      : (normalized.isNotEmpty
-                                                          ? normalized
-                                                          : 'FAILED');
+                                                  normalized.isNotEmpty
+                                                      ? normalized
+                                                      : 'PENDING';
                                               final entry =
                                                   buildPaymentFlowTransactionEntryFromRechargeStatus(
                                                 status: status,
@@ -1134,38 +1131,7 @@ class BillerDetailView extends HookConsumerWidget {
                                                       'Your payment was completed successfully.',
                                                 );
                                               },
-                                              onFailure: (
-                                                message, {
-                                                bool cancelled = false,
-                                              }) async {
-                                                if (cancelled) {
-                                                  if (!context.mounted) return;
-                                                  final entry =
-                                                      buildPaymentFlowTransactionEntryFromRechargeStatus(
-                                                    status: null,
-                                                    fallbackStatus: 'FAILED',
-                                                    fallbackPaymentType: args
-                                                            ?.paymentType ??
-                                                        detail
-                                                            .billerCategoryName,
-                                                    fallbackBillerName: name,
-                                                    fallbackAmount: amountToPay,
-                                                    fallbackTransactionId:
-                                                        order.transactionRef,
-                                                  );
-                                                  Navigator.of(context).push(
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          TransactionDetailScreen(
-                                                        entry: entry,
-                                                        doneLabel: 'Continue',
-                                                        navigateHomeOnExit:
-                                                            true,
-                                                      ),
-                                                    ),
-                                                  );
-                                                  return;
-                                                }
+                                              onFailure: (message) async {
                                                 await verifyAndShowResult(
                                                   fallbackMessage: message
                                                           .isEmpty

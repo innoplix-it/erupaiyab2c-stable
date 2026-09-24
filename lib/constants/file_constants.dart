@@ -28,7 +28,14 @@ class FileConstants {
   static String searchIcon = 'assets/images/png/searchicon.png';
   static String electricityBanner = 'assets/images/png/electricitybanner.png';
   static String homeScreenImg = 'assets/images/png/homescreenimghome.png';
-  static String cibilImg = 'assets/images/png/cibilimg.png';
+  static String cibilImg = 'assets/images/svg/cibil.svg';
+  static String cibilLogoPng = 'assets/images/png/cibil.png';
+  static String zeroBalanceBanner = 'assets/images/svg/zerobalance.svg';
+  static String zeroBalanceBannerPng = 'assets/images/png/zerobalance.png';
+  static String investGoldIcon = 'assets/images/svg/invest_gold.svg';
+  static String investSilverIcon = 'assets/images/svg/invest_silver.svg';
+  static String zeroBalanceAccountIcon =
+      'assets/images/svg/zero_balance_account.svg';
   static String homeLoans = 'assets/images/png/homeloans.png';
   static String homeBank = 'assets/images/png/bank.png';
   static String businessLoans = 'assets/images/png/businessloans.png';
@@ -239,6 +246,8 @@ class FileConstants {
   //Education
   static String greenBanner = 'assets/images/tutionFeesBanner.png';
   static String tutionFeesBanner = 'assets/images/tutionFeesBanner.png';
+  static String schoolFeesBanner = 'assets/images/schoolFeesBanner.png';
+  static String collegeFeesBanner = 'assets/images/collegeFeesBanner.png';
   static String houseRentBanner = 'assets/images/houseRentBanner.png';
   static String shopRentBanner = 'assets/images/shopRentBanner.png';
   static String amountBanner = 'assets/images/amountBanner.png';

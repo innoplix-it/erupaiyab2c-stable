@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -13,10 +15,10 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../home/controllers/home_tab_controller.dart';
 import '../../../widgets/app_network_image.dart';
+import '../../../widgets/common_search_bar.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
-import '../../../widgets/search_textfield.dart';
 import '../controllers/transaction_history_controller.dart';
 import '../models/transaction_history_entry.dart';
 import '../models/transaction_history_filter.dart';
@@ -100,10 +102,60 @@ class _TransactionHistoryScreenState
         body: Column(
           children: [
             MyAppBar(
-              title: 'Transaction History',
+              title: 'Transactions',
               showHelp: true,
               onBack: _handleBack,
-              onHelp: () {},
+              titleStyle: GoogleFonts.plusJakartaSans(
+                fontSize:
+                    Theme.of(context).textTheme.titleMedium?.fontSize ?? 16.sp,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF000000),
+              ),
+              bharatConnectWidth: 52,
+              bharatConnectHeight: 25,
+              helpIconSize: 16.67,
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(23.w, 12.h, 36.w, 12.h),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CommonSearchBar(
+                      hintText: 'Search Transactions',
+                      controller: _searchController,
+                      onChanged: (_) => setState(() {}),
+                      width: 341.w,
+                      height: 60.h,
+                      radius: 12.r,
+                      fillColor: const Color(0xFFF8F8F8),
+                      borderColor: const Color(0xFFD7D7D7),
+                      borderWidth: 1,
+                      searchIconOnRight: true,
+                      hintStyle: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14.sp,
+                        height: 1,
+                        color: const Color(0xFF000000),
+                      ),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14.sp,
+                        height: 1,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 15.w),
+                  GestureDetector(
+                    onTap: () => _openFilterScreen(controller),
+                    child: SvgPicture.string(
+                      _transactionFilterSvg,
+                      width: 24.w,
+                      height: 24.w,
+                    ),
+                  ),
+                ],
+              ),
             ),
           Expanded(
             child: isLoading
@@ -118,35 +170,6 @@ class _TransactionHistoryScreenState
                       child: CustomScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
-                          SliverPadding(
-                            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
-                            sliver: SliverToBoxAdapter(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: SearchTextfield(
-                                      hintText: 'Search Transactions',
-                                      controller: _searchController,
-                                      onChange: (_) => setState(() {}),
-                                    ),
-                                  ),
-                                  SizedBox(width: 10.w),
-                                  SizedBox(height: 46.h,
-                                    width: 46.h,
-                                    child: IconButton(
-                                      onPressed: () {
-                                        _openFilterScreen(controller);
-                                      },
-                                      icon: const Icon(
-                                        Icons.tune,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
                           if (filteredItems.isEmpty)
                             const SliverFillRemaining(
                               hasScrollBody: false,
@@ -250,8 +273,10 @@ class _TransactionHistoryScreenState
         TransactionHistoryFilter>(
       context,
       withNavBar: false,
-      screen: MaterialPageRoute<TransactionHistoryFilter>(
-        builder: (_) => TransactionFilterScreen(
+      screen: PageRouteBuilder<TransactionHistoryFilter>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (_, __, ___) => TransactionFilterScreen(
           initialFilter: _activeFilter,
         ),
       ),
@@ -381,25 +406,27 @@ class _TransactionTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 44.w,
-              height: 44.w,
+              width: 50.w,
+              height: 50.w,
+              padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
+                color: const Color(0xFFFFFFFF),
+                borderRadius: BorderRadius.circular(20.r),
                 border: Border.all(
-                  color: AppColors.primary.withOpacity(0.4),
+                  color: const Color(0x66FF835C),
+                  width: 1,
                 ),
               ),
               child: Center(
                 child: AppNetworkImage(
                   url: item.iconUrl,
-                  width: 22.w,
-                  height: 22.w,
+                  width: 30.w,
+                  height: 30.w,
                   fit: BoxFit.contain,
                   cacheWidth:
-                      (22 * MediaQuery.devicePixelRatioOf(context)).toInt(),
+                      (30 * MediaQuery.devicePixelRatioOf(context)).toInt(),
                   cacheHeight:
-                      (22 * MediaQuery.devicePixelRatioOf(context)).toInt(),
+                      (30 * MediaQuery.devicePixelRatioOf(context)).toInt(),
                   showShimmer: false,
                   fitToDeviceWidth: true,
                 ),
@@ -533,14 +560,17 @@ class _MonthHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: const Color(0xFFF4F4F4),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      height: 44.h,
+      color: const Color(0xFFEFEFEF),
+      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14.sp,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          height: 1,
+        ),
       ),
     );
   }
@@ -1044,13 +1074,15 @@ class _TransactionTileSkeleton extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 44.w,
-            height: 44.w,
+            width: 50.w,
+            height: 50.w,
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(20.r),
               border: Border.all(
-                color: AppColors.primary.withOpacity(0.4),
+                color: const Color(0x66FF835C),
+                width: 1,
               ),
             ),
             child: Center(
@@ -1085,3 +1117,13 @@ class _TransactionTileSkeleton extends StatelessWidget {
     );
   }
 }
+
+const String _transactionFilterSvg = '''
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.75 6.75H20.25" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M6.75 12H17.25" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M10.5 17.25H13.5" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/>
+<circle cx="8.25" cy="6.75" r="1.75" fill="#000000"/>
+<circle cx="15.75" cy="12" r="1.75" fill="#000000"/>
+</svg>
+''';

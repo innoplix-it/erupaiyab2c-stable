@@ -53,7 +53,6 @@ class ReferAndEarnWalletView extends HookWidget {
           children: [
             ReferAndEarnAppBar(
               title: 'Wallet',
-              onHelp: () {},
               height: 280.h,
               body: Column(
                 children: [

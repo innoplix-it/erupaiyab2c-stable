@@ -1,10 +1,7 @@
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 typedef RazorpaySuccessCallback = void Function(String paymentId);
-typedef RazorpayFailureCallback = void Function(
-  String message, {
-  bool cancelled,
-});
+typedef RazorpayFailureCallback = void Function(String message);
 typedef RazorpayExternalWalletCallback = void Function(String walletName);
 
 class RazorpayService {
@@ -48,10 +45,7 @@ class RazorpayService {
     _razorpay!.on(
       Razorpay.EVENT_PAYMENT_ERROR,
       (PaymentFailureResponse response) {
-        final message = response.message ?? 'Payment failed.';
-        final cancelled = response.code == Razorpay.PAYMENT_CANCELLED ||
-            message.toLowerCase().contains('cancel');
-        onFailure?.call(message, cancelled: cancelled);
+        onFailure?.call(response.message ?? 'Payment failed.');
       },
     );
     _razorpay!.on(

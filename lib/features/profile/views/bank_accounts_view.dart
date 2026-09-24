@@ -39,7 +39,6 @@ class BankAccountsView extends HookWidget {
             children: [
               ReferAndEarnAppBar(
                 title: 'Bank Accounts',
-                onHelp: () {},
                 height: 260.h,
                 body: Column(
                   mainAxisSize: MainAxisSize.min,

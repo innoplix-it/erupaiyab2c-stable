@@ -56,10 +56,11 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       state = state.copyWith(amountErrorMessage: 'Enter a valid amount.');
       return false;
     }
-    if (isCappedPayViaCreditCardFee(state.feeType) && amount > 100000) {
+    final limitError = payViaCreditCardAmountError(state.feeType, amount);
+    if (limitError != null) {
       state = state.copyWith(
         amountValidated: false,
-        amountErrorMessage: AppErrorMessages.maxAmount100000,
+        amountErrorMessage: limitError,
       );
       return false;
     }
@@ -392,4 +393,20 @@ bool isCappedPayViaCreditCardFee(String? feeType) {
       value.contains('tution') ||
       value.contains('house rent') ||
       value.contains('shop rent');
+}
+
+const int _payViaCreditCardMinAmount = 100;
+const int _payViaCreditCardMaxAmount = 100000;
+
+String? payViaCreditCardAmountError(String? feeType, num amount) {
+  if (!isCappedPayViaCreditCardFee(feeType) || amount <= 0) {
+    return null;
+  }
+  if (amount < _payViaCreditCardMinAmount) {
+    return AppErrorMessages.minAmount100;
+  }
+  if (amount > _payViaCreditCardMaxAmount) {
+    return AppErrorMessages.maxAmount100000;
+  }
+  return null;
 }

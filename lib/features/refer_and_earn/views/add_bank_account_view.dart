@@ -296,7 +296,6 @@ class AddBankAccountView extends HookConsumerWidget {
           children: [
             ReferAndEarnAppBar(
               title: isEdit ? 'Edit Bank Account' : 'Add Bank Account',
-              onHelp: () {},
               height: 300.h,
               body: Column(
                 children: [

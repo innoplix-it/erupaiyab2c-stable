@@ -29,7 +29,6 @@ class DigitalGoldInvestView extends ConsumerWidget {
           MyAppBar(
             title: 'Invest In Gold',
             onBack: () => context.pop(),
-            onHelp: () {},
             showHelp: true,
           ),
           Expanded(

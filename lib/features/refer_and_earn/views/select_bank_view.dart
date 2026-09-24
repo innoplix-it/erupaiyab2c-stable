@@ -27,7 +27,6 @@ class SelectBankView extends HookWidget {
           children: [
             ReferAndEarnAppBar(
               title: 'Add Bank Account',
-              onHelp: () {},
               height: 300.h,
               body: Column(
                 children: [

@@ -482,7 +482,14 @@ final routerProvider = Provider<GoRouter>(
         ),
         GoRoute(
           path: RouteConstants.helpSupport,
-          builder: (context, state) => const HelpSupportScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage<void>(
+            key: state.pageKey,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+            child: const HelpSupportScreen(),
+          ),
         ),
         GoRoute(
           path: RouteConstants.helpCenterChat,

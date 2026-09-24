@@ -322,7 +322,7 @@ class GoldPaymentSummarySheet extends HookConsumerWidget {
                               );
                             }
                           },
-                          onFailure: (message, {bool cancelled = false}) {
+                          onFailure: (message) {
                             AppSnackbar.show(
                               message,
                               backgroundColor: Colors.red,

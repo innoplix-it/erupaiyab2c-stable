@@ -166,7 +166,6 @@ class WithdrawECoinsView extends HookConsumerWidget {
           children: [
             ReferAndEarnAppBar(
               title: 'Withdraw E-Coins',
-              onHelp: () {},
               height: 300.h,
               body: Column(
                 children: [

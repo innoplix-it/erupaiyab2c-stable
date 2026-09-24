@@ -57,7 +57,6 @@ class DigitalGoldLockerView extends HookConsumerWidget {
             GoldDetailsHeader(
               title: theme.lockerTitle,
               onBack: () => context.go(RouteConstants.home),
-              onHelp: () {},
             ),
             Expanded(
               child: SingleChildScrollView(

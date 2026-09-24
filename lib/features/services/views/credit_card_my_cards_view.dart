@@ -77,7 +77,6 @@ class CreditCardMyCardsView extends HookConsumerWidget {
           title: 'Credit Card Payment',
           showHelp: true,
           onBack: handleBack,
-          onHelp: () {},
         ),
         body: Column(
           children: [

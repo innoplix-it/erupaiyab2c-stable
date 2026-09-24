@@ -64,7 +64,6 @@ class ReferAndEarnView extends HookConsumerWidget {
           children: [
             ReferAndEarnAppBar(
               title: 'Refer Friends & Earn Coins',
-              onHelp: () {},
               body: Column(
                 children: [
                   SizedBox(height: 46.h),

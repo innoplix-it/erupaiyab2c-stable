@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/routes_constant.dart';
 
 class GoldDetailsHeader extends StatelessWidget {
   const GoldDetailsHeader({
     super.key,
     required this.title,
     required this.onBack,
-    required this.onHelp,
+    this.onHelp,
   });
 
   final String title;
   final VoidCallback onBack;
-  final VoidCallback onHelp;
+  final VoidCallback? onHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +37,8 @@ class GoldDetailsHeader extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: onHelp,
+            onPressed:
+                onHelp ?? () => context.push(RouteConstants.helpSupport),
             icon: Icon(Icons.help_outline, color: AppColors.textPrimary, size: 22.r),
           ),
         ],

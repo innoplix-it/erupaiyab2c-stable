@@ -45,7 +45,6 @@ class _FaqScreenState extends State<FaqScreen> {
             title: "Faq’s",
             onBack: () => context.pop(),
             showHelp: true,
-            onHelp: () {},
           ),
           Expanded(
             child: SingleChildScrollView(

@@ -79,7 +79,7 @@ class _HomeIconTileState extends State<HomeIconTile>
   @override
   Widget build(BuildContext context) {
     final labelTextStyle = GoogleFonts.plusJakartaSans(
-      fontSize: 11.sp,
+      fontSize: 12.sp,
       fontWeight: FontWeight.w600,
       fontStyle: FontStyle.normal,
       height: 1,
@@ -94,15 +94,16 @@ class _HomeIconTileState extends State<HomeIconTile>
         .toList();
     final isTwoWordLabel = labelWords.length == 2;
 
-    final ringSize = 62.r;
-    final iconSize = widget.iconSize.r;
+    const circleSize = 68.0;
+    final ringSize = 72.w;
+    final iconSize = 34.w;
 
     return RepaintBoundary(
       child: InkWell(
         borderRadius: BorderRadius.circular(12.r),
         onTap: widget.isLoading ? null : widget.onTap,
         child: Column(
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Stack(
@@ -129,58 +130,47 @@ class _HomeIconTileState extends State<HomeIconTile>
                     ),
                   ),
                 Container(
-                  height: 54.r,
-                  width: 54.r,
-                  decoration: widget.creditCardCircle
-                      ? BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFFFFFFF),
-                            width: 2.w,
-                          ),
-                          gradient: const RadialGradient(
-                            center: Alignment(0, 0),
-                            radius: 0.7868,
-                            colors: [
-                              Color(0xFFFFFFFF),
-                              Color(0xFFEEF3FD),
-                            ],
-                            stops: [0.0, 1.0],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xD9EEF3FD),
-                              offset: Offset(0.w, 1.h),
-                              blurRadius: 1.r,
-                            ),
-                            BoxShadow(
-                              color: const Color(0x80EEF3FD),
-                              offset: Offset(0.w, 2.h),
-                              blurRadius: 1.r,
-                            ),
-                            BoxShadow(
-                              color: const Color(0x26EEF3FD),
-                              offset: Offset(0.w, 3.h),
-                              blurRadius: 1.r,
-                            ),
-                            BoxShadow(
-                              color: const Color(0x05EEF3FD),
-                              offset: Offset(0.w, 5.h),
-                              blurRadius: 1.r,
-                            ),
-                          ],
-                        )
-                      : const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            center: Alignment.center,
-                            radius: 0.5,
-                            colors: [
-                              Color(0xFFF9F9F9),
-                              Color(0xFFF6F6F6),
-                            ],
-                          ),
-                        ),
+                  height: circleSize.w,
+                  width: circleSize.w,
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(80.r),
+                    border: Border.all(
+                      color: const Color(0xFFFFFFFF),
+                      width: 2.w,
+                    ),
+                    gradient: const RadialGradient(
+                      center: Alignment(0, 0),
+                      radius: 0.7868,
+                      colors: [
+                        Color(0xFFFFFFFF),
+                        Color(0xFFEEF3FD),
+                      ],
+                      stops: [0.0, 1.0],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xD9EEF3FD),
+                        offset: Offset(0.w, 1.h),
+                        blurRadius: 1.r,
+                      ),
+                      BoxShadow(
+                        color: const Color(0x80EEF3FD),
+                        offset: Offset(0.w, 2.h),
+                        blurRadius: 1.r,
+                      ),
+                      BoxShadow(
+                        color: const Color(0x26EEF3FD),
+                        offset: Offset(0.w, 3.h),
+                        blurRadius: 1.r,
+                      ),
+                      BoxShadow(
+                        color: const Color(0x05EEF3FD),
+                        offset: Offset(0.w, 5.h),
+                        blurRadius: 1.r,
+                      ),
+                    ],
+                  ),
                   child: Center(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 220),
@@ -247,20 +237,18 @@ class _HomeIconTileState extends State<HomeIconTile>
               ],
             ),
             SizedBox(height: widget.labelSpacing ?? 6.h),
-            Center(
-              child: SizedBox(
-                width: 71.w,
-                height: isTwoWordLabel ? 30.h : 15.h,
-                child: Text(
-                  isTwoWordLabel
-                      ? '${labelWords.first}\n${labelWords.last}'
-                      : labelWords.join(' '),
-                  maxLines: isTwoWordLabel ? 2 : 1,
-                  softWrap: isTwoWordLabel,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: labelTextStyle,
-                ),
+            SizedBox(
+              width: 59.w,
+              height: 30.h,
+              child: Text(
+                isTwoWordLabel
+                    ? '${labelWords.first}\n${labelWords.last}'
+                    : labelWords.join(' '),
+                maxLines: 2,
+                softWrap: true,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: labelTextStyle,
               ),
             ),
           ],

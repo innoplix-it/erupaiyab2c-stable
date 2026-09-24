@@ -243,9 +243,7 @@ class _TransactionFilterScreenState extends State<TransactionFilterScreen> {
                   onPressed: _apply,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14.r),
-                    ),
+                    shape: const StadiumBorder(),
                   ),
                   child: Text(
                     'Apply',

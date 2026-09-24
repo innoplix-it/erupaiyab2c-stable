@@ -42,7 +42,6 @@ class LanguageSelectionView extends HookConsumerWidget {
       appBar: MyAppBar(
         title: 'Choose Language',
         onBack: () => context.pop(),
-        onHelp: () {},
         // trailing: TextButton(
         //   onPressed: handleContinue,
         //   child: const Text(

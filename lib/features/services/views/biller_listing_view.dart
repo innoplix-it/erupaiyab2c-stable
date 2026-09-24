@@ -6,7 +6,6 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -20,7 +19,7 @@ import '../../../widgets/contacts_permission_card.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/screen_wrapper.dart';
-import '../../../widgets/search_textfield.dart';
+import '../../../widgets/common_search_bar.dart';
 import '../../home/models/banner_model.dart';
 import '../../mobile_prepaid/components/contacts_list.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
@@ -174,9 +173,7 @@ class BillerListingView extends HookConsumerWidget {
         title: uiConfig.appBarTitle,
         showHelp: true,
         onBack: () => context.pop(),
-        onHelp: () {
-          context.pop();
-        },
+        onHelp: () => context.push(RouteConstants.helpSupport),
       ),
       body: switch (uiConfig.variant) {
         _BillerListingVariant.standard => _StandardBillerListingBody(
@@ -294,32 +291,14 @@ class _StandardBillerListingBody extends HookConsumerWidget {
                     : 392.w;
                 return Align(
                   alignment: Alignment.center,
-                  child: SearchTextfield(
+                  child: CommonSearchBar(
                     hintText: 'Search Provider',
                     controller: searchController,
-                    onChange: (value) => ref
+                    onChanged: (value) => ref
                         .read(billerListingControllerProvider.notifier)
                         .updateSearch(value),
                     width: barWidth,
                     height: 60.h,
-                    radius: 12.r,
-                    fillColor: const Color(0xFFFFFFFF),
-                    borderColor: const Color(0xFFE2E2E2),
-                    borderWidth: 1,
-                    contentPadding: EdgeInsets.only(right: 16.w),
-                    hintStyle: GoogleFonts.bricolageGrotesque(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
-                      color: AppColors.textPrimary.withOpacity(0.45),
-                    ),
-                    style: GoogleFonts.bricolageGrotesque(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
-                      color: Colors.black,
-                    ),
-                    prefixIconConstraints:
-                        SearchBarLeadingIcon.constraints(fieldHeight: 60.h),
-                    prefixIcon: SearchBarLeadingIcon(fieldHeight: 60.h),
                   ),
                 );
               },
@@ -453,31 +432,13 @@ class _ElectricityFlow extends HookConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 8.h),
-              child: SearchTextfield(
+              child: CommonSearchBar(
                 hintText: 'Search by billers',
                 controller: searchController,
-                onChange: (value) => ref
+                onChanged: (value) => ref
                     .read(billerListingControllerProvider.notifier)
                     .updateSearch(value),
                 height: 54.h,
-                radius: 12.r,
-                fillColor: const Color(0xFFFFFFFF),
-                borderColor: const Color(0xFFE2E2E2),
-                borderWidth: 1,
-                contentPadding: EdgeInsets.only(right: 16.w),
-                hintStyle: GoogleFonts.bricolageGrotesque(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14.sp,
-                  color: AppColors.textPrimary.withOpacity(0.45),
-                ),
-                style: GoogleFonts.bricolageGrotesque(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14.sp,
-                  color: Colors.black,
-                ),
-                prefixIconConstraints:
-                    SearchBarLeadingIcon.constraints(fieldHeight: 54.h),
-                prefixIcon: SearchBarLeadingIcon(fieldHeight: 54.h),
               ),
             ),
           ),
@@ -902,10 +863,11 @@ class _PostpaidSearchRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: SearchTextfield(
+          child: CommonSearchBar(
             hintText: 'Search by number or name',
             controller: controller,
-            onChange: onQueryChange,
+            onChanged: onQueryChange,
+            height: 54.h,
           ),
         ),
         SizedBox(width: 12.w),
