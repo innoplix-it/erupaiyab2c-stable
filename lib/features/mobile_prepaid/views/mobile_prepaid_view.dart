@@ -28,6 +28,7 @@ import '../../../widgets/contacts_permission_card.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/screen_wrapper.dart';
+import '../../home/components/quick_action_header_card.dart';
 import '../../home/models/banner_model.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/contacts_list.dart';
@@ -516,6 +517,17 @@ class MobilePrepaidView extends HookConsumerWidget {
               ? 'Mobile Prepaid'
               : (hasPlanSelected ? 'Pay Now' : 'Select A Recharge Plan'),
           onBack: handleBack,
+          titleStyle: isSelectionScreen
+              ? GoogleFonts.plusJakartaSans(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                  color: const Color(0xFF000000),
+                )
+              : null,
+          bharatConnectWidth: isSelectionScreen ? 58 : null,
+          bharatConnectHeight: isSelectionScreen ? 22 : null,
+          helpIconSize: isSelectionScreen ? 22 : null,
         ),
         body: Column(
           children: [

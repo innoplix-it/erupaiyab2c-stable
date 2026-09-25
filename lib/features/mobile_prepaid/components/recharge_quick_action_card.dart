@@ -78,10 +78,13 @@ class SimpleQuickActionCard extends StatelessWidget {
             SimCardIconContainer(
               asset: leadingAsset,
               url: leadingImageUrl,
-              width: 42.w,
-              height: 38.h,
+              width: 40.w,
+              height: 36.h,
+              borderRadius: 12.r,
+              padding: 10.w,
+              borderWidth: 0.5,
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 10.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,25 +157,34 @@ class SimCardIconContainer extends StatelessWidget {
     this.url,
     this.width,
     this.height,
+    this.borderRadius,
+    this.padding,
+    this.borderWidth,
   });
 
   final String? asset;
   final String? url;
   final double? width;
   final double? height;
+  final double? borderRadius;
+  final double? padding;
+  final double? borderWidth;
 
   @override
   Widget build(BuildContext context) {
+    final radius = borderRadius ?? 20.r;
+    final inset = padding ?? 8.w;
+    final stroke = borderWidth ?? 1.w;
     return Container(
       width: width ?? 50.w,
       height: height ?? 45.h,
-      padding: EdgeInsets.all(8.w),
+      padding: EdgeInsets.all(inset),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: const Color(0xFFE2E2E2),
-          width: 1.w,
+          width: stroke,
         ),
       ),
       child: Center(
