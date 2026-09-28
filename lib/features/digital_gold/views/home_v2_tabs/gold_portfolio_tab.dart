@@ -22,184 +22,194 @@ class _GoldPortfolioTabState extends State<_GoldPortfolioTab> {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          SizedBox(height: 420.h,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(22.r),
-                    ),
-                    child: Image.asset(
-                      FileConstants.portfolioBg,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                    ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(22.r),
+                  ),
+                  child: Image.asset(
+                    FileConstants.portfolioBg,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    16.w,
-                    MediaQuery.of(context).viewPadding.top + 4.h,
-                    16.w,
-                    18.h,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () => context.pop(),
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                          ),
-                          Expanded(
-                            child: Center(
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 6.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF7D5),
-                                  borderRadius: BorderRadius.circular(999.r),
-                                  border: Border.all(
-                                    color: const Color(0xFFC59B17),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      16.w,
+                      MediaQuery.of(context).viewPadding.top + 4.h,
+                      16.w,
+                      18.h,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () => context.pop(),
+                              icon:
+                                  const Icon(Icons.arrow_back_ios_new_rounded),
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 6.h,
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Image.asset(
-                                      FileConstants.liveSignal,
-                                      width: 12.r,
-                                      height: 12.r,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF7D5),
+                                    borderRadius: BorderRadius.circular(999.r),
+                                    border: Border.all(
+                                      color: const Color(0xFFC59B17),
                                     ),
-                                    SizedBox(width: 6.w),
-                                    Text(
-                                      '16,144.25/gm',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.black,
-                                          ),
-                                    ),
-                                  ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset(
+                                        FileConstants.liveSignal,
+                                        width: 12.r,
+                                        height: 12.r,
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        '16,144.25/gm',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.black,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Text(
-                            'Active',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF0B8A3B),
-                                    ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Transform.scale(
-                            scale: 0.85,
-                            child: Switch(
-                              value: _sipActive,
-                              activeThumbColor: Colors.white,
-                              activeTrackColor: const Color(0xFF0B8A3B),
-                              inactiveThumbColor: Colors.white,
-                              inactiveTrackColor:
-                                  Colors.black.withOpacity(0.15),
-                              onChanged: (v) => setState(() => _sipActive = v),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8.h),
-                      Image.asset(
-                        FileConstants.coinsDeck,
-                        height: 78.h,
-                        fit: BoxFit.contain,
-                      ),
-                      SizedBox(height: 10.h),
-                      Text(
-                        'Total Invested In Digital Gold',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.black.withOpacity(0.55),
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      SizedBox(height: 6.h),
-                      Text(
-                        '₹200',
-                        style:
-                            Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
-                                ),
-                      ),
-                      SizedBox(height: 6.h),
-                      RichText(
-                        text: TextSpan(
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.black.withOpacity(0.55),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                          children: [
-                            const TextSpan(
-                                text: 'Projected Returns In 5 Years : '),
-                            TextSpan(
-                              text: '₹1,80,000.00',
+                            Text(
+                              'Active',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
                                   ?.copyWith(
                                     fontWeight: FontWeight.w900,
-                                    color: Colors.black,
+                                    color: const Color(0xFF0B8A3B),
                                   ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Transform.scale(
+                              scale: 0.85,
+                              child: Switch(
+                                value: _sipActive,
+                                activeThumbColor: Colors.white,
+                                activeTrackColor: const Color(0xFF0B8A3B),
+                                inactiveThumbColor: Colors.white,
+                                inactiveTrackColor:
+                                    Colors.black.withOpacity(0.15),
+                                onChanged: (v) =>
+                                    setState(() => _sipActive = v),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      SizedBox(height: 14.h),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _InfoTile(
-                              title: 'Daily Saving',
-                              value: '₹50',
-                              icon: null,
-                              onTap: () {},
-                            ),
+                        SizedBox(height: 8.h),
+                        Image.asset(
+                          FileConstants.coinsDeck,
+                          height: 78.h,
+                          fit: BoxFit.contain,
+                        ),
+                        SizedBox(height: 10.h),
+                        Text(
+                          'Total Invested In Digital Gold',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.black.withOpacity(0.55),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                        SizedBox(height: 6.h),
+                        Text(
+                          '₹200',
+                          style: Theme.of(context)
+                              .textTheme
+                              .displaySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black,
+                              ),
+                        ),
+                        SizedBox(height: 6.h),
+                        RichText(
+                          text: TextSpan(
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.black.withOpacity(0.55),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                            children: [
+                              const TextSpan(
+                                  text: 'Projected Returns In 5 Years : '),
+                              TextSpan(
+                                text: '₹1,80,000.00',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.black,
+                                    ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: _InfoTile(
-                              title: 'Track Savings',
-                              value: null,
-                              icon: FileConstants.trackSavings,
-                              onTap: () {},
+                        ),
+                        SizedBox(height: 14.h),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _InfoTile(
+                                title: 'Daily Saving',
+                                value: '₹50',
+                                icon: null,
+                                onTap: () {},
+                              ),
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: _InfoTile(
+                                title: 'Track Savings',
+                                value: null,
+                                icon: FileConstants.trackSavings,
+                                onTap: () {},
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: _HangingCardSlot(
+                      hang: 44.h,
+                      child: _IncreaseSipAmountCard(
+                        currentAmount: '₹50',
+                        recommendedAmount: '₹100',
+                        projectedReturns: '₹1,80,000.00',
+                        onTap: () {},
                       ),
-                      const Spacer(),
-                    ],
+                    ),
                   ),
-                ),
-                Positioned(
-                  left: 16.w,
-                  right: 16.w,
-                  bottom: -44.h,
-                  child: _IncreaseSipAmountCard(
-                    currentAmount: '₹50',
-                    recommendedAmount: '₹100',
-                    projectedReturns: '₹1,80,000.00',
-                    onTap: () {},
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
           SizedBox(height: 56.h),
           Container(
@@ -236,7 +246,8 @@ class _GoldPortfolioTabState extends State<_GoldPortfolioTab> {
         padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 14.h),
         child: SafeArea(
           top: false,
-          child: SizedBox(height: 40.h,
+          child: SizedBox(
+            height: 40.h,
             child: ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
@@ -277,6 +288,51 @@ class _GoldPortfolioTabState extends State<_GoldPortfolioTab> {
     if (selected == null) return;
     // After confirmation, show paused/success screen (UI only).
     if (context.mounted) _openPausedSuccess(context);
+  }
+}
+
+/// Reserves `card height - hang` under the header and lets the card paint
+/// the remaining [hang] below the stack, matching `Positioned(bottom: -hang)`.
+class _HangingCardSlot extends StatefulWidget {
+  const _HangingCardSlot({required this.hang, required this.child});
+
+  final double hang;
+  final Widget child;
+
+  @override
+  State<_HangingCardSlot> createState() => _HangingCardSlotState();
+}
+
+class _HangingCardSlotState extends State<_HangingCardSlot> {
+  final GlobalKey _cardKey = GlobalKey();
+  double? _cardHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncCardHeight());
+    final card = KeyedSubtree(key: _cardKey, child: widget.child);
+    final cardHeight = _cardHeight;
+    if (cardHeight == null) return card;
+
+    final reserve = cardHeight > widget.hang ? cardHeight - widget.hang : 0.0;
+    return SizedBox(
+      height: reserve,
+      width: double.infinity,
+      child: OverflowBox(
+        alignment: Alignment.topCenter,
+        minHeight: cardHeight,
+        maxHeight: cardHeight,
+        child: card,
+      ),
+    );
+  }
+
+  void _syncCardHeight() {
+    if (!mounted) return;
+    final next = _cardKey.currentContext?.size?.height;
+    if (next == null) return;
+    if (_cardHeight != null && (next - _cardHeight!).abs() < 0.5) return;
+    setState(() => _cardHeight = next);
   }
 }
 
@@ -563,7 +619,8 @@ class _ManageSavingsCard extends StatelessWidget {
           SizedBox(height: 12.h),
           _RowItem(
             label: 'Pause Daily Saving',
-            trailing: SizedBox(height: 28.h,
+            trailing: SizedBox(
+              height: 28.h,
               child: OutlinedButton(
                 onPressed: onPause,
                 style: OutlinedButton.styleFrom(
@@ -587,7 +644,8 @@ class _ManageSavingsCard extends StatelessWidget {
           SizedBox(height: 10.h),
           _RowItem(
             label: 'Stop Daily Saving',
-            trailing: SizedBox(height: 28.h,
+            trailing: SizedBox(
+              height: 28.h,
               child: OutlinedButton(
                 onPressed: onStop,
                 style: OutlinedButton.styleFrom(

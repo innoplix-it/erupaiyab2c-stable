@@ -10,20 +10,23 @@ class ReferAndEarnAppBar extends HookWidget {
     required this.title,
     this.onBack,
     this.onHelp,
-    this.height = 320,
+    this.height,
     this.body,
   });
 
   final String title;
   final VoidCallback? onBack;
   final VoidCallback? onHelp;
-  final double height;
+
+  /// Already ScreenUtil-scaled. Omitted height uses the 320 design-unit default once.
+  final double? height;
   final Widget? body;
 
   @override
   Widget build(BuildContext context) {
+    final barHeight = height ?? 320.h;
     return SizedBox(
-      height: height.h,
+      height: barHeight,
       child: Stack(
         children: [
           Positioned.fill(

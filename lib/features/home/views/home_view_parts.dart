@@ -30,6 +30,19 @@ const String _profileIconSvg = '''
 
 double _homeMin(double a, double b) => a < b ? a : b;
 
+/// Physical-pixel decode size for a square GIF. Uses the larger logical side
+/// so BoxFit.cover/contain keeps the source crop instead of stretching it.
+int _gifCachePixels(
+  BuildContext context,
+  double logicalWidth,
+  double logicalHeight,
+) {
+  final logical = logicalWidth > logicalHeight ? logicalWidth : logicalHeight;
+  if (logical <= 0) return 1;
+  final pixels = (logical * MediaQuery.devicePixelRatioOf(context)).round();
+  return pixels < 1 ? 1 : pixels;
+}
+
 /// Figma SVG exports that wrap a PNG. flutter_svg cannot paint those
 /// `<image>` patterns, so we render the extracted PNG sibling instead.
 String _rasterHomeAsset(String asset) {
@@ -98,16 +111,16 @@ class _HeaderIconButton extends StatelessWidget {
             Center(
               child: iconAsset != null
                   ? Image.asset(
-                iconAsset!,
-                height: resolvedIconSize,
-                width: resolvedIconSize,
-                color: AppColors.textPrimary,
-              )
+                      iconAsset!,
+                      height: resolvedIconSize,
+                      width: resolvedIconSize,
+                      color: AppColors.textPrimary,
+                    )
                   : Icon(
-                icon,
-                size: resolvedIconSize,
-                color: AppColors.textPrimary,
-              ),
+                      icon,
+                      size: resolvedIconSize,
+                      color: AppColors.textPrimary,
+                    ),
             ),
             if ((badgeCount ?? 0) > 0)
               Positioned(
@@ -385,8 +398,8 @@ class _HomeTopBar extends StatelessWidget {
     final displayBalance = resolvedWalletBalance == null
         ? '--'
         : resolvedWalletBalance == resolvedWalletBalance.roundToDouble()
-        ? resolvedWalletBalance.toStringAsFixed(0)
-        : resolvedWalletBalance.toStringAsFixed(2);
+            ? resolvedWalletBalance.toStringAsFixed(0)
+            : resolvedWalletBalance.toStringAsFixed(2);
     return Container(
       width: 66.w,
       height: 31.h,
@@ -461,13 +474,13 @@ class _ProfileAvatar extends StatelessWidget {
         child: photoUrl.isEmpty
             ? _ProfileInitials(initials: initials, side: side)
             : AppNetworkImage(
-          url: photoUrl,
-          width: side,
-          height: side,
-          fit: BoxFit.cover,
-          showShimmer: false,
-          errorWidget: _ProfileInitials(initials: initials, side: side),
-        ),
+                url: photoUrl,
+                width: side,
+                height: side,
+                fit: BoxFit.cover,
+                showShimmer: false,
+                errorWidget: _ProfileInitials(initials: initials, side: side),
+              ),
       ),
     );
   }
@@ -544,6 +557,8 @@ class _ReferAndEarnChip extends StatelessWidget {
                 FileConstants.giftGif,
                 width: 16.w,
                 height: 16.h,
+                cacheWidth: _gifCachePixels(context, 16.w, 16.h),
+                cacheHeight: _gifCachePixels(context, 16.w, 16.h),
                 fit: BoxFit.contain,
                 gaplessPlayback: true,
               ),
@@ -616,32 +631,32 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final titleStyle = payBillsStyle
         ? GoogleFonts.plusJakartaSans(
-      fontSize: 12.sp,
-      fontWeight: FontWeight.w700,
-      height: 1,
-      letterSpacing: -0.02 * 12.sp,
-      color: const Color(0xFF000000),
-    )
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w700,
+            height: 1,
+            letterSpacing: -0.02 * 12.sp,
+            color: const Color(0xFF000000),
+          )
         : GoogleFonts.plusJakartaSans(
-      fontSize: 12.sp,
-      fontWeight: FontWeight.w700,
-      height: 1,
-      letterSpacing: -0.02 * 12.sp,
-      color: const Color(0xFF000000),
-    );
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w700,
+            height: 1,
+            letterSpacing: -0.02 * 12.sp,
+            color: const Color(0xFF000000),
+          );
     final actionStyle = payBillsStyle
         ? GoogleFonts.plusJakartaSans(
-      fontSize: 12.sp,
-      fontWeight: FontWeight.w600,
-      height: 1,
-      letterSpacing: 0,
-      color: const Color(0xFFDD5428),
-    )
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w600,
+            height: 1,
+            letterSpacing: 0,
+            color: const Color(0xFFDD5428),
+          )
         : GoogleFonts.plusJakartaSans(
-      textStyle: Theme.of(context).textTheme.bodyMedium,
-      color: AppColors.primary,
-      fontWeight: FontWeight.w600,
-    );
+            textStyle: Theme.of(context).textTheme.bodyMedium,
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
+          );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -655,7 +670,7 @@ class _SectionHeader extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  title.toUpperCase(),
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: titleStyle,
@@ -672,14 +687,16 @@ class _SectionHeader extends StatelessWidget {
               children: [
                 if (payBillsStyle)
                   SizedBox(
-                    width: 53.w,
                     height: 15.h,
-                    child: Text(
-                      actionLabel!.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: actionStyle,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        actionLabel!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: actionStyle,
+                      ),
                     ),
                   )
                 else
@@ -692,6 +709,7 @@ class _SectionHeader extends StatelessWidget {
                   Container(
                     width: 16.w,
                     height: 16.w,
+                    alignment: Alignment.center,
                     decoration: const BoxDecoration(
                       color: Color(0xFFDD5428),
                       shape: BoxShape.circle,
@@ -815,23 +833,23 @@ class _CurvedIconGrid extends StatelessWidget {
                   child: service == null
                       ? const SizedBox.shrink()
                       : Builder(
-                    builder: (context) {
-                      final spec = _iconSpecFor(service);
-                      return _CurvedIconTile(
-                        label: labelBuilder?.call(service) ??
-                            service.name,
-                        iconUrl: service.icon ?? '',
-                        localIconAsset: spec.localAsset,
-                        iconWidth: spec.width,
-                        iconHeight: spec.height,
-                        iconTopOffset: spec.topOffset,
-                        showCardFrame: showCardFrame,
-                        onTap: () async {
-                          await onTap(service.name);
-                        },
-                      );
-                    },
-                  ),
+                          builder: (context) {
+                            final spec = _iconSpecFor(service);
+                            return _CurvedIconTile(
+                              label:
+                                  labelBuilder?.call(service) ?? service.name,
+                              iconUrl: service.icon ?? '',
+                              localIconAsset: spec.localAsset,
+                              iconWidth: spec.width,
+                              iconHeight: spec.height,
+                              iconTopOffset: spec.topOffset,
+                              showCardFrame: showCardFrame,
+                              onTap: () async {
+                                await onTap(service.name);
+                              },
+                            );
+                          },
+                        ),
                 ),
             ],
           ),
@@ -872,8 +890,7 @@ class _CurvedIconGrid extends StatelessWidget {
         localAsset: 'assets/images/svg/shop_rent.svg',
       );
     }
-    if (name.contains('against property') ||
-        name.contains('loan against')) {
+    if (name.contains('against property') || name.contains('loan against')) {
       return const _CreditCardIconSpec(
         localAsset: 'assets/images/svg/loan_against_property.svg',
         width: 34,
@@ -885,9 +902,7 @@ class _CurvedIconGrid extends StatelessWidget {
         localAsset: 'assets/images/svg/home_loan.svg',
       );
     }
-    if (name.contains('zero balance') ||
-        name == 'bank' ||
-        name == 'banking') {
+    if (name.contains('zero balance') || name == 'bank' || name == 'banking') {
       return const _CreditCardIconSpec(
         localAsset: 'assets/images/png/bank.png',
       );
@@ -976,18 +991,18 @@ class _CurvedIconTile extends StatelessWidget {
                 fit: BoxFit.contain,
               ))
         : AppNetworkImage(
-      url: iconUrl,
-      width: iconSizeW,
-      height: iconSizeH,
-      fit: BoxFit.contain,
-      showShimmer: false,
-      errorWidget: Image.asset(
-        FileConstants.appLogo,
-        height: iconSizeH,
-        width: iconSizeW,
-        fit: BoxFit.contain,
-      ),
-    );
+            url: iconUrl,
+            width: iconSizeW,
+            height: iconSizeH,
+            fit: BoxFit.contain,
+            showShimmer: false,
+            errorWidget: Image.asset(
+              FileConstants.appLogo,
+              height: iconSizeH,
+              width: iconSizeW,
+              fit: BoxFit.contain,
+            ),
+          );
     if (iconTopOffset != 0) {
       iconWidget = Padding(
         padding: EdgeInsets.only(top: iconTopOffset.w),
@@ -1010,38 +1025,38 @@ class _CurvedIconTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(showCardFrame ? 8.r : 80.r),
       child: showCardFrame
           ? Container(
-        width: 89.w,
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: const Color(0xffFAFAFA),
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: const Color(0xffEAEAEA)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8.r),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Image.asset(
-                  FileConstants.bottomOrangeCurve,
-                  height: 8.h,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
+              width: 89.w,
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: const Color(0xffFAFAFA),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: const Color(0xffEAEAEA)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8.r),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Image.asset(
+                        FileConstants.bottomOrangeCurve,
+                        height: 8.h,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                      ),
+                    ),
+                    content,
+                  ],
                 ),
               ),
-              content,
-            ],
-          ),
-        ),
-      )
+            )
           : SizedBox(
-        width: double.infinity,
-        child: content,
-      ),
+              width: double.infinity,
+              child: content,
+            ),
     );
   }
 
@@ -1134,13 +1149,13 @@ class _CurvedIconTile extends StatelessWidget {
       overflow: isOneLineFee ? TextOverflow.visible : TextOverflow.ellipsis,
       style: style,
     );
-    if (isOneLineFee) {
+    if (isOneLineFee || (last == 'property' && words.length > 2)) {
       return LayoutBuilder(
         builder: (context, constraints) {
           final maxWidth = constraints.maxWidth;
           return SizedBox(
             width: maxWidth.isFinite ? maxWidth : 82.w,
-            height: 16.h,
+            height: last == 'property' ? 30.h : 16.h,
             child: labelText,
           );
         },
@@ -1171,8 +1186,8 @@ class _CurvedIconTile extends StatelessWidget {
         .where((word) => word.isNotEmpty)
         .map(
           (word) =>
-      '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
-    )
+              '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+        )
         .join(' ');
   }
 }
@@ -1235,8 +1250,7 @@ class _PayBillsCard extends StatelessWidget {
     return HomeIconTile(
       label: _labelForService(service),
       iconUrl: isElectricity ? null : service.icon,
-      lottieAsset:
-      isElectricity ? FileConstants.electricityBulbLottie : null,
+      lottieAsset: isElectricity ? FileConstants.electricityBulbLottie : null,
       offer: _hidesOfferBadge(service) ? null : service.offers,
       labelSpacing: 6.h,
       showHalfRing: _isBookGasService(service),
@@ -1271,9 +1285,9 @@ class _PayBillsCard extends StatelessWidget {
     final fastag = _findService(used, const ['Fastag', 'FASTag']);
     final credit = _findService(used, const ['Credit Card']);
     final bookGas = _findService(
-      used,
-      const ['LPG Gas', 'Book Gas Cylinder', 'Pipe Gas', 'Book Gas'],
-    ) ??
+          used,
+          const ['LPG Gas', 'Book Gas Cylinder', 'Pipe Gas', 'Book Gas'],
+        ) ??
         _nextUnused(used);
 
     final topRow = <QuickActionService?>[
@@ -1743,9 +1757,8 @@ class _HomeBleedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final available = constraints.maxWidth.isFinite
-            ? constraints.maxWidth
-            : 1.sw;
+        final available =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : 1.sw;
         final width = available;
         final height = designWidth <= 0
             ? designHeight
@@ -1774,7 +1787,7 @@ class _HomeBleedBanner extends StatelessWidget {
                         alignment: Alignment.center,
                         gaplessPlayback: isGif,
                         filterQuality:
-                        isGif ? FilterQuality.medium : FilterQuality.low,
+                            isGif ? FilterQuality.medium : FilterQuality.low,
                       )),
           ),
         );
@@ -1835,16 +1848,17 @@ class _TrustedByIndians extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = _homeMin(392.w, constraints.maxWidth);
+        double frame(double px) => width * px / 392;
         return SizedBox(
           width: width,
-          height: 47.h,
+          height: frame(47),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
                 width: width,
-                height: 23.h,
+                height: frame(23),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -1891,10 +1905,10 @@ class _TrustedByIndians extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 6.h),
+              SizedBox(height: frame(6)),
               SizedBox(
                 width: 155.w,
-                height: 18.h,
+                height: frame(18),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -1907,7 +1921,7 @@ class _TrustedByIndians extends StatelessWidget {
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w500,
                       fontStyle: FontStyle.normal,
-                      height: 16.h / 10.sp,
+                      height: frame(16) / 10.sp,
                       letterSpacing: 0,
                       color: const Color(0xFF000000),
                     ),
@@ -2036,7 +2050,7 @@ class InsuranceBannerCarousel extends HookWidget {
     final currentIndex = useState(0);
 
     final resolvedPlaceholderCount =
-    placeholderCount < 1 ? 1 : placeholderCount;
+        placeholderCount < 1 ? 1 : placeholderCount;
     final total = (isLoading || banners.isEmpty)
         ? resolvedPlaceholderCount
         : banners.length;
@@ -2091,7 +2105,7 @@ class InsuranceBannerCarousel extends HookWidget {
           child: Row(
             children: List.generate(
               total,
-                  (index) => AnimatedContainer(
+              (index) => AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 margin: EdgeInsets.only(right: 4.w),
                 height: 6.h,
@@ -2164,14 +2178,14 @@ class _InsuranceBannerItem extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 10.h),
-  
+
                 /// APPLY BUTTON
                 InkWell(
                   onTap: onApply,
                   borderRadius: BorderRadius.circular(18.r),
                   child: Container(
                     padding:
-                    EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                        EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18.r),
                       gradient: const LinearGradient(
@@ -2204,7 +2218,7 @@ class _InsuranceBannerItem extends StatelessWidget {
                 Row(
                   children: List.generate(
                     total,
-                        (index) => AnimatedContainer(
+                    (index) => AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       margin: EdgeInsets.only(right: 4.w),
                       height: 6.h,
@@ -2225,7 +2239,8 @@ class _InsuranceBannerItem extends StatelessWidget {
           SizedBox(width: 8.w),
 
           /// RIGHT IMAGE
-          SizedBox(height: 96.h,
+          SizedBox(
+            height: 96.h,
             width: 120.w,
             child: Image.asset(
               image,
@@ -2290,7 +2305,7 @@ class _InsuranceBanner extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18.r),
                   child: Container(
                     padding:
-                    EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                        EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18.r),
                       gradient: const LinearGradient(
@@ -2320,7 +2335,8 @@ class _InsuranceBanner extends StatelessWidget {
                           size: 12.r,
                           color: Colors.white,
                         ),
-                        SizedBox(height: 10.h,
+                        SizedBox(
+                          height: 10.h,
                         )
                       ],
                     ),
@@ -2330,7 +2346,8 @@ class _InsuranceBanner extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          SizedBox(height: 96.h,
+          SizedBox(
+            height: 96.h,
             width: 120.w,
             child: Image.asset(
               FileConstants.homeBannerGif,
@@ -2442,14 +2459,13 @@ class _MiniActionCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12.r),
             border: gradientBorder == null
                 ? Border.all(
-              color: borderColor ?? AppColors.lightBorder,
-              width: 0.5,
-            )
+                    color: borderColor ?? AppColors.lightBorder,
+                    width: 0.5,
+                  )
                 : null,
           ),
-          margin: gradientBorder == null
-              ? EdgeInsets.zero
-              : EdgeInsets.all(0.5.w),
+          margin:
+              gradientBorder == null ? EdgeInsets.zero : EdgeInsets.all(0.5.w),
           child: Row(
             children: [
               Image.asset(asset,
@@ -2645,13 +2661,13 @@ class _HomeContent extends HookConsumerWidget {
             onPrimaryTap: () {
               final profile = profileState.profile;
               final successRoute =
-              temporaryBlockFlow == TemporaryBlockFlowType.noKyc
-                  ? RouteConstants.kycVerification
-                  : RouteConstants.temporaryBlockIdentityCompletion;
+                  temporaryBlockFlow == TemporaryBlockFlowType.noKyc
+                      ? RouteConstants.kycVerification
+                      : RouteConstants.temporaryBlockIdentityCompletion;
               final flowQueryValue =
-              temporaryBlockFlow == TemporaryBlockFlowType.noKyc
-                  ? 'noKyc'
-                  : 'kycVerified';
+                  temporaryBlockFlow == TemporaryBlockFlowType.noKyc
+                      ? 'noKyc'
+                      : 'kycVerified';
               Navigator.of(context, rootNavigator: true).pop();
               Future.microtask(() {
                 if (!context.mounted) return;
@@ -2662,18 +2678,18 @@ class _HomeContent extends HookConsumerWidget {
                     title: 'Verify Your Identity',
                     heading: 'Verify Your Identity',
                     description:
-                    'Enter the OTPs sent to your registered mobile number and email address to verify your identity.',
+                        'Enter the OTPs sent to your registered mobile number and email address to verify your identity.',
                     primaryButtonLabel: 'Verify & Continue',
                     successDialogTitle:
-                    'Mobile and Email verified successfully',
+                        'Mobile and Email verified successfully',
                     successDialogMessage:
-                    'This device has been successfully verified and added to your trusted device list. You can now access your account securely.',
+                        'This device has been successfully verified and added to your trusted device list. You can now access your account securely.',
                     successButtonLabel: 'Complete KYC',
                     successRoute: successRoute,
                     successRouteExtra:
-                    successRoute == RouteConstants.kycVerification
-                        ? false
-                        : null,
+                        successRoute == RouteConstants.kycVerification
+                            ? false
+                            : null,
                     temporaryBlockFlowType: temporaryBlockFlow,
                   ),
                 );
@@ -2714,7 +2730,7 @@ class _HomeContent extends HookConsumerWidget {
           final paymentType = reminder.paymentType.trim();
           final normalizedPaymentType = paymentType.toLowerCase();
           final maskedDigits =
-          reminder.maskedIdentifier.replaceAll(RegExp(r'\D'), '');
+              reminder.maskedIdentifier.replaceAll(RegExp(r'\D'), '');
           final cardLast4 = maskedDigits.length >= 4
               ? maskedDigits.substring(maskedDigits.length - 4)
               : null;
@@ -2728,35 +2744,35 @@ class _HomeContent extends HookConsumerWidget {
               data: reminder,
               onPrimaryTap: reminder.canPayNow
                   ? () {
-                Navigator.of(context, rootNavigator: true).pop();
-                ref
-                    .read(billerDetailControllerProvider.notifier)
-                    .selectBiller(
-                  biller,
-                  categoryName:
-                  paymentType.isNotEmpty ? paymentType : null,
-                );
-                context.push(
-                  RouteConstants.billerDetail,
-                  extra: BillerDetailArgs(
-                    biller: biller,
-                    isCreditCard:
-                    normalizedPaymentType.contains('credit'),
-                    paymentType:
-                    paymentType.isNotEmpty ? paymentType : null,
-                    mobileNumber: normalizedPaymentType.contains('credit')
-                        ? (reminderMobile.isNotEmpty
-                        ? reminderMobile
-                        : null)
-                        : (reminderIdentifier.isNotEmpty
-                        ? reminderIdentifier
-                        : null),
-                    cardLast4: cardLast4,
-                    autoFetchBill: canAutoFetchReminder,
-                    autoOpenPaymentSheet: false,
-                  ),
-                );
-              }
+                      Navigator.of(context, rootNavigator: true).pop();
+                      ref
+                          .read(billerDetailControllerProvider.notifier)
+                          .selectBiller(
+                            biller,
+                            categoryName:
+                                paymentType.isNotEmpty ? paymentType : null,
+                          );
+                      context.push(
+                        RouteConstants.billerDetail,
+                        extra: BillerDetailArgs(
+                          biller: biller,
+                          isCreditCard:
+                              normalizedPaymentType.contains('credit'),
+                          paymentType:
+                              paymentType.isNotEmpty ? paymentType : null,
+                          mobileNumber: normalizedPaymentType.contains('credit')
+                              ? (reminderMobile.isNotEmpty
+                                  ? reminderMobile
+                                  : null)
+                              : (reminderIdentifier.isNotEmpty
+                                  ? reminderIdentifier
+                                  : null),
+                          cardLast4: cardLast4,
+                          autoFetchBill: canAutoFetchReminder,
+                          autoOpenPaymentSheet: false,
+                        ),
+                      );
+                    }
                   : null,
             ),
           );
@@ -2804,7 +2820,7 @@ class _HomeContent extends HookConsumerWidget {
 
     final middleBannerPage = useState(0);
     final middleBannerController =
-    useMemoized(() => PageController(), const []);
+        useMemoized(() => PageController(), const []);
     useEffect(() {
       if (middleBanners.length < 2) return null;
       final timer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -2821,7 +2837,7 @@ class _HomeContent extends HookConsumerWidget {
 
     final bottomBannerPage = useState(0);
     final bottomBannerController =
-    useMemoized(() => PageController(), const []);
+        useMemoized(() => PageController(), const []);
     useEffect(() {
       if (bottomBanners.length < 2) return null;
       final timer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -2838,7 +2854,7 @@ class _HomeContent extends HookConsumerWidget {
 
     final bankingBannerPage = useState(0);
     final bankingBannerController =
-    useMemoized(() => PageController(), const []);
+        useMemoized(() => PageController(), const []);
     useEffect(() {
       if (bankingInvestmentBanners.length < 2) return null;
       final timer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -2855,9 +2871,9 @@ class _HomeContent extends HookConsumerWidget {
     }, [bankingInvestmentBanners.length]);
 
     QuickActionCategory? findCategory(
-        List<QuickActionCategory> categories,
-        List<String> keywords,
-        ) {
+      List<QuickActionCategory> categories,
+      List<String> keywords,
+    ) {
       for (final category in categories) {
         final label = category.category.toLowerCase();
         if (keywords.any((keyword) => label.contains(keyword))) {
@@ -2934,11 +2950,11 @@ class _HomeContent extends HookConsumerWidget {
     final educationServices = [
       ...(educationCategory?.services ?? const <QuickActionService>[]),
       ...?insuranceCategory?.services.where(
-            (service) =>
-        isHouseOrShopRent(service) &&
+        (service) =>
+            isHouseOrShopRent(service) &&
             !(educationCategory?.services ?? const []).any(
-                  (existing) =>
-              existing.name.trim().toLowerCase() ==
+              (existing) =>
+                  existing.name.trim().toLowerCase() ==
                   service.name.trim().toLowerCase(),
             ),
       ),
@@ -3177,6 +3193,9 @@ class _HomeScaffoldBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusBarTop = MediaQuery.paddingOf(context).top;
+    final designTop = 49.h;
+    final safeTop = statusBarTop + 8.h;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -3208,43 +3227,43 @@ class _HomeScaffoldBody extends StatelessWidget {
                     ),
                   )
                 else if (quickActions != null)
-                    SliverToBoxAdapter(
-                      child: _HomeMainSections(
-                        payBillsServices: payBillsServices,
-                        educationServices: educationServices,
-                        insuranceServices: insuranceServices,
-                        isFetchingCreditCards: isFetchingCreditCards,
-                        onServiceTap: onServiceTap,
-                        onMyBillsTap: onMyBillsTap,
-                        onExploreUtilitiesTap: onExploreUtilitiesTap,
-                        onGoldTap: onGoldTap,
-                        onSilverTap: onSilverTap,
-                        onZeroBalanceTap: onZeroBalanceTap,
-                        onReferTap: onReferTap,
-                        bankingInvestmentBanners: bankingInvestmentBanners,
-                        bankingBannerController: bankingBannerController,
-                        bankingBannerPage: bankingBannerPage,
-                        onBankingBannerPageChanged: onBankingBannerPageChanged,
-                        onBankingBannerTap: onBankingBannerTap,
-                        middleBanners: middleBanners,
-                        middleBannerController: middleBannerController,
-                        middleBannerPage: middleBannerPage,
-                        onMiddleBannerPageChanged: onMiddleBannerPageChanged,
-                        bottomBanners: bottomBanners,
-                        bottomBannerController: bottomBannerController,
-                        bottomBannerPage: bottomBannerPage,
-                        onBottomBannerPageChanged: onBottomBannerPageChanged,
-                        onMiddleBannerTap: onMiddleBannerTap,
-                        onBottomBannerTap: onBottomBannerTap,
-                        onSpinTap: onSpinTap,
-                        onFaqTap: onFaqTap,
-                      ),
+                  SliverToBoxAdapter(
+                    child: _HomeMainSections(
+                      payBillsServices: payBillsServices,
+                      educationServices: educationServices,
+                      insuranceServices: insuranceServices,
+                      isFetchingCreditCards: isFetchingCreditCards,
+                      onServiceTap: onServiceTap,
+                      onMyBillsTap: onMyBillsTap,
+                      onExploreUtilitiesTap: onExploreUtilitiesTap,
+                      onGoldTap: onGoldTap,
+                      onSilverTap: onSilverTap,
+                      onZeroBalanceTap: onZeroBalanceTap,
+                      onReferTap: onReferTap,
+                      bankingInvestmentBanners: bankingInvestmentBanners,
+                      bankingBannerController: bankingBannerController,
+                      bankingBannerPage: bankingBannerPage,
+                      onBankingBannerPageChanged: onBankingBannerPageChanged,
+                      onBankingBannerTap: onBankingBannerTap,
+                      middleBanners: middleBanners,
+                      middleBannerController: middleBannerController,
+                      middleBannerPage: middleBannerPage,
+                      onMiddleBannerPageChanged: onMiddleBannerPageChanged,
+                      bottomBanners: bottomBanners,
+                      bottomBannerController: bottomBannerController,
+                      bottomBannerPage: bottomBannerPage,
+                      onBottomBannerPageChanged: onBottomBannerPageChanged,
+                      onMiddleBannerTap: onMiddleBannerTap,
+                      onBottomBannerTap: onBottomBannerTap,
+                      onSpinTap: onSpinTap,
+                      onFaqTap: onFaqTap,
                     ),
+                  ),
               ],
             ),
           ),
           Positioned(
-            top: 49.h,
+            top: safeTop > designTop ? safeTop : designTop,
             left: 24.w,
             height: 32.h,
             width: _homeHeaderRowWidth(context),
@@ -3298,7 +3317,7 @@ class _HomeTopSliverAppBar extends StatelessWidget {
       elevation: 0,
       toolbarHeight: toolbarHeight,
       expandedHeight: expandedHeight,
-      clipBehavior: Clip.hardEdge,
+      clipBehavior: Clip.none,
       flexibleSpace: FlexibleSpaceBar(
         collapseMode: CollapseMode.none,
         background: GestureDetector(
@@ -3388,36 +3407,9 @@ class _HomeMainSections extends StatelessWidget {
       topLeft: Radius.circular(20.r),
       topRight: Radius.circular(20.r),
     );
-    final bannerImageHeight = 1.sw * (1308 / 1760);
-    final cornerHeight = 20.r;
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: cornerHeight,
-          child: IgnorePointer(
-            child: ClipRect(
-              child: OverflowBox(
-                alignment: Alignment.bottomCenter,
-                minWidth: 1.sw,
-                maxWidth: 1.sw,
-                minHeight: bannerImageHeight,
-                maxHeight: bannerImageHeight,
-                child: Image.asset(
-                  FileConstants.homeScreenImg,
-                  width: 1.sw,
-                  height: bannerImageHeight,
-                  fit: BoxFit.fill,
-                  alignment: Alignment.bottomCenter,
-                  filterQuality: FilterQuality.medium,
-                ),
-              ),
-            ),
-          ),
-        ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -3428,305 +3420,312 @@ class _HomeMainSections extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: Padding(
               padding: EdgeInsets.only(top: 7.h),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SectionHeader(
-                            title: 'Bills & Recharges',
-                            actionLabel: 'My Bills',
-                            onAction: onMyBillsTap,
-                            payBillsStyle: true,
-                          ),
-                          SizedBox(height: 12.h),
-                          _PayBillsCard(
-                            services: payBillsServices,
-                            onTap: onServiceTap,
-                            onExploreTap: onExploreUtilitiesTap,
-                            isCreditCardLoading: isFetchingCreditCards,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-                    Opacity(
-                      opacity: 1,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final width = constraints.maxWidth;
-                          final height = width * 165 / 440;
-                          return GestureDetector(
-                            onTap: onReferTap,
-                            child: SizedBox(
-                              width: width,
-                              height: height,
-                              child: Image.asset(
-                                FileConstants.promoBannerGif,
-                                width: width,
-                                height: height,
-                                fit: BoxFit.cover,
-                                alignment: Alignment.center,
-                                gaplessPlayback: true,
-                                filterQuality: FilterQuality.medium,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const _SectionHeader(
-                            title: 'Investments',
-                            payBillsStyle: true,
-                          ),
-                          SizedBox(height: 10.h),
-                          _InvestmentCircleRow(
-                            onZeroBalanceTap: onZeroBalanceTap,
-                            onGoldTap: onGoldTap,
-                            onSilverTap: onSilverTap,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (bankingInvestmentBanners.isNotEmpty) ...[
-                      SizedBox(height: 4.h),
-                      InkWell(
-                        onTap: onBankingBannerTap,
-                        child: SizedBox(
-                          height: 60.h,
-                          width: double.infinity,
-                          child: PageView.builder(
-                            controller: bankingBannerController,
-                            onPageChanged: onBankingBannerPageChanged,
-                            itemCount: bankingInvestmentBanners.length,
-                            itemBuilder: (_, index) => AppNetworkImage(
-                              url: bankingInvestmentBanners[index].image,
-                              width: double.infinity,
-                              height: 60.h,
-                              fit: BoxFit.contain,
-                              placeholder: AppNetworkImage(
-                                url: '',
-                                width: double.infinity,
-                                height: 60.h,
-                              ),
-                            ),
-                          ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SectionHeader(
+                          title: 'Bill & recharges',
+                          actionLabel: 'My Bills',
+                          onAction: onMyBillsTap,
+                          payBillsStyle: true,
                         ),
-                      ),
-                    ],
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Pay via Credit Card'.toUpperCase(),
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w700,
-                                height: 1,
-                                letterSpacing: -0.02 * 12.sp,
-                                color: const Color(0xFF000000),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 10.h),
-                          _CurvedIconGrid(
-                            services: educationServices,
-                            onTap: onServiceTap,
-                            maxItems: 8,
-                            showCardFrame: false,
-                            labelBuilder: (service) {
-                              final name = service.name.trim();
-                              final lower = name.toLowerCase();
-                              if (lower.contains('gym')) {
-                                return 'Gym Membership';
-                              }
-                              if (lower.contains('house rent')) {
-                                return 'House Rent';
-                              }
-                              if (lower.contains('shop rent')) {
-                                return 'Shop Rent';
-                              }
-                              return name;
-                            },
-                          ),
-                          SizedBox(height: middleBanners.isNotEmpty ? 0.h : 10.h),
-                        ],
-                      ),
+                        SizedBox(height: 12.h),
+                        _PayBillsCard(
+                          services: payBillsServices,
+                          onTap: onServiceTap,
+                          onExploreTap: onExploreUtilitiesTap,
+                          isCreditCardLoading: isFetchingCreditCards,
+                        ),
+                      ],
                     ),
-                    Padding(
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          SizedBox(height: 6.h),
-                          GestureDetector(
-                            onTap: onZeroBalanceTap,
-                            child: _HomeBleedBanner(
-                              designWidth: 440,
-                              designHeight: 90,
-                              asset: FileConstants.zeroBalanceBanner,
-                            ),
-                          ),
-                          SizedBox(height: 12.h),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Insurance Premium'.toUpperCase(),
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w700,
-                                height: 1,
-                                letterSpacing: -0.02 * 12.sp,
-                                color: const Color(0xFF000000),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 10.h),
-                          _CurvedIconGrid(
-                            services: insuranceServices,
-                            onTap: onServiceTap,
-                            showCardFrame: false,
-                            labelBuilder: (service) {
-                              final name = service.name.trim();
-                              final lower = name.toLowerCase();
-                              if (lower.contains('life')) return 'Life Insurance';
-                              if (lower.contains('health')) return 'Health Insurance';
-                              if (lower.contains('general')) return 'General Insurance';
-                              if (lower.contains('insurance')) return name;
-                              return name;
-                            },
-                          ),
-                          SizedBox(height: 8.h),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
-                      child: const _CibilBanner(),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Loans'.toUpperCase(),
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w700,
-                                height: 1,
-                                letterSpacing: -0.02 * 12.sp,
-                                color: const Color(0xFF000000),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 10.h),
-                          _CurvedIconGrid(
-                            services: const [
-                              QuickActionService(name: 'Personal Loan'),
-                              QuickActionService(name: 'Business Loan'),
-                              QuickActionService(name: 'Home Loan'),
-                              QuickActionService(name: 'Loan Against Property'),
-                            ],
-                            onTap: (_) async => _showInvestmentComingSoonMessage(),
-                            showCardFrame: false,
-                            labelBuilder: (service) => service.name,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-                    LayoutBuilder(
+                  ),
+                  SizedBox(height: 16.h),
+                  Opacity(
+                    opacity: 1,
+                    child: LayoutBuilder(
                       builder: (context, constraints) {
                         final width = constraints.maxWidth;
-                        double frame(double px) => width * px / 440;
-                        return ColoredBox(
-                          color: const Color(0xFFFDFDFD),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Image.asset(
-                                FileConstants.secureFuture,
-                                width: width,
-                                height: frame(180),
-                                fit: BoxFit.fill,
-                              ),
-                              SizedBox(height: frame(45)),
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: frame(24),
-                                ),
-                                child: const _TrustedByIndians(),
-                              ),
-                              SizedBox(height: frame(26)),
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: frame(24),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 59.w,
-                                      height: 13.h,
-                                      child: Text(
-                                        'Powered By',
-                                        maxLines: 1,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.w600,
-                                          fontStyle: FontStyle.normal,
-                                          height: 1,
-                                          letterSpacing: 0,
-                                          color: const Color(0xFF000000),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 6.h),
-                                    SizedBox(
-                                      width: 61.w,
-                                      height: 24.h,
-                                      child: Image.asset(
-                                        FileConstants.bharatConnectColor,
-                                        width: 61.w,
-                                        height: 24.h,
-                                        fit: BoxFit.contain,
-                                        alignment: Alignment.centerLeft,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(height: 40.h),
-                            ],
+                        final height = width * 165 / 440;
+                        final cacheSide =
+                            _gifCachePixels(context, width, width);
+                        return GestureDetector(
+                          onTap: onReferTap,
+                          child: SizedBox(
+                            width: width,
+                            height: height,
+                            child: Image.asset(
+                              FileConstants.promoBannerGif,
+                              width: width,
+                              height: height,
+                              cacheWidth: cacheSide,
+                              cacheHeight: cacheSide,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                              gaplessPlayback: true,
+                              filterQuality: FilterQuality.medium,
+                            ),
                           ),
                         );
                       },
                     ),
-                    /*
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SectionHeader(
+                          title: 'Banking & Investment',
+                          payBillsStyle: true,
+                        ),
+                        SizedBox(height: 10.h),
+                        _InvestmentCircleRow(
+                          onZeroBalanceTap: onZeroBalanceTap,
+                          onGoldTap: onGoldTap,
+                          onSilverTap: onSilverTap,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (bankingInvestmentBanners.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    InkWell(
+                      onTap: onBankingBannerTap,
+                      child: SizedBox(
+                        height: 60.h,
+                        width: double.infinity,
+                        child: PageView.builder(
+                          controller: bankingBannerController,
+                          onPageChanged: onBankingBannerPageChanged,
+                          itemCount: bankingInvestmentBanners.length,
+                          itemBuilder: (_, index) => AppNetworkImage(
+                            url: bankingInvestmentBanners[index].image,
+                            width: double.infinity,
+                            height: 60.h,
+                            fit: BoxFit.contain,
+                            placeholder: AppNetworkImage(
+                              url: '',
+                              width: double.infinity,
+                              height: 60.h,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Pay Via Credit Card',
+                            textAlign: TextAlign.left,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                              height: 1,
+                              letterSpacing: -0.02 * 12.sp,
+                              color: const Color(0xFF000000),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        _CurvedIconGrid(
+                          services: educationServices,
+                          onTap: onServiceTap,
+                          maxItems: 8,
+                          showCardFrame: false,
+                          labelBuilder: (service) {
+                            final name = service.name.trim();
+                            final lower = name.toLowerCase();
+                            if (lower.contains('gym')) {
+                              return 'Gym Membership';
+                            }
+                            if (lower.contains('house rent')) {
+                              return 'House Rent';
+                            }
+                            if (lower.contains('shop rent')) {
+                              return 'Shop Rent';
+                            }
+                            return name;
+                          },
+                        ),
+                        SizedBox(height: middleBanners.isNotEmpty ? 0.h : 10.h),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        SizedBox(height: 6.h),
+                        GestureDetector(
+                          onTap: onZeroBalanceTap,
+                          child: _HomeBleedBanner(
+                            designWidth: 440,
+                            designHeight: 90,
+                            asset: FileConstants.zeroBalanceBanner,
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Insurance Premium',
+                            textAlign: TextAlign.left,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                              height: 1,
+                              letterSpacing: -0.02 * 12.sp,
+                              color: const Color(0xFF000000),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        _CurvedIconGrid(
+                          services: insuranceServices,
+                          onTap: onServiceTap,
+                          showCardFrame: false,
+                          labelBuilder: (service) {
+                            final name = service.name.trim();
+                            final lower = name.toLowerCase();
+                            if (lower.contains('life')) return 'Life Insurance';
+                            if (lower.contains('health'))
+                              return 'Health Insurance';
+                            if (lower.contains('general'))
+                              return 'Motor Insurance';
+                            if (lower.contains('insurance')) return name;
+                            return name;
+                          },
+                        ),
+                        SizedBox(height: 8.h),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
+                    child: const _CibilBanner(),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Loan',
+                            textAlign: TextAlign.left,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                              height: 1,
+                              letterSpacing: -0.02 * 12.sp,
+                              color: const Color(0xFF000000),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        _CurvedIconGrid(
+                          services: const [
+                            QuickActionService(name: 'Personal Loan'),
+                            QuickActionService(name: 'Business Loan'),
+                            QuickActionService(name: 'Home Loan'),
+                            QuickActionService(name: 'Loan Against Property'),
+                          ],
+                          onTap: (_) async =>
+                              _showInvestmentComingSoonMessage(),
+                          showCardFrame: false,
+                          labelBuilder: (service) => service.name,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth;
+                      double frame(double px) => width * px / 440;
+                      return ColoredBox(
+                        color: const Color(0xFFFDFDFD),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Image.asset(
+                              FileConstants.secureFuture,
+                              width: width,
+                              height: frame(180),
+                              fit: BoxFit.fill,
+                            ),
+                            SizedBox(height: frame(45)),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: frame(24),
+                              ),
+                              child: const _TrustedByIndians(),
+                            ),
+                            SizedBox(height: frame(26)),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: frame(24),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 59.w,
+                                    height: 13.h,
+                                    child: Text(
+                                      'Powered By',
+                                      maxLines: 1,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w600,
+                                        fontStyle: FontStyle.normal,
+                                        height: 1,
+                                        letterSpacing: 0,
+                                        color: const Color(0xFF000000),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  SizedBox(
+                                    width: 61.w,
+                                    height: 24.h,
+                                    child: Image.asset(
+                                      FileConstants.bharatConnectColor,
+                                      width: 61.w,
+                                      height: 24.h,
+                                      fit: BoxFit.contain,
+                                      alignment: Alignment.centerLeft,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 40.h),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  /*
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0.h),
               child: Column(
@@ -3810,11 +3809,11 @@ class _HomeMainSections extends StatelessWidget {
                 ),
             ],
             */
-                  ],
-                ),
+                ],
               ),
             ),
           ),
+        ),
       ],
     );
   }
@@ -3849,9 +3848,9 @@ class _HomeErrorState extends StatelessWidget {
               'Opps!',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             SizedBox(height: 20.h),
             Container(
@@ -3861,10 +3860,12 @@ class _HomeErrorState extends StatelessWidget {
                 color: const Color(0xFFFFF1ED),
                 borderRadius: BorderRadius.circular(22.r),
               ),
-              child: Image.asset(
-                FileConstants.serverDown,
-                height: 160.h,
-                fit: BoxFit.contain,
+              child: AspectRatio(
+                aspectRatio: 1336 / 558,
+                child: Image.asset(
+                  FileConstants.serverDown,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             SizedBox(height: 28.h),
@@ -3872,18 +3873,18 @@ class _HomeErrorState extends StatelessWidget {
               'Something Went Wrong',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             SizedBox(height: 10.h),
             Text(
               'We’re currently facing a temporary server issue.\nYour account and funds remain safe and secure.\nPlease try again after a few minutes.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary.withOpacity(0.8),
-                height: 1.55,
-              ),
+                    color: AppColors.textPrimary.withOpacity(0.8),
+                    height: 1.55,
+                  ),
             ),
             SizedBox(height: 18.h),
             Container(
@@ -3895,9 +3896,9 @@ class _HomeErrorState extends StatelessWidget {
               child: Text(
                 'Error Code: ERU-SRV-503',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ),
           ],
@@ -3919,18 +3920,18 @@ class _HomeErrorState extends StatelessWidget {
             'Something Went Wrong',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
           SizedBox(height: 6.h),
           Text(
             'We’re facing a temporary issue loading your data. Please try again.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textPrimary.withOpacity(0.7),
-              height: 1.4,
-            ),
+                  color: AppColors.textPrimary.withOpacity(0.7),
+                  height: 1.4,
+                ),
           ),
           SizedBox(height: 18.h),
           Row(
@@ -4000,20 +4001,20 @@ class _HomeReminderDialog extends StatelessWidget {
               _billReminderTitle(data.paymentType),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.black,
-                fontWeight: FontWeight.w700,
-                fontSize: 16.sp,
-              ),
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16.sp,
+                  ),
             ),
             SizedBox(height: 4.h),
             Text(
               _billReminderDueText(data),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.red,
-                fontWeight: FontWeight.w600,
-                fontSize: 12.5.sp,
-              ),
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5.sp,
+                  ),
             ),
             SizedBox(height: 14.h),
             Container(
@@ -4034,45 +4035,45 @@ class _HomeReminderDialog extends StatelessWidget {
               ),
               child: data.billerIcon.trim().isNotEmpty
                   ? ClipOval(
-                child: AppNetworkImage(
-                  url: data.billerIcon,
-                  fit: BoxFit.contain,
-                  showShimmer: false,
-                ),
-              )
+                      child: AppNetworkImage(
+                        url: data.billerIcon,
+                        fit: BoxFit.contain,
+                        showShimmer: false,
+                      ),
+                    )
                   : Image.asset(
-                FileConstants.bharatConnectColor,
-                fit: BoxFit.contain,
-              ),
+                      FileConstants.bharatConnectColor,
+                      fit: BoxFit.contain,
+                    ),
             ),
             SizedBox(height: 12.h),
             Text(
               _billReminderIdentifier(data),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFFF05A28),
-                fontWeight: FontWeight.w500,
-                fontSize: 15.sp,
-              ),
+                    color: const Color(0xFFF05A28),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15.sp,
+                  ),
             ),
             SizedBox(height: 6.h),
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.black,
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: Colors.black,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
                 children: [
                   const TextSpan(text: 'Amount Due: '),
                   TextSpan(
                     text: _formatReminderAmount(data.lastBillAmount),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.black,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w800,
-                    ),
+                          color: Colors.black,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ],
               ),
@@ -4092,11 +4093,11 @@ class _HomeReminderDialog extends StatelessWidget {
                 _billReminderMessage(data),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.black.withOpacity(0.78),
-                  fontSize: 12.sp,
-                  height: 1.3,
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: Colors.black.withOpacity(0.78),
+                      fontSize: 12.sp,
+                      height: 1.3,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ),
             SizedBox(height: 16.h),
@@ -4195,7 +4196,7 @@ String _formatReminderAmount(double amount) {
   final absolute = amount.abs();
   final isWhole = absolute == absolute.truncateToDouble();
   final value =
-  isWhole ? absolute.toStringAsFixed(0) : absolute.toStringAsFixed(2);
+      isWhole ? absolute.toStringAsFixed(0) : absolute.toStringAsFixed(2);
   return '₹$value';
 }
 

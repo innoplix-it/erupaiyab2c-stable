@@ -294,7 +294,6 @@ class HomeView extends HookConsumerWidget {
         navBarStyle: NavBarStyle.simple,
         decoration: NavBarDecoration(
           borderRadius: BorderRadius.circular(0.r),
-          // color: Colors.white,
           colorBehindNavBar: Colors.white,
         ),
         navBarHeight: 65,

@@ -1,6 +1,5 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../constants/app_error_messages.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../services/push_notification_service.dart';
 import '../models/education_account_type.dart';
@@ -52,18 +51,6 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   Future<bool> validateAmount() async {
     final raw = state.amountInput.trim();
     final amount = int.tryParse(raw.replaceAll(RegExp(r'\D'), '')) ?? 0;
-    if (amount <= 0) {
-      state = state.copyWith(amountErrorMessage: 'Enter a valid amount.');
-      return false;
-    }
-    final limitError = payViaCreditCardAmountError(state.feeType, amount);
-    if (limitError != null) {
-      state = state.copyWith(
-        amountValidated: false,
-        amountErrorMessage: limitError,
-      );
-      return false;
-    }
     state = state.copyWith(isValidatingAmount: true, amountErrorMessage: null);
     try {
       final response = await _repository.validateAmount(amount);
@@ -383,30 +370,4 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       return false;
     }
   }
-}
-
-bool isCappedPayViaCreditCardFee(String? feeType) {
-  final value = (feeType ?? '').trim().toLowerCase();
-  return value.contains('school') ||
-      value.contains('college') ||
-      value.contains('tuition') ||
-      value.contains('tution') ||
-      value.contains('house rent') ||
-      value.contains('shop rent');
-}
-
-const int _payViaCreditCardMinAmount = 100;
-const int _payViaCreditCardMaxAmount = 100000;
-
-String? payViaCreditCardAmountError(String? feeType, num amount) {
-  if (!isCappedPayViaCreditCardFee(feeType) || amount <= 0) {
-    return null;
-  }
-  if (amount < _payViaCreditCardMinAmount) {
-    return AppErrorMessages.minAmount100;
-  }
-  if (amount > _payViaCreditCardMaxAmount) {
-    return AppErrorMessages.maxAmount100000;
-  }
-  return null;
 }

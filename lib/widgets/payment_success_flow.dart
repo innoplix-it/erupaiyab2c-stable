@@ -307,6 +307,36 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
     });
   }
 
+  Widget _failureActionButton({
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
+        side: BorderSide(
+          color: AppColors.lightBorder.withOpacity(0.8),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 14.h),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -316,6 +346,15 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
           final height = constraints.maxHeight;
           final headerHeight = height * 0.5;
           final cardTop = headerHeight * 0.82;
+          final footerClearance = MediaQuery.paddingOf(context).bottom +
+              24.h +
+              30.h +
+              8.h +
+              20.h +
+              16.h +
+              48.h +
+              (widget.onViewHistory != null ? 40.h : 0) +
+              12.h;
 
           return Stack(
             children: [
@@ -376,48 +415,32 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                 ],
               ),
               Positioned(
-                left: 24,
-                right: 24,
+                left: 24.w,
+                right: 24.w,
                 top: cardTop,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _TransactionDetailsCard(
-                      title: widget.detailsTitle,
-                      details: widget.details,
-                    ),
-                    if (widget.showFailureActions) ...[
-                      SizedBox(height: 14.h),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
+                bottom: 0,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _TransactionDetailsCard(
+                        title: widget.detailsTitle,
+                        details: widget.details,
+                      ),
+                      if (widget.showFailureActions) ...[
+                        SizedBox(height: 14.h),
+                        LayoutBuilder(
+                          builder: (context, buttonConstraints) {
+                            final contactSupport = _failureActionButton(
                               onPressed: widget.onContactSupport == null
                                   ? null
-                                  : () =>
-                                      widget.onContactSupport?.call(context),
-                              icon: const Icon(Icons.headset_mic_outlined),
-                              label: const Text('Contact Support'),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: AppColors.textPrimary,
-                                side: BorderSide(
-                                  color: AppColors.lightBorder.withOpacity(0.8),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14.r),
-                                ),
-                                padding:
-                                    EdgeInsets.symmetric(vertical: 14.h),
-                                textStyle: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: OutlinedButton.icon(
+                                  : () => widget.onContactSupport?.call(
+                                        context,
+                                      ),
+                              icon: Icons.headset_mic_outlined,
+                              label: 'Contact Support',
+                            );
+                            final share = _failureActionButton(
                               onPressed: widget.onShareReceipt == null ||
                                       widget.transactionId.trim().isEmpty
                                   ? null
@@ -425,29 +448,31 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
                                         context,
                                         widget.transactionId,
                                       ),
-                              icon: const Icon(Icons.share_outlined),
-                              label: const Text('Share'),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: AppColors.textPrimary,
-                                side: BorderSide(
-                                  color: AppColors.lightBorder.withOpacity(0.8),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14.r),
-                                ),
-                                padding:
-                                    EdgeInsets.symmetric(vertical: 14.h),
-                                textStyle: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                              icon: Icons.share_outlined,
+                              label: 'Share',
+                            );
+                            if (buttonConstraints.maxWidth < 160) {
+                              return Column(
+                                children: [
+                                  contactSupport,
+                                  SizedBox(height: 12.h),
+                                  share,
+                                ],
+                              );
+                            }
+                            return Row(
+                              children: [
+                                Expanded(child: contactSupport),
+                                SizedBox(width: 12.w),
+                                Expanded(child: share),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                      SizedBox(height: footerClearance),
                     ],
-                  ],
+                  ),
                 ),
               ),
               Positioned(

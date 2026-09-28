@@ -337,14 +337,16 @@ class _CardListSection extends StatelessWidget {
     final response = cardsFuture.data;
     final cards = response?.cards ?? const <EducationCard>[];
     if (cards.isEmpty) {
-      return SizedBox(height: 260.h,
+      return SizedBox(
+        height: 260.h,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
                 FileConstants.creditCardGif,
-                height: 140.h,
+                width: 140.r,
+                height: 140.r,
                 fit: BoxFit.contain,
               ),
               SizedBox(height: 16.h),
@@ -483,7 +485,8 @@ class _CardListSection extends StatelessWidget {
                       ),
                 ),
               ),
-              SizedBox(height: 36.h,
+              SizedBox(
+                height: 36.h,
                 child: ElevatedButton(
                   onPressed: onViewAndPay,
                   style: ElevatedButton.styleFrom(

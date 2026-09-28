@@ -183,6 +183,9 @@ class _MiniMarketRow extends StatelessWidget {
             change: '-15,196.00 (-5.22%)',
             up: false,
             asset: FileConstants.digitalSilverGif,
+            onTap: () => context.push(
+              '${RouteConstants.digitalGold}?metal=silver&entry=home',
+            ),
           ),
         ),
         SizedBox(width: 12.w),
@@ -207,6 +210,7 @@ class _MiniMarketCard extends StatelessWidget {
     required this.change,
     required this.up,
     required this.asset,
+    this.onTap,
   });
 
   final String title;
@@ -214,11 +218,15 @@ class _MiniMarketCard extends StatelessWidget {
   final String change;
   final bool up;
   final String asset;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final changeColor = up ? const Color(0xFF0B8A3B) : Colors.red.shade700;
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12.r),
+      child: Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -268,6 +276,7 @@ class _MiniMarketCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

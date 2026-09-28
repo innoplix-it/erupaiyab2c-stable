@@ -238,7 +238,7 @@ class OfferDetailView extends StatelessWidget {
     return Image.asset(
       FileConstants.homeBanner2,
       width: double.infinity,
-      height: 150.h,
+      height: 110.h,
       fit: BoxFit.cover,
     );
   }

@@ -27,9 +27,9 @@ class GoldLockerValueCard extends StatelessWidget {
     return ClipRRect(
         borderRadius: BorderRadius.circular(18.r),
         child: Container(
-          height: 150.h,
+          height: 150.w,
           width: double.infinity,
-        decoration: BoxDecoration(gradient: backgroundGradient),
+          decoration: BoxDecoration(gradient: backgroundGradient),
           child: Stack(
             children: [
               Positioned(

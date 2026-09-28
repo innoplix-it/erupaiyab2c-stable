@@ -17,24 +17,29 @@ class TwotoneSearchIcon extends StatelessWidget {
   const TwotoneSearchIcon({
     super.key,
     this.size,
+    this.width,
+    this.height,
     this.color = const Color(0xFFDD5428),
   });
 
   final double? size;
+  final double? width;
+  final double? height;
   final Color color;
 
   static const _defaultColor = Color(0xFFDD5428);
 
   @override
   Widget build(BuildContext context) {
-    final resolved = size ?? 18.w;
+    final resolvedW = width ?? size ?? 18.w;
+    final resolvedH = height ?? size ?? 18.w;
     return SizedBox(
-      width: resolved,
-      height: resolved,
+      width: resolvedW,
+      height: resolvedH,
       child: SvgPicture.string(
         _orangeSearchSvg,
-        width: resolved,
-        height: resolved,
+        width: resolvedW,
+        height: resolvedH,
         fit: BoxFit.contain,
         colorFilter: color == _defaultColor
             ? null
@@ -90,6 +95,9 @@ class SearchTextfield extends StatelessWidget {
     this.onChange,
     this.onFilterPressed,
     this.searchIconOnRight = false,
+    this.searchIconWidth,
+    this.searchIconHeight,
+    this.searchIconInset,
     this.hintStyle,
     this.style,
     this.prefixIconConstraints,
@@ -109,6 +117,9 @@ class SearchTextfield extends StatelessWidget {
   final ValueChanged<String>? onChange;
   final VoidCallback? onFilterPressed;
   final bool searchIconOnRight;
+  final double? searchIconWidth;
+  final double? searchIconHeight;
+  final double? searchIconInset;
   final TextStyle? hintStyle;
   final TextStyle? style;
   final BoxConstraints? prefixIconConstraints;
@@ -162,11 +173,16 @@ class SearchTextfield extends StatelessWidget {
                     SearchBarLeadingIcon.constraints(fieldHeight: height)),
             suffixIcon: searchIconOnRight
                 ? Padding(
-                    padding: EdgeInsets.only(right: 16.w),
+                    padding: EdgeInsets.only(right: searchIconInset ?? 16.w),
                     child: SizedBox(
                       height: height,
-                      width: 18.w,
-                      child: const Center(child: TwotoneSearchIcon()),
+                      width: searchIconWidth ?? 18.w,
+                      child: Center(
+                        child: TwotoneSearchIcon(
+                          width: searchIconWidth ?? 18.w,
+                          height: searchIconHeight ?? searchIconWidth ?? 18.w,
+                        ),
+                      ),
                     ),
                   )
                 : onFilterPressed == null
@@ -188,12 +204,13 @@ class SearchTextfield extends StatelessWidget {
                       ),
             suffixIconConstraints: searchIconOnRight
                 ? BoxConstraints(
-                    minWidth: 16.w + 18.w,
-                    minHeight: height ?? 18.w,
+                    minWidth: (searchIconInset ?? 16.w) +
+                        (searchIconWidth ?? 18.w),
+                    minHeight: height ?? searchIconHeight ?? 18.w,
                   )
                 : null,
             filled: true,
-            fillColor: resolvedFill,
+            fillColor: useOuterChrome ? Colors.transparent : resolvedFill,
             border: useOuterChrome
                 ? InputBorder.none
                 : OutlineInputBorder(
@@ -245,8 +262,10 @@ class SearchTextfield extends StatelessWidget {
         ),
         boxShadow: boxShadow,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: field,
+      child: ClipRRect(
+        borderRadius: resolvedRadius,
+        child: field,
+      ),
     );
   }
 }

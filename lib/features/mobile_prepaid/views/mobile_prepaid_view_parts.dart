@@ -90,7 +90,6 @@ class _ContactsSection extends StatelessWidget {
             onAlphaChanged: onQueryChange,
             contacts: allContacts,
             onProceed: onManualProceed,
-
           ),
           if (searchMode == _MobilePrepaidSearchMode.numeric) ...[
             SizedBox(height: 12.h),
@@ -298,14 +297,11 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
                 ],
                 Expanded(
                   child: TextField(
-                    controller:
-                        isNumeric ? numericController : alphaController,
-                    focusNode:
-                        isNumeric ? numericFocusNode : alphaFocusNode,
+                    controller: isNumeric ? numericController : alphaController,
+                    focusNode: isNumeric ? numericFocusNode : alphaFocusNode,
                     autofocus: true,
-                    keyboardType: isNumeric
-                        ? TextInputType.phone
-                        : TextInputType.text,
+                    keyboardType:
+                        isNumeric ? TextInputType.phone : TextInputType.text,
                     textInputAction: isNumeric
                         ? TextInputAction.done
                         : TextInputAction.search,
@@ -542,23 +538,23 @@ class _SectionHeader extends StatelessWidget {
                   ),
                 )
               : InkWell(
-            onTap: onAction,
-            child: Padding(
-              padding: EdgeInsets.only(left: 8.w, top: 2.h),
-              child: Text(
-                actionText!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-                style: GoogleFonts.plusJakartaSans(
-                  color: const Color(0xFFDD5428),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
-                  height: 1.2,
+                  onTap: onAction,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 8.w, top: 2.h),
+                    child: Text(
+                      actionText!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFFDD5428),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.sp,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -760,12 +756,12 @@ class _MyNumberCard extends StatelessWidget {
           ],
         ),
       ),
-      );
+    );
   }
 }
 
 class _OperatorBrandLogo extends StatelessWidget {
-   const _OperatorBrandLogo({
+  const _OperatorBrandLogo({
     required this.operatorLabel,
     required this.operatorIconUrl,
   });
@@ -857,7 +853,8 @@ class _RecentRechargeRow extends StatelessWidget {
                         )
                       : '--',
               badgeLabel: _expiresInDaysLabel(
-                days: _kPrepaidDaysPlaceholder, // later: display[index].daysLeft
+                days:
+                    _kPrepaidDaysPlaceholder, // later: display[index].daysLeft
               ),
               onRepeat: () => onRepeat(display[index]),
             ),
@@ -1114,7 +1111,11 @@ class _PlanSection extends HookWidget {
         return false;
       },
       child: ListView(
-        padding: EdgeInsets.fromLTRB(0.w, 0.h, 0.w, 24.h + MediaQuery.of(context).viewPadding.bottom,
+        padding: EdgeInsets.fromLTRB(
+          0.w,
+          0.h,
+          0.w,
+          24.h + MediaQuery.of(context).viewPadding.bottom,
         ),
         children: [
           // Suggested plans block should be at the top (edge-to-edge gradient).
@@ -1149,9 +1150,8 @@ class _PlanSection extends HookWidget {
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final barWidth = constraints.maxWidth < 392.w
-                    ? constraints.maxWidth
-                    : 392.w;
+                final barWidth =
+                    constraints.maxWidth < 392.w ? constraints.maxWidth : 392.w;
                 return Align(
                   alignment: Alignment.center,
                   child: CommonSearchBar(
@@ -1159,7 +1159,7 @@ class _PlanSection extends HookWidget {
                     controller: planSearchController,
                     onChanged: onPlanSearchChanged,
                     width: barWidth,
-                    height: 54.h,
+                    height: 54.w,
                     borderColor: const Color(0xFFD7D7D7),
                     borderWidth: 0.5,
                     boxShadow: [
@@ -1190,7 +1190,8 @@ class _PlanSection extends HookWidget {
           // Filters row
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
-            child: SizedBox(height: 34.h,
+            child: SizedBox(
+              height: 34.h,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: 1 + quickFilters.length,
@@ -1235,8 +1236,7 @@ class _PlanSection extends HookWidget {
                     );
                   }
                   final label = quickFilters[index - 1];
-                  final isSelected =
-                      applied.contains(label) && !isAllSelected;
+                  final isSelected = applied.contains(label) && !isAllSelected;
                   return _PlanFilterChip(
                     label: label,
                     selected: isSelected,
@@ -1357,7 +1357,8 @@ class _PayNowSection extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        SizedBox(width: 81.w,
+                        SizedBox(
+                          width: 81.w,
                           height: 44.h,
                           child: Align(
                             alignment: Alignment.centerLeft,
@@ -1396,8 +1397,7 @@ class _PayNowSection extends StatelessWidget {
                           onBenefitsTap: () => KDialog.instance.openSheet(
                             dialog: PlanDetailsSheet(
                               plan: plan,
-                              onProceedToPay: () =>
-                                  KDialog.instance.openSheet(
+                              onProceedToPay: () => KDialog.instance.openSheet(
                                 dialog: PrepaidPaymentBottomSheet(
                                   plan: plan,
                                   billerName:
@@ -1440,11 +1440,11 @@ class _PayNowSection extends StatelessWidget {
                                           KDialog.instance.openSheet(
                                         dialog: PrepaidPaymentBottomSheet(
                                           plan: plan,
-                                          billerName: state.operatorInfo
-                                                  ?.operatorName ??
+                                          billerName: state
+                                                  .operatorInfo?.operatorName ??
                                               'Mobile Prepaid',
-                                          ecoinsRestrictionsPercent: state
-                                              .ecoinsRestrictionsPercent,
+                                          ecoinsRestrictionsPercent:
+                                              state.ecoinsRestrictionsPercent,
                                         ),
                                       ),
                                     ),
@@ -1484,7 +1484,8 @@ class _PayNowSection extends StatelessWidget {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SizedBox(width: 83.w,
+                                    SizedBox(
+                                      width: 83.w,
                                       height: 17.h,
                                       child: FittedBox(
                                         fit: BoxFit.scaleDown,
@@ -1492,8 +1493,7 @@ class _PayNowSection extends StatelessWidget {
                                         child: Text(
                                           'Change Plan',
                                           maxLines: 1,
-                                          style:
-                                              GoogleFonts.plusJakartaSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             color: const Color(0xFFFFFFFF),
                                             fontWeight: FontWeight.w500,
                                             fontSize: 14.sp,
@@ -1503,7 +1503,8 @@ class _PayNowSection extends StatelessWidget {
                                       ),
                                     ),
                                     SizedBox(width: 7.w),
-                                    SizedBox(width: 16.r,
+                                    SizedBox(
+                                      width: 16.r,
                                       height: 16.r,
                                       child: Icon(
                                         Icons.sync,
@@ -1526,7 +1527,11 @@ class _PayNowSection extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h + MediaQuery.of(context).viewPadding.bottom,
+          padding: EdgeInsets.fromLTRB(
+            16.w,
+            10.h,
+            16.w,
+            16.h + MediaQuery.of(context).viewPadding.bottom,
           ),
           child: SizedBox(
             width: double.infinity,
@@ -1556,7 +1561,8 @@ class _PayNowSection extends StatelessWidget {
                 elevation: 0,
               ),
               child: state.isRecharging
-                  ? SizedBox(height: 20.r,
+                  ? SizedBox(
+                      height: 20.r,
                       width: 20.r,
                       child: SpinKitCircle(
                         color: Colors.white,
@@ -1583,7 +1589,6 @@ class _PayNowSection extends StatelessWidget {
       ],
     );
   }
-
 }
 
 Future<void> _openOperatorSheet(
@@ -1973,7 +1978,8 @@ class _SuggestedPlanCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayPlans = plans.take(5).toList();
-    return SizedBox(height: 105.h,
+    return SizedBox(
+      height: 105.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
@@ -2029,7 +2035,8 @@ class _SuggestedPlanCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(width: 71.w,
+                  SizedBox(
+                    width: 71.w,
                     height: 29.h,
                     child: Align(
                       alignment: Alignment.centerLeft,
@@ -2051,7 +2058,8 @@ class _SuggestedPlanCard extends StatelessWidget {
                   ),
                   if (validity.isNotEmpty) ...[
                     SizedBox(height: 4.h),
-                    SizedBox(width: 180.w,
+                    SizedBox(
+                      width: 180.w,
                       height: 14.h,
                       child: Align(
                         alignment: Alignment.centerLeft,
@@ -2072,7 +2080,8 @@ class _SuggestedPlanCard extends StatelessWidget {
                   ],
                   const Spacer(),
                   if (description.isNotEmpty)
-                    SizedBox(height: 15.h,
+                    SizedBox(
+                      height: 15.h,
                       child: Text(
                         description,
                         maxLines: 1,
@@ -2086,7 +2095,8 @@ class _SuggestedPlanCard extends StatelessWidget {
                       ),
                     ),
                   SizedBox(height: 4.h),
-                  SizedBox(height: 15.h,
+                  SizedBox(
+                    height: 15.h,
                     child: GestureDetector(
                       onTap: onTap,
                       child: Text(
@@ -2164,8 +2174,8 @@ class _MyNumberSection extends ConsumerWidget {
     final mobileTail =
         digits.length > 10 ? digits.substring(digits.length - 10) : digits;
     for (final item in items) {
-      final service = (item.serviceNoFull ?? item.serviceNo)
-          .replaceAll(RegExp(r'\D'), '');
+      final service =
+          (item.serviceNoFull ?? item.serviceNo).replaceAll(RegExp(r'\D'), '');
       if (service.isEmpty) continue;
       final serviceTail = service.length > 10
           ? service.substring(service.length - 10)
@@ -2217,10 +2227,10 @@ class _MyNumberSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _SectionHeader(
-            title: 'My Number',
-            titleWidth: 100.w,
-            specHeading: true,
-          ),
+              title: 'My Number',
+              titleWidth: 100.w,
+              specHeading: true,
+            ),
             SizedBox(height: 12.h),
             _MyNumberCard(
               dueLabel: dueLabel,
@@ -2288,7 +2298,8 @@ class _CategoryTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
-    return SizedBox(height: 24.h,
+    return SizedBox(
+      height: 24.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -2305,8 +2316,7 @@ class _CategoryTabs extends StatelessWidget {
                   Text(
                     category,
                     style: GoogleFonts.plusJakartaSans(
-                      fontWeight:
-                          isActive ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                       color: isActive
                           ? Colors.black
                           : AppColors.textPrimary.withOpacity(0.45),

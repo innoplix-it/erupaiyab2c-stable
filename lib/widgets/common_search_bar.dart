@@ -26,6 +26,9 @@ class CommonSearchBar extends StatelessWidget {
     this.style,
     this.searchIconOnRight = false,
     this.contentPadding,
+    this.searchIconWidth,
+    this.searchIconHeight,
+    this.searchIconInset,
   });
 
   final String hintText;
@@ -42,10 +45,13 @@ class CommonSearchBar extends StatelessWidget {
   final TextStyle? style;
   final bool searchIconOnRight;
   final EdgeInsetsGeometry? contentPadding;
+  final double? searchIconWidth;
+  final double? searchIconHeight;
+  final double? searchIconInset;
 
   @override
   Widget build(BuildContext context) {
-    final fieldHeight = height ?? 60.h;
+    final fieldHeight = height ?? 60.w;
     return SearchTextfield(
       hintText: hintText,
       controller: controller,
@@ -58,6 +64,9 @@ class CommonSearchBar extends StatelessWidget {
       borderWidth: borderWidth ?? 1,
       boxShadow: boxShadow,
       searchIconOnRight: searchIconOnRight,
+      searchIconWidth: searchIconWidth,
+      searchIconHeight: searchIconHeight,
+      searchIconInset: searchIconInset,
       contentPadding: contentPadding ??
           (searchIconOnRight
               ? EdgeInsets.only(left: 16.w)

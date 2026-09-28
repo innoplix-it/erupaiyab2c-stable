@@ -19,6 +19,7 @@ class BankAccountsView extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final headerHeight = 260.h;
     return Scaffold(
       backgroundColor: Colors.white,
       // bottomNavigationBar: SafeArea(
@@ -39,7 +40,7 @@ class BankAccountsView extends HookWidget {
             children: [
               ReferAndEarnAppBar(
                 title: 'Bank Accounts',
-                height: 260.h,
+                height: headerHeight,
                 body: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -75,7 +76,7 @@ class BankAccountsView extends HookWidget {
             ],
           ),
           Positioned.fill(
-            top: 200.h,
+            top: headerHeight - 60.h,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -624,7 +625,7 @@ class _CardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height.h,
+      height: height,
       decoration: BoxDecoration(
         color: AppColors.lightBorder.withOpacity(0.3),
         borderRadius: BorderRadius.circular(18.r),
@@ -751,8 +752,8 @@ class _Line extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width.w,
-      height: height.h,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.r),

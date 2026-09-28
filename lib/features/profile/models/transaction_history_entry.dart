@@ -280,7 +280,8 @@ Map<String, dynamic> composeTransactionAmountBreakdown({
 
   final serviceCharge = _readMappedValue(
     flattened,
-    ['Service Charge', 'service_charge'],
+    ['Service Charge', ''
+        ''],
   );
   final gstOnServiceCharge = _readMappedValue(
     flattened,

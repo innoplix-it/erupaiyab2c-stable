@@ -5,9 +5,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../constants/app_colors.dart';
 
 class ReferralYoutubeEmbedCard extends StatefulWidget {
-  const ReferralYoutubeEmbedCard({super.key, this.height = 160});
-
-  final double height;
+  const ReferralYoutubeEmbedCard({super.key});
 
   @override
   State<ReferralYoutubeEmbedCard> createState() =>
@@ -28,13 +26,13 @@ class _ReferralYoutubeEmbedCardState extends State<ReferralYoutubeEmbedCard> {
         padding: 0;
         background: #000;
         overflow: hidden;
-        height: 100.h%;
-        width: 100.w%;
+        height: 100%;
+        width: 100%;
       }
       iframe {
         border: 0;
-        width: 100.w%;
-        height: 100.h%;
+        width: 100%;
+        height: 100%;
       }
     </style>
   </head>
@@ -76,27 +74,29 @@ class _ReferralYoutubeEmbedCardState extends State<ReferralYoutubeEmbedCard> {
       borderRadius: BorderRadius.circular(16.r),
       child: SizedBox(
         width: double.infinity,
-        height: widget.height.h,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: ColoredBox(
-                color: Colors.black,
-                child: WebViewWidget(controller: _controller),
-              ),
-            ),
-            if (_isLoading)
-              const Positioned.fill(
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(
+            children: [
+              Positioned.fill(
                 child: ColoredBox(
                   color: Colors.black,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.white,
+                  child: WebViewWidget(controller: _controller),
+                ),
+              ),
+              if (_isLoading)
+                const Positioned.fill(
+                  child: ColoredBox(
+                    color: Colors.black,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.white,
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
