@@ -169,7 +169,10 @@ class MobilePrepaidView extends HookConsumerWidget {
       if (searchMode.value == _MobilePrepaidSearchMode.numeric) {
         // When switching from ABC -> 123, carry any typed number over so the
         // numeric search can continue seamlessly.
-        final fromAlpha = _normalizeMobile(contactSearchController.text);
+        var fromAlpha = _normalizeMobile(contactSearchController.text);
+        if (fromAlpha.length > 10) {
+          fromAlpha = fromAlpha.substring(fromAlpha.length - 10);
+        }
         if (fromAlpha.isNotEmpty && manualNumberController.text != fromAlpha) {
           manualNumberController.text = fromAlpha;
           manualNumberController.selection = TextSelection.collapsed(
@@ -356,19 +359,19 @@ class MobilePrepaidView extends HookConsumerWidget {
 
     Future<void> rebuildFilteredContacts() async {
       final entries = contactsState.searchIndex;
-      if (entries.isEmpty) {
-        filteredContacts.value = [];
-        return;
-      }
       final token = ++filterToken.value;
       final query = contactQuery.value.trim().toLowerCase();
-      final indices = await compute(
-        _filterContactIndices,
-        <String, dynamic>{
-          'entries': entries,
-          'query': query,
-        },
-      );
+      // With contacts permission denied there is nothing to search, but a typed
+      // number must still reach the numeric (123) flow below.
+      final indices = entries.isEmpty
+          ? const <int>[]
+          : await compute(
+              _filterContactIndices,
+              <String, dynamic>{
+                'entries': entries,
+                'query': query,
+              },
+            );
       if (!isMounted() || token != filterToken.value) return;
       filteredContacts.value = [
         for (final i in indices)
@@ -517,6 +520,7 @@ class MobilePrepaidView extends HookConsumerWidget {
               ? 'Mobile Prepaid'
               : (hasPlanSelected ? 'Pay Now' : 'Select A Recharge Plan'),
           onBack: handleBack,
+          fitTitle: true,
           titleStyle: isSelectionScreen
               ? GoogleFonts.plusJakartaSans(
                   fontSize: 16.sp,

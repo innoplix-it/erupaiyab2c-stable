@@ -124,10 +124,12 @@ void main() {
       }
 
       if (size.width == 440) {
-        expect(bar.height, closeTo(80, 0.5));
+        expect(bar.height, closeTo(74, 0.5));
         expect(HomeBottomNavMetrics.iconSize(), 24);
         expect(HomeBottomNavMetrics.spinSize(), 46);
-        expect(HomeBottomNavMetrics.fontSize(), 14);
+        expect(HomeBottomNavMetrics.fontSize(), 13);
+        expect(HomeBottomNavMetrics.iconLabelGap(), 6);
+        expect(HomeBottomNavMetrics.paddingV(), 14);
         final payCenter = centers.first;
         expect(payCenter, closeTo(51.2, 1.5));
       }

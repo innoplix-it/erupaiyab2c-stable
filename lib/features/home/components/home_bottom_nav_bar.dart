@@ -15,9 +15,9 @@ abstract final class HomeBottomNavMetrics {
 
   static double iconSize() => (24.r).clamp(20.0, 24.0);
   static double spinSize() => (46.r).clamp(40.0, 46.0);
-  static double paddingV() => (16.h).clamp(12.0, 16.0);
-  static double iconLabelGap() => (8.h).clamp(6.0, 8.0);
-  static double fontSize() => (14.sp).clamp(12.0, 14.0);
+  static double paddingV() => (14.h).clamp(10.0, 14.0);
+  static double iconLabelGap() => (6.h).clamp(4.0, 6.0);
+  static double fontSize() => (13.sp).clamp(11.0, 13.0);
 
   static TextStyle labelStyle(Color color) {
     final size = fontSize();
@@ -34,7 +34,7 @@ abstract final class HomeBottomNavMetrics {
   /// so the label box follows the raw font size.
   static double labelBoxHeight() => fontSize() + 2;
 
-  /// Bar height excluding the system inset (80 on the Figma reference).
+  /// Bar height excluding the system inset (74 on the 440px reference).
   static double barHeight() {
     final itemHeight = iconSize() + iconLabelGap() + labelBoxHeight();
     final content = itemHeight > spinSize() ? itemHeight : spinSize();

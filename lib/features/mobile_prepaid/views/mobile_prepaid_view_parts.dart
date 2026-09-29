@@ -101,10 +101,10 @@ class _ContactsSection extends StatelessWidget {
                 outerPadding: EdgeInsets.zero,
               )
             else if (isLoading)
-              const Center(
+              Center(
                 child: SpinKitCircle(
                   color: AppColors.primary,
-                  size: 48,
+                  size: 48.r,
                 ),
               )
             else if (contacts.isEmpty)
@@ -162,10 +162,10 @@ class _ContactsSection extends StatelessWidget {
                 outerPadding: EdgeInsets.zero,
               )
             else if (isLoading)
-              const Center(
+              Center(
                 child: SpinKitCircle(
                   color: AppColors.primary,
-                  size: 48,
+                  size: 48.r,
                 ),
               )
             else if (contacts.isEmpty)
@@ -1273,10 +1273,10 @@ class _PlanSection extends HookWidget {
             child: Builder(
               builder: (context) {
                 if (state.isFetching && state.currentPlans.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: SpinKitCircle(
                       color: AppColors.primary,
-                      size: 48,
+                      size: 48.r,
                     ),
                   );
                 }
@@ -1681,7 +1681,7 @@ class _OperatorSelectSheet extends ConsumerWidget {
               padding: EdgeInsets.symmetric(vertical: 24.h),
               child: SpinKitCircle(
                 color: AppColors.primary,
-                size: 48,
+                size: 48.r,
               ),
             )
           else
@@ -1806,7 +1806,7 @@ class _RegionSelectSheetState extends ConsumerState<_RegionSelectSheet> {
               padding: EdgeInsets.symmetric(vertical: 24.h),
               child: SpinKitCircle(
                 color: AppColors.primary,
-                size: 48,
+                size: 48.r,
               ),
             )
           else
@@ -2080,8 +2080,8 @@ class _SuggestedPlanCard extends StatelessWidget {
                   ],
                   const Spacer(),
                   if (description.isNotEmpty)
-                    SizedBox(
-                      height: 15.h,
+                    ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: 15.h),
                       child: Text(
                         description,
                         maxLines: 1,
@@ -2089,14 +2089,14 @@ class _SuggestedPlanCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w400,
                           fontSize: 12.sp,
-                          height: 15.h / 12,
+                          height: 15 / 12,
                           color: const Color(0xFF222222),
                         ),
                       ),
                     ),
                   SizedBox(height: 4.h),
-                  SizedBox(
-                    height: 15.h,
+                  ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: 15.h),
                     child: GestureDetector(
                       onTap: onTap,
                       child: Text(
@@ -2107,7 +2107,7 @@ class _SuggestedPlanCard extends StatelessWidget {
                           color: const Color(0xFFDD5428),
                           fontWeight: FontWeight.w600,
                           fontSize: 12.sp,
-                          height: 15.h / 12,
+                          height: 15 / 12,
                           decoration: TextDecoration.underline,
                           decorationColor: const Color(0xFFDD5428),
                           decorationStyle: TextDecorationStyle.solid,

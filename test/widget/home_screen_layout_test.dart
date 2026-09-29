@@ -323,6 +323,113 @@ void main() {
     });
   }
 
+  Rect imageRect(WidgetTester tester, String nameFragment) {
+    return tester.getRect(find.byWidgetPredicate((w) {
+      if (w is! Image) return false;
+      var provider = w.image;
+      if (provider is ResizeImage) provider = provider.imageProvider;
+      return provider is AssetImage &&
+          provider.assetName.contains(nameFragment);
+    }).first);
+  }
+
+  for (final size in const <Size>[
+    Size(320, 568),
+    Size(360, 740),
+    Size(375, 812),
+    Size(390, 844),
+    Size(412, 915),
+    Size(440, 956),
+  ]) {
+    testWidgets(
+        'main sections spacing and secure carousel at '
+        '${size.width}x${size.height}', (tester) async {
+      await pumpSurface(
+        tester,
+        logicalSize: size,
+        textScale: 1.15,
+        body: ListView(
+          padding: EdgeInsets.zero,
+          children: [debugHomeMainSections()],
+        ),
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.scrollUntilVisible(
+        find.text(homeServiceCardLabelText('Insurance Premium')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+      final rentTiles = [
+        for (final label in ['House', 'Shop'])
+          tester.getRect(find
+              .ancestor(
+                of: find.textContaining(label),
+                matching: find.byType(InkWell),
+              )
+              .first),
+      ];
+      final rentBottom = rentTiles
+          .map((r) => r.bottom)
+          .reduce((a, b) => a > b ? a : b);
+      final banner = imageRect(tester, 'zerobalance');
+      final heading =
+          tester.getRect(find.text(homeServiceCardLabelText('Insurance Premium')));
+      final above = banner.top - rentBottom;
+      final below = heading.top - banner.bottom;
+      expect(above, greaterThan(0));
+      expect(below, closeTo(above, 0.5));
+
+      await tester.scrollUntilVisible(
+        find.byWidgetPredicate((w) =>
+            w is PageView &&
+            w.childrenDelegate is SliverChildBuilderDelegate),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+      final secure = imageRect(tester, 'secureimg');
+      expect(secure.width, closeTo(size.width, 0.5));
+      expect(secure.height, closeTo(size.width * 180 / 440, 0.5));
+      final before = secure.left;
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(tester.takeException(), isNull);
+      expect(imageRect(tester, 'secureimg').width,
+          closeTo(size.width, 0.5));
+      expect(before, closeTo(0, 0.5));
+
+      await tester.drag(find.byType(ListView), const Offset(0, -3000));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('eCoins value style at ${size.width}x${size.height}',
+        (tester) async {
+      await pumpSurface(
+        tester,
+        logicalSize: size,
+        textScale: 1.15,
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: debugHomeStickyHeader(walletBalance: 128750),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final value = find.text('128750');
+      expect(value, findsOneWidget);
+      final style = tester.widget<Text>(value).style!;
+      expect(style.fontFamily, contains('BricolageGrotesque'));
+      expect(style.fontWeight, FontWeight.w700);
+      expect(style.fontSize, closeTo(14.sp, 0.01));
+      expect(style.fontStyle, FontStyle.normal);
+      expect(style.height, 1);
+      expect(style.letterSpacing, 0);
+      expect(tester.getRect(value).right, lessThanOrEqualTo(size.width));
+    });
+  }
+
   testWidgets('service circles match Figma 68/10/2 on the 440 frame', (
     tester,
   ) async {

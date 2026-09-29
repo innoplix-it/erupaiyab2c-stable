@@ -102,9 +102,11 @@ class PlanCard extends StatelessWidget {
                   const PlanValidityDivider(),
                   SizedBox(height: 8.h),
                   if (plan.description.trim().isNotEmpty) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      height: 44.h,
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: double.infinity,
+                        minHeight: 44.h,
+                      ),
                       child: Text(
                         plan.description,
                         maxLines: 2,
@@ -112,7 +114,7 @@ class PlanCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w400,
                           fontSize: 12.sp,
-                          height: 22.h / 12,
+                          height: 22 / 12,
                           color: const Color(0xFF222222),
                         ),
                       ),
@@ -300,7 +302,8 @@ class _PlanInfoColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(height: 32.h,
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: 32.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -322,7 +325,8 @@ class _PlanInfoColumn extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 16.h,
+          ConstrainedBox(
+            constraints: BoxConstraints(minHeight: 16.h),
             child: Text(
               value,
               maxLines: 1,
@@ -331,7 +335,7 @@ class _PlanInfoColumn extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF000000),
                 fontSize: 12.sp,
-                height: 16.h / 12,
+                height: 16 / 12,
               ),
             ),
           ),

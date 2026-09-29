@@ -419,9 +419,6 @@ class _HomeTopBar extends StatelessWidget {
   }
 
   Widget _eCoinsPill(BuildContext context, double height, double width) {
-    final textStyle = GoogleFonts.plusJakartaSans(
-      textStyle: Theme.of(context).textTheme.bodySmall,
-    );
     final resolvedWalletBalance = walletBalance;
     final displayBalance = resolvedWalletBalance == null
         ? '--'
@@ -464,12 +461,16 @@ class _HomeTopBar extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      displayBalance,
+                      displayBalance.isEmpty
+                          ? displayBalance
+                          : displayBalance[0].toUpperCase() +
+                              displayBalance.substring(1),
                       maxLines: 1,
-                      style: textStyle.copyWith(
+                      style: GoogleFonts.bricolageGrotesque(
                         color: const Color(0xFF000000),
                         fontWeight: FontWeight.w700,
                         fontSize: 14.sp,
+                        fontStyle: FontStyle.normal,
                         height: 1,
                         letterSpacing: 0,
                       ),
@@ -1344,6 +1345,20 @@ class _BillsCardPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final outline = _outline(size);
+    // Soft white highlight above, light gray drop below; the fill covers the
+    // inner half so only a thin halo shows around the L-shape.
+    canvas.drawPath(
+      outline.shift(Offset(0, -1 * scale)),
+      Paint()
+        ..color = const Color(0xFFFFFFFF)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3 * scale),
+    );
+    canvas.drawPath(
+      outline.shift(Offset(0, 2 * scale)),
+      Paint()
+        ..color = const Color(0x1F9E9E9E)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * scale),
+    );
     canvas.drawPath(outline, Paint()..color = const Color(0xFFFFFFFF));
     canvas.drawPath(
       outline,
@@ -1375,12 +1390,6 @@ double _homeHeaderBottomGap(BuildContext context) {
   final screenHeight = MediaQuery.sizeOf(context).height;
   final base = screenHeight < 700 ? 4.h : 6.h;
   return base.clamp(4.0, 8.0);
-}
-
-/// Top spacing above "Insurance Premium" after the zero-balance banner.
-double _insuranceHeadingTop(BuildContext context) {
-  final screenWidth = MediaQuery.sizeOf(context).width;
-  return screenWidth < 360 ? 10.h : 12.h;
 }
 
 @visibleForTesting
@@ -1818,6 +1827,70 @@ class _CibilBanner extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Auto-sliding, swipeable carousel for the "secure" artwork. Each slide keeps
+/// the original full-width box and BoxFit.fill, so the design is unchanged.
+class _SecureImageCarousel extends StatefulWidget {
+  const _SecureImageCarousel({required this.width, required this.height});
+
+  final double width;
+  final double height;
+
+  static final List<String> slides = [FileConstants.secureImg];
+  static const Duration interval = Duration(seconds: 3);
+
+  @override
+  State<_SecureImageCarousel> createState() => _SecureImageCarouselState();
+}
+
+class _SecureImageCarouselState extends State<_SecureImageCarousel> {
+  // Starts mid-range so the loop can be swiped in both directions.
+  static const int _initialPage = 1000;
+  final PageController _controller =
+      PageController(initialPage: _initialPage);
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(_SecureImageCarousel.interval, (_) {
+      if (!mounted || !_controller.hasClients) return;
+      final page = _controller.page?.round() ?? _initialPage;
+      _controller.animateToPage(
+        page + 1,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final slides = _SecureImageCarousel.slides;
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: PageView.builder(
+        controller: _controller,
+        itemBuilder: (context, index) => Image.asset(
+          slides[index % slides.length],
+          width: widget.width,
+          height: widget.height,
+          fit: BoxFit.fill,
+          cacheWidth: _cachePixels(context, widget.width),
+          cacheHeight: _cachePixels(context, widget.height),
+        ),
+      ),
     );
   }
 }
@@ -3305,6 +3378,60 @@ Widget debugHomeInvestmentRow() => _InvestmentCircleRow(
     );
 
 @visibleForTesting
+Widget debugHomeMainSections() {
+  Future<void> noopService(String _) async {}
+  void noop() {}
+  void noopPage(int _) {}
+  return _HomeMainSections(
+    payBillsServices: const [
+      QuickActionService(name: 'Electricity'),
+      QuickActionService(name: 'Mobile Prepaid'),
+      QuickActionService(name: 'Fastag'),
+      QuickActionService(name: 'Credit Card'),
+      QuickActionService(name: 'Book Gas'),
+    ],
+    educationServices: const [
+      QuickActionService(name: 'School Fees'),
+      QuickActionService(name: 'College Fees'),
+      QuickActionService(name: 'Tuition Fees'),
+      QuickActionService(name: 'Gym Membership'),
+      QuickActionService(name: 'House Rent'),
+      QuickActionService(name: 'Shop Rent'),
+    ],
+    insuranceServices: const [
+      QuickActionService(name: 'Life Insurance'),
+      QuickActionService(name: 'Health Insurance'),
+      QuickActionService(name: 'General Insurance'),
+    ],
+    isFetchingCreditCards: false,
+    onServiceTap: noopService,
+    onMyBillsTap: noop,
+    onExploreUtilitiesTap: noop,
+    onGoldTap: noop,
+    onSilverTap: noop,
+    onZeroBalanceTap: noop,
+    onReferTap: noop,
+    bankingInvestmentBanners: const [],
+    bankingBannerController: PageController(),
+    bankingBannerPage: 0,
+    onBankingBannerPageChanged: noopPage,
+    onBankingBannerTap: noop,
+    middleBanners: const [],
+    middleBannerController: PageController(),
+    middleBannerPage: 0,
+    onMiddleBannerPageChanged: noopPage,
+    bottomBanners: const [],
+    bottomBannerController: PageController(),
+    bottomBannerPage: 0,
+    onBottomBannerPageChanged: noopPage,
+    onMiddleBannerTap: noopPage,
+    onBottomBannerTap: noopPage,
+    onSpinTap: noop,
+    onFaqTap: noop,
+  );
+}
+
+@visibleForTesting
 Widget debugHomeBillsCard() {
   return _PayBillsCard(
     services: const [
@@ -3462,6 +3589,11 @@ class _HomeMainSections extends StatelessWidget {
     final titleInset = (width * 20 / 440).clamp(12.0, 26.0);
     final titleToCard = (width * 16 / 440).clamp(10.0, 20.0);
     final billsMargin = _billsCardMargin(context);
+    // House/Shop Rent grid -> Zero Balance banner; reused between the banner
+    // and "Insurance Premium" so both gaps stay identical.
+    final rentGridBottomGap = middleBanners.isNotEmpty ? 0.h : 10.h;
+    final rentBannerTopGap = 12.h;
+    final rentToBannerGap = rentGridBottomGap + 2.h + rentBannerTopGap;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -3603,7 +3735,7 @@ class _HomeMainSections extends StatelessWidget {
                     },
                   ),
                 ),
-                SizedBox(height: middleBanners.isNotEmpty ? 0.h : 10.h),
+                SizedBox(height: rentGridBottomGap),
               ],
             ),
           ),
@@ -3611,7 +3743,7 @@ class _HomeMainSections extends StatelessWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                SizedBox(height: 12.h),
+                SizedBox(height: rentBannerTopGap),
                 GestureDetector(
                   onTap: onZeroBalanceTap,
                   child: RepaintBoundary(
@@ -3622,17 +3754,12 @@ class _HomeMainSections extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 6.h),
+                SizedBox(height: rentToBannerGap),
               ],
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              16.w,
-              _insuranceHeadingTop(context),
-              16.w,
-              2.h,
-            ),
+            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 2.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -3712,13 +3839,9 @@ class _HomeMainSections extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Image.asset(
-                        FileConstants.secureImg,
+                      _SecureImageCarousel(
                         width: width,
                         height: frame(180),
-                        fit: BoxFit.fill,
-                        cacheWidth: _cachePixels(context, width),
-                        cacheHeight: _cachePixels(context, frame(180)),
                       ),
                       SizedBox(height: frame(40)),
                       Padding(

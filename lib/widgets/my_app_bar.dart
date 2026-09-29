@@ -19,6 +19,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.bharatConnectWidth,
     this.bharatConnectHeight,
     this.helpIconSize,
+    this.fitTitle = false,
   });
 
   final String title;
@@ -32,6 +33,10 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double? bharatConnectWidth;
   final double? bharatConnectHeight;
   final double? helpIconSize;
+
+  /// Keeps a long title on one line, scaling it down on narrow screens or
+  /// large text instead of wrapping into the fixed-height toolbar.
+  final bool fitTitle;
 
   double get _platformTopPadding {
     final views = WidgetsBinding.instance.platformDispatcher.views;
@@ -167,16 +172,31 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
-                        child: Text(
-                          title,
-                          style: titleStyle ??
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: backgroundColor == null
-                                        ? Colors.black
-                                        : Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                        ),
+                        child: Builder(builder: (context) {
+                          final titleText = Text(
+                            title,
+                            maxLines: fitTitle ? 1 : null,
+                            style: titleStyle ??
+                                Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      color: backgroundColor == null
+                                          ? Colors.black
+                                          : Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                          );
+                          if (!fitTitle) return titleText;
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: titleText,
+                            ),
+                          );
+                        }),
                       ),
                       if (trailing != null) trailing!,
                       if (showHelp) ...[
