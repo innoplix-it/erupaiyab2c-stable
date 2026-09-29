@@ -56,7 +56,7 @@ String _rasterHomeAsset(String asset) {
         'assets/images/png/invest_silver.png',
     'assets/images/svg/zero_balance_account.svg':
         'assets/images/png/zero_balance_account.png',
-    'assets/images/svg/zerobalance.svg': 'assets/images/png/zerobalance.png',
+    'assets/images/svg/zerobalance.svg': 'assets/images/png/zerobalance_hd.png',
   };
   return mapped[asset] ?? asset;
 }
@@ -989,8 +989,9 @@ class _CurvedIconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayLabel = _capitalizeLabel(label.trim());
-    final iconSizeW = iconWidth.r;
-    final iconSizeH = iconHeight.r;
+    final baseIcon = homeServiceIconSize();
+    final iconSizeW = baseIcon * iconWidth / 34;
+    final iconSizeH = baseIcon * iconHeight / 34;
     Widget iconWidget = localIconAsset != null
         ? (localIconAsset!.toLowerCase().endsWith('.svg')
             ? SvgPicture.asset(
@@ -1025,14 +1026,10 @@ class _CurvedIconTile extends StatelessWidget {
       );
     }
 
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        HomeServiceCircle(child: iconWidget),
-        SizedBox(height: _usesCompactLabelGap(displayLabel) ? 2.h : 6.h),
-        _creditCardIconLabel(displayLabel),
-      ],
+    final content = HomeServiceItem(
+      icon: iconWidget,
+      label: _labelLines(displayLabel),
+      maxLines: _isSingleLineLabel(displayLabel) ? 1 : 2,
     );
 
     return InkWell(
@@ -1075,68 +1072,30 @@ class _CurvedIconTile extends StatelessWidget {
     );
   }
 
-  Widget _creditCardIconLabel(String label) {
-    final words = label.trim().split(RegExp(r'\s+'));
-    final last = words.isEmpty ? '' : words.last.toLowerCase();
+  /// Fee and gym labels read as one line in Figma.
+  bool _isSingleLineLabel(String label) {
     final lower = label.toLowerCase();
-    final isGym = lower.contains('gym');
-    final isOneLineFee = lower.contains('school') ||
+    return lower.contains('gym') ||
+        lower.contains('school') ||
         lower.contains('college') ||
         lower.contains('tuition') ||
         lower.contains('tution');
-    final isHouseRent = lower.contains('house') && lower.contains('rent');
-    final wrapsTwoLines = !isGym &&
-        !isOneLineFee &&
-        ((words.length == 2 &&
-                (last == 'insurance' ||
-                    last == 'rent' ||
-                    last == 'loan' ||
-                    last == 'loans')) ||
-            last == 'property');
-    final text = isHouseRent
-        ? 'House\nRent'
-        : last == 'property' && words.length > 2
-            ? '${words.sublist(0, words.length - 1).join(' ')}\n${words.last}'
-            : (words.length == 2 && wrapsTwoLines
-                ? '${words[0]}\n${words[1]}'
-                : label);
-    final style = homeServiceCardLabelStyle();
-    final labelText = Text(
-      text,
-      maxLines: (isGym || isOneLineFee) ? 1 : 2,
-      softWrap: !isOneLineFee,
-      textAlign: TextAlign.center,
-      overflow: isOneLineFee ? TextOverflow.visible : TextOverflow.ellipsis,
-      style: style,
-    );
-    if (isOneLineFee || (last == 'property' && words.length > 2)) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final maxWidth = constraints.maxWidth;
-          return SizedBox(
-            width: maxWidth.isFinite ? maxWidth : 82.w,
-            height: last == 'property' ? 30.h : 16.h,
-            child: labelText,
-          );
-        },
-      );
-    }
-    return SizedBox(
-      width: 59.w,
-      height: isGym ? 16.h : 30.h,
-      child: labelText,
-    );
   }
 
-  bool _usesCompactLabelGap(String label) {
-    final lower = label.toLowerCase();
-    return lower.contains('school') ||
-        lower.contains('college') ||
-        lower.contains('tuition') ||
-        lower.contains('tution') ||
-        lower.contains('gym') ||
-        (lower.contains('house') && lower.contains('rent')) ||
-        (lower.contains('shop') && lower.contains('rent'));
+  /// Explicit line breaks matching Figma, e.g. "Personal\nLoan",
+  /// "Loan Against\nProperty".
+  String _labelLines(String label) {
+    if (_isSingleLineLabel(label)) return label;
+    final words = label.trim().split(RegExp(r'\s+'));
+    final last = words.isEmpty ? '' : words.last.toLowerCase();
+    if (last == 'property' && words.length > 2) {
+      return '${words.sublist(0, words.length - 1).join(' ')}\n${words.last}';
+    }
+    const splitSuffixes = {'insurance', 'rent', 'loan', 'loans'};
+    if (words.length == 2 && splitSuffixes.contains(last)) {
+      return '${words[0]}\n${words[1]}';
+    }
+    return label;
   }
 
   String _capitalizeLabel(String input) {
@@ -1197,19 +1156,13 @@ class _PayBillsCard extends StatelessWidget {
     return _isElectricityService(service) || _isMobilePrepaidService(service);
   }
 
-  Widget _serviceTile(
-    QuickActionService service, {
-    double? labelSpacing,
-    double? labelHeight,
-  }) {
+  Widget _serviceTile(QuickActionService service) {
     final isElectricity = _isElectricityService(service);
     return HomeIconTile(
       label: _labelForService(service),
       iconUrl: isElectricity ? null : service.icon,
       lottieAsset: isElectricity ? FileConstants.electricityBulbLottie : null,
       offer: _hidesOfferBadge(service) ? null : service.offers,
-      labelSpacing: labelSpacing ?? 6.h,
-      labelHeight: labelHeight,
       showHalfRing: _isBookGasService(service),
       creditCardCircle: true,
       isLoading: isCreditCardLoading && _isCreditCardService(service),
@@ -1254,139 +1207,201 @@ class _PayBillsCard extends StatelessWidget {
       credit ?? _nextUnused(used),
     ];
 
-    final innerPad = 8.w;
-    final promoHeight = _lpgPromoHeight(context);
-    final exploreHeight = _lpgExploreHeight(context);
-    final ringSize = HomeServiceCircle.size + 4.w;
-    final lpgTop = ((ringSize - promoHeight) / 2).clamp(0.0, double.infinity);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 2 * _billsCardMargin(context);
+        // Every offset below is in Figma px on the 392x276 card, scaled by
+        // the card's real width so homeIconSection.png is never distorted.
+        final s = cardWidth / _billsCardDesignWidth;
+        double f(double figmaPx) => figmaPx * s;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: ResizeImage(
-                AssetImage(FileConstants.homeIconSection),
-                width: _cachePixels(context, 1.sw),
-              ),
-              fit: BoxFit.fill,
-            ),
-          ),
-          child: Padding(
-            // No right padding: the LPG / Explore buttons run flush to the
-            // card edge like Figma; only the top row is inset on the right.
-            padding: EdgeInsets.fromLTRB(
-              innerPad,
-              _homeFigmaGap(context, 7, 6, 16),
-              0,
-              innerPad,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(right: innerPad),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final service in topRow)
-                        Expanded(
-                          child: service == null
-                              ? const SizedBox.shrink()
-                              : _serviceTile(service),
-                        ),
-                    ],
+        final ringInset = HomeServiceCircle.borderWidth;
+        final ringSize = HomeServiceCircle.size + 2 * ringInset;
+        final lpgPadding = 4.h;
+        final column = (cardWidth - f(16)) / 4;
+        final lpgCenterY = f(178);
+
+        return SizedBox(
+          width: cardWidth,
+          height: f(_billsCardDesignHeight),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _BillsCardPainter(
+                    scale: s,
+                    borderWidth: 0.5.w,
                   ),
                 ),
-                SizedBox(height: _homeFigmaGap(context, 6, 6, 14)),
-                Row(
+              ),
+              Positioned(
+                left: f(8),
+                right: f(8),
+                top: f(21) - ringInset,
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (bookGas != null)
-                      SizedBox(
-                        width: (HomeServiceCircle.size + 18.w)
-                            .clamp(64.0, 86.0),
-                        child: _serviceTile(
-                          bookGas,
-                          labelSpacing: 4.w,
-                        ),
+                    for (final service in topRow)
+                      Expanded(
+                        child: service == null
+                            ? const SizedBox.shrink()
+                            : _serviceTile(service),
                       ),
-                    if (bookGas != null)
-                      SizedBox(width: _homeFigmaGap(context, 4, 6, 14)),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (bookGas != null) ...[
-                            SizedBox(height: lpgTop),
-                            SizedBox(
-                              height: promoHeight,
-                              child: _PromoStrip(
-                                asset: FileConstants.bookLpgStrip,
-                                height: promoHeight,
-                              ),
-                            ),
-                            SizedBox(height: _homeFigmaGap(context, 11, 8, 24)),
-                          ],
-                          Padding(
-                            padding: EdgeInsets.only(
-                              left: _homeFigmaGap(context, 4, 2, 10),
-                            ),
-                            child: SizedBox(
-                              height: exploreHeight,
-                              child: _ExploreUtilitiesRow(
-                                onTap: onExploreTap,
-                                height: exploreHeight,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
+              ),
+              if (bookGas != null) ...[
+                Positioned(
+                  left: f(8),
+                  width: column,
+                  top: lpgCenterY - ringSize / 2,
+                  child: _serviceTile(bookGas),
+                ),
+                Positioned(
+                  left: f(112),
+                  right: 0,
+                  top: f(158) - lpgPadding,
+                  height: f(41) + 2 * lpgPadding,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: lpgPadding),
+                    child: _PromoStrip(
+                      asset: FileConstants.bookLpgStrip,
+                      height: f(41),
+                      radius: f(8),
+                    ),
+                  ),
+                ),
               ],
-            ),
+              Positioned(
+                left: f(122),
+                right: 0,
+                top: f(221),
+                height: f(52),
+                child: _ExploreUtilitiesRow(
+                  onTap: onExploreTap,
+                  height: f(52),
+                  radius: f(8),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
-/// Converts a gap measured on the 192px-wide Figma export into the current
-/// screen width, clamped so tiny/large phones stay balanced.
-double _homeFigmaGap(
-  BuildContext context,
-  double figmaPx,
-  double min,
-  double max,
-) {
-  final width = MediaQuery.sizeOf(context).width;
-  return (width * figmaPx / 192).clamp(min, max);
+const double _billsCardDesignWidth = 392;
+const double _billsCardDesignHeight = 276;
+
+/// White L-shaped Bills & Recharges card (same outline as homeIconSection.png)
+/// with the Figma `0.5px solid #E3E3E3CC` border. The bottom-right notch holds
+/// the Explore Utilities row, so a rectangular border can't be used.
+class _BillsCardPainter extends CustomPainter {
+  const _BillsCardPainter({required this.scale, required this.borderWidth});
+
+  final double scale;
+  final double borderWidth;
+
+  static const double _radius = 16;
+  static const double _topPanelBottom = 214;
+  static const double _notchLeft = 113;
+
+  Path _outline(Size size) {
+    final inset = borderWidth / 2;
+    final left = inset;
+    final top = inset;
+    final right = size.width - inset;
+    final bottom = size.height - inset;
+    final r = _radius * scale;
+    final panelBottom = _topPanelBottom * scale;
+    final notchLeft = _notchLeft * scale;
+    final corner = Radius.circular(r);
+
+    return Path()
+      ..moveTo(left + r, top)
+      ..lineTo(right - r, top)
+      ..arcToPoint(Offset(right, top + r), radius: corner)
+      ..lineTo(right, panelBottom - r)
+      ..arcToPoint(Offset(right - r, panelBottom), radius: corner)
+      ..lineTo(notchLeft + r, panelBottom)
+      ..arcToPoint(
+        Offset(notchLeft, panelBottom + r),
+        radius: corner,
+        clockwise: false,
+      )
+      ..lineTo(notchLeft, bottom - r)
+      ..arcToPoint(Offset(notchLeft - r, bottom), radius: corner)
+      ..lineTo(left + r, bottom)
+      ..arcToPoint(Offset(left, bottom - r), radius: corner)
+      ..lineTo(left, top + r)
+      ..arcToPoint(Offset(left + r, top), radius: corner)
+      ..close();
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outline = _outline(size);
+    canvas.drawPath(outline, Paint()..color = const Color(0xFFFFFFFF));
+    canvas.drawPath(
+      outline,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth
+        ..color = const Color(0xCCE3E3E3)
+        ..isAntiAlias = true,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BillsCardPainter oldDelegate) {
+    return oldDelegate.scale != scale ||
+        oldDelegate.borderWidth != borderWidth;
+  }
 }
 
-double _lpgPromoHeight(BuildContext context) =>
-    _homeFigmaGap(context, 17, 28, 40);
+/// Horizontal margin around the Bills & Recharges card: 24px of the 440px
+/// Figma frame on normal phones, tighter on narrow ones so it never overflows.
+double _billsCardMargin(BuildContext context) {
+  final screenWidth = MediaQuery.sizeOf(context).width;
+  return screenWidth < 380 ? 16.w : screenWidth * 24 / 440;
+}
 
-double _lpgExploreHeight(BuildContext context) =>
-    _homeFigmaGap(context, 22, 36, 50);
+/// Subtle breathing room between the sticky header and the scrolling content;
+/// short screens get the tighter end of the range.
+double _homeHeaderBottomGap(BuildContext context) {
+  final screenHeight = MediaQuery.sizeOf(context).height;
+  final base = screenHeight < 700 ? 4.h : 6.h;
+  return base.clamp(4.0, 8.0);
+}
+
+/// Top spacing above "Insurance Premium" after the zero-balance banner.
+double _insuranceHeadingTop(BuildContext context) {
+  final screenWidth = MediaQuery.sizeOf(context).width;
+  return screenWidth < 360 ? 10.h : 12.h;
+}
+
+@visibleForTesting
+double debugHomeHeaderBottomGap(BuildContext context) =>
+    _homeHeaderBottomGap(context);
 
 class _PromoStrip extends StatelessWidget {
   const _PromoStrip({
     required this.asset,
     required this.height,
+    required this.radius,
   });
   final String asset;
   final double height;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final radius = Radius.circular((height * 0.25).clamp(6.0, 10.0));
+    // Right side stays square: the strip bleeds into the card's right border.
     return ClipRRect(
-      borderRadius: BorderRadius.horizontal(left: radius),
+      borderRadius: BorderRadius.horizontal(left: Radius.circular(radius)),
       child: Image.asset(
         asset,
         height: height,
@@ -1403,15 +1418,15 @@ class _ExploreUtilitiesRow extends StatelessWidget {
   const _ExploreUtilitiesRow({
     required this.onTap,
     required this.height,
+    required this.radius,
   });
   final VoidCallback onTap;
   final double height;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.horizontal(
-      left: Radius.circular((height * 0.22).clamp(6.0, 10.0)),
-    );
+    final radius = BorderRadius.circular(this.radius);
     final arrow = (height * 0.46).clamp(16.0, 20.0);
     return InkWell(
       onTap: onTap,
@@ -1550,6 +1565,7 @@ class _InvestmentCircleRow extends StatelessWidget {
           child: _InvestmentCircleTile(
             label: 'Zero Balance\nAccount',
             iconAsset: FileConstants.zeroBalanceAccountIcon,
+            lottieAsset: FileConstants.bankLoopLottie,
             onTap: onZeroBalanceTap,
           ),
         ),
@@ -1557,6 +1573,7 @@ class _InvestmentCircleRow extends StatelessWidget {
           child: _InvestmentCircleTile(
             label: 'Invest in\nGold',
             iconAsset: FileConstants.investGoldIcon,
+            fillColors: HomeServiceCircle.goldFill,
             onTap: onGoldTap,
           ),
         ),
@@ -1564,6 +1581,7 @@ class _InvestmentCircleRow extends StatelessWidget {
           child: _InvestmentCircleTile(
             label: 'Invest in\nSilver',
             iconAsset: FileConstants.investSilverIcon,
+            fillColors: HomeServiceCircle.silverFill,
             onTap: onSilverTap,
           ),
         ),
@@ -1578,49 +1596,49 @@ class _InvestmentCircleTile extends StatelessWidget {
     required this.label,
     required this.iconAsset,
     required this.onTap,
+    this.lottieAsset,
+    this.fillColors,
   });
 
   final String label;
   final String iconAsset;
+  final String? lottieAsset;
+  final List<Color>? fillColors;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final displayAsset = _rasterHomeAsset(iconAsset);
     final isSvg = displayAsset.toLowerCase().endsWith('.svg');
+    final iconSize = homeServiceIconSize();
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          HomeServiceCircle(
-            child: isSvg
+      child: HomeServiceItem(
+        fillColors: fillColors,
+        label: homeServiceCardLabelText(label),
+        icon: lottieAsset != null
+            ? RepaintBoundary(
+                child: Lottie.asset(
+                  lottieAsset!,
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.contain,
+                  repeat: true,
+                ),
+              )
+            : isSvg
                 ? SvgPicture.asset(
                     displayAsset,
-                    width: 32.w,
-                    height: 32.w,
+                    width: iconSize,
+                    height: iconSize,
                     fit: BoxFit.contain,
                   )
                 : Image.asset(
                     displayAsset,
-                    width: 32.w,
-                    height: 32.w,
+                    width: iconSize,
+                    height: iconSize,
                     fit: BoxFit.contain,
                   ),
-          ),
-          SizedBox(height: 6.h),
-          SizedBox(
-            width: double.infinity,
-            height: 30.h,
-            child: Text(
-              homeServiceCardLabelText(label),
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: homeServiceCardLabelStyle(),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1763,8 +1781,7 @@ class _HomeBleedBanner extends StatelessWidget {
                         gaplessPlayback: isGif,
                         cacheWidth: _cachePixels(context, width),
                         cacheHeight: _cachePixels(context, height),
-                        filterQuality:
-                            isGif ? FilterQuality.medium : FilterQuality.low,
+                        filterQuality: FilterQuality.medium,
                       )),
           ),
         );
@@ -3159,6 +3176,7 @@ class _HomeScaffoldBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
+    final headerBottomGap = _homeHeaderBottomGap(context);
     return Scaffold(
       backgroundColor: const Color(0xFFFADFCA),
       body: DecoratedBox(
@@ -3166,7 +3184,7 @@ class _HomeScaffoldBody extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.only(top: topInset),
+              padding: EdgeInsets.only(top: topInset, bottom: headerBottomGap),
               child: _HomeTopBar(
                 initials: initials,
                 profilePhotoUrl: profilePhotoUrl,
@@ -3185,6 +3203,9 @@ class _HomeScaffoldBody extends StatelessWidget {
                 onRefresh: onRefresh,
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
+                  // Later slivers paint over the hero so the white sheet's
+                  // rounded top can overlap the banner art.
+                  paintOrder: SliverPaintOrder.lastIsTop,
                   slivers: [
                     SliverToBoxAdapter(
                       child: _HomeHeroBanner(onPayRentNow: onPayRentNow),
@@ -3265,6 +3286,25 @@ Widget debugHomeStickyHeader({
 Widget debugHomeHeroBanner() => _HomeHeroBanner(onPayRentNow: () {});
 
 @visibleForTesting
+Widget debugHomeLoansGrid() => _CurvedIconGrid(
+      services: const [
+        QuickActionService(name: 'Personal Loan'),
+        QuickActionService(name: 'Business Loan'),
+        QuickActionService(name: 'Home Loan'),
+        QuickActionService(name: 'Loan Against Property'),
+      ],
+      onTap: (_) async {},
+      showCardFrame: false,
+    );
+
+@visibleForTesting
+Widget debugHomeInvestmentRow() => _InvestmentCircleRow(
+      onZeroBalanceTap: () {},
+      onGoldTap: () {},
+      onSilverTap: () {},
+    );
+
+@visibleForTesting
 Widget debugHomeBillsCard() {
   return _PayBillsCard(
     services: const [
@@ -3309,48 +3349,44 @@ class _HomeHeroBanner extends StatelessWidget {
     final titleTop = width * (20 / 192);
     final visibleHeight = width * (89 / 192);
     final radius = _homeSheetTopRadius();
-    final heroHeight = visibleHeight + radius;
-    final maxShift = (imageHeight - heroHeight).clamp(0.0, double.infinity);
+    // The art keeps going `radius` below the layout box so it shows behind
+    // the white sheet's rounded corners (the sheet paints on top; see the
+    // scroll view's paintOrder).
+    final paintedHeight = visibleHeight + radius;
+    final maxShift = (imageHeight - paintedHeight).clamp(0.0, double.infinity);
     final shift = (titleInImage - titleTop).clamp(0.0, maxShift);
 
     return SizedBox(
       width: width,
-      height: heroHeight,
-      child: ClipRect(
-        child: Stack(
-          children: [
-            Positioned(
-              top: -shift,
-              left: 0,
-              width: width,
-              height: imageHeight,
-              child: GestureDetector(
-                onTap: onPayRentNow,
-                behavior: HitTestBehavior.opaque,
-                child: Image.asset(
-                  FileConstants.homeScreenImg,
-                  width: width,
-                  height: imageHeight,
-                  fit: BoxFit.fill,
-                  filterQuality: FilterQuality.medium,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: radius,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(radius),
+      height: visibleHeight,
+      child: OverflowBox(
+        alignment: Alignment.topCenter,
+        minWidth: width,
+        maxWidth: width,
+        minHeight: paintedHeight,
+        maxHeight: paintedHeight,
+        child: ClipRect(
+          child: Stack(
+            children: [
+              Positioned(
+                top: -shift,
+                left: 0,
+                width: width,
+                height: imageHeight,
+                child: GestureDetector(
+                  onTap: onPayRentNow,
+                  behavior: HitTestBehavior.opaque,
+                  child: Image.asset(
+                    FileConstants.homeScreenImg,
+                    width: width,
+                    height: imageHeight,
+                    fit: BoxFit.fill,
+                    filterQuality: FilterQuality.medium,
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -3422,18 +3458,22 @@ class _HomeMainSections extends StatelessWidget {
   Widget build(BuildContext context) {
     final sheetRadius = _homeSheetTopRadius();
     final width = MediaQuery.sizeOf(context).width;
-    // Figma: title sits ~10px (of 192) below the sheet's top edge; the
-    // rounded cap drawn by the hero already covers `sheetRadius` of that.
-    final titleInset = (width * (10 / 192) - sheetRadius).clamp(0.0, 12.0);
-    return ColoredBox(
-      color: Colors.white,
+    // Figma (440px frame): title 20px below the sheet edge, card 16px below.
+    final titleInset = (width * 20 / 440).clamp(12.0, 26.0);
+    final titleToCard = (width * 16 / 440).clamp(10.0, 20.0);
+    final billsMargin = _billsCardMargin(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(sheetRadius)),
+      ),
       child: Column(
         children: [
           Padding(
             padding: EdgeInsets.fromLTRB(
-              16.w,
+              billsMargin,
               titleInset,
-              16.w,
+              billsMargin,
               2.w,
             ),
             child: Column(
@@ -3445,7 +3485,7 @@ class _HomeMainSections extends StatelessWidget {
                   onAction: onMyBillsTap,
                   payBillsStyle: true,
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: titleToCard),
                 RepaintBoundary(
                   child: _PayBillsCard(
                     services: payBillsServices,
@@ -3571,7 +3611,7 @@ class _HomeMainSections extends StatelessWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                SizedBox(height: 6.h),
+                SizedBox(height: 12.h),
                 GestureDetector(
                   onTap: onZeroBalanceTap,
                   child: RepaintBoundary(
@@ -3582,12 +3622,17 @@ class _HomeMainSections extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: 6.h),
               ],
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
+            padding: EdgeInsets.fromLTRB(
+              16.w,
+              _insuranceHeadingTop(context),
+              16.w,
+              2.h,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -3668,21 +3713,21 @@ class _HomeMainSections extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Image.asset(
-                        FileConstants.secureFuture,
+                        FileConstants.secureImg,
                         width: width,
                         height: frame(180),
                         fit: BoxFit.fill,
                         cacheWidth: _cachePixels(context, width),
                         cacheHeight: _cachePixels(context, frame(180)),
                       ),
-                      SizedBox(height: frame(45)),
+                      SizedBox(height: frame(40)),
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: frame(24),
                         ),
                         child: const _TrustedByIndians(),
                       ),
-                      SizedBox(height: frame(26)),
+                      SizedBox(height: frame(22)),
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: frame(24),
@@ -3691,39 +3736,40 @@ class _HomeMainSections extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(
-                              width: 59.w,
-                              height: 13.h,
-                              child: Text(
-                                'Powered By',
-                                maxLines: 1,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w600,
-                                  fontStyle: FontStyle.normal,
-                                  height: 1,
-                                  letterSpacing: 0,
-                                  color: const Color(0xFF000000),
+                              width: frame(80),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Powered By',
+                                  maxLines: 1,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w600,
+                                    fontStyle: FontStyle.normal,
+                                    height: 1,
+                                    letterSpacing: 0,
+                                    color: const Color(0xFF000000),
+                                  ),
                                 ),
                               ),
                             ),
-                            SizedBox(height: 6.h),
-                            SizedBox(
-                              width: 61.w,
-                              height: 24.h,
-                              child: Image.asset(
-                                FileConstants.bharatConnectColor,
-                                width: 61.w,
-                                height: 24.h,
-                                fit: BoxFit.contain,
-                                alignment: Alignment.centerLeft,
-                                cacheWidth: _cachePixels(context, 61.w),
-                                cacheHeight: _cachePixels(context, 24.h),
-                              ),
+                            SizedBox(height: frame(10)),
+                            // Width-driven with the asset's native 352:140
+                            // ratio so the logo is never squashed.
+                            Image.asset(
+                              FileConstants.bharatConnectColor,
+                              width: frame(61),
+                              height: frame(61) * 140 / 352,
+                              fit: BoxFit.contain,
+                              alignment: Alignment.centerLeft,
+                              filterQuality: FilterQuality.medium,
+                              cacheWidth: _cachePixels(context, frame(61)),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 40.h),
+                      SizedBox(height: frame(100)),
                     ],
                   ),
                 ),

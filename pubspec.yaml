@@ -82,6 +82,12 @@ flutter:
     - assets/lottie/
     - assets/lottie/logo-verticle.json
     - assets/animations/Referral-banner-smooth-promo.json
+    - assets/animations/Bank-loop-fintech.json
+    - assets/animations/Ellipse-orbit-with-sparkles.json
+    - assets/animations/branding-reveal.json
+    - assets/animations/Discount-icon-2-sec.json
+    - assets/animations/bell-icon.json
+    - assets/animations/history-icon.json
     - assets/sounds/
     - assets/gif/
 

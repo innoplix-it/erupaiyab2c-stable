@@ -1,7 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,35 +13,44 @@ class HomeServiceCircle extends StatelessWidget {
   const HomeServiceCircle({
     super.key,
     required this.child,
+    this.fillColors,
   });
 
   final Widget child;
 
-  static double get size {
-    final width = ScreenUtil().screenWidth;
-    final preferred = 52.w;
-    final byWidth = width * (52 / 360);
-    final resolved = preferred < byWidth ? preferred : byWidth;
-    if (resolved < 40) return 40;
-    if (resolved > 56) return 56;
-    return resolved;
-  }
+  /// Radial gradient (centre → edge) for metal-themed circles; defaults to
+  /// the standard #FFFFFF → #EEF3FD fill.
+  final List<Color>? fillColors;
 
-  static BoxDecoration decoration() {
+  static const goldFill = [Color(0xFFFFFFFF), Color(0xFFFFF7D5)];
+  static const silverFill = [Color(0xFFFFFFFF), Color(0xFFF4F4F4)];
+
+  static const defaultFill = [Color(0xFFFFFFFF), Color(0xFFEEF3FD)];
+
+  /// Figma sizes are drawn on a 440px frame while ScreenUtil's design size is
+  /// 360, so Figma px are converted before applying `.w`; this keeps a 68px
+  /// Figma circle exactly 68px on the Figma device and proportional elsewhere.
+  static double _figma(double px) => (px * 360 / 440).w;
+
+  static double get size => _figma(68);
+
+  static double get contentPadding => _figma(10);
+
+  static double get borderWidth => _figma(2);
+
+  static BoxDecoration themedDecoration(List<Color> colors) {
     return BoxDecoration(
       borderRadius: BorderRadius.circular(80.r),
       border: Border.all(
         color: const Color(0xFFFFFFFF),
-        width: 2.w,
+        width: borderWidth,
+        strokeAlign: BorderSide.strokeAlignOutside,
       ),
-      gradient: const RadialGradient(
-        center: Alignment(0, 0),
+      gradient: RadialGradient(
+        center: Alignment.center,
         radius: 0.7868,
-        colors: [
-          Color(0xFFFFFFFF),
-          Color(0xFFEEF3FD),
-        ],
-        stops: [0.0, 1.0],
+        colors: colors,
+        stops: const [0.0, 1.0],
       ),
       boxShadow: [
         BoxShadow(
@@ -70,28 +77,120 @@ class HomeServiceCircle extends StatelessWidget {
     );
   }
 
+  static BoxDecoration decoration() => themedDecoration(defaultFill);
+
   @override
   Widget build(BuildContext context) {
     final circleSize = size;
     return Container(
       width: circleSize,
       height: circleSize,
-      padding: EdgeInsets.all((circleSize * 0.14).clamp(6.0, 10.0)),
-      decoration: decoration(),
+      padding: EdgeInsets.all(contentPadding),
+      decoration: themedDecoration(fillColors ?? defaultFill),
       child: Center(child: child),
     );
   }
 }
 
+/// Figma 34px icon inside the 68px circle: always half the circle so it stays
+/// centred and proportional on every screen.
+double homeServiceIconSize() => HomeServiceCircle.size * 34 / 68;
+
+/// Shared metrics for every circle + label service item on Home, so all
+/// sections keep the same icon → text rhythm.
+abstract final class HomeServiceItemMetrics {
+  static const double labelLineHeight = 1.25;
+  static const int labelMaxLines = 2;
+  static const _labelHeightBehavior = TextHeightBehavior(
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+}
+
 TextStyle homeServiceCardLabelStyle() {
   return GoogleFonts.plusJakartaSans(
-    fontSize: 12.sp,
+    fontSize: 11.sp,
     fontWeight: FontWeight.w600,
     fontStyle: FontStyle.normal,
-    height: 1.2,
+    height: HomeServiceItemMetrics.labelLineHeight,
     letterSpacing: 0,
     color: const Color(0xFF000000),
   );
+}
+
+/// Space between the bottom of a service circle and its label; slightly
+/// tighter on narrow phones.
+double homeServiceCardLabelGap(BuildContext context) {
+  final isNarrow = MediaQuery.sizeOf(context).width < 360;
+  return (isNarrow ? 3.h : 4.h).clamp(2.0, 6.0);
+}
+
+/// Fixed two-line label box so 1- and 2-line labels start at the same
+/// position and every item in a row has the same height.
+double homeServiceCardLabelBoxHeight(BuildContext context) {
+  final style = homeServiceCardLabelStyle();
+  final lineExtent = MediaQuery.textScalerOf(context).scale(
+    (style.fontSize ?? 11) * (style.height ?? 1),
+  );
+  return lineExtent * HomeServiceItemMetrics.labelMaxLines + 1;
+}
+
+/// Centered label under a service circle (gap included).
+class HomeServiceLabel extends StatelessWidget {
+  const HomeServiceLabel(this.text, {super.key, this.maxLines = 2});
+
+  final String text;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(height: homeServiceCardLabelGap(context)),
+        SizedBox(
+          width: double.infinity,
+          height: homeServiceCardLabelBoxHeight(context),
+          child: Text(
+            text,
+            maxLines: maxLines,
+            softWrap: maxLines > 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            textHeightBehavior: HomeServiceItemMetrics._labelHeightBehavior,
+            style: homeServiceCardLabelStyle(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Reusable circle icon + label used by every Home service section.
+class HomeServiceItem extends StatelessWidget {
+  const HomeServiceItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.fillColors,
+    this.maxLines = 2,
+  });
+
+  final Widget icon;
+  final String label;
+  final List<Color>? fillColors;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        HomeServiceCircle(fillColors: fillColors, child: icon),
+        HomeServiceLabel(label, maxLines: maxLines),
+      ],
+    );
+  }
 }
 
 TextStyle homeSectionHeaderStyle() {
@@ -127,8 +226,6 @@ class HomeIconTile extends StatefulWidget {
     this.iconUrl,
     this.lottieAsset,
     this.offer,
-    this.labelSpacing,
-    this.labelHeight,
     this.showHalfRing = false,
     this.isLoading = false,
     this.creditCardCircle = false,
@@ -140,8 +237,6 @@ class HomeIconTile extends StatefulWidget {
   final String? iconUrl;
   final String? lottieAsset;
   final int? offer;
-  final double? labelSpacing;
-  final double? labelHeight;
   final bool showHalfRing;
   final bool isLoading;
   final bool creditCardCircle;
@@ -150,40 +245,12 @@ class HomeIconTile extends StatefulWidget {
   State<HomeIconTile> createState() => _HomeIconTileState();
 }
 
-class _HomeIconTileState extends State<HomeIconTile>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ringController;
-  static const _ringDuration = Duration(milliseconds: 1200);
-
-  @override
-  void initState() {
-    super.initState();
-    _ringController = AnimationController(
-      vsync: this,
-      duration: _ringDuration,
-    );
-    if (widget.showHalfRing) {
-      _ringController.repeat();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant HomeIconTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.showHalfRing != widget.showHalfRing) {
-      if (widget.showHalfRing) {
-        _ringController.repeat();
-      } else {
-        _ringController.stop();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _ringController.dispose();
-    super.dispose();
-  }
+class _HomeIconTileState extends State<HomeIconTile> {
+  /// Ellipse-orbit-with-sparkles.json: 96x96 canvas whose orbit is a 68px
+  /// circle centred at (47.741, 47.741).
+  static const double _orbitCanvas = 96;
+  static const double _orbitCircle = 68;
+  static const double _orbitCenter = 47.741;
 
   @override
   Widget build(BuildContext context) {
@@ -194,15 +261,9 @@ class _HomeIconTileState extends State<HomeIconTile>
     final isTwoWordLabel = labelWords.length == 2;
 
     final circleSize = HomeServiceCircle.size;
-    final ringSize = circleSize + 4.w;
-    final iconSize = (circleSize * 0.48).clamp(18.0, 26.0);
-    final textScaler = MediaQuery.textScalerOf(context);
-    final labelStyle = homeServiceCardLabelStyle();
-    final lineExtent = textScaler.scale(
-      (labelStyle.fontSize ?? 12) * (labelStyle.height ?? 1.2),
-    );
-    final resolvedLabelHeight = widget.labelHeight ?? (lineExtent * 2);
-
+    final ringSize = circleSize + 2 * HomeServiceCircle.borderWidth;
+    final orbitScale = circleSize / _orbitCircle;
+    final iconSize = homeServiceIconSize();
     return RepaintBoundary(
       child: InkWell(
         borderRadius: BorderRadius.circular(12.r),
@@ -215,25 +276,7 @@ class _HomeIconTileState extends State<HomeIconTile>
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                if (widget.showHalfRing)
-                  RepaintBoundary(
-                    child: AnimatedBuilder(
-                      animation: _ringController,
-                      child: SizedBox(
-                        height: ringSize,
-                        width: ringSize,
-                        child: CustomPaint(
-                          painter: _HalfRingPainter(progress: 1),
-                        ),
-                      ),
-                      builder: (context, child) {
-                        return Transform.rotate(
-                          angle: _ringController.value * 2 * math.pi,
-                          child: child,
-                        );
-                      },
-                    ),
-                  ),
+                if (widget.showHalfRing) SizedBox.square(dimension: ringSize),
                 HomeServiceCircle(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 220),
@@ -273,10 +316,26 @@ class _HomeIconTileState extends State<HomeIconTile>
                               ),
                   ),
                 ),
+                if (widget.showHalfRing)
+                  Positioned(
+                    left: ringSize / 2 - _orbitCenter * orbitScale,
+                    top: ringSize / 2 - _orbitCenter * orbitScale,
+                    width: _orbitCanvas * orbitScale,
+                    height: _orbitCanvas * orbitScale,
+                    child: IgnorePointer(
+                      child: RepaintBoundary(
+                        child: Lottie.asset(
+                          FileConstants.bookGasOrbitLottie,
+                          fit: BoxFit.contain,
+                          repeat: true,
+                        ),
+                      ),
+                    ),
+                  ),
                 if (!widget.isLoading && widget.offer != null)
                   Positioned(
-                    top: -10,
-                    right: 13.5,
+                    top: -circleSize * 10 / 68,
+                    right: circleSize * 13.5 / 68,
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 5.w,
@@ -298,56 +357,14 @@ class _HomeIconTileState extends State<HomeIconTile>
                   ),
               ],
             ),
-            SizedBox(height: widget.labelSpacing ?? 4.w),
-            SizedBox(
-              width: double.infinity,
-              height: resolvedLabelHeight,
-              child: Text(
-                isTwoWordLabel
-                    ? '${labelWords.first}\n${labelWords.last}'
-                    : labelWords.join(' '),
-                maxLines: 2,
-                softWrap: true,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: labelStyle,
-              ),
+            HomeServiceLabel(
+              isTwoWordLabel
+                  ? '${labelWords.first}\n${labelWords.last}'
+                  : labelWords.join(' '),
             ),
           ],
         ),
       ),
     );
-  }
-}
-
-class _HalfRingPainter extends CustomPainter {
-  _HalfRingPainter({required this.progress});
-
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final strokeWidth = 1.8.r;
-    final paint = Paint()
-      ..color = AppColors.primary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    final rect = Rect.fromLTWH(
-      strokeWidth / 2,
-      strokeWidth / 2,
-      size.width - strokeWidth,
-      size.height - strokeWidth,
-    );
-
-    const startAngle = 0.75 * math.pi;
-    final sweepAngle = math.pi * progress;
-    canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _HalfRingPainter oldDelegate) {
-    return oldDelegate.progress != progress;
   }
 }

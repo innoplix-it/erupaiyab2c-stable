@@ -46,6 +46,7 @@ import '../../services/models/biller_detail_args.dart';
 import '../../services/models/biller_model.dart';
 import '../../spinandear/controllers/spin_options_controller.dart';
 import '../components/exit_app_dialog.dart';
+import '../components/home_bottom_nav_bar.dart';
 import '../components/home_icon_tile.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/home_tab_controller.dart';
@@ -71,7 +72,6 @@ class HomeView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tabController = ref.watch(homeTabControllerProvider);
     final lastTabIndex = useRef<int>(tabController.index);
-    final lastNonSpinTabIndex = useRef<int>(tabController.index);
     final isExitDialogOpen = useRef<bool>(false);
     final didRequestPermissions = useRef<bool>(false);
     final tabs = [
@@ -82,130 +82,58 @@ class HomeView extends HookConsumerWidget {
       const TransactionHistoryScreen(),
     ];
 
-    final textScaler = MediaQuery.textScalerOf(context);
-    final navFontSize = 11.sp;
-    final navTextStyle = TextStyle(
-      fontSize: navFontSize,
-      fontWeight: FontWeight.w600,
-      color: Colors.black,
-      height: 1.15,
-    );
-    final inactiveNavColor = AppColors.textPrimary.withOpacity(0.45);
-    final navIconSize = 22.r;
-    final navIconBoxSize = navIconSize + 6;
-    final navLabelHeight = textScaler.scale(navFontSize * 1.15);
-    final navBarHeight =
-        (navIconBoxSize + navLabelHeight + 14).clamp(60.0, 76.0);
-    final navItems = [
-      PersistentBottomNavBarItem(
-        contentPadding: 0,
-        icon: _BottomIcon(
+    final selectedTabContext = useRef<BuildContext?>(null);
+    final navIconSize = HomeBottomNavMetrics.iconSize();
+    final navLeading = [
+      HomeBottomNavEntry(
+        label: 'Pay Bills',
+        activeIcon: _BottomIcon(
           asset: FileConstants.paybillActive,
           size: navIconSize,
-          yOffset: 0,
         ),
         inactiveIcon: _BottomIcon(
           asset: FileConstants.paybillInactive,
           size: navIconSize,
-          yOffset: 0,
         ),
-        title: 'Pay Bills',
-        iconSize: navIconBoxSize,
-        textStyle: navTextStyle,
-        activeColorPrimary: Colors.black,
-        inactiveColorPrimary: inactiveNavColor,
+        animationAsset: FileConstants.navPayBillsLottie,
       ),
-      PersistentBottomNavBarItem(
-        contentPadding: 0,
-        icon: _BottomIcon(
+      HomeBottomNavEntry(
+        label: 'Offers',
+        activeIcon: _BottomIcon(
           asset: FileConstants.offersActive,
           size: navIconSize,
-          yOffset: 0,
         ),
         inactiveIcon: _BottomIcon(
           asset: FileConstants.offersInactive,
           size: navIconSize,
-          yOffset: 0,
         ),
-        title: 'Offers',
-        iconSize: navIconBoxSize,
-        textStyle: navTextStyle,
-        activeColorPrimary: Colors.black,
-        inactiveColorPrimary: inactiveNavColor,
+        animationAsset: FileConstants.navOffersLottie,
       ),
-      PersistentBottomNavBarItem(
-        contentPadding: 0,
-        icon: _BottomIcon(
-          asset: FileConstants.homeSpin,
-          color: AppColors.primary,
-          size: navIconSize,
-          yOffset: 0,
-        ),
-        inactiveIcon: _BottomIcon(
-          asset: FileConstants.homeSpin,
-          color: AppColors.primary,
-          size: navIconSize,
-          yOffset: 0,
-        ),
-        title: 'Spin & Win',
-        iconSize: navIconBoxSize,
-        textStyle: navTextStyle,
-        activeColorPrimary: Colors.black,
-        inactiveColorPrimary: inactiveNavColor,
-      ),
-      // PersistentBottomNavBarItem(
-      //   contentPadding: 0,
-      //   icon: _BottomIcon(
-      //     asset: FileConstants.homeSpin,
-      //     size: 22.r,
-      //     yOffset: 0,
-      //   ),
-      //   inactiveIcon: _BottomIcon(
-      //     asset: FileConstants.homeSpin,
-      //     size: 22.r,
-      //     yOffset: 0,
-      //   ),
-      //   title: 'Spin & Win',
-      //   iconSize: navIconBoxSize,
-      //   textStyle: navTextStyle,
-      //   activeColorPrimary: Colors.black,
-      //   inactiveColorPrimary: inactiveNavColor,
-      // ),
-      PersistentBottomNavBarItem(
-        contentPadding: 0,
-        icon: _BottomIconWithBadge(
+    ];
+    final navTrailing = [
+      HomeBottomNavEntry(
+        label: 'Alerts',
+        activeIcon: _BottomIconWithBadge(
           asset: FileConstants.alertsActive,
           size: navIconSize,
-          yOffset: 0,
         ),
         inactiveIcon: _BottomIconWithBadge(
           asset: FileConstants.alertsInactive,
           size: navIconSize,
-          yOffset: 0,
         ),
-        title: 'Alerts',
-        iconSize: navIconBoxSize,
-        textStyle: navTextStyle,
-        activeColorPrimary: Colors.black,
-        inactiveColorPrimary: inactiveNavColor,
+        animationAsset: FileConstants.navAlertsLottie,
       ),
-      PersistentBottomNavBarItem(
-        contentPadding: 0,
-        icon: _BottomIcon(
+      HomeBottomNavEntry(
+        label: 'History',
+        activeIcon: _BottomIcon(
           asset: FileConstants.historyActive,
           size: navIconSize,
-          yOffset: 0,
         ),
         inactiveIcon: _BottomIcon(
           asset: FileConstants.historyInactive,
           size: navIconSize,
-          yOffset: 0,
         ),
-        title: 'History',
-        iconSize: navIconBoxSize,
-        textStyle: navTextStyle,
-        activeColorPrimary: Colors.black,
-        inactiveColorPrimary: inactiveNavColor,
+        animationAsset: FileConstants.navHistoryLottie,
       ),
     ];
 
@@ -228,6 +156,14 @@ class HomeView extends HookConsumerWidget {
         for (final asset in assets) {
           precacheImage(AssetImage(asset), context);
         }
+        for (final animation in [
+          FileConstants.navPayBillsLottie,
+          FileConstants.navOffersLottie,
+          FileConstants.navAlertsLottie,
+          FileConstants.navHistoryLottie,
+        ]) {
+          AssetLottie(animation).load();
+        }
       });
       return null;
     }, const []);
@@ -244,9 +180,6 @@ class HomeView extends HookConsumerWidget {
           ref
               .read(profileControllerProvider.notifier)
               .fetchProfileIfNeeded(ttl: const Duration(seconds: 30));
-        }
-        if (index != 2) {
-          lastNonSpinTabIndex.value = index;
         }
         lastTabIndex.value = index;
       }
@@ -293,35 +226,45 @@ class HomeView extends HookConsumerWidget {
         }
         showExitDialog();
       },
-      child: PersistentTabView(
+      child: PersistentTabView.custom(
         context,
         controller: tabController,
-        screens: tabs,
-        items: navItems,
-        navBarStyle: NavBarStyle.simple,
-        decoration: NavBarDecoration(
-          borderRadius: BorderRadius.circular(0.r),
-          colorBehindNavBar: Colors.white,
-        ),
-        navBarHeight: navBarHeight,
-        padding: const EdgeInsets.only(top: 4, bottom: 2),
+        itemCount: tabs.length,
+        screens: [for (final tab in tabs) CustomNavBarScreen(screen: tab)],
+        navBarHeight: HomeBottomNavMetrics.barHeight(),
         backgroundColor: Colors.white,
         hideNavigationBarWhenKeyboardAppears: true,
         confineToSafeArea: true,
-        onItemSelected: (index) {
-          // Only keep bottom bar for: Home, Offers, Alerts, History.
-          // Spin & Win should open as a full screen (no bottom bar).
-          if (index == 2) {
-            PersistentNavBarNavigator.pushNewScreen(
-              context,
-              screen: const SpinAndWinView(),
-              withNavBar: false,
-            );
-            // Immediately restore the previous tab selection.
-            tabController.jumpToTab(lastNonSpinTabIndex.value);
-            return;
-          }
-        },
+        selectedTabScreenContext: (tabContext) =>
+            selectedTabContext.value = tabContext,
+        customWidget: ListenableBuilder(
+          listenable: tabController,
+          builder: (context, _) => HomeBottomNavBar(
+            selectedIndex: tabController.index,
+            leading: navLeading,
+            trailing: navTrailing,
+            onItemSelected: (index) {
+              // Spin & Win opens full screen (no bottom bar) and keeps the
+              // current tab selected.
+              if (index == 2) {
+                PersistentNavBarNavigator.pushNewScreen(
+                  context,
+                  screen: const SpinAndWinView(),
+                  withNavBar: false,
+                );
+                return;
+              }
+              if (index == tabController.index) {
+                final tabContext = selectedTabContext.value;
+                if (tabContext != null && tabContext.mounted) {
+                  Navigator.of(tabContext).popUntil((route) => route.isFirst);
+                }
+                return;
+              }
+              tabController.jumpToTab(index);
+            },
+          ),
+        ),
       ),
     );
 

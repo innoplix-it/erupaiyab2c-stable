@@ -41,6 +41,7 @@ class FileConstants {
   static String businessLoans = 'assets/images/png/businessloans.png';
   static String personalLoans = 'assets/images/png/personalloans.png';
   static String secureFuture = 'assets/images/png/securefuture.png';
+  static String secureImg = 'assets/images/png/secureimg.png';
   static String kycBgIcon = 'assets/images/png/kyc_bg_icon.png';
 
   // GIFS
@@ -52,6 +53,13 @@ class FileConstants {
   static String splashGif = 'assets/gif/splash_gif.gif';
   static String splashLottie = 'assets/lottie/logo-verticle.json';
   static String electricityBulbLottie = 'assets/lottie/electricitybulb.json';
+  static String bankLoopLottie = 'assets/animations/Bank-loop-fintech.json';
+  static String bookGasOrbitLottie =
+      'assets/animations/Ellipse-orbit-with-sparkles.json';
+  static String navPayBillsLottie = 'assets/animations/branding-reveal.json';
+  static String navOffersLottie = 'assets/animations/Discount-icon-2-sec.json';
+  static String navAlertsLottie = 'assets/animations/bell-icon.json';
+  static String navHistoryLottie = 'assets/animations/history-icon.json';
   static String giftGif = 'assets/gif/gift.gif';
   static String goodGif = 'assets/gif/good.gif';
   static String notGoodGif = 'assets/gif/notGood.gif';
