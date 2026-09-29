@@ -64,7 +64,7 @@ void main() {
                   entry('Offers', 'assets/animations/Discount-icon-2-sec.json'),
                 ],
                 trailing: [
-                  entry('Alerts', 'assets/animations/bell-icon.json'),
+                  entry('Alerts', 'assets/animations/Smooth-bell-2s.json'),
                   entry('History', 'assets/animations/history-icon.json'),
                 ],
                 onItemSelected: taps.add,

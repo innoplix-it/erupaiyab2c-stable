@@ -58,7 +58,7 @@ class FileConstants {
       'assets/animations/Ellipse-orbit-with-sparkles.json';
   static String navPayBillsLottie = 'assets/animations/branding-reveal.json';
   static String navOffersLottie = 'assets/animations/Discount-icon-2-sec.json';
-  static String navAlertsLottie = 'assets/animations/bell-icon.json';
+  static String navAlertsLottie = 'assets/animations/Smooth-bell-2s.json';
   static String navHistoryLottie = 'assets/animations/history-icon.json';
   static String giftGif = 'assets/gif/gift.gif';
   static String goodGif = 'assets/gif/good.gif';

@@ -86,7 +86,7 @@ flutter:
     - assets/animations/Ellipse-orbit-with-sparkles.json
     - assets/animations/branding-reveal.json
     - assets/animations/Discount-icon-2-sec.json
-    - assets/animations/bell-icon.json
+    - assets/animations/Smooth-bell-2s.json
     - assets/animations/history-icon.json
     - assets/sounds/
     - assets/gif/

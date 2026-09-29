@@ -236,6 +236,7 @@ class _BottomIconWithBadge extends StatelessWidget {
         final dpr = MediaQuery.devicePixelRatioOf(context);
         final cacheW = (size * dpr).round();
         final wrapper = size;
+        final badgeSize = (14.r).clamp(12.0, 16.0);
         return SizedBox(
           height: wrapper,
           width: wrapper,
@@ -256,21 +257,23 @@ class _BottomIconWithBadge extends StatelessWidget {
                 ),
               ),
               if (unreadCount > 0)
+                // Overhangs the icon's top-right corner; Clip.none keeps it
+                // visible without widening the icon's layout box.
                 Positioned(
-                  right: 0,
-                  top: 0,
+                  right: -badgeSize * 0.5,
+                  top: -badgeSize * 0.4 + yOffset,
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 3.w,
                       vertical: 0.h,
                     ),
-                    constraints: const BoxConstraints(
-                      minWidth: 14,
-                      minHeight: 14,
+                    constraints: BoxConstraints(
+                      minWidth: badgeSize,
+                      minHeight: badgeSize,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.red.shade600,
-                      borderRadius: BorderRadius.circular(7.r),
+                      borderRadius: BorderRadius.circular(badgeSize / 2),
                       border: Border.all(
                         color: Colors.white,
                         width: 1,
@@ -1221,12 +1224,15 @@ class _PayBillsCard extends StatelessWidget {
         final ringInset = HomeServiceCircle.borderWidth;
         final ringSize = HomeServiceCircle.size + 2 * ringInset;
         final lpgPadding = 4.h;
+        // Raises the strip; the panel edge, Explore row and card bottom rise
+        // by the same amount so the gap below the strip is unchanged.
+        final lpgLift = 4.h;
         final column = (cardWidth - f(16)) / 4;
         final lpgCenterY = f(178);
 
         return SizedBox(
           width: cardWidth,
-          height: f(_billsCardDesignHeight),
+          height: f(_billsCardDesignHeight) - lpgLift,
           child: Stack(
             children: [
               Positioned.fill(
@@ -1234,6 +1240,7 @@ class _PayBillsCard extends StatelessWidget {
                   painter: _BillsCardPainter(
                     scale: s,
                     borderWidth: 0.5.w,
+                    lift: lpgLift,
                   ),
                 ),
               ),
@@ -1263,7 +1270,7 @@ class _PayBillsCard extends StatelessWidget {
                 Positioned(
                   left: f(112),
                   right: 0,
-                  top: f(158) - lpgPadding,
+                  top: f(158) - lpgPadding - lpgLift,
                   height: f(41) + 2 * lpgPadding,
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: lpgPadding),
@@ -1278,7 +1285,7 @@ class _PayBillsCard extends StatelessWidget {
               Positioned(
                 left: f(122),
                 right: 0,
-                top: f(221),
+                top: f(221) - lpgLift,
                 height: f(52),
                 child: _ExploreUtilitiesRow(
                   onTap: onExploreTap,
@@ -1301,10 +1308,17 @@ const double _billsCardDesignHeight = 276;
 /// with the Figma `0.5px solid #E3E3E3CC` border. The bottom-right notch holds
 /// the Explore Utilities row, so a rectangular border can't be used.
 class _BillsCardPainter extends CustomPainter {
-  const _BillsCardPainter({required this.scale, required this.borderWidth});
+  const _BillsCardPainter({
+    required this.scale,
+    required this.borderWidth,
+    this.lift = 0,
+  });
 
   final double scale;
   final double borderWidth;
+
+  /// Logical px the top panel's bottom edge is raised above the Figma value.
+  final double lift;
 
   static const double _radius = 16;
   static const double _topPanelBottom = 214;
@@ -1317,7 +1331,7 @@ class _BillsCardPainter extends CustomPainter {
     final right = size.width - inset;
     final bottom = size.height - inset;
     final r = _radius * scale;
-    final panelBottom = _topPanelBottom * scale;
+    final panelBottom = _topPanelBottom * scale - lift;
     final notchLeft = _notchLeft * scale;
     final corner = Radius.circular(r);
 
@@ -1373,7 +1387,8 @@ class _BillsCardPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _BillsCardPainter oldDelegate) {
     return oldDelegate.scale != scale ||
-        oldDelegate.borderWidth != borderWidth;
+        oldDelegate.borderWidth != borderWidth ||
+        oldDelegate.lift != lift;
   }
 }
 
@@ -3378,6 +3393,12 @@ Widget debugHomeInvestmentRow() => _InvestmentCircleRow(
     );
 
 @visibleForTesting
+Widget debugHomeAlertsIcon({required double size}) => _BottomIconWithBadge(
+      asset: FileConstants.alertsInactive,
+      size: size,
+    );
+
+@visibleForTesting
 Widget debugHomeMainSections() {
   Future<void> noopService(String _) async {}
   void noop() {}
@@ -3594,6 +3615,12 @@ class _HomeMainSections extends StatelessWidget {
     final rentGridBottomGap = middleBanners.isNotEmpty ? 0.h : 10.h;
     final rentBannerTopGap = 12.h;
     final rentToBannerGap = rentGridBottomGap + 2.h + rentBannerTopGap;
+    // "Zero Balance Account" label -> next element matches the gap above the
+    // "Banking & Investments" title; the next element brings its own top gap
+    // (4.h before the banking banner, else 10.h before "Pay Via Credit Card").
+    final bankingTitleTopGap = 16.h;
+    final bankingRowBottomPadding =
+        bankingTitleTopGap - (bankingInvestmentBanners.isNotEmpty ? 4.h : 10.h);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -3654,7 +3681,12 @@ class _HomeMainSections extends StatelessWidget {
             },
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
+            padding: EdgeInsets.fromLTRB(
+              16.w,
+              bankingTitleTopGap,
+              16.w,
+              bankingRowBottomPadding,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -1,5 +1,6 @@
 import 'package:e_rupaiya/features/home/components/home_icon_tile.dart';
 import 'package:e_rupaiya/features/home/views/home_view.dart';
+import 'package:e_rupaiya/services/notification_badge_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -141,7 +142,8 @@ void main() {
 
       final card = tester.getRect(find.byKey(cardKey));
       expect(card.width, closeTo(width - 2 * margin, 0.5));
-      expect(card.height, closeTo(card.width * 276 / 392, 0.5));
+      // Figma ratio minus the Book LPG lift (the lower part rises with it).
+      expect(card.height, closeTo(card.width * 276 / 392 - 4.h, 0.5));
       if (width == 440) expect(card.width, closeTo(392, 0.5));
 
       for (final label in ['Book\nGas', 'Explore All Utilities']) {
@@ -313,6 +315,15 @@ void main() {
       expect(tester.getRect(tiles.at(4)).bottom,
           lessThanOrEqualTo(card.bottom + 0.5));
 
+      // Book LPG strip is lifted 4.h; the Explore row rises with it, so the
+      // gap below the strip stays the Figma 22px (199 -> 221) of the card.
+      final s = card.width / 392;
+      expect(strip.top - card.top, closeTo(158 * s - 4.h, 0.5));
+      final explore = tester.getRect(find.byWidgetPredicate(
+          (w) => w.runtimeType.toString() == '_ExploreUtilitiesRow'));
+      expect(explore.top - strip.bottom, closeTo(22 * s, 0.5));
+      expect(explore.bottom, lessThanOrEqualTo(card.bottom + 0.5));
+
       final orbit = tester.getRect(find.byWidgetPredicate((w) =>
           w is LottieBuilder &&
           w.lottie is AssetLottie &&
@@ -354,6 +365,29 @@ void main() {
         ),
       );
       expect(tester.takeException(), isNull);
+
+      final bankingTitle = find.text(
+        homeServiceCardLabelText('Banking & Investments'),
+      );
+      await tester.scrollUntilVisible(
+        bankingTitle,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.drag(find.byType(ListView), const Offset(0, -150));
+      await tester.pump();
+      final referral = tester.getRect(find.byWidgetPredicate((w) =>
+          w is LottieBuilder &&
+          w.lottie is AssetLottie &&
+          (w.lottie as AssetLottie).assetName.contains('Referral')));
+      final zeroLabel = tester.getRect(find.textContaining('Account').first);
+      final nextTitle = tester.getRect(
+        find.text(homeServiceCardLabelText('Pay Via Credit Card')),
+      );
+      final aboveBanking = tester.getRect(bankingTitle).top - referral.bottom;
+      final belowZero = nextTitle.top - zeroLabel.bottom;
+      expect(aboveBanking, closeTo(16.h, 0.5));
+      expect(belowZero, closeTo(aboveBanking, 0.5));
 
       await tester.scrollUntilVisible(
         find.text(homeServiceCardLabelText('Insurance Premium')),
@@ -403,6 +437,48 @@ void main() {
       await tester.drag(find.byType(ListView), const Offset(0, -3000));
       await tester.pump();
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('alerts badge sits on the icon top-right at ${size.width}',
+        (tester) async {
+      NotificationBadgeService.unreadCount.value = 3;
+      addTearDown(() => NotificationBadgeService.unreadCount.value = 0);
+      const iconKey = ValueKey('alerts-icon');
+      final iconSize = (24.0 * size.width / 440).clamp(20.0, 24.0);
+      await pumpSurface(
+        tester,
+        logicalSize: size,
+        body: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(width: 40, height: 40),
+              KeyedSubtree(
+                key: iconKey,
+                child: debugHomeAlertsIcon(size: iconSize),
+              ),
+              const SizedBox(width: 40, height: 40),
+            ],
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+
+      final icon = tester.getRect(find.byKey(iconKey));
+      expect(icon.width, closeTo(iconSize, 0.01));
+      expect(icon.height, closeTo(iconSize, 0.01));
+
+      final badgeText = find.text('3');
+      expect(badgeText, findsOneWidget);
+      final badge = tester.getRect(find
+          .ancestor(of: badgeText, matching: find.byType(Container))
+          .first);
+      final badgeSize = (14.r).clamp(12.0, 16.0);
+      expect(badge.height, closeTo(badgeSize, 0.5));
+      expect(badge.width, greaterThanOrEqualTo(badgeSize - 0.01));
+      expect(badge.right, closeTo(icon.right + badgeSize / 2, 0.5));
+      expect(badge.center.dy, closeTo(icon.top + badgeSize * 0.1, 0.5));
+      expect(badge.left, greaterThan(icon.center.dx));
     });
 
     testWidgets('eCoins value style at ${size.width}x${size.height}',
