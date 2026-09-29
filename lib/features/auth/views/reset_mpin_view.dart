@@ -309,26 +309,41 @@ class ResetMpinView extends HookConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Pinput(
-                              controller: otpController,
-                              focusNode: otpFocus,
-                              length: _otpLength,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly
-                              ],
-                              autofocus: true,
-                              onChanged: (_) => errorText.value = null,
-                              onCompleted: (_) => newPinFocus.requestFocus(),
-                              defaultPinTheme: otpTheme,
-                              focusedPinTheme: otpTheme.copyWith(
-                                decoration: otpTheme.decoration?.copyWith(
-                                  border: Border.all(
-                                    color: AppColors.green,
-                                    width: 1.4,
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                const gap = 8.0;
+                                final natural = 52.w;
+                                final maxWidth = constraints.maxWidth;
+                                const gaps = gap * (_otpLength - 1);
+                                final fieldWidth = !maxWidth.isFinite ||
+                                        natural * _otpLength + gaps <= maxWidth
+                                    ? natural
+                                    : (maxWidth - gaps) / _otpLength;
+                                final theme = otpTheme.copyWith(width: fieldWidth);
+                                return Pinput(
+                                  controller: otpController,
+                                  focusNode: otpFocus,
+                                  length: _otpLength,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly
+                                  ],
+                                  autofocus: true,
+                                  onChanged: (_) => errorText.value = null,
+                                  onCompleted: (_) => newPinFocus.requestFocus(),
+                                  defaultPinTheme: theme,
+                                  focusedPinTheme: theme.copyWith(
+                                    decoration: theme.decoration?.copyWith(
+                                      border: Border.all(
+                                        color: AppColors.green,
+                                        width: 1.4,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                  separatorBuilder: (_) =>
+                                      const SizedBox(width: gap),
+                                );
+                              },
                             ),
                             if (otpVerified) ...[
                               SizedBox(height: 10.h),

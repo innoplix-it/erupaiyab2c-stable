@@ -833,24 +833,40 @@ class _DeleteAccountOtpDialog extends HookWidget {
                   ),
             ),
             SizedBox(height: 18.h),
-            Pinput(
-              length: 6,
-              controller: otpController,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => errorText.value = null,
-              defaultPinTheme: defaultPinTheme,
-              focusedPinTheme: defaultPinTheme.copyWith(
-                decoration: defaultPinTheme.decoration?.copyWith(
-                  border: Border.all(color: AppColors.primary),
-                ),
-              ),
-              errorPinTheme: defaultPinTheme.copyBorderWith(
-                border: Border.all(color: Colors.red),
-              ),
-              errorTextStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w500,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 8.0;
+                const length = 6;
+                final natural = 44.w;
+                final maxWidth = constraints.maxWidth;
+                const gaps = gap * (length - 1);
+                final fieldWidth = !maxWidth.isFinite ||
+                        natural * length + gaps <= maxWidth
+                    ? natural
+                    : (maxWidth - gaps) / length;
+                final theme = defaultPinTheme.copyWith(width: fieldWidth);
+                return Pinput(
+                  length: length,
+                  controller: otpController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => errorText.value = null,
+                  defaultPinTheme: theme,
+                  focusedPinTheme: theme.copyWith(
+                    decoration: theme.decoration?.copyWith(
+                      border: Border.all(color: AppColors.primary),
+                    ),
                   ),
+                  errorPinTheme: theme.copyBorderWith(
+                    border: Border.all(color: Colors.red),
+                  ),
+                  separatorBuilder: (_) => const SizedBox(width: gap),
+                  errorTextStyle:
+                      Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.red,
+                            fontWeight: FontWeight.w500,
+                          ),
+                );
+              },
             ),
             if (errorText.value != null && errorText.value!.isNotEmpty) ...[
               SizedBox(height: 12.h),

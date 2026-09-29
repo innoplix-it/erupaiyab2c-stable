@@ -42,8 +42,14 @@ class _AuthBrandHeaderState extends State<AuthBrandHeader>
 
   @override
   Widget build(BuildContext context) {
+    final statusTop = MediaQuery.paddingOf(context).top;
+    final designTop = 32.h;
     return Padding(
-      padding: EdgeInsets.only(top: 32.h, left: 20.w, right: 20.w),
+      padding: EdgeInsets.only(
+        top: statusTop > designTop ? statusTop : designTop,
+        left: 20.w,
+        right: 20.w,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final heroStyle = Theme.of(context).textTheme.displayLarge?.copyWith(

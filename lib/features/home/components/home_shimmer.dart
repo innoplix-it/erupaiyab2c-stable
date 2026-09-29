@@ -264,7 +264,7 @@ class _IconGridShimmer extends StatelessWidget {
             width: (1.sw - 16.w * 2 - 16.w * (columns - 1)) / columns,
             child: Column(
               children: [
-                _ShimmerBox(height: 56.h, width: 56.w, radius: 16.r),
+                _ShimmerBox(height: 56.w, width: 56.w, radius: 16.r),
                 SizedBox(height: 8.h),
                 _ShimmerLine(width: 56.w, height: 10.h),
               ],

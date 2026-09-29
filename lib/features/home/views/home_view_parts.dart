@@ -38,6 +38,10 @@ int _gifCachePixels(
   double logicalHeight,
 ) {
   final logical = logicalWidth > logicalHeight ? logicalWidth : logicalHeight;
+  return _cachePixels(context, logical);
+}
+
+int _cachePixels(BuildContext context, double logical) {
   if (logical <= 0) return 1;
   final pixels = (logical * MediaQuery.devicePixelRatioOf(context)).round();
   return pixels < 1 ? 1 : pixels;
@@ -199,7 +203,7 @@ class _BottomIcon extends StatelessWidget {
           asset,
           height: size,
           width: size,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           color: color,
           cacheWidth: cacheW,
           cacheHeight: cacheW,
@@ -231,7 +235,7 @@ class _BottomIconWithBadge extends StatelessWidget {
       builder: (context, unreadCount, _) {
         final dpr = MediaQuery.devicePixelRatioOf(context);
         final cacheW = (size * dpr).round();
-        final wrapper = size + 10;
+        final wrapper = size;
         return SizedBox(
           height: wrapper,
           width: wrapper,
@@ -354,43 +358,67 @@ class _HomeTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 32.h,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          GestureDetector(
-            onTap: onProfileTap,
-            child: _ProfileAvatar(
-              initials: initials,
-              profilePhotoUrl: profilePhotoUrl,
-              size: 32,
-            ),
-          ),
-          const Spacer(),
-          Flexible(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: onReferTap,
-                child: _ReferAndEarnChip(compact: compact),
-              ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          GestureDetector(
-            onTap: () {
-              context.push(RouteConstants.referAndEarnWallet);
-            },
-            child: _eCoinsPill(context),
-          ),
-        ],
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontal = (screenWidth * 0.055).clamp(14.0, 24.0);
+    final topGap = (screenWidth * 0.016).clamp(4.0, 8.0);
+    final bottomGap = (screenWidth * 0.01).clamp(2.0, 6.0);
+    final barHeight = (32.w).clamp(28.0, 34.0);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(horizontal, topGap, horizontal, bottomGap),
+      child: SizedBox(
+        height: barHeight,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            final gap = (8.w).clamp(4.0, 10.0);
+            var referWidth = 111.w;
+            var coinWidth = 66.w;
+            if (referWidth > 120) referWidth = 120;
+            if (coinWidth > 78) coinWidth = 78;
+            final chips = referWidth + coinWidth + gap;
+            final room = maxWidth - barHeight - gap;
+            if (room > 0 && chips > room) {
+              final scale = room / chips;
+              referWidth *= scale;
+              coinWidth *= scale;
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: onProfileTap,
+                  child: _ProfileAvatar(
+                    initials: initials,
+                    profilePhotoUrl: profilePhotoUrl,
+                    size: barHeight,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: onReferTap,
+                  child: _ReferAndEarnChip(
+                    compact: compact,
+                    height: barHeight,
+                    width: referWidth,
+                  ),
+                ),
+                SizedBox(width: gap),
+                GestureDetector(
+                  onTap: () {
+                    context.push(RouteConstants.referAndEarnWallet);
+                  },
+                  child: _eCoinsPill(context, barHeight, coinWidth),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _eCoinsPill(BuildContext context) {
+  Widget _eCoinsPill(BuildContext context, double height, double width) {
     final textStyle = GoogleFonts.plusJakartaSans(
       textStyle: Theme.of(context).textTheme.bodySmall,
     );
@@ -400,30 +428,32 @@ class _HomeTopBar extends StatelessWidget {
         : resolvedWalletBalance == resolvedWalletBalance.roundToDouble()
             ? resolvedWalletBalance.toStringAsFixed(0)
             : resolvedWalletBalance.toStringAsFixed(2);
+    final iconSide = (height * 0.5).clamp(14.0, 18.0);
     return Container(
-      width: 66.w,
-      height: 31.h,
+      width: width,
+      height: height,
       clipBehavior: Clip.hardEdge,
-      padding: EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 6.h),
+      padding: EdgeInsets.symmetric(horizontal: (width * 0.1).clamp(4.0, 8.0)),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(50.r),
+        borderRadius: BorderRadius.circular(height),
       ),
       child: Row(
         children: [
           Image.asset(
             FileConstants.favicon,
-            width: 18.w,
-            height: 18.h,
+            width: iconSide,
+            height: iconSide,
             fit: BoxFit.contain,
           ),
-          SizedBox(width: 4.w),
+          SizedBox(width: (width * 0.06).clamp(2.0, 4.0)),
           Expanded(
             child: isWalletLoading
                 ? Center(
                     child: SizedBox(
                       width: 12.w,
-                      height: 12.h,
+                      height: 12.w,
                       child: const CircularProgressIndicator(
                         strokeWidth: 1.8,
                         color: AppColors.textPrimary,
@@ -464,7 +494,7 @@ class _ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final side = size.w;
+    final side = size;
     final photoUrl = profilePhotoUrl?.trim() ?? '';
     return SizedBox(
       width: side,
@@ -522,22 +552,30 @@ class _ProfileInitials extends StatelessWidget {
 }
 
 class _ReferAndEarnChip extends StatelessWidget {
-  const _ReferAndEarnChip({required this.compact});
+  const _ReferAndEarnChip({
+    required this.compact,
+    required this.height,
+    required this.width,
+  });
 
   final bool compact;
+  final double height;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
+    final iconSide = (height * 0.5).clamp(12.0, 16.0);
+    final radius = height / 2;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(27.r),
+      borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          width: 111.w,
-          height: 31.h,
-          padding: EdgeInsets.symmetric(horizontal: 10.w),
+          width: width,
+          height: height,
+          padding: EdgeInsets.symmetric(horizontal: (width * 0.08).clamp(6.0, 10.0)),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(27.r),
+            borderRadius: BorderRadius.circular(radius),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -553,16 +591,18 @@ class _ReferAndEarnChip extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Image.asset(
-                FileConstants.giftGif,
-                width: 16.w,
-                height: 16.h,
-                cacheWidth: _gifCachePixels(context, 16.w, 16.h),
-                cacheHeight: _gifCachePixels(context, 16.w, 16.h),
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
+              RepaintBoundary(
+                child: Image.asset(
+                  FileConstants.giftGif,
+                  width: iconSide,
+                  height: iconSide,
+                  cacheWidth: _gifCachePixels(context, iconSide, iconSide),
+                  cacheHeight: _gifCachePixels(context, iconSide, iconSide),
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                ),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: (width * 0.04).clamp(2.0, 4.0)),
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -629,26 +669,12 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = payBillsStyle
-        ? GoogleFonts.plusJakartaSans(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w700,
-            height: 1,
-            letterSpacing: -0.02 * 12.sp,
-            color: const Color(0xFF000000),
-          )
-        : GoogleFonts.plusJakartaSans(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w700,
-            height: 1,
-            letterSpacing: -0.02 * 12.sp,
-            color: const Color(0xFF000000),
-          );
+    final titleStyle = homeSectionHeaderStyle();
     final actionStyle = payBillsStyle
         ? GoogleFonts.plusJakartaSans(
             fontSize: 12.sp,
             fontWeight: FontWeight.w600,
-            height: 1,
+            height: 1.2,
             letterSpacing: 0,
             color: const Color(0xFFDD5428),
           )
@@ -656,25 +682,24 @@ class _SectionHeader extends StatelessWidget {
             textStyle: Theme.of(context).textTheme.bodyMedium,
             color: AppColors.primary,
             fontWeight: FontWeight.w600,
+            height: 1.2,
           );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Flexible(
-          child: SizedBox(
-            height: payBillsStyle ? 15.h : null,
-            child: Align(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: titleStyle,
-                ),
+              child: Text(
+                homeServiceCardLabelText(title),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: titleStyle,
               ),
             ),
           ),
@@ -685,25 +710,13 @@ class _SectionHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(18.r),
             child: Row(
               children: [
-                if (payBillsStyle)
-                  SizedBox(
-                    height: 15.h,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        actionLabel!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
-                        style: actionStyle,
-                      ),
-                    ),
-                  )
-                else
-                  Text(
-                    actionLabel!,
-                    style: actionStyle,
-                  ),
+                Text(
+                  actionLabel!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: actionStyle,
+                ),
                 SizedBox(width: 6.w),
                 if (payBillsStyle)
                   Container(
@@ -757,7 +770,7 @@ class _HomeIconGrid extends StatelessWidget {
   final int maxItems;
   final int columns;
   final double tileWidth;
-
+  
   @override
   Widget build(BuildContext context) {
     final visibleItems = services.take(maxItems).toList();
@@ -766,7 +779,9 @@ class _HomeIconGrid extends StatelessWidget {
         final maxWidth = constraints.maxWidth;
         final spacing = 12.w;
         final computedTileSize = (maxWidth - spacing * (columns - 1)) / columns;
-        final tileSize = computedTileSize < 68.w ? 68.w : computedTileSize;
+        final minTile = HomeServiceCircle.size;
+        final tileSize =
+            computedTileSize < minTile ? minTile : computedTileSize;
         return Wrap(
           spacing: spacing.w,
           runSpacing: 16.h,
@@ -1014,7 +1029,7 @@ class _CurvedIconTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _creditCardIconCircle(iconWidget),
+        HomeServiceCircle(child: iconWidget),
         SizedBox(height: _usesCompactLabelGap(displayLabel) ? 2.h : 6.h),
         _creditCardIconLabel(displayLabel),
       ],
@@ -1060,54 +1075,6 @@ class _CurvedIconTile extends StatelessWidget {
     );
   }
 
-  Widget _creditCardIconCircle(Widget iconWidget) {
-    final size = 68.w;
-    return Container(
-      width: size,
-      height: size,
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(80.r),
-        border: Border.all(
-          color: const Color(0xFFFFFFFF),
-          width: 2.w,
-        ),
-        gradient: const RadialGradient(
-          center: Alignment(0, 0),
-          radius: 0.7868,
-          colors: [
-            Color(0xFFFFFFFF),
-            Color(0xFFEEF3FD),
-          ],
-          stops: [0.0, 1.0],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xD9EEF3FD),
-            offset: Offset(0.w, 1.h),
-            blurRadius: 1.r,
-          ),
-          BoxShadow(
-            color: const Color(0x80EEF3FD),
-            offset: Offset(0.w, 2.h),
-            blurRadius: 1.r,
-          ),
-          BoxShadow(
-            color: const Color(0x26EEF3FD),
-            offset: Offset(0.w, 3.h),
-            blurRadius: 1.r,
-          ),
-          BoxShadow(
-            color: const Color(0x05EEF3FD),
-            offset: Offset(0.w, 5.h),
-            blurRadius: 1.r,
-          ),
-        ],
-      ),
-      child: Center(child: iconWidget),
-    );
-  }
-
   Widget _creditCardIconLabel(String label) {
     final words = label.trim().split(RegExp(r'\s+'));
     final last = words.isEmpty ? '' : words.last.toLowerCase();
@@ -1133,14 +1100,7 @@ class _CurvedIconTile extends StatelessWidget {
             : (words.length == 2 && wrapsTwoLines
                 ? '${words[0]}\n${words[1]}'
                 : label);
-    final style = GoogleFonts.plusJakartaSans(
-      fontSize: 12.sp,
-      fontWeight: FontWeight.w600,
-      fontStyle: FontStyle.normal,
-      height: 1,
-      letterSpacing: 0,
-      color: const Color(0xFF000000),
-    );
+    final style = homeServiceCardLabelStyle();
     final labelText = Text(
       text,
       maxLines: (isGym || isOneLineFee) ? 1 : 2,
@@ -1180,15 +1140,7 @@ class _CurvedIconTile extends StatelessWidget {
   }
 
   String _capitalizeLabel(String input) {
-    if (input.isEmpty) return input;
-    return input
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .map(
-          (word) =>
-              '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
-        )
-        .join(' ');
+    return homeServiceCardLabelText(input);
   }
 }
 
@@ -1245,14 +1197,19 @@ class _PayBillsCard extends StatelessWidget {
     return _isElectricityService(service) || _isMobilePrepaidService(service);
   }
 
-  Widget _serviceTile(QuickActionService service) {
+  Widget _serviceTile(
+    QuickActionService service, {
+    double? labelSpacing,
+    double? labelHeight,
+  }) {
     final isElectricity = _isElectricityService(service);
     return HomeIconTile(
       label: _labelForService(service),
       iconUrl: isElectricity ? null : service.icon,
       lottieAsset: isElectricity ? FileConstants.electricityBulbLottie : null,
       offer: _hidesOfferBadge(service) ? null : service.offers,
-      labelSpacing: 6.h,
+      labelSpacing: labelSpacing ?? 6.h,
+      labelHeight: labelHeight,
       showHalfRing: _isBookGasService(service),
       creditCardCircle: true,
       isLoading: isCreditCardLoading && _isCreditCardService(service),
@@ -1297,57 +1254,93 @@ class _PayBillsCard extends StatelessWidget {
       credit ?? _nextUnused(used),
     ];
 
+    final innerPad = 8.w;
+    final promoHeight = _lpgPromoHeight(context);
+    final exploreHeight = _lpgExploreHeight(context);
+    final ringSize = HomeServiceCircle.size + 4.w;
+    final lpgTop = ((ringSize - promoHeight) / 2).clamp(0.0, double.infinity);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DecoratedBox(
           decoration: BoxDecoration(
             image: DecorationImage(
-              image: AssetImage(FileConstants.homeIconSection),
+              image: ResizeImage(
+                AssetImage(FileConstants.homeIconSection),
+                width: _cachePixels(context, 1.sw),
+              ),
               fit: BoxFit.fill,
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(8.w, 14.h, 8.w, 8.h),
+            // No right padding: the LPG / Explore buttons run flush to the
+            // card edge like Figma; only the top row is inset on the right.
+            padding: EdgeInsets.fromLTRB(
+              innerPad,
+              _homeFigmaGap(context, 7, 6, 16),
+              0,
+              innerPad,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final service in topRow)
-                      Expanded(
-                        child: service == null
-                            ? const SizedBox.shrink()
-                            : _serviceTile(service),
-                      ),
-                  ],
+                Padding(
+                  padding: EdgeInsets.only(right: innerPad),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final service in topRow)
+                        Expanded(
+                          child: service == null
+                              ? const SizedBox.shrink()
+                              : _serviceTile(service),
+                        ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 11.h),
+                SizedBox(height: _homeFigmaGap(context, 6, 6, 14)),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (bookGas != null)
                       SizedBox(
-                        width: 80.w,
-                        child: _serviceTile(bookGas),
+                        width: (HomeServiceCircle.size + 18.w)
+                            .clamp(64.0, 86.0),
+                        child: _serviceTile(
+                          bookGas,
+                          labelSpacing: 4.w,
+                        ),
                       ),
-                    if (bookGas != null) SizedBox(width: 8.w),
+                    if (bookGas != null)
+                      SizedBox(width: _homeFigmaGap(context, 4, 6, 14)),
                     Expanded(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (bookGas != null) ...[
-                            SizedBox(height: 18.h),
-                            _PromoStrip(
-                              asset: FileConstants.bookLpgStrip,
+                            SizedBox(height: lpgTop),
+                            SizedBox(
+                              height: promoHeight,
+                              child: _PromoStrip(
+                                asset: FileConstants.bookLpgStrip,
+                                height: promoHeight,
+                              ),
                             ),
-                            SizedBox(height: 16.h),
+                            SizedBox(height: _homeFigmaGap(context, 11, 8, 24)),
                           ],
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: _ExploreUtilitiesRow(onTap: onExploreTap),
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: _homeFigmaGap(context, 4, 2, 10),
+                            ),
+                            child: SizedBox(
+                              height: exploreHeight,
+                              child: _ExploreUtilitiesRow(
+                                onTap: onExploreTap,
+                                height: exploreHeight,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -1363,42 +1356,73 @@ class _PayBillsCard extends StatelessWidget {
   }
 }
 
+/// Converts a gap measured on the 192px-wide Figma export into the current
+/// screen width, clamped so tiny/large phones stay balanced.
+double _homeFigmaGap(
+  BuildContext context,
+  double figmaPx,
+  double min,
+  double max,
+) {
+  final width = MediaQuery.sizeOf(context).width;
+  return (width * figmaPx / 192).clamp(min, max);
+}
+
+double _lpgPromoHeight(BuildContext context) =>
+    _homeFigmaGap(context, 17, 28, 40);
+
+double _lpgExploreHeight(BuildContext context) =>
+    _homeFigmaGap(context, 22, 36, 50);
+
 class _PromoStrip extends StatelessWidget {
-  const _PromoStrip({required this.asset});
+  const _PromoStrip({
+    required this.asset,
+    required this.height,
+  });
   final String asset;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
+    final radius = Radius.circular((height * 0.25).clamp(6.0, 10.0));
     return ClipRRect(
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(10.r),
-        bottomLeft: Radius.circular(10.r),
-      ),
+      borderRadius: BorderRadius.horizontal(left: radius),
       child: Image.asset(
         asset,
-        height: 30.h,
+        height: height,
         width: double.infinity,
         fit: BoxFit.cover,
+        cacheWidth: _cachePixels(context, 1.sw),
+        filterQuality: FilterQuality.low,
       ),
     );
   }
 }
 
 class _ExploreUtilitiesRow extends StatelessWidget {
-  const _ExploreUtilitiesRow({required this.onTap});
+  const _ExploreUtilitiesRow({
+    required this.onTap,
+    required this.height,
+  });
   final VoidCallback onTap;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.horizontal(
+      left: Radius.circular((height * 0.22).clamp(6.0, 10.0)),
+    );
+    final arrow = (height * 0.46).clamp(16.0, 20.0);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8.r),
+      borderRadius: radius,
       child: Container(
-        height: 38.h,
-        width: 220.w,
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+        height: double.infinity,
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.r),
+          borderRadius: radius,
           gradient: const RadialGradient(
             center: Alignment.center,
             radius: 12.77,
@@ -1418,22 +1442,23 @@ class _ExploreUtilitiesRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.plusJakartaSans(
-                  textStyle: Theme.of(context).textTheme.bodyMedium,
                   color: const Color(0xFF000000),
                   fontWeight: FontWeight.w600,
+                  fontSize: 13.sp,
+                  height: 1.2,
                 ),
               ),
             ),
             SizedBox(width: 8.w),
             SizedBox(
-              width: 20.r,
-              height: 20.r,
+              width: arrow,
+              height: arrow,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(50.r),
+                borderRadius: BorderRadius.circular(arrow),
                 child: SvgPicture.string(
                   _exploreUtilitiesArrowSvg,
-                  width: 20.r,
-                  height: 20.r,
+                  width: arrow,
+                  height: arrow,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -1568,81 +1593,31 @@ class _InvestmentCircleTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 68.w,
-            height: 68.w,
-            padding: EdgeInsets.all(10.w),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(80.r),
-              border: Border.all(
-                color: const Color(0xFFFFFFFF),
-                width: 2.w,
-              ),
-              gradient: const RadialGradient(
-                center: Alignment(0, 0),
-                radius: 0.7868,
-                colors: [
-                  Color(0xFFFFFFFF),
-                  Color(0xFFEEF3FD),
-                ],
-                stops: [0.0, 1.0],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xD9EEF3FD),
-                  offset: Offset(0.w, 1.h),
-                  blurRadius: 1.r,
-                ),
-                BoxShadow(
-                  color: const Color(0x80EEF3FD),
-                  offset: Offset(0.w, 2.h),
-                  blurRadius: 1.r,
-                ),
-                BoxShadow(
-                  color: const Color(0x26EEF3FD),
-                  offset: Offset(0.w, 3.h),
-                  blurRadius: 1.r,
-                ),
-                BoxShadow(
-                  color: const Color(0x05EEF3FD),
-                  offset: Offset(0.w, 5.h),
-                  blurRadius: 1.r,
-                ),
-              ],
-            ),
-            child: Center(
-              child: isSvg
-                  ? SvgPicture.asset(
-                      displayAsset,
-                      width: 34.w,
-                      height: 34.w,
-                      fit: BoxFit.contain,
-                    )
-                  : Image.asset(
-                      displayAsset,
-                      width: 34.w,
-                      height: 34.w,
-                      fit: BoxFit.contain,
-                    ),
-            ),
+          HomeServiceCircle(
+            child: isSvg
+                ? SvgPicture.asset(
+                    displayAsset,
+                    width: 32.w,
+                    height: 32.w,
+                    fit: BoxFit.contain,
+                  )
+                : Image.asset(
+                    displayAsset,
+                    width: 32.w,
+                    height: 32.w,
+                    fit: BoxFit.contain,
+                  ),
           ),
           SizedBox(height: 6.h),
           SizedBox(
             width: double.infinity,
             height: 30.h,
             child: Text(
-              label,
+              homeServiceCardLabelText(label),
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
-                fontStyle: FontStyle.normal,
-                height: 1,
-                letterSpacing: 0,
-                color: const Color(0xFF000000),
-              ),
+              style: homeServiceCardLabelStyle(),
             ),
           ),
         ],
@@ -1703,7 +1678,7 @@ class _InvestmentTile extends StatelessWidget {
           ),
           ClipOval(
             child: SizedBox(
-              height: 24.h,
+              height: 24.w,
               width: 24.w,
               child: Image.asset(
                 arrowAsset,
@@ -1786,6 +1761,8 @@ class _HomeBleedBanner extends StatelessWidget {
                         fit: fit,
                         alignment: Alignment.center,
                         gaplessPlayback: isGif,
+                        cacheWidth: _cachePixels(context, width),
+                        cacheHeight: _cachePixels(context, height),
                         filterQuality:
                             isGif ? FilterQuality.medium : FilterQuality.low,
                       )),
@@ -1811,26 +1788,14 @@ class _CibilBanner extends StatelessWidget {
             child: SizedBox(
               width: width,
               height: height,
-              child: Stack(
-                children: [
-                  SvgPicture.asset(
-                    FileConstants.cibilImg,
-                    width: width,
-                    height: height,
-                    fit: BoxFit.fill,
-                    alignment: Alignment.center,
-                  ),
-                  Positioned(
-                    left: width * 8.25 / 393,
-                    top: height * 4.25 / 137,
-                    width: width * 32 / 393,
-                    height: height * 14 / 137,
-                    child: Image.asset(
-                      FileConstants.cibilLogoPng,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ],
+              child: Image.asset(
+                FileConstants.cibilLogoPng,
+                width: width,
+                height: height,
+                fit: BoxFit.fill,
+                alignment: Alignment.center,
+                cacheWidth: _cachePixels(context, width),
+                cacheHeight: _cachePixels(context, height),
               ),
             ),
           ),
@@ -3193,147 +3158,199 @@ class _HomeScaffoldBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusBarTop = MediaQuery.paddingOf(context).top;
-    final designTop = 49.h;
-    final safeTop = statusBarTop + 8.h;
+    final topInset = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(gradient: topBannerGradient),
+      backgroundColor: const Color(0xFFFADFCA),
+      body: DecoratedBox(
+        decoration: BoxDecoration(gradient: topBannerGradient),
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: topInset),
+              child: _HomeTopBar(
+                initials: initials,
+                profilePhotoUrl: profilePhotoUrl,
+                walletBalance: walletBalance,
+                isWalletLoading: isWalletLoading,
+                hasWalletError: hasWalletError,
+                compact: true,
+                onSearchTap: onSearchTap,
+                onReferTap: onReferTap,
+                onProfileTap: onProfileTap,
+              ),
             ),
-          ),
-          RefreshIndicator(
-            color: AppColors.primary,
-            onRefresh: onRefresh,
-            child: CustomScrollView(
-              clipBehavior: Clip.none,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                _HomeTopSliverAppBar(
-                  onPayRentNow: onPayRentNow,
+            Expanded(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: onRefresh,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _HomeHeroBanner(onPayRentNow: onPayRentNow),
+                    ),
+                    if (quickActions == null && homeErrorMessage == null)
+                      const HomeShimmer()
+                    else if (homeErrorMessage != null && quickActions == null)
+                      SliverToBoxAdapter(
+                        child: _HomeErrorState(
+                          isServerUnavailable: isServerUnavailable,
+                          onRetry: onRetryHome,
+                          onRestart: onRestart,
+                        ),
+                      )
+                    else if (quickActions != null)
+                      SliverToBoxAdapter(
+                        child: _HomeMainSections(
+                          payBillsServices: payBillsServices,
+                          educationServices: educationServices,
+                          insuranceServices: insuranceServices,
+                          isFetchingCreditCards: isFetchingCreditCards,
+                          onServiceTap: onServiceTap,
+                          onMyBillsTap: onMyBillsTap,
+                          onExploreUtilitiesTap: onExploreUtilitiesTap,
+                          onGoldTap: onGoldTap,
+                          onSilverTap: onSilverTap,
+                          onZeroBalanceTap: onZeroBalanceTap,
+                          onReferTap: onReferTap,
+                          bankingInvestmentBanners: bankingInvestmentBanners,
+                          bankingBannerController: bankingBannerController,
+                          bankingBannerPage: bankingBannerPage,
+                          onBankingBannerPageChanged:
+                              onBankingBannerPageChanged,
+                          onBankingBannerTap: onBankingBannerTap,
+                          middleBanners: middleBanners,
+                          middleBannerController: middleBannerController,
+                          middleBannerPage: middleBannerPage,
+                          onMiddleBannerPageChanged: onMiddleBannerPageChanged,
+                          bottomBanners: bottomBanners,
+                          bottomBannerController: bottomBannerController,
+                          bottomBannerPage: bottomBannerPage,
+                          onBottomBannerPageChanged: onBottomBannerPageChanged,
+                          onMiddleBannerTap: onMiddleBannerTap,
+                          onBottomBannerTap: onBottomBannerTap,
+                          onSpinTap: onSpinTap,
+                          onFaqTap: onFaqTap,
+                        ),
+                      ),
+                  ],
                 ),
-                if (quickActions == null && homeErrorMessage == null)
-                  const HomeShimmer()
-                else if (homeErrorMessage != null && quickActions == null)
-                  SliverToBoxAdapter(
-                    child: _HomeErrorState(
-                      isServerUnavailable: isServerUnavailable,
-                      onRetry: onRetryHome,
-                      onRestart: onRestart,
-                    ),
-                  )
-                else if (quickActions != null)
-                  SliverToBoxAdapter(
-                    child: _HomeMainSections(
-                      payBillsServices: payBillsServices,
-                      educationServices: educationServices,
-                      insuranceServices: insuranceServices,
-                      isFetchingCreditCards: isFetchingCreditCards,
-                      onServiceTap: onServiceTap,
-                      onMyBillsTap: onMyBillsTap,
-                      onExploreUtilitiesTap: onExploreUtilitiesTap,
-                      onGoldTap: onGoldTap,
-                      onSilverTap: onSilverTap,
-                      onZeroBalanceTap: onZeroBalanceTap,
-                      onReferTap: onReferTap,
-                      bankingInvestmentBanners: bankingInvestmentBanners,
-                      bankingBannerController: bankingBannerController,
-                      bankingBannerPage: bankingBannerPage,
-                      onBankingBannerPageChanged: onBankingBannerPageChanged,
-                      onBankingBannerTap: onBankingBannerTap,
-                      middleBanners: middleBanners,
-                      middleBannerController: middleBannerController,
-                      middleBannerPage: middleBannerPage,
-                      onMiddleBannerPageChanged: onMiddleBannerPageChanged,
-                      bottomBanners: bottomBanners,
-                      bottomBannerController: bottomBannerController,
-                      bottomBannerPage: bottomBannerPage,
-                      onBottomBannerPageChanged: onBottomBannerPageChanged,
-                      onMiddleBannerTap: onMiddleBannerTap,
-                      onBottomBannerTap: onBottomBannerTap,
-                      onSpinTap: onSpinTap,
-                      onFaqTap: onFaqTap,
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-          Positioned(
-            top: safeTop > designTop ? safeTop : designTop,
-            left: 24.w,
-            height: 32.h,
-            width: _homeHeaderRowWidth(context),
-            child: _HomeTopBar(
-              initials: initials,
-              profilePhotoUrl: profilePhotoUrl,
-              walletBalance: walletBalance,
-              isWalletLoading: isWalletLoading,
-              hasWalletError: hasWalletError,
-              compact: true,
-              onSearchTap: onSearchTap,
-              onReferTap: onReferTap,
-              onProfileTap: onProfileTap,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-double _homeHeaderRowWidth(BuildContext context) {
-  final fittedWidth = MediaQuery.sizeOf(context).width - 48.w;
-  final designWidth = 392.w;
-  return designWidth < fittedWidth ? designWidth : fittedWidth;
+double _homeSheetTopRadius() => 24.r;
+
+@visibleForTesting
+Widget debugHomeStickyHeader({
+  String initials = 'DN',
+  double? walletBalance = 1270,
+}) {
+  return _HomeTopBar(
+    initials: initials,
+    walletBalance: walletBalance,
+    compact: true,
+    onSearchTap: () {},
+    onReferTap: () {},
+    onProfileTap: () {},
+  );
 }
 
-class _HomeTopSliverAppBar extends StatelessWidget {
-  const _HomeTopSliverAppBar({
-    required this.onPayRentNow,
-  });
+@visibleForTesting
+Widget debugHomeHeroBanner() => _HomeHeroBanner(onPayRentNow: () {});
+
+@visibleForTesting
+Widget debugHomeBillsCard() {
+  return _PayBillsCard(
+    services: const [
+      QuickActionService(name: 'Electricity'),
+      QuickActionService(name: 'Mobile Prepaid'),
+      QuickActionService(name: 'Fastag'),
+      QuickActionService(name: 'Credit Card'),
+      QuickActionService(name: 'Book Gas'),
+    ],
+    onTap: _debugNoopServiceTap,
+    onExploreTap: _debugNoopTap,
+  );
+}
+
+Future<void> _debugNoopServiceTap(String _) async {}
+
+void _debugNoopTap() {}
+
+class _HomeHeroBanner extends StatelessWidget {
+  const _HomeHeroBanner({required this.onPayRentNow});
 
   final VoidCallback onPayRentNow;
 
   @override
   Widget build(BuildContext context) {
-    final imageHeight = 1.sw * (1308 / 1760);
-    final expandedHeight = imageHeight - 18.h;
-    final statusTop = MediaQuery.paddingOf(context).top;
-    final rowBottom = 49.h + 32.h;
-    final neededToolbar = rowBottom - statusTop;
-    final toolbarHeight = neededToolbar > 54.h ? neededToolbar : 54.h;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.sizeOf(context).width;
+        final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : screenWidth;
+        return _buildHero(context, width);
+      },
+    );
+  }
 
-    return SliverAppBar(
-      pinned: true,
-      floating: false,
-      automaticallyImplyLeading: false,
-      centerTitle: false,
-      titleSpacing: 0,
-      backgroundColor: const Color(0xFFFADFC9),
-      elevation: 0,
-      toolbarHeight: toolbarHeight,
-      expandedHeight: expandedHeight,
-      clipBehavior: Clip.none,
-      flexibleSpace: FlexibleSpaceBar(
-        collapseMode: CollapseMode.none,
-        background: GestureDetector(
-          onTap: onPayRentNow,
-          child: AspectRatio(
-            aspectRatio: 1760 / 1308,
-            child: Transform.translate(
-              offset: Offset(0, 30.h),
-              child: Image.asset(
-                FileConstants.homeScreenImg,
-                fit: BoxFit.fitWidth,
-                alignment: Alignment.topCenter,
-                filterQuality: FilterQuality.medium,
+  Widget _buildHero(BuildContext context, double width) {
+    // Ratios measured on the 192px-wide Figma export, whose banner art uses
+    // the same scale as homescreenimghome.png (1760x1308).
+    final imageHeight = width * (1308 / 1760);
+    final titleInImage = width * (532 / 1760);
+    final titleTop = width * (20 / 192);
+    final visibleHeight = width * (89 / 192);
+    final radius = _homeSheetTopRadius();
+    final heroHeight = visibleHeight + radius;
+    final maxShift = (imageHeight - heroHeight).clamp(0.0, double.infinity);
+    final shift = (titleInImage - titleTop).clamp(0.0, maxShift);
+
+    return SizedBox(
+      width: width,
+      height: heroHeight,
+      child: ClipRect(
+        child: Stack(
+          children: [
+            Positioned(
+              top: -shift,
+              left: 0,
+              width: width,
+              height: imageHeight,
+              child: GestureDetector(
+                onTap: onPayRentNow,
+                behavior: HitTestBehavior.opaque,
+                child: Image.asset(
+                  FileConstants.homeScreenImg,
+                  width: width,
+                  height: imageHeight,
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.medium,
+                ),
               ),
             ),
-          ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: radius,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(radius),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -3403,329 +3420,317 @@ class _HomeMainSections extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topRadius = BorderRadius.only(
-      topLeft: Radius.circular(20.r),
-      topRight: Radius.circular(20.r),
-    );
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: topRadius,
+    final sheetRadius = _homeSheetTopRadius();
+    final width = MediaQuery.sizeOf(context).width;
+    // Figma: title sits ~10px (of 192) below the sheet's top edge; the
+    // rounded cap drawn by the hero already covers `sheetRadius` of that.
+    final titleInset = (width * (10 / 192) - sheetRadius).clamp(0.0, 12.0);
+    return ColoredBox(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              16.w,
+              titleInset,
+              16.w,
+              2.w,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  title: 'Bill & Recharges',
+                  actionLabel: 'My Bills',
+                  onAction: onMyBillsTap,
+                  payBillsStyle: true,
+                ),
+                SizedBox(height: 12.h),
+                RepaintBoundary(
+                  child: _PayBillsCard(
+                    services: payBillsServices,
+                    onTap: onServiceTap,
+                    onExploreTap: onExploreUtilitiesTap,
+                    isCreditCardLoading: isFetchingCreditCards,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: ClipRRect(
-            borderRadius: topRadius,
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: EdgeInsets.only(top: 7.h),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SectionHeader(
-                          title: 'Bill & recharges',
-                          actionLabel: 'My Bills',
-                          onAction: onMyBillsTap,
-                          payBillsStyle: true,
-                        ),
-                        SizedBox(height: 12.h),
-                        _PayBillsCard(
-                          services: payBillsServices,
-                          onTap: onServiceTap,
-                          onExploreTap: onExploreUtilitiesTap,
-                          isCreditCardLoading: isFetchingCreditCards,
-                        ),
-                      ],
+          SizedBox(height: 16.h),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final height = width * 165 / 440;
+              return GestureDetector(
+                onTap: onReferTap,
+                child: SizedBox(
+                  width: width,
+                  height: height,
+                  child: RepaintBoundary(
+                    child: Lottie.asset(
+                      'assets/animations/Referral-banner-smooth-promo.json',
+                      width: width,
+                      height: height,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      repeat: true,
                     ),
                   ),
-                  SizedBox(height: 16.h),
-                  Opacity(
-                    opacity: 1,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final width = constraints.maxWidth;
-                        final height = width * 165 / 440;
-                        final cacheSide =
-                            _gifCachePixels(context, width, width);
-                        return GestureDetector(
-                          onTap: onReferTap,
-                          child: SizedBox(
-                            width: width,
-                            height: height,
-                            child: Image.asset(
-                              FileConstants.promoBannerGif,
-                              width: width,
-                              height: height,
-                              cacheWidth: cacheSide,
-                              cacheHeight: cacheSide,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              gaplessPlayback: true,
-                              filterQuality: FilterQuality.medium,
-                            ),
-                          ),
-                        );
-                      },
+                ),
+              );
+            },
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SectionHeader(
+                  title: 'Banking & Investments',
+                  payBillsStyle: true,
+                ),
+                SizedBox(height: 10.h),
+                RepaintBoundary(
+                  child: _InvestmentCircleRow(
+                    onZeroBalanceTap: onZeroBalanceTap,
+                    onGoldTap: onGoldTap,
+                    onSilverTap: onSilverTap,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (bankingInvestmentBanners.isNotEmpty) ...[
+            SizedBox(height: 4.h),
+            InkWell(
+              onTap: onBankingBannerTap,
+              child: SizedBox(
+                height: 60.h,
+                width: double.infinity,
+                child: PageView.builder(
+                  controller: bankingBannerController,
+                  onPageChanged: onBankingBannerPageChanged,
+                  itemCount: bankingInvestmentBanners.length,
+                  itemBuilder: (_, index) => AppNetworkImage(
+                    url: bankingInvestmentBanners[index].image,
+                    width: double.infinity,
+                    height: 60.h,
+                    fit: BoxFit.contain,
+                    placeholder: AppNetworkImage(
+                      url: '',
+                      width: double.infinity,
+                      height: 60.h,
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 2.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionHeader(
-                          title: 'Banking & Investment',
-                          payBillsStyle: true,
-                        ),
-                        SizedBox(height: 10.h),
-                        _InvestmentCircleRow(
-                          onZeroBalanceTap: onZeroBalanceTap,
-                          onGoldTap: onGoldTap,
-                          onSilverTap: onSilverTap,
-                        ),
-                      ],
+                ),
+              ),
+            ),
+          ],
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    homeServiceCardLabelText('Pay Via Credit Card'),
+                    textAlign: TextAlign.left,
+                    style: homeSectionHeaderStyle(),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                RepaintBoundary(
+                  child: _CurvedIconGrid(
+                    services: educationServices,
+                    onTap: onServiceTap,
+                    maxItems: 8,
+                    showCardFrame: false,
+                    labelBuilder: (service) {
+                      final name = service.name.trim();
+                      final lower = name.toLowerCase();
+                      if (lower.contains('gym')) {
+                        return 'Gym Membership';
+                      }
+                      if (lower.contains('house rent')) {
+                        return 'House Rent';
+                      }
+                      if (lower.contains('shop rent')) {
+                        return 'Shop Rent';
+                      }
+                      return name;
+                    },
+                  ),
+                ),
+                SizedBox(height: middleBanners.isNotEmpty ? 0.h : 10.h),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                SizedBox(height: 6.h),
+                GestureDetector(
+                  onTap: onZeroBalanceTap,
+                  child: RepaintBoundary(
+                    child: _HomeBleedBanner(
+                      designWidth: 440,
+                      designHeight: 90,
+                      asset: FileConstants.zeroBalanceBanner,
                     ),
                   ),
-                  if (bankingInvestmentBanners.isNotEmpty) ...[
-                    SizedBox(height: 4.h),
-                    InkWell(
-                      onTap: onBankingBannerTap,
-                      child: SizedBox(
-                        height: 60.h,
-                        width: double.infinity,
-                        child: PageView.builder(
-                          controller: bankingBannerController,
-                          onPageChanged: onBankingBannerPageChanged,
-                          itemCount: bankingInvestmentBanners.length,
-                          itemBuilder: (_, index) => AppNetworkImage(
-                            url: bankingInvestmentBanners[index].image,
-                            width: double.infinity,
-                            height: 60.h,
-                            fit: BoxFit.contain,
-                            placeholder: AppNetworkImage(
-                              url: '',
-                              width: double.infinity,
-                              height: 60.h,
-                            ),
-                          ),
-                        ),
+                ),
+                SizedBox(height: 12.h),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    homeServiceCardLabelText('Insurance Premium'),
+                    textAlign: TextAlign.left,
+                    style: homeSectionHeaderStyle(),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                RepaintBoundary(
+                  child: _CurvedIconGrid(
+                    services: insuranceServices,
+                    onTap: onServiceTap,
+                    showCardFrame: false,
+                    labelBuilder: (service) {
+                      final name = service.name.trim();
+                      final lower = name.toLowerCase();
+                      if (lower.contains('life')) return 'Life Insurance';
+                      if (lower.contains('health')) return 'Health Insurance';
+                      if (lower.contains('general')) return 'Motor Insurance';
+                      if (lower.contains('insurance')) return name;
+                      return name;
+                    },
+                  ),
+                ),
+                SizedBox(height: 8.h),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
+            child: const RepaintBoundary(
+              child: _CibilBanner(),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    homeServiceCardLabelText('Loan'),
+                    textAlign: TextAlign.left,
+                    style: homeSectionHeaderStyle(),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                RepaintBoundary(
+                  child: _CurvedIconGrid(
+                    services: const [
+                      QuickActionService(name: 'Personal Loan'),
+                      QuickActionService(name: 'Business Loan'),
+                      QuickActionService(name: 'Home Loan'),
+                      QuickActionService(name: 'Loan Against Property'),
+                    ],
+                    onTap: (_) async => _showInvestmentComingSoonMessage(),
+                    showCardFrame: false,
+                    labelBuilder: (service) => service.name,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 12.h),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              double frame(double px) => width * px / 440;
+              return RepaintBoundary(
+                child: ColoredBox(
+                  color: const Color(0xFFFDFDFD),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Image.asset(
+                        FileConstants.secureFuture,
+                        width: width,
+                        height: frame(180),
+                        fit: BoxFit.fill,
+                        cacheWidth: _cachePixels(context, width),
+                        cacheHeight: _cachePixels(context, frame(180)),
                       ),
-                    ),
-                  ],
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Pay Via Credit Card',
-                            textAlign: TextAlign.left,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
-                              height: 1,
-                              letterSpacing: -0.02 * 12.sp,
-                              color: const Color(0xFF000000),
-                            ),
-                          ),
+                      SizedBox(height: frame(45)),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: frame(24),
                         ),
-                        SizedBox(height: 10.h),
-                        _CurvedIconGrid(
-                          services: educationServices,
-                          onTap: onServiceTap,
-                          maxItems: 8,
-                          showCardFrame: false,
-                          labelBuilder: (service) {
-                            final name = service.name.trim();
-                            final lower = name.toLowerCase();
-                            if (lower.contains('gym')) {
-                              return 'Gym Membership';
-                            }
-                            if (lower.contains('house rent')) {
-                              return 'House Rent';
-                            }
-                            if (lower.contains('shop rent')) {
-                              return 'Shop Rent';
-                            }
-                            return name;
-                          },
+                        child: const _TrustedByIndians(),
+                      ),
+                      SizedBox(height: frame(26)),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: frame(24),
                         ),
-                        SizedBox(height: middleBanners.isNotEmpty ? 0.h : 10.h),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        SizedBox(height: 6.h),
-                        GestureDetector(
-                          onTap: onZeroBalanceTap,
-                          child: _HomeBleedBanner(
-                            designWidth: 440,
-                            designHeight: 90,
-                            asset: FileConstants.zeroBalanceBanner,
-                          ),
-                        ),
-                        SizedBox(height: 12.h),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Insurance Premium',
-                            textAlign: TextAlign.left,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
-                              height: 1,
-                              letterSpacing: -0.02 * 12.sp,
-                              color: const Color(0xFF000000),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10.h),
-                        _CurvedIconGrid(
-                          services: insuranceServices,
-                          onTap: onServiceTap,
-                          showCardFrame: false,
-                          labelBuilder: (service) {
-                            final name = service.name.trim();
-                            final lower = name.toLowerCase();
-                            if (lower.contains('life')) return 'Life Insurance';
-                            if (lower.contains('health'))
-                              return 'Health Insurance';
-                            if (lower.contains('general'))
-                              return 'Motor Insurance';
-                            if (lower.contains('insurance')) return name;
-                            return name;
-                          },
-                        ),
-                        SizedBox(height: 8.h),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 2.h),
-                    child: const _CibilBanner(),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 2.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Loan',
-                            textAlign: TextAlign.left,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
-                              height: 1,
-                              letterSpacing: -0.02 * 12.sp,
-                              color: const Color(0xFF000000),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10.h),
-                        _CurvedIconGrid(
-                          services: const [
-                            QuickActionService(name: 'Personal Loan'),
-                            QuickActionService(name: 'Business Loan'),
-                            QuickActionService(name: 'Home Loan'),
-                            QuickActionService(name: 'Loan Against Property'),
-                          ],
-                          onTap: (_) async =>
-                              _showInvestmentComingSoonMessage(),
-                          showCardFrame: false,
-                          labelBuilder: (service) => service.name,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      double frame(double px) => width * px / 440;
-                      return ColoredBox(
-                        color: const Color(0xFFFDFDFD),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Image.asset(
-                              FileConstants.secureFuture,
-                              width: width,
-                              height: frame(180),
-                              fit: BoxFit.fill,
-                            ),
-                            SizedBox(height: frame(45)),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: frame(24),
-                              ),
-                              child: const _TrustedByIndians(),
-                            ),
-                            SizedBox(height: frame(26)),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: frame(24),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 59.w,
-                                    height: 13.h,
-                                    child: Text(
-                                      'Powered By',
-                                      maxLines: 1,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10.sp,
-                                        fontWeight: FontWeight.w600,
-                                        fontStyle: FontStyle.normal,
-                                        height: 1,
-                                        letterSpacing: 0,
-                                        color: const Color(0xFF000000),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  SizedBox(
-                                    width: 61.w,
-                                    height: 24.h,
-                                    child: Image.asset(
-                                      FileConstants.bharatConnectColor,
-                                      width: 61.w,
-                                      height: 24.h,
-                                      fit: BoxFit.contain,
-                                      alignment: Alignment.centerLeft,
-                                    ),
-                                  ),
-                                ],
+                            SizedBox(
+                              width: 59.w,
+                              height: 13.h,
+                              child: Text(
+                                'Powered By',
+                                maxLines: 1,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w600,
+                                  fontStyle: FontStyle.normal,
+                                  height: 1,
+                                  letterSpacing: 0,
+                                  color: const Color(0xFF000000),
+                                ),
                               ),
                             ),
-                            SizedBox(height: 40.h),
+                            SizedBox(height: 6.h),
+                            SizedBox(
+                              width: 61.w,
+                              height: 24.h,
+                              child: Image.asset(
+                                FileConstants.bharatConnectColor,
+                                width: 61.w,
+                                height: 24.h,
+                                fit: BoxFit.contain,
+                                alignment: Alignment.centerLeft,
+                                cacheWidth: _cachePixels(context, 61.w),
+                                cacheHeight: _cachePixels(context, 24.h),
+                              ),
+                            ),
                           ],
                         ),
-                      );
-                    },
+                      ),
+                      SizedBox(height: 40.h),
+                    ],
                   ),
-                  /*
+                ),
+              );
+            },
+          ),
+          /*
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0.h),
               child: Column(
@@ -3784,7 +3789,7 @@ class _HomeMainSections extends StatelessWidget {
                     child: AppNetworkImage(
                       url: bottomBanners[index].image,
                       width: double.infinity,
-                      height: 130.h,
+                      height: 14.h,
                       fit: BoxFit.cover,
                       placeholder: AppNetworkImage(
                         url: '',
@@ -3809,12 +3814,8 @@ class _HomeMainSections extends StatelessWidget {
                 ),
             ],
             */
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

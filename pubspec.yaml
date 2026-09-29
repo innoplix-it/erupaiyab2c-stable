@@ -81,6 +81,7 @@ flutter:
     - assets/images/png/digital_gold_silver/
     - assets/lottie/
     - assets/lottie/logo-verticle.json
+    - assets/animations/Referral-banner-smooth-promo.json
     - assets/sounds/
     - assets/gif/
 

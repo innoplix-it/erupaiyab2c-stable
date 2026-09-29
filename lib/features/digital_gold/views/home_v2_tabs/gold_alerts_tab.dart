@@ -684,13 +684,16 @@ class _EditAlertSheetState extends State<_EditAlertSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SafeArea(
+        top: false,
+        child: ListView(
+          shrinkWrap: true,
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
           children: [
             Row(
               children: [

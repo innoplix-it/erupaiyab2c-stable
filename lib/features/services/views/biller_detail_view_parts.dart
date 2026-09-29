@@ -602,9 +602,14 @@ Future<String?> _pickContactNumber(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
     ),
     builder: (context) {
-      return _ContactPickerSheetHost(
-        onReload: contactsController.reload,
-        onEnsureLoaded: contactsController.fetchIfNeeded,
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: _ContactPickerSheetHost(
+          onReload: contactsController.reload,
+          onEnsureLoaded: contactsController.fetchIfNeeded,
+        ),
       );
     },
   );
@@ -1150,31 +1155,42 @@ class _AmountDisplayCard extends StatelessWidget {
         children: [
           // Top row: bill period chip + due date
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (_hasValidBillPeriod(_resolveBillMonth(bill)))
-                Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Text(
-                    'Bill for ${_formatBillPeriod(_resolveBillMonth(bill))}',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
+                Flexible(
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text(
+                      'Bill for ${_formatBillPeriod(_resolveBillMonth(bill))}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
                   ),
                 ),
+              if (_hasValidBillPeriod(_resolveBillMonth(bill)) &&
+                  bill.dueDate.isNotEmpty)
+                SizedBox(width: 8.w),
               if (bill.dueDate.isNotEmpty)
-                Text(
-                  'Due on: ${DateFormatHelper.formatDisplayDate(bill.dueDate)}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.red,
-                        fontWeight: FontWeight.w700,
-                      ),
+                Flexible(
+                  child: Text(
+                    'Due on: ${DateFormatHelper.formatDisplayDate(bill.dueDate)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.red,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ),
             ],
           ),

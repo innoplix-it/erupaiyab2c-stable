@@ -20,7 +20,7 @@ class GoldProviderSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Image.asset(FileConstants.mmtcPamp, width: 48.w, height: 48.h),
+        Image.asset(FileConstants.mmtcPamp, width: 48.w, height: 48.w),
         SizedBox(width: 12.w),
         Expanded(
           child: Column(

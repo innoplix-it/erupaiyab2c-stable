@@ -110,7 +110,7 @@ class CreditCardIntroView extends StatelessWidget {
               Positioned(
                 left: 24,
                 right: 24,
-                bottom: 24,
+                bottom: 24 + MediaQuery.paddingOf(context).bottom,
                 child: CustomElevatedButton(
                   onPressed: () =>
                       context.push(RouteConstants.creditCardListing),

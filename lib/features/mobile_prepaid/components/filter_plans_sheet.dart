@@ -148,33 +148,45 @@ class _FilterPlansSheetState extends State<FilterPlansSheet> {
               ],
             ),
             Divider(color: AppColors.textPrimary.withOpacity(0.08)),
-            SizedBox(height: 10.h),
-            Text(
-              'Validity',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                children: [
+                  SizedBox(height: 10.h),
+                  Text(
+                    'Validity',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
                   ),
-            ),
-            SizedBox(height: 10.h),
-            _chipGroup(
-              options: widget.validityOptions,
-              selected: _selectedValidity,
-            ),
-            SizedBox(height: 18.h),
-            Text(
-              'Data',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                  SizedBox(height: 10.h),
+                  _chipGroup(
+                    options: widget.validityOptions,
+                    selected: _selectedValidity,
                   ),
+                  SizedBox(height: 18.h),
+                  Text(
+                    'Data',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
+                  SizedBox(height: 10.h),
+                  _chipGroup(
+                    options: widget.dataOptions,
+                    selected: _selectedData,
+                  ),
+                  SizedBox(height: 12.h),
+                ],
+              ),
             ),
             SizedBox(height: 10.h),
-            _chipGroup(
-              options: widget.dataOptions,
-              selected: _selectedData,
-            ),
-            SizedBox(height: 22.h),
             Row(
               children: [
                 Expanded(

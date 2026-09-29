@@ -108,6 +108,10 @@ class _GoldSipTab extends StatelessWidget {
                         child: Image.asset(
                           FileConstants.sipBg,
                           fit: BoxFit.cover,
+                          cacheWidth: (MediaQuery.sizeOf(context).width *
+                                  MediaQuery.devicePixelRatioOf(context))
+                              .round()
+                              .clamp(1, 4096),
                         ),
                       ),
                       Padding(

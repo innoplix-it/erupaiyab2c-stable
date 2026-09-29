@@ -542,7 +542,14 @@ class _SipBgHeader extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(FileConstants.sipBg, fit: BoxFit.cover),
+          Image.asset(
+            FileConstants.sipBg,
+            fit: BoxFit.cover,
+            cacheWidth: (MediaQuery.sizeOf(context).width *
+                    MediaQuery.devicePixelRatioOf(context))
+                .round()
+                .clamp(1, 4096),
+          ),
           SafeArea(
             bottom: false,
             child: Column(

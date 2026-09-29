@@ -251,9 +251,11 @@ class PlanInfoRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (hasValidity)
-                      _PlanInfoColumn(
-                        label: 'Validity',
-                        value: plan.validity,
+                      Flexible(
+                        child: _PlanInfoColumn(
+                          label: 'Validity',
+                          value: plan.validity,
+                        ),
                       ),
                     if (hasValidity && hasData) ...[
                       SizedBox(width: 14.w),
@@ -265,9 +267,11 @@ class PlanInfoRow extends StatelessWidget {
                       SizedBox(width: 14.w),
                     ],
                     if (hasData)
-                      _PlanInfoColumn(
-                        label: 'Data',
-                        value: dataValue,
+                      Flexible(
+                        child: _PlanInfoColumn(
+                          label: 'Data',
+                          value: dataValue,
+                        ),
                       ),
                   ],
                 ),

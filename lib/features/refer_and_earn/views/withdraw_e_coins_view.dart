@@ -635,12 +635,16 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                   ),
                 ),
                 SizedBox(width: 8.w),
-                Text(
-                  '${_formatCoins(amount)} Coins = ₹${_formatCoins(amount)}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                Flexible(
+                  child: Text(
+                    '${_formatCoins(amount)} Coins = ₹${_formatCoins(amount)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ),
               ],
             ),

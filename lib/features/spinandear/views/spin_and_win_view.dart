@@ -246,12 +246,14 @@ class SpinAndWinView extends HookConsumerWidget {
                   bottom: -20,
                   left: -20,
                   right: -20,
-                  child: Image.asset(
-                    FileConstants.spinRewardGif,
-                    fit: BoxFit.cover,
-                    width: constraints.maxWidth + 40,
-                    color: const Color(0xFF387C80).withOpacity(0.35),
-                    colorBlendMode: BlendMode.srcATop,
+                  child: RepaintBoundary(
+                    child: Image.asset(
+                      FileConstants.spinRewardGif,
+                      fit: BoxFit.cover,
+                      width: constraints.maxWidth + 40,
+                      color: const Color(0xFF387C80).withOpacity(0.35),
+                      colorBlendMode: BlendMode.srcATop,
+                    ),
                   ),
                 ),
                 SafeArea(

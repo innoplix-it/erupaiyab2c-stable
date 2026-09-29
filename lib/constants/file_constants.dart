@@ -45,7 +45,6 @@ class FileConstants {
 
   // GIFS
   static String loadingGif = 'assets/images/png/loading.gif';
-  static String promoBannerGif = 'assets/gif/promobanner.gif';
   static String gasGif = 'assets/gif/gasGif.gif';
   static String digitalSilver = 'assets/gif/gasGif.gif';
   static String homeBannerGif = 'assets/gif/homeBanner.gif';

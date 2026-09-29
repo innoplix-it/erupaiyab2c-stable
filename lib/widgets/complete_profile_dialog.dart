@@ -588,18 +588,32 @@ class _CompleteProfileDialogState extends State<CompleteProfileDialog> {
           ),
         ),
         SizedBox(height: 18.h),
-        Pinput(
-          controller: _otpController,
-          focusNode: _otpFocus,
-          length: _otpLength,
-          enabled: !_isSubmitting,
-          keyboardType: TextInputType.number,
-          defaultPinTheme: pinTheme,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          onCompleted: (_) => _verifyOtp(),
-          onChanged: (_) {
-            if (_otpVerified) setState(() => _otpVerified = false);
-            if (_otpBannerType == _OtpBannerType.error) _clearOtpBanner();
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 8.0;
+            final natural = 58.w;
+            final maxWidth = constraints.maxWidth;
+            const gaps = gap * (_otpLength - 1);
+            final fieldWidth = !maxWidth.isFinite ||
+                    natural * _otpLength + gaps <= maxWidth
+                ? natural
+                : (maxWidth - gaps) / _otpLength;
+            final theme = pinTheme.copyWith(width: fieldWidth);
+            return Pinput(
+              controller: _otpController,
+              focusNode: _otpFocus,
+              length: _otpLength,
+              enabled: !_isSubmitting,
+              keyboardType: TextInputType.number,
+              defaultPinTheme: theme,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              separatorBuilder: (_) => const SizedBox(width: gap),
+              onCompleted: (_) => _verifyOtp(),
+              onChanged: (_) {
+                if (_otpVerified) setState(() => _otpVerified = false);
+                if (_otpBannerType == _OtpBannerType.error) _clearOtpBanner();
+              },
+            );
           },
         ),
         SizedBox(height: 12.h),

@@ -162,11 +162,11 @@ class _TransactionHistoryScreenState
                       onTap: () => _openFilterScreen(controller),
                       child: SizedBox(
                         width: 24.w,
-                        height: 24.h,
+                        height: 24.w,
                         child: SvgPicture.string(
                           _transactionFilterSvg,
                           width: 24.w,
-                          height: 24.h,
+                          height: 24.w,
                           fit: BoxFit.contain,
                         ),
                       ),

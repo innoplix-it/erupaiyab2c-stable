@@ -185,7 +185,7 @@ class _CompleteKycViewState extends State<CompleteKycView> {
                 Positioned(
                   left: 16.w,
                   right: 16.w,
-                  bottom: 16.h,
+                  bottom: 16.h + MediaQuery.paddingOf(context).bottom,
                   child: SizedBox(height: 42.h,
                     child: InkWell(
                       onTap: () {

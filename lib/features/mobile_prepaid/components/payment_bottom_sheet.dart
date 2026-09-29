@@ -341,15 +341,19 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
           children: [
             // Header
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Select Payment Options',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                Expanded(
+                  child: Text(
+                    'Select Payment Options',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
                 ),
+                SizedBox(width: 8.w),
                 Text(
                   '\u20B9 ${widget.amount.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -725,15 +729,19 @@ class _PrepaidPaymentBottomSheetState
           children: [
             // Header
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Select Payment Options',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                Expanded(
+                  child: Text(
+                    'Select Payment Options',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
                 ),
+                SizedBox(width: 8.w),
                 Text(
                   '\u20B9 ${widget.plan.amount}',
                   style: GoogleFonts.plusJakartaSans(

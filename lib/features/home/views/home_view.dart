@@ -15,6 +15,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:lottie/lottie.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 import '../../../config/temporary_block_debug_config.dart';
@@ -81,25 +82,31 @@ class HomeView extends HookConsumerWidget {
       const TransactionHistoryScreen(),
     ];
 
+    final textScaler = MediaQuery.textScalerOf(context);
+    final navFontSize = 11.sp;
     final navTextStyle = TextStyle(
-      fontSize: 11.sp,
+      fontSize: navFontSize,
       fontWeight: FontWeight.w600,
       color: Colors.black,
-      height: 0.4,
+      height: 1.15,
     );
     final inactiveNavColor = AppColors.textPrimary.withOpacity(0.45);
-    final navIconBoxSize = 22.r;
+    final navIconSize = 22.r;
+    final navIconBoxSize = navIconSize + 6;
+    final navLabelHeight = textScaler.scale(navFontSize * 1.15);
+    final navBarHeight =
+        (navIconBoxSize + navLabelHeight + 14).clamp(60.0, 76.0);
     final navItems = [
       PersistentBottomNavBarItem(
         contentPadding: 0,
         icon: _BottomIcon(
           asset: FileConstants.paybillActive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         inactiveIcon: _BottomIcon(
           asset: FileConstants.paybillInactive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         title: 'Pay Bills',
@@ -112,12 +119,12 @@ class HomeView extends HookConsumerWidget {
         contentPadding: 0,
         icon: _BottomIcon(
           asset: FileConstants.offersActive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         inactiveIcon: _BottomIcon(
           asset: FileConstants.offersInactive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         title: 'Offers',
@@ -131,13 +138,13 @@ class HomeView extends HookConsumerWidget {
         icon: _BottomIcon(
           asset: FileConstants.homeSpin,
           color: AppColors.primary,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         inactiveIcon: _BottomIcon(
           asset: FileConstants.homeSpin,
           color: AppColors.primary,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         title: 'Spin & Win',
@@ -168,12 +175,12 @@ class HomeView extends HookConsumerWidget {
         contentPadding: 0,
         icon: _BottomIconWithBadge(
           asset: FileConstants.alertsActive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         inactiveIcon: _BottomIconWithBadge(
           asset: FileConstants.alertsInactive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         title: 'Alerts',
@@ -186,12 +193,12 @@ class HomeView extends HookConsumerWidget {
         contentPadding: 0,
         icon: _BottomIcon(
           asset: FileConstants.historyActive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         inactiveIcon: _BottomIcon(
           asset: FileConstants.historyInactive,
-          size: 22.r,
+          size: navIconSize,
           yOffset: 0,
         ),
         title: 'History',
@@ -296,8 +303,8 @@ class HomeView extends HookConsumerWidget {
           borderRadius: BorderRadius.circular(0.r),
           colorBehindNavBar: Colors.white,
         ),
-        navBarHeight: 65,
-        padding: EdgeInsets.only(top: 6.h, bottom: 10.h),
+        navBarHeight: navBarHeight,
+        padding: const EdgeInsets.only(top: 4, bottom: 2),
         backgroundColor: Colors.white,
         hideNavigationBarWhenKeyboardAppears: true,
         confineToSafeArea: true,

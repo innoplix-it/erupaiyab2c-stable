@@ -19,11 +19,11 @@ class ProfileShimmer extends StatelessWidget {
             SizedBox(height: 18.h),
             Row(
               children: [
-                _Circle(size: 48),
+                _Circle(size: 48.r),
                 SizedBox(width: 14.w),
                 _Line(width: 120.w, height: 16.h),
                 Spacer(),
-                _Line(width: 18.w, height: 18.h),
+                _Line(width: 18.w, height: 18.w),
               ],
             ),
             SizedBox(height: 18.h),
@@ -178,7 +178,7 @@ class _MenuRow extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 12.h),
       child: Row(
         children: [
-          _Line(width: 22.w, height: 22.h),
+          _Line(width: 22.w, height: 22.w),
           SizedBox(width: 16.w),
           _Line(width: 160.w, height: 14.h),
         ],

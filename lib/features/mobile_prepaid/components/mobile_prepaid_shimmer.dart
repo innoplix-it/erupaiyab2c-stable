@@ -104,7 +104,7 @@ class MobilePrepaidMyNumberCardShimmer extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Row(
           children: [
-            _ShimmerBox(height: 44.h, width: 44.w, radius: 14.r),
+            _ShimmerBox(height: 44.w, width: 44.w, radius: 14.r),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
@@ -143,7 +143,7 @@ class MobilePrepaidRecentRechargeCardShimmer extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         child: Row(
           children: [
-            _ShimmerBox(height: 44.h, width: 44.w, radius: 14.r),
+            _ShimmerBox(height: 44.w, width: 44.w, radius: 14.r),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(

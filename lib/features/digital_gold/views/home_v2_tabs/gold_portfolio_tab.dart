@@ -703,7 +703,7 @@ class _TrustHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Image.asset(FileConstants.leftGradientLine, width: 50.w, height: 50.h),
+        Image.asset(FileConstants.leftGradientLine, width: 50.w, height: 50.w),
         SizedBox(width: 10.w),
         Text(
           '1 Cr+ Users Trust Us',
@@ -713,7 +713,7 @@ class _TrustHeader extends StatelessWidget {
               ),
         ),
         SizedBox(width: 10.w),
-        Image.asset(FileConstants.rightGradientLine, width: 50.w, height: 50.h),
+        Image.asset(FileConstants.rightGradientLine, width: 50.w, height: 50.w),
       ],
     );
   }

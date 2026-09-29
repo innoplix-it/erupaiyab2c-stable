@@ -249,7 +249,7 @@ class PinLoginView extends HookConsumerWidget {
               Positioned(
                 left: 12,
                 right: 12,
-                bottom: 24,
+                bottom: 24 + MediaQuery.paddingOf(context).bottom,
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8.w),
                   child: Column(
@@ -484,37 +484,44 @@ class _ForgotPinInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Pinput(
-      controller: controller,
-      length: length,
-      obscureText: obscureText,
-      keyboardType: TextInputType.number,
-      defaultPinTheme: PinTheme(
-        width: 50.w,
-        height: 52.h,
-        textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
+    final textStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+        );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 8.0;
+        final natural = 50.w;
+        final maxWidth = constraints.maxWidth;
+        final gaps = gap * (length - 1);
+        final fieldWidth = !maxWidth.isFinite ||
+                natural * length + gaps <= maxWidth
+            ? natural
+            : (maxWidth - gaps) / length;
+        final pinTheme = PinTheme(
+          width: fieldWidth,
+          height: 52.h,
+          textStyle: textStyle,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(color: AppColors.lightBorder),
+            color: Colors.white,
+          ),
+        );
+        return Pinput(
+          controller: controller,
+          length: length,
+          obscureText: obscureText,
+          keyboardType: TextInputType.number,
+          defaultPinTheme: pinTheme,
+          focusedPinTheme: pinTheme.copyWith(
+            decoration: pinTheme.decoration?.copyWith(
+              border: Border.all(color: AppColors.primary),
             ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: AppColors.lightBorder),
-          color: Colors.white,
-        ),
-      ),
-      focusedPinTheme: PinTheme(
-        width: 50.w,
-        height: 52.h,
-        textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: AppColors.primary),
-          color: Colors.white,
-        ),
-      ),
+          ),
+          separatorBuilder: (_) => const SizedBox(width: gap),
+        );
+      },
     );
   }
 }

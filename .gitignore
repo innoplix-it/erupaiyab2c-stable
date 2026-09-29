@@ -50,3 +50,5 @@ app.*.map.json
 
 .windsurfrules
 .env
+# Widget Preview related
+.widget_preview/

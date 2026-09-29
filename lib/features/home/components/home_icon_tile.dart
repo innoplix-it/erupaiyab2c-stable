@@ -11,6 +11,113 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../widgets/app_network_image.dart';
 
+class HomeServiceCircle extends StatelessWidget {
+  const HomeServiceCircle({
+    super.key,
+    required this.child,
+  });
+
+  final Widget child;
+
+  static double get size {
+    final width = ScreenUtil().screenWidth;
+    final preferred = 52.w;
+    final byWidth = width * (52 / 360);
+    final resolved = preferred < byWidth ? preferred : byWidth;
+    if (resolved < 40) return 40;
+    if (resolved > 56) return 56;
+    return resolved;
+  }
+
+  static BoxDecoration decoration() {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(80.r),
+      border: Border.all(
+        color: const Color(0xFFFFFFFF),
+        width: 2.w,
+      ),
+      gradient: const RadialGradient(
+        center: Alignment(0, 0),
+        radius: 0.7868,
+        colors: [
+          Color(0xFFFFFFFF),
+          Color(0xFFEEF3FD),
+        ],
+        stops: [0.0, 1.0],
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xD9EEF3FD),
+          offset: Offset(0.w, 1.h),
+          blurRadius: 1.r,
+        ),
+        BoxShadow(
+          color: const Color(0x80EEF3FD),
+          offset: Offset(0.w, 2.h),
+          blurRadius: 1.r,
+        ),
+        BoxShadow(
+          color: const Color(0x26EEF3FD),
+          offset: Offset(0.w, 3.h),
+          blurRadius: 1.r,
+        ),
+        BoxShadow(
+          color: const Color(0x05EEF3FD),
+          offset: Offset(0.w, 5.h),
+          blurRadius: 1.r,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final circleSize = size;
+    return Container(
+      width: circleSize,
+      height: circleSize,
+      padding: EdgeInsets.all((circleSize * 0.14).clamp(6.0, 10.0)),
+      decoration: decoration(),
+      child: Center(child: child),
+    );
+  }
+}
+
+TextStyle homeServiceCardLabelStyle() {
+  return GoogleFonts.plusJakartaSans(
+    fontSize: 12.sp,
+    fontWeight: FontWeight.w600,
+    fontStyle: FontStyle.normal,
+    height: 1.2,
+    letterSpacing: 0,
+    color: const Color(0xFF000000),
+  );
+}
+
+TextStyle homeSectionHeaderStyle() {
+  return GoogleFonts.plusJakartaSans(
+    fontSize: 12.sp,
+    fontWeight: FontWeight.w700,
+    fontStyle: FontStyle.normal,
+    height: 1.2,
+    letterSpacing: -0.02 * 12.sp,
+    color: const Color(0xFF000000),
+  );
+}
+
+String homeServiceCardLabelText(String input) {
+  return input.split('\n').map((line) {
+    return line
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .map((word) {
+      if (word.isEmpty) return word;
+      return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+    }).join(' ');
+  }).join('\n');
+}
+
 class HomeIconTile extends StatefulWidget {
   const HomeIconTile({
     super.key,
@@ -21,6 +128,7 @@ class HomeIconTile extends StatefulWidget {
     this.lottieAsset,
     this.offer,
     this.labelSpacing,
+    this.labelHeight,
     this.showHalfRing = false,
     this.isLoading = false,
     this.creditCardCircle = false,
@@ -33,6 +141,7 @@ class HomeIconTile extends StatefulWidget {
   final String? lottieAsset;
   final int? offer;
   final double? labelSpacing;
+  final double? labelHeight;
   final bool showHalfRing;
   final bool isLoading;
   final bool creditCardCircle;
@@ -78,25 +187,21 @@ class _HomeIconTileState extends State<HomeIconTile>
 
   @override
   Widget build(BuildContext context) {
-    final labelTextStyle = GoogleFonts.plusJakartaSans(
-      fontSize: 12.sp,
-      fontWeight: FontWeight.w600,
-      fontStyle: FontStyle.normal,
-      height: 1,
-      letterSpacing: 0,
-      color: const Color(0xFF000000),
-    );
-    final labelWords = widget.label
-        .trim()
+    final labelWords = homeServiceCardLabelText(widget.label)
         .split(RegExp(r'\s+'))
         .where((word) => word.isNotEmpty)
-        .map(_capitalizeWord)
         .toList();
     final isTwoWordLabel = labelWords.length == 2;
 
-    const circleSize = 68.0;
-    final ringSize = 72.w;
-    final iconSize = 34.w;
+    final circleSize = HomeServiceCircle.size;
+    final ringSize = circleSize + 4.w;
+    final iconSize = (circleSize * 0.48).clamp(18.0, 26.0);
+    final textScaler = MediaQuery.textScalerOf(context);
+    final labelStyle = homeServiceCardLabelStyle();
+    final lineExtent = textScaler.scale(
+      (labelStyle.fontSize ?? 12) * (labelStyle.height ?? 1.2),
+    );
+    final resolvedLabelHeight = widget.labelHeight ?? (lineExtent * 2);
 
     return RepaintBoundary(
       child: InkWell(
@@ -129,86 +234,43 @@ class _HomeIconTileState extends State<HomeIconTile>
                       },
                     ),
                   ),
-                Container(
-                  height: circleSize.w,
-                  width: circleSize.w,
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(80.r),
-                    border: Border.all(
-                      color: const Color(0xFFFFFFFF),
-                      width: 2.w,
-                    ),
-                    gradient: const RadialGradient(
-                      center: Alignment(0, 0),
-                      radius: 0.7868,
-                      colors: [
-                        Color(0xFFFFFFFF),
-                        Color(0xFFEEF3FD),
-                      ],
-                      stops: [0.0, 1.0],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xD9EEF3FD),
-                        offset: Offset(0.w, 1.h),
-                        blurRadius: 1.r,
-                      ),
-                      BoxShadow(
-                        color: const Color(0x80EEF3FD),
-                        offset: Offset(0.w, 2.h),
-                        blurRadius: 1.r,
-                      ),
-                      BoxShadow(
-                        color: const Color(0x26EEF3FD),
-                        offset: Offset(0.w, 3.h),
-                        blurRadius: 1.r,
-                      ),
-                      BoxShadow(
-                        color: const Color(0x05EEF3FD),
-                        offset: Offset(0.w, 5.h),
-                        blurRadius: 1.r,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      child: widget.isLoading
-                          ? SizedBox(
-                              key: const ValueKey('loading'),
-                              height: 24.r,
-                              width: 24.r,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.4,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.primary,
+                HomeServiceCircle(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    child: widget.isLoading
+                        ? SizedBox(
+                            key: const ValueKey('loading'),
+                            height: 24.r,
+                            width: 24.r,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.4,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          )
+                        : widget.lottieAsset != null
+                            ? Lottie.asset(
+                                widget.lottieAsset!,
+                                key: const ValueKey('lottie-icon'),
+                                width: iconSize,
+                                height: iconSize,
+                                fit: BoxFit.contain,
+                              )
+                            : AppNetworkImage(
+                                key: const ValueKey('icon'),
+                                url: widget.iconUrl,
+                                width: iconSize,
+                                height: iconSize,
+                                fit: BoxFit.contain,
+                                showShimmer: false,
+                                errorWidget: Image.asset(
+                                  FileConstants.appLogo,
+                                  height: iconSize,
+                                  width: iconSize,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
-                            )
-                          : widget.lottieAsset != null
-                              ? Lottie.asset(
-                                  widget.lottieAsset!,
-                                  key: const ValueKey('lottie-icon'),
-                                  width: iconSize,
-                                  height: iconSize,
-                                  fit: BoxFit.contain,
-                                )
-                              : AppNetworkImage(
-                                  key: const ValueKey('icon'),
-                                  url: widget.iconUrl,
-                                  width: iconSize,
-                                  height: iconSize,
-                                  fit: BoxFit.contain,
-                                  showShimmer: false,
-                                  errorWidget: Image.asset(
-                                    FileConstants.appLogo,
-                                    height: iconSize,
-                                    width: iconSize,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                    ),
                   ),
                 ),
                 if (!widget.isLoading && widget.offer != null)
@@ -236,10 +298,10 @@ class _HomeIconTileState extends State<HomeIconTile>
                   ),
               ],
             ),
-            SizedBox(height: widget.labelSpacing ?? 6.h),
+            SizedBox(height: widget.labelSpacing ?? 4.w),
             SizedBox(
-              width: 59.w,
-              height: 30.h,
+              width: double.infinity,
+              height: resolvedLabelHeight,
               child: Text(
                 isTwoWordLabel
                     ? '${labelWords.first}\n${labelWords.last}'
@@ -248,18 +310,13 @@ class _HomeIconTileState extends State<HomeIconTile>
                 softWrap: true,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: labelTextStyle,
+                style: labelStyle,
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  String _capitalizeWord(String word) {
-    if (word.isEmpty) return word;
-    return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
   }
 }
 

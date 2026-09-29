@@ -27,14 +27,17 @@ class SupportExperienceSheet extends HookWidget {
         children: [
           Row(
             children: [
-              Text(
-                'How Was Your Support Experience?',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
+              Expanded(
+                child: Text(
+                  'How Was Your Support Experience?',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                ),
               ),
-              const Spacer(),
               InkWell(
                 onTap: () => Navigator.of(context).pop(),
                 borderRadius: BorderRadius.circular(20.r),

@@ -206,7 +206,7 @@ class DigitalGoldSummaryView extends HookConsumerWidget {
                 Row(
                   children: [
                     Image.asset(FileConstants.coin_3d,
-                        width: 25.w, height: 25.h),
+                        width: 25.w, height: 25.w),
                     SizedBox(width: 10.w),
                     Expanded(
                       child: Text(

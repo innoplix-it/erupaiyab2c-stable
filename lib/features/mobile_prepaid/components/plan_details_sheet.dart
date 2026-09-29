@@ -68,22 +68,28 @@ class PlanDetailsSheet extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '₹ ${plan.amount}',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary,
-                                fontSize: 26.sp,
-                              ),
+                    Flexible(
+                      child: Text(
+                        '₹ ${plan.amount}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.textPrimary,
+                                  fontSize: 26.sp,
+                                ),
+                      ),
                     ),
                     SizedBox(width: 14.w),
                     if (plan.validity.isNotEmpty) ...[
                       _VerticalDivider(height: 34.h),
                       SizedBox(width: 14.w),
-                      _PlanDetailMiniColumn(
-                        label: 'Validity',
-                        value: plan.validity,
+                      Flexible(
+                        child: _PlanDetailMiniColumn(
+                          label: 'Validity',
+                          value: plan.validity,
+                        ),
                       ),
                     ],
                     if (dataValue.isNotEmpty) ...[
@@ -212,6 +218,8 @@ class _PlanDetailMiniColumn extends StatelessWidget {
         SizedBox(height: 2.h),
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w800,

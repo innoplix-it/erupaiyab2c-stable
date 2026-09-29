@@ -208,6 +208,10 @@ class _PortfolioHeaderCard extends StatelessWidget {
                         FileConstants.sipBg,
                         fit: BoxFit.cover,
                         alignment: Alignment.bottomCenter,
+                        cacheWidth: (MediaQuery.sizeOf(context).width *
+                                MediaQuery.devicePixelRatioOf(context))
+                            .round()
+                            .clamp(1, 4096),
                       ),
                     ),
                   ),

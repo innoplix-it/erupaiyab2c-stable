@@ -32,10 +32,10 @@ class NewDeviceVerificationDialog extends StatelessWidget {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.account_circle,
-                color: Color(0xFFB40000),
-                size: 82,
+                color: const Color(0xFFB40000),
+                size: 82.r,
               ),
             ),
             SizedBox(height: 14.h),

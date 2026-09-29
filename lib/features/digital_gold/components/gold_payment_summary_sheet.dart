@@ -154,7 +154,7 @@ class GoldPaymentSummarySheet extends HookConsumerWidget {
           SizedBox(height: 10.h),
           Row(
             children: [
-              Image.asset(FileConstants.coin_3d, width: 20.w, height: 20.h),
+              Image.asset(FileConstants.coin_3d, width: 20.w, height: 20.w),
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(

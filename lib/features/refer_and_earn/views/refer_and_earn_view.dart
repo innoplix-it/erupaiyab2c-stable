@@ -145,15 +145,22 @@ class ReferAndEarnView extends HookConsumerWidget {
                                       top: Radius.circular(20.r),
                                     ),
                                   ),
-                                  builder: (_) => FractionallySizedBox(
-                                    heightFactor: 0.9,
-                                    child: EducationContactSheet(
-                                      onSelect: (phone) {
-                                        ReferralShareService.shareSMS(
-                                          context,
-                                          phone: phone,
-                                        );
-                                      },
+                                  builder: (sheetContext) => Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: MediaQuery.viewInsetsOf(
+                                        sheetContext,
+                                      ).bottom,
+                                    ),
+                                    child: FractionallySizedBox(
+                                      heightFactor: 0.9,
+                                      child: EducationContactSheet(
+                                        onSelect: (phone) {
+                                          ReferralShareService.shareSMS(
+                                            context,
+                                            phone: phone,
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
                                 );
