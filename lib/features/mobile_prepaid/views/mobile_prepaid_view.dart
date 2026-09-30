@@ -17,13 +17,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../services/permission_service.dart';
-import '../../../widgets/app_network_image.dart';
 import '../../../widgets/contacts_permission_card.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
@@ -521,17 +519,39 @@ class MobilePrepaidView extends HookConsumerWidget {
               : (hasPlanSelected ? 'Pay Now' : 'Select A Recharge Plan'),
           onBack: handleBack,
           fitTitle: true,
-          titleStyle: isSelectionScreen
-              ? GoogleFonts.plusJakartaSans(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                  color: const Color(0xFF000000),
+          trailing: isSelectionScreen
+              ? SizedBox(
+                  width: 82.w,
+                  height: 25.h,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        FileConstants.bharatConnectColor,
+                        width: 52.w,
+                        height: 25.h,
+                        fit: BoxFit.contain,
+                      ),
+                      SizedBox(width: 10.w),
+                      InkWell(
+                        onTap: () => context.push(RouteConstants.helpSupport),
+                        child: SizedBox(
+                          width: 20.w,
+                          height: 25.h,
+                          child: Center(
+                            child: Icon(
+                              Icons.help_outline,
+                              size: 16.67.w,
+                              color: const Color(0xFF000000),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               : null,
-          bharatConnectWidth: isSelectionScreen ? 58 : null,
-          bharatConnectHeight: isSelectionScreen ? 22 : null,
-          helpIconSize: isSelectionScreen ? 22 : null,
+          showHelp: !isSelectionScreen,
         ),
         body: Column(
           children: [
@@ -571,8 +591,9 @@ class MobilePrepaidView extends HookConsumerWidget {
                                 controller.updatePlanSearch(value);
                                 planSearchDebounceRef.value?.cancel();
                                 final info = state.operatorInfo;
-                                if (info == null || state.mobile.isEmpty)
+                                if (info == null || state.mobile.isEmpty) {
                                   return;
+                                }
                                 planSearchDebounceRef.value = Timer(
                                   const Duration(milliseconds: 350),
                                   () async {

@@ -66,7 +66,7 @@ void main() {
   Size cardSize(WidgetTester tester) => tester.getSize(
         find
             .ancestor(
-              of: find.byType(PopupMenuButton<String>).first,
+              of: find.text('170019239876').first,
               matching: find.byType(GestureDetector),
             )
             .last,
@@ -89,13 +89,26 @@ void main() {
     });
   }
 
-  testWidgets('3-dot popup still opens and pays', (tester) async {
-    final paid = await pump(tester, size: const Size(360, 740));
-    await tester.tap(find.byType(PopupMenuButton<String>).first);
+  testWidgets('3-dot menu opens bottom sheet with Delete AutoPay, View History, Delete Account',
+      (tester) async {
+    await pump(tester, size: const Size(360, 740));
+    // Tap 3-dot icon
+    final dotTap = find.ancestor(
+      of: find.byWidgetPredicate((w) => w.runtimeType.toString() == '_VerticalDots'),
+      matching: find.byType(GestureDetector),
+    ).first;
+    await tester.tap(dotTap);
     await tester.pumpAndSettle();
-    expect(find.text('Pay Now'), findsOneWidget);
-    await tester.tap(find.text('Pay Now'));
+
+    expect(find.text('Delete AutoPay'), findsOneWidget);
+    expect(find.text('View History'), findsOneWidget);
+    expect(find.text('Delete Account'), findsOneWidget);
+    expect(find.text('170019239876'), findsAtLeastNWidgets(1));
+
+    // Tap close X icon
+    await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
-    expect(paid, hasLength(1));
+
+    expect(find.text('Delete AutoPay'), findsNothing);
   });
 }

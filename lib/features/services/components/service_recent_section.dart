@@ -4,9 +4,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
+import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
+import '../../../widgets/app_snackbar.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 import 'fetch_provider_metrics.dart';
@@ -606,18 +609,13 @@ class _SavedBillerCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: FetchProviderMetrics.w(8)),
-                    PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      child: const _VerticalDots(),
-                      onSelected: (value) {
-                        if (value == 'pay') onPayNow();
-                      },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem<String>(
-                          value: 'pay',
-                          child: Text('Pay Now'),
-                        ),
-                      ],
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showSavedBillerActionSheet(context, txn),
+                      child: Padding(
+                        padding: EdgeInsets.all(FetchProviderMetrics.r(6)),
+                        child: const _VerticalDots(),
+                      ),
                     ),
                   ],
                 ),
@@ -828,9 +826,16 @@ class _RecentCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.more_vert,
-                  color: AppColors.textPrimary.withValues(alpha: 0.45),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showSavedBillerActionSheet(context, txn),
+                  child: Padding(
+                    padding: EdgeInsets.all(4.w),
+                    child: Icon(
+                      Icons.more_vert,
+                      color: AppColors.textPrimary.withValues(alpha: 0.45),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1017,5 +1022,248 @@ class _SlidingGradientTransform extends GradientTransform {
   @override
   Matrix4 transform(Rect bounds, {TextDirection? textDirection}) {
     return Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
+  }
+}
+
+void _showSavedBillerActionSheet(
+  BuildContext context,
+  LatestTransaction txn,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (sheetContext) => _SavedBillerActionSheet(txn: txn),
+  );
+}
+
+class _SavedBillerActionSheet extends StatelessWidget {
+  const _SavedBillerActionSheet({required this.txn});
+
+  final LatestTransaction txn;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+
+    final billerTitle = txn.billerName.trim();
+    final customerName = _capitalizeWords(txn.customerName.trim());
+    final fullNumber = (txn.serviceNoFull ?? '').trim();
+    final consumerNo = fullNumber.isNotEmpty ? fullNumber : txn.serviceNo.trim();
+
+    return Container(
+      width: screenWidth,
+      constraints: BoxConstraints(
+        maxHeight: screenHeight * 0.9,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(16.r),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            24.w,
+            20.h,
+            24.w,
+            20.h,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header Area
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SimCardIconContainer(
+                    url: txn.icon.trim().isEmpty ? null : txn.icon.trim(),
+                    width: 40.w,
+                    height: 40.w,
+                    borderRadius: 12.r,
+                    padding: 4.w,
+                    borderWidth: 1,
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          billerTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.sp,
+                            height: 1.25,
+                            letterSpacing: -0.02 * 14.sp,
+                            color: const Color(0xFF000000),
+                          ),
+                        ),
+                        if (customerName.isNotEmpty || consumerNo.isNotEmpty) ...[
+                          SizedBox(height: 4.h),
+                          Row(
+                            children: [
+                              if (customerName.isNotEmpty)
+                                Flexible(
+                                  child: Text(
+                                    customerName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12.sp,
+                                      height: 1.2,
+                                      letterSpacing: -0.02 * 12.sp,
+                                      color: const Color(0xFF696969),
+                                    ),
+                                  ),
+                                ),
+                              if (customerName.isNotEmpty && consumerNo.isNotEmpty)
+                                Container(
+                                  width: 4.r,
+                                  height: 4.r,
+                                  margin: EdgeInsets.symmetric(horizontal: 6.w),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFD9D9D9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              if (consumerNo.isNotEmpty)
+                                Flexible(
+                                  child: Text(
+                                    consumerNo,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12.sp,
+                                      height: 1.2,
+                                      letterSpacing: -0.02 * 12.sp,
+                                      color: const Color(0xFF696969),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Padding(
+                      padding: EdgeInsets.all(4.r),
+                      child: Icon(
+                        Icons.close,
+                        size: 24.r,
+                        color: const Color(0xFF1E1E1E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 14.h),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: Color(0xFFE2E2E2),
+              ),
+              // Delete AutoPay Row
+              _SavedBillerActionRow(
+                iconAsset: FileConstants.deleteAutopaySvg,
+                label: 'Delete AutoPay',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  AppSnackbar.show('AutoPay settings updated');
+                },
+              ),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: Color(0xFFE2E2E2),
+              ),
+              // View History Row
+              _SavedBillerActionRow(
+                iconAsset: FileConstants.deleteAutopaySvg,
+                label: 'View History',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.push(RouteConstants.transactions);
+                },
+              ),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: Color(0xFFE2E2E2),
+              ),
+              // Delete Account Row
+              _SavedBillerActionRow(
+                iconAsset: FileConstants.deleteAccountSvg,
+                label: 'Delete Account',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  AppSnackbar.show('Account removed from saved billers');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SavedBillerActionRow extends StatelessWidget {
+  const _SavedBillerActionRow({
+    required this.iconAsset,
+    required this.label,
+    required this.onTap,
+  });
+
+  final String iconAsset;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.black.withValues(alpha: 0.05),
+      highlightColor: Colors.black.withValues(alpha: 0.03),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 14.h),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              iconAsset,
+              width: 24.w,
+              height: 24.w,
+            ),
+            SizedBox(width: 14.w),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14.sp,
+                  height: 1.2,
+                  color: const Color(0xFF000000),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

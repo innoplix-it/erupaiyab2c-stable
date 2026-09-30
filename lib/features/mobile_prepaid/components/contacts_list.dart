@@ -115,60 +115,88 @@ class ContactsList extends StatelessWidget {
   }
 
   Widget _prepaidRow(String name, String phone, Uint8List? photoBytes) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+    // Avatar: SIM card shape — same as _OperatorIconBadge
+    final avatarSize = 50.r;
+    return Container(
+      constraints: BoxConstraints(minHeight: 56.h),
+      alignment: Alignment.center,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 24.r,
-            backgroundColor: const Color(0xFFE8E8E8),
-            backgroundImage: photoBytes == null ? null : MemoryImage(photoBytes),
-            child: photoBytes != null
-                ? null
-                : Icon(
-                    Icons.person,
-                    color: const Color(0xFFBDBDBD),
-                    size: 26.sp,
-                  ),
+          // SIM-card rounded rectangle avatar (matches operator icon badge)
+          Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: const Color(0xFFE2E2E2),
+                width: 0.5,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12.r),
+              child: photoBytes != null
+                  ? Image.memory(
+                      photoBytes,
+                      fit: BoxFit.cover,
+                      width: avatarSize,
+                      height: avatarSize,
+                    )
+                  : Center(
+                      child: Icon(
+                        Icons.person,
+                        color: const Color(0xFFBDBDBD),
+                        size: avatarSize * 0.48,
+                      ),
+                    ),
+            ),
           ),
           SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w500,
                     fontSize: 14.sp,
-                    height: 1.2,
-                    color: const Color(0xFF1A1A1A),
+                    height: 1.0,
+                    letterSpacing: 0,
+                    color: const Color(0xFF000000),
                   ),
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: 3.h),
                 Text(
                   phone.isEmpty ? 'No number' : phone,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                     fontSize: 12.sp,
-                    height: 1.2,
-                    color: const Color(0xFF8A8A8A),
+                    height: 1.0,
+                    letterSpacing: 0,
+                    color: const Color(0xFF7C7C7C),
                   ),
                 ),
               ],
             ),
           ),
-          if (phone.isNotEmpty)
-            Image.asset(
+          SizedBox(width: 8.w),
+          Center(
+            child: Image.asset(
               FileConstants.tiltArrow,
-              width: 16.w,
-              height: 16.w,
+              width: 24.r,
+              height: 24.r,
               fit: BoxFit.contain,
             ),
+          ),
         ],
       ),
     );

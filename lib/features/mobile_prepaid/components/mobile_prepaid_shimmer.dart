@@ -95,16 +95,16 @@ class MobilePrepaidMyNumberCardShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Shimmer(
       child: Container(
-        height: 22.h + 16.h + 45.h,
+        height: 64.h,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: const Color(0xFFE2E2E2)),
         ),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         child: Row(
           children: [
-            _ShimmerBox(height: 44.w, width: 44.w, radius: 14.r),
+            _ShimmerBox(height: 34.h, width: 38.w, radius: 10.r),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
@@ -112,13 +112,13 @@ class MobilePrepaidMyNumberCardShimmer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ShimmerLine(width: 140.w, height: 12.h),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: 4.h),
                   _ShimmerLine(width: 120.w, height: 10.h),
                 ],
               ),
             ),
             SizedBox(width: 12.w),
-            _ShimmerBox(height: 27.h, width: 86.w, radius: 22.r),
+            _ShimmerBox(height: 28.h, width: 88.w, radius: 22.r),
           ],
         ),
     ),
@@ -134,13 +134,13 @@ class MobilePrepaidRecentRechargeCardShimmer extends StatelessWidget {
     return _Shimmer(
       child: Container(
         width: 300.w,
-        height: 22.h + 16.h + 45.h,
+        height: 72.h,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: const Color(0xFFE2E2E2)),
         ),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         child: Row(
           children: [
             _ShimmerBox(height: 44.w, width: 44.w, radius: 14.r),

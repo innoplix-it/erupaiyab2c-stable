@@ -386,6 +386,13 @@ class _TransactionTile extends StatelessWidget {
 
     final displayPaymentType = _getDisplayPaymentType(item);
 
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final scale = (screenWidth / 392.0).clamp(0.85, 1.15);
+    final iconBoxSize = (50.0 * scale).r;
+    final iconRadius = (20.0 * scale).r;
+    final iconPadding = (10.0 * scale).r;
+    final iconGap = (10.0 * scale).w;
+
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -401,33 +408,26 @@ class _TransactionTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 44.w,
-              height: 44.w,
-              padding: EdgeInsets.all(8.w),
+              width: iconBoxSize,
+              height: iconBoxSize,
+              padding: EdgeInsets.all(iconPadding),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFFFF),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(iconRadius),
                 border: Border.all(
-                  color: const Color(0x66FF835C),
+                  color: const Color(0x66FF835C), // #FF835C with 40% (0x66) opacity
                   width: 1,
                 ),
               ),
               child: Center(
                 child: AppNetworkImage(
                   url: item.iconUrl,
-                  width: 30.w,
-                  height: 30.w,
                   fit: BoxFit.contain,
-                  cacheWidth:
-                      (30 * MediaQuery.devicePixelRatioOf(context)).toInt(),
-                  cacheHeight:
-                      (30 * MediaQuery.devicePixelRatioOf(context)).toInt(),
                   showShimmer: false,
-                  fitToDeviceWidth: true,
                 ),
               ),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: iconGap),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

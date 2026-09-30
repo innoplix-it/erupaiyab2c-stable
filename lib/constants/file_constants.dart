@@ -28,6 +28,8 @@ class FileConstants {
   static String searchIcon = 'assets/images/png/searchicon.png';
   static String electricityEcoins = 'assets/images/png/electricityecoins.png';
   static String autoPayBadge = 'assets/images/svg/autopay_badge.svg';
+  static String deleteAutopaySvg = 'assets/images/svg/delete_autopay.svg';
+  static String deleteAccountSvg = 'assets/images/svg/delete_account.svg';
   static String homeScreenImg = 'assets/images/png/homescreenimghome.png';
   static String cibilImg = 'assets/images/svg/cibil.svg';
   static String cibilLogoPng = 'assets/images/png/cibil.png';

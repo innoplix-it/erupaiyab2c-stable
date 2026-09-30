@@ -70,9 +70,9 @@ class _ContactsSection extends StatelessWidget {
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          23.5.w,
+          24.w,
           8.h,
-          23.5.w,
+          24.w,
           16.h + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
@@ -93,7 +93,10 @@ class _ContactsSection extends StatelessWidget {
           ),
           if (searchMode == _MobilePrepaidSearchMode.numeric) ...[
             SizedBox(height: 12.h),
-            const _SectionHeader(title: 'My Contacts'),
+            const _SectionHeader(
+              title: 'My Contacts',
+              specHeading: true,
+            ),
             SizedBox(height: 10.h),
             if (!hasContactsPermission)
               ContactsPermissionCard(
@@ -154,7 +157,10 @@ class _ContactsSection extends StatelessWidget {
             ),
             SizedBox(height: 18.h),
             SizedBox(key: contactsSectionKey),
-            const _SectionHeader(title: 'My Contacts'),
+            const _SectionHeader(
+              title: 'My Contacts',
+              specHeading: true,
+            ),
             SizedBox(height: 8.h),
             if (!hasContactsPermission)
               ContactsPermissionCard(
@@ -211,22 +217,27 @@ class _MobilePrepaidBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 62.h,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFC7C7C7), width: 0.5),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.r),
-        child: Image.asset(
-          FileConstants.mobileRecharge,
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 392.w),
+        child: Container(
           width: double.infinity,
-          height: 62.h,
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
+          height: 70.h,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: const Color(0xFFC7C7C7), width: 0.5),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: Image.asset(
+              FileConstants.mobileRecharge,
+              width: double.infinity,
+              height: 70.h,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+          ),
         ),
       ),
     );
@@ -329,14 +340,16 @@ class _MobilePrepaidSearchSwitcher extends StatelessWidget {
                         color: const Color(0xFF7C7C7C),
                         fontWeight: FontWeight.w400,
                         fontSize: 14.sp,
-                        height: 1,
+                        height: 1.0,
+                        letterSpacing: 0,
                       ),
                     ),
                     style: GoogleFonts.plusJakartaSans(
                       color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       fontSize: 14.sp,
-                      height: 1,
+                      height: 1.0,
+                      letterSpacing: 0,
                     ),
                     textAlignVertical: TextAlignVertical.center,
                   ),
@@ -415,23 +428,28 @@ class _SearchModeToggle extends StatelessWidget {
         borderRadius: BorderRadius.circular(90.r),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
+          width: 40.w,
           height: 22.h,
-          padding: EdgeInsets.symmetric(horizontal: 10.w),
+          padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 5.h),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: active ? const Color(0xFFDD5428) : Colors.transparent,
             borderRadius: BorderRadius.circular(90.r),
           ),
-          child: Text(
-            label,
-            maxLines: 1,
-            softWrap: false,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              color: active ? const Color(0xFFFFFFFF) : const Color(0xFF000000),
-              fontWeight: FontWeight.w400,
-              fontSize: 10.sp,
-              height: 1,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                color: active ? const Color(0xFFFFFFFF) : const Color(0xFF000000),
+                fontWeight: FontWeight.w400,
+                fontSize: 10.sp,
+                height: 1.0,
+                letterSpacing: 0,
+              ),
             ),
           ),
         ),
@@ -459,33 +477,13 @@ class _SectionHeader extends StatelessWidget {
     required this.title,
     this.actionText,
     this.onAction,
-    this.titleWidth,
     this.specHeading = false,
   });
 
   final String title;
   final String? actionText;
   final VoidCallback? onAction;
-  final double? titleWidth;
   final bool specHeading;
-
-  TextStyle get _titleStyle {
-    if (specHeading) {
-      return GoogleFonts.plusJakartaSans(
-        fontWeight: FontWeight.w600,
-        fontSize: 18.sp,
-        height: 1,
-        letterSpacing: -0.02 * 18.sp,
-        color: const Color(0xFF292D32),
-      );
-    }
-    return GoogleFonts.plusJakartaSans(
-      fontWeight: FontWeight.w700,
-      fontSize: 16.sp,
-      height: 1.2,
-      color: const Color(0xFF1A1A1A),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -493,89 +491,70 @@ class _SectionHeader extends StatelessWidget {
       title,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: _titleStyle,
+      style: GoogleFonts.plusJakartaSans(
+        fontWeight: FontWeight.w600,
+        fontSize: 14.sp,
+        height: 1.0,
+        letterSpacing: -0.02 * 14.sp,
+        color: const Color(0xFF292D32),
+      ),
     );
     return Row(
       children: [
-        if (specHeading) ...[
-          SizedBox(
-            width: titleWidth,
-            height: 22.h,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: titleText,
+        Expanded(child: titleText),
+        if (actionText != null && onAction != null)
+          InkWell(
+            onTap: onAction,
+            child: Padding(
+              padding: EdgeInsets.only(left: 8.w),
+              child: Text(
+                actionText!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: GoogleFonts.plusJakartaSans(
+                  color: const Color(0xFFDD5428),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14.sp,
+                  height: 1.0,
+                  letterSpacing: 0,
+                ),
+              ),
             ),
           ),
-          const Spacer(),
-        ] else
-          Expanded(child: titleText),
-        if (actionText != null && onAction != null)
-          specHeading
-              ? InkWell(
-                  onTap: onAction,
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 2.h),
-                    child: SizedBox(
-                      width: 59.w,
-                      height: 19.h,
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          actionText!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                          style: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFFDD5428),
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16.sp,
-                            height: 1,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              : InkWell(
-                  onTap: onAction,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 8.w, top: 2.h),
-                    child: Text(
-                      actionText!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: const Color(0xFFDD5428),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14.sp,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
       ],
     );
   }
 }
 
 class _LastOnLabel extends StatelessWidget {
-  const _LastOnLabel(this.lastOn);
+  const _LastOnLabel(
+    this.lastOn, {
+    this.fontSize,
+    this.color,
+  });
 
   final String lastOn;
+  final double? fontSize;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final trimmed = lastOn.trim();
+    final text = trimmed.toLowerCase().startsWith('last on')
+        ? trimmed
+        : 'Last on - $trimmed';
+    final resolvedSize = fontSize ?? 12.sp;
     return Text(
-      'Last On - $lastOn',
+      text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: GoogleFonts.plusJakartaSans(
-        fontSize: 11.sp,
+        fontSize: resolvedSize,
         fontWeight: FontWeight.w400,
-        height: 14.h / 11,
-        color: const Color(0xFF7C7C7C),
+        height: 1.0,
+        letterSpacing: -0.02 * resolvedSize,
+        color: color ?? const Color(0xFF7C7C7C),
       ),
     );
   }
@@ -622,53 +601,103 @@ class _MyNumberDueBadge extends StatelessWidget {
         textAlign: TextAlign.center,
         style: GoogleFonts.plusJakartaSans(
           color: Colors.white,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w500,
           fontSize: 8.sp,
           height: 1,
-          letterSpacing: -0.04 * 8.sp,
+          letterSpacing: -0.02 * 8.sp,
         ),
       ),
     );
   }
 }
 
-class _OrangePillButton extends StatelessWidget {
-  const _OrangePillButton({
-    required this.label,
+class _RechargePillButton extends StatelessWidget {
+  const _RechargePillButton({
     required this.onPressed,
   });
 
-  final String label;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 30.h,
+      width: 90.w,
+      height: 28.h,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFDD5428),
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 0),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(23.r),
           ),
           visualDensity: VisualDensity.compact,
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w700,
-            height: 1,
-            color: const Color(0xFFFFFFFF),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Recharge',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              height: 1.0,
+              letterSpacing: 0,
+              color: const Color(0xFFFFFFFF),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RepeatPillButton extends StatelessWidget {
+  const _RepeatPillButton({
+    required this.onPressed,
+  });
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 78.w,
+      height: 28.h,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFDD5428),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(23.r),
+          ),
+          visualDensity: VisualDensity.compact,
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Repeat',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              height: 1.0,
+              letterSpacing: 0,
+              color: const Color(0xFFFFFFFF),
+            ),
           ),
         ),
       ),
@@ -709,14 +738,20 @@ class _MyNumberCard extends StatelessWidget {
         child: Stack(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(12.w, 24.h, 12.w, 12.h),
+              padding: EdgeInsets.fromLTRB(
+                12.w,
+                hasDue ? 20.h : 12.h,
+                12.w,
+                10.h,
+              ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   _OperatorBrandLogo(
                     operatorLabel: operatorLabel,
                     operatorIconUrl: operatorIconUrl,
                   ),
-                  SizedBox(width: 10.w),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -728,20 +763,24 @@ class _MyNumberCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16.sp,
-                            height: 1.2,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.sp,
+                            height: 1.1,
+                            letterSpacing: -0.02 * 14.sp,
                             color: const Color(0xFF000000),
                           ),
                         ),
                         SizedBox(height: 2.h),
-                        _LastOnLabel(lastOn),
+                        _LastOnLabel(
+                          lastOn,
+                          fontSize: 10.sp,
+                          color: const Color(0xFF7C7C7C),
+                        ),
                       ],
                     ),
                   ),
-                  SizedBox(width: 8.w),
-                  _OrangePillButton(
-                    label: 'Recharge',
+                  SizedBox(width: 12.w),
+                  _RechargePillButton(
                     onPressed: onRecharge,
                   ),
                 ],
@@ -791,7 +830,7 @@ class _RecentRechargeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget buildScroller(Widget child) {
       return SizedBox(
-        height: 96.h,
+        height: 76.h,
         child: child,
       );
     }
@@ -800,6 +839,8 @@ class _RecentRechargeRow extends StatelessWidget {
       loading: () => buildScroller(
         ListView.separated(
           scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          padding: EdgeInsets.symmetric(vertical: 2.h),
           itemBuilder: (_, __) =>
               const MobilePrepaidRecentRechargeCardShimmer(),
           separatorBuilder: (_, __) => SizedBox(width: 12.w),
@@ -839,6 +880,8 @@ class _RecentRechargeRow extends StatelessWidget {
         return buildScroller(
           ListView.separated(
             scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: EdgeInsets.symmetric(vertical: 2.h),
             itemBuilder: (context, index) => _RecentRechargeCard(
               title: display[index].billerName.trim().isNotEmpty
                   ? display[index].billerName
@@ -941,18 +984,49 @@ class _RecentRechargeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final showBadge = (badgeLabel ?? '').trim().isNotEmpty;
     final radius = 16.r;
-    final maxCardWidth = 1.sw - 16.w - 56.w;
-    final cardWidth = 280.w > maxCardWidth ? maxCardWidth : 280.w;
+    final availableWidth = MediaQuery.sizeOf(context).width - 48.w;
+    final cardWidth = 323.w > availableWidth ? availableWidth : 323.w;
     final name = title.trim();
     final number = mobile.trim();
     final showNumber = number.isNotEmpty && number != name;
     return SizedBox(
       width: cardWidth,
+      height: 72.h,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: const Color(0xFFE8E8E8), width: 1),
+          border: Border.all(
+            color: const Color(0xFFE0E0E0),
+            width: 0.8,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x1AC7C7C7),
+              offset: Offset(0, 9.h),
+              blurRadius: 20.r,
+            ),
+            BoxShadow(
+              color: const Color(0x17C7C7C7),
+              offset: Offset(0, 36.h),
+              blurRadius: 36.r,
+            ),
+            BoxShadow(
+              color: const Color(0x0DC7C7C7),
+              offset: Offset(0, 80.h),
+              blurRadius: 48.r,
+            ),
+            BoxShadow(
+              color: const Color(0x03C7C7C7),
+              offset: Offset(0, 143.h),
+              blurRadius: 57.r,
+            ),
+            BoxShadow(
+              color: const Color(0x00C7C7C7),
+              offset: Offset(0, 223.h),
+              blurRadius: 62.r,
+            ),
+          ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(radius),
@@ -960,21 +1034,23 @@ class _RecentRechargeCard extends StatelessWidget {
             children: [
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  12.w,
-                  showBadge ? 22.h : 12.h,
-                  12.w,
-                  12.h,
+                  16.w,
+                  showBadge ? 20.h : 13.h,
+                  16.w,
+                  8.h,
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _OperatorIconBadge(
                       label: title,
                       iconUrl: iconUrl,
                     ),
-                    SizedBox(width: 10.w),
+                    SizedBox(width: 13.w),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
@@ -982,10 +1058,11 @@ class _RecentRechargeCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1A1A1A),
-                              height: 1.2,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF000000),
+                              height: 1.1,
+                              letterSpacing: -0.02 * 13.sp,
                             ),
                           ),
                           if (showNumber) ...[
@@ -995,21 +1072,25 @@ class _RecentRechargeCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF8A8A8A),
-                                height: 1.2,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF000000),
+                                height: 1.1,
+                                letterSpacing: -0.02 * 11.sp,
                               ),
                             ),
                           ],
                           SizedBox(height: 2.h),
-                          _LastOnLabel(lastOn),
+                          _LastOnLabel(
+                            lastOn,
+                            fontSize: 10.sp,
+                            color: const Color(0xFF7C7C7C),
+                          ),
                         ],
                       ),
                     ),
-                    SizedBox(width: 8.w),
-                    _OrangePillButton(
-                      label: 'Repeat',
+                    SizedBox(width: 13.w),
+                    _RepeatPillButton(
                       onPressed: onRepeat,
                     ),
                   ],
@@ -1043,12 +1124,12 @@ class _OperatorIconBadge extends StatelessWidget {
     return Semantics(
       label: label,
       child: Container(
-        width: 40.w,
-        height: 36.h,
-        padding: EdgeInsets.all(10.w),
+        width: 38.w,
+        height: 34.h,
+        padding: EdgeInsets.all(7.w),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(10.r),
           border: Border.all(
             color: const Color(0xFFE2E2E2),
             width: 0.5,
@@ -2207,9 +2288,8 @@ class _MyNumberSection extends ConsumerWidget {
       loading: () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(
+          const _SectionHeader(
             title: 'My Number',
-            titleWidth: 100.w,
             specHeading: true,
           ),
           SizedBox(height: 12.h),
@@ -2226,9 +2306,8 @@ class _MyNumberSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionHeader(
+            const _SectionHeader(
               title: 'My Number',
-              titleWidth: 100.w,
               specHeading: true,
             ),
             SizedBox(height: 12.h),
@@ -2269,7 +2348,6 @@ class _RecentRechargesSection extends StatelessWidget {
       children: [
         _SectionHeader(
           title: 'Recents',
-          titleWidth: 69.w,
           specHeading: true,
           actionText: 'View All',
           onAction: onViewAllRecent,
