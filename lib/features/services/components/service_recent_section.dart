@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
+import 'fetch_provider_metrics.dart';
 
 class ServiceRecentSection extends StatelessWidget {
   const ServiceRecentSection({
@@ -30,13 +33,43 @@ class ServiceRecentSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final sectionBottom = savedBillersStyle ? 0.0 : 16.h;
     final headerGap = savedBillersStyle ? 12.h : 10.h;
+    final sideInset = savedBillersStyle ? FetchProviderMetrics.w(24) : 16.w;
+    if (savedBillersStyle) {
+      // The Saved Billers heading and "View all" stay visible whatever the
+      // data state; only the card row depends on having saved billers.
+      final items = recentTransactions.valueOrNull ?? const [];
+      final showRow = recentTransactions.isLoading || items.isNotEmpty;
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(sideInset, 16.h, sideInset, 0),
+            child: _SectionHeader(
+              title: title,
+              actionText: actionText,
+              onAction: onAction,
+              savedBillersStyle: true,
+            ),
+          ),
+          SizedBox(height: headerGap),
+          if (showRow)
+            _RecentRow(
+              recentTransactions: recentTransactions.isLoading
+                  ? recentTransactions
+                  : AsyncValue.data(items),
+              onPayNow: onPayNow,
+              savedBillersStyle: true,
+            ),
+        ],
+      );
+    }
     return recentTransactions.when(
       loading: () => Padding(
         padding: EdgeInsets.only(bottom: sectionBottom),
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0.h),
+              padding: EdgeInsets.fromLTRB(sideInset, 16.h, sideInset, 0.h),
               child: _SectionHeader(
                 title: title,
                 actionText: actionText,
@@ -61,7 +94,7 @@ class ServiceRecentSection extends StatelessWidget {
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0.h),
+                padding: EdgeInsets.fromLTRB(sideInset, 16.h, sideInset, 0.h),
                 child: _SectionHeader(
                   title: title,
                   actionText: actionText,
@@ -101,9 +134,9 @@ class _SectionHeader extends StatelessWidget {
     final titleStyle = savedBillersStyle
         ? GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w600,
-            fontSize: 18.sp,
+            fontSize: 13.sp,
             height: 1,
-            letterSpacing: -0.02 * 18.sp,
+            letterSpacing: -0.02 * 13.sp,
             color: const Color(0xFF000000),
           )
         : Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -113,7 +146,7 @@ class _SectionHeader extends StatelessWidget {
     final actionStyle = savedBillersStyle
         ? GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w500,
-            fontSize: 16.sp,
+            fontSize: 13.sp,
             height: 1,
             letterSpacing: 0,
             color: const Color(0xFFDD5428),
@@ -144,30 +177,29 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // Expanded (not Flexible + Spacer, which split the free space in
+        // half) so "View all" always sits flush with the right inset.
         if (savedBillersStyle)
-          SizedBox(width: 106.w,
-            height: 23.h,
+          Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: titleText,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: titleText,
+              ),
             ),
           )
-        else
+        else ...[
           titleText,
-        const Spacer(),
+          const Spacer(),
+        ],
+        if (savedBillersStyle) SizedBox(width: 12.w),
         if (actionText.trim().isNotEmpty &&
             (savedBillersStyle || onAction != null))
           InkWell(
             onTap: onAction,
-            child: savedBillersStyle
-                ? SizedBox(width: 58.w,
-                    height: 20.h,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: actionLabel,
-                    ),
-                  )
-                : actionLabel,
+            child: actionLabel,
           ),
       ],
     );
@@ -185,10 +217,38 @@ class _RecentRow extends StatelessWidget {
   final ValueChanged<LatestTransaction> onPayNow;
   final bool savedBillersStyle;
 
+  Widget _savedBillersRow(List<Widget> cards) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      padding: EdgeInsets.fromLTRB(
+        FetchProviderMetrics.w(24),
+        0,
+        FetchProviderMetrics.w(24),
+        8.h,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var index = 0; index < cards.length; index++) ...[
+            if (index > 0) SizedBox(width: 12.w),
+            cards[index],
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (savedBillersStyle && recentTransactions.isLoading) {
+      return _savedBillersRow(
+        const [_SavedBillerCardShimmer(), _SavedBillerCardShimmer()],
+      );
+    }
     return recentTransactions.when(
-      loading: () => SizedBox(height: 126.h,
+      loading: () => SizedBox(
+        height: 126.h,
         child: ListView.separated(
           padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
           clipBehavior: Clip.none,
@@ -203,25 +263,13 @@ class _RecentRow extends StatelessWidget {
         if (items.isEmpty) return const SizedBox.shrink();
         final display = items.take(10).toList();
         if (savedBillersStyle) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 8.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var index = 0; index < display.length; index++) ...[
-                  if (index > 0) SizedBox(width: 12.w),
-                  _SavedBillerCard(
-                    txn: display[index],
-                    onPayNow: () => onPayNow(display[index]),
-                  ),
-                ],
-              ],
-            ),
-          );
+          return _savedBillersRow([
+            for (final txn in display)
+              _SavedBillerCard(txn: txn, onPayNow: () => onPayNow(txn)),
+          ]);
         }
-        return SizedBox(height: 126.h,
+        return SizedBox(
+          height: 126.h,
           child: ListView.separated(
             padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
             clipBehavior: Clip.none,
@@ -235,6 +283,61 @@ class _RecentRow extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _SavedBillerCardShimmer extends StatelessWidget {
+  const _SavedBillerCardShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final fill = AppColors.lightBorder.withValues(alpha: 0.25);
+    Widget bar(double width, double height) => Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(FetchProviderMetrics.r(8)),
+          ),
+        );
+    return _Shimmer(
+      child: Container(
+        width: _SavedBillerCard.cardWidth(screenWidth),
+        height: FetchProviderMetrics.h(131),
+        padding: EdgeInsets.symmetric(horizontal: FetchProviderMetrics.w(16)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(FetchProviderMetrics.r(16)),
+          border: Border.all(color: const Color(0xFFE2E2E2), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: FetchProviderMetrics.r(40),
+                  height: FetchProviderMetrics.r(40),
+                  decoration: BoxDecoration(
+                    color: fill,
+                    borderRadius:
+                        BorderRadius.circular(FetchProviderMetrics.r(12)),
+                  ),
+                ),
+                SizedBox(width: FetchProviderMetrics.w(10)),
+                Flexible(
+                  child: bar(
+                      FetchProviderMetrics.w(180), FetchProviderMetrics.h(12)),
+                ),
+              ],
+            ),
+            bar(FetchProviderMetrics.w(200), FetchProviderMetrics.h(12)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -364,7 +467,6 @@ class _RecentCardShimmer extends StatelessWidget {
   }
 }
 
-
 class _SavedBillerCard extends StatelessWidget {
   const _SavedBillerCard({
     required this.txn,
@@ -374,6 +476,11 @@ class _SavedBillerCard extends StatelessWidget {
   final LatestTransaction txn;
   final VoidCallback onPayNow;
 
+  /// Narrow phones get a wider share of the screen so the title isn't cut
+  /// too early; elsewhere the card keeps Figma's 325/440 width ratio.
+  static double cardWidth(double screenWidth) =>
+      screenWidth < 360 ? screenWidth * 0.8 : FetchProviderMetrics.w(325);
+
   @override
   Widget build(BuildContext context) {
     final billerTitle = txn.billerName.trim();
@@ -381,14 +488,27 @@ class _SavedBillerCard extends StatelessWidget {
     final consumerNo = (txn.serviceNoFull ?? txn.serviceNo).trim();
     final lastPaid = _formatWasPaidOn(txn);
 
+    final cardWidth = _SavedBillerCard.cardWidth(
+      MediaQuery.sizeOf(context).width,
+    );
+    final titleSize = FetchProviderMetrics.font(14, min: 11);
+    final bodySize = FetchProviderMetrics.font(12, min: 10);
+    final subtitleStyle = GoogleFonts.plusJakartaSans(
+      fontWeight: FontWeight.w500,
+      fontSize: bodySize,
+      height: 1.2,
+      letterSpacing: -0.02 * bodySize,
+      color: const Color(0xFF696969),
+    );
+
     return GestureDetector(
       onTap: onPayNow,
       child: Container(
-        width: 328.w,
+        width: cardWidth,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: const Color(0xFFE2E2E2), width: 1.w),
+          borderRadius: BorderRadius.circular(FetchProviderMetrics.r(16)),
+          border: Border.all(color: const Color(0xFFE2E2E2), width: 1),
           boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
@@ -401,40 +521,52 @@ class _SavedBillerCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(12.w, 10.h, 8.w, 8.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SimCardIconContainer(
-                    url: txn.icon.trim().isEmpty ? null : txn.icon.trim(),
-                    width: 42.w,
-                    height: 38.h,
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 18.h,
-                          child: Text(
+            // Minimum heights (68 + 1 + 62 = 131 on the Figma frame, less the
+            // 1px border on each edge) let the rows grow with larger text
+            // instead of clipping.
+            ConstrainedBox(
+              constraints:
+                  BoxConstraints(minHeight: FetchProviderMetrics.h(68) - 1),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  FetchProviderMetrics.w(16),
+                  FetchProviderMetrics.h(10),
+                  FetchProviderMetrics.w(12),
+                  FetchProviderMetrics.h(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SimCardIconContainer(
+                      url: txn.icon.trim().isEmpty ? null : txn.icon.trim(),
+                      width: FetchProviderMetrics.r(40),
+                      height: FetchProviderMetrics.r(40),
+                      borderRadius: FetchProviderMetrics.r(12),
+                      padding: FetchProviderMetrics.r(4),
+                      borderWidth: 1,
+                    ),
+                    SizedBox(width: FetchProviderMetrics.w(10)),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
                             billerTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.plusJakartaSans(
                               fontWeight: FontWeight.w600,
-                              fontSize: 14.sp,
-                              height: 1,
-                              letterSpacing: -0.02 * 14.sp,
+                              fontSize: titleSize,
+                              height: 1.2,
+                              letterSpacing: -0.02 * titleSize,
                               color: const Color(0xFF000000),
                             ),
                           ),
-                        ),
-                        if (customerName.isNotEmpty ||
-                            consumerNo.isNotEmpty) ...[
-                          SizedBox(height: 4.h),
-                          SizedBox(height: 15.h,
-                            child: Row(
+                          if (customerName.isNotEmpty ||
+                              consumerNo.isNotEmpty) ...[
+                            SizedBox(height: FetchProviderMetrics.h(4)),
+                            Row(
                               children: [
                                 if (customerName.isNotEmpty)
                                   Flexible(
@@ -442,24 +574,20 @@ class _SavedBillerCard extends StatelessWidget {
                                       customerName,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 12.sp,
-                                        height: 1,
-                                        letterSpacing: -0.02 * 12.sp,
-                                        color: const Color(0xFF696969),
-                                      ),
+                                      style: subtitleStyle,
                                     ),
                                   ),
                                 if (customerName.isNotEmpty &&
                                     consumerNo.isNotEmpty)
-                                  Text(
-                                    '  •  ',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 12.sp,
-                                      height: 1,
-                                      color: const Color(0xFF696969),
+                                  Container(
+                                    width: FetchProviderMetrics.r(5),
+                                    height: FetchProviderMetrics.r(5),
+                                    margin: EdgeInsets.symmetric(
+                                      horizontal: FetchProviderMetrics.w(8),
+                                    ),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFD9D9D9),
+                                      shape: BoxShape.circle,
                                     ),
                                   ),
                                 if (consumerNo.isNotEmpty)
@@ -468,95 +596,90 @@ class _SavedBillerCard extends StatelessWidget {
                                       consumerNo,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 12.sp,
-                                        height: 1,
-                                        letterSpacing: -0.02 * 12.sp,
-                                        color: const Color(0xFF696969),
-                                      ),
+                                      style: subtitleStyle,
                                     ),
                                   ),
                               ],
                             ),
-                          ),
+                          ],
                         ],
+                      ),
+                    ),
+                    SizedBox(width: FetchProviderMetrics.w(8)),
+                    PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      child: const _VerticalDots(),
+                      onSelected: (value) {
+                        if (value == 'pay') onPayNow();
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<String>(
+                          value: 'pay',
+                          child: Text('Pay Now'),
+                        ),
                       ],
                     ),
-                  ),
-                  PopupMenuButton<String>(
-                    padding: EdgeInsets.zero,
-                    child: const _VerticalDots(),
-                    onSelected: (value) {
-                      if (value == 'pay') onPayNow();
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem<String>(
-                        value: 'pay',
-                        child: Text('Pay Now'),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Divider(
-              height: 1.h,
-              thickness: 1.h,
+              height: 1,
+              thickness: 1,
               color: AppColors.lightBorder.withValues(alpha: 0.7),
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 8.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 15.h,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'AutoPay Active',
+            ConstrainedBox(
+              constraints:
+                  BoxConstraints(minHeight: FetchProviderMetrics.h(62) - 1),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  FetchProviderMetrics.w(16),
+                  FetchProviderMetrics.h(10),
+                  0,
+                  FetchProviderMetrics.h(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AutoPay Active',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w600,
+                              fontSize: bodySize,
+                              height: 1.2,
+                              letterSpacing: -0.02 * bodySize,
+                              color: const Color(0xFFDD5428),
+                            ),
+                          ),
+                          if (lastPaid.isNotEmpty) ...[
+                            SizedBox(height: FetchProviderMetrics.h(4)),
+                            Text(
+                              lastPaid,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12.sp,
-                                height: 1,
-                                letterSpacing: -0.02 * 12.sp,
-                                color: const Color(0xFFDD5428),
+                                fontWeight: FontWeight.w500,
+                                fontSize: bodySize,
+                                height: 1.2,
+                                letterSpacing: -0.02 * bodySize,
+                                color: const Color(0xFF000000),
                               ),
                             ),
-                          ),
-                        ),
-                        if (lastPaid.isNotEmpty) ...[
-                          SizedBox(height: 4.h),
-                          SizedBox(height: 14.h,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                lastPaid,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 11.sp,
-                                  height: 1,
-                                  letterSpacing: -0.02 * 11.sp,
-                                  color: const Color(0xFF000000),
-                                ),
-                              ),
-                            ),
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 8.w),
-                  const _AutoPayBadge(),
-                ],
+                    SizedBox(width: FetchProviderMetrics.w(8)),
+                    const _AutoPayBadge(),
+                  ],
+                ),
               ),
             ),
           ],
@@ -569,38 +692,19 @@ class _SavedBillerCard extends StatelessWidget {
 class _AutoPayBadge extends StatelessWidget {
   const _AutoPayBadge();
 
+  static const _figmaWidth = 78.0;
+  static const _figmaHeight = 25.0;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 25.h,
-      padding: EdgeInsets.symmetric(horizontal: 10.w),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xFF058337),
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.bolt,
-            size: 12.sp,
-            color: const Color(0xFFFFFFFF),
-          ),
-          SizedBox(width: 4.w),
-          Text(
-            'AutoPay',
-            maxLines: 1,
-            style: GoogleFonts.plusJakartaSans(
-              fontWeight: FontWeight.w600,
-              fontSize: 10.sp,
-              height: 1,
-              letterSpacing: -0.02 * 10.sp,
-              color: const Color(0xFFFFFFFF),
-            ),
-          ),
-        ],
-      ),
+    final width = FetchProviderMetrics.w(_figmaWidth);
+    // Flush with the card's right edge; the artwork rounds only its left side.
+    return SvgPicture.asset(
+      FileConstants.autoPayBadge,
+      width: width,
+      height: width * _figmaHeight / _figmaWidth,
+      fit: BoxFit.contain,
+      semanticsLabel: 'AutoPay',
     );
   }
 }
@@ -610,15 +714,17 @@ class _VerticalDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(width: 16.w,
-      height: 14.17.h,
+    final dot = FetchProviderMetrics.r(3.5);
+    return SizedBox(
+      width: FetchProviderMetrics.r(16),
+      height: FetchProviderMetrics.r(16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List<Widget>.generate(
           3,
           (_) => Container(
-            width: 2.5.w,
-            height: 2.5.w,
+            width: dot,
+            height: dot,
             decoration: const BoxDecoration(
               color: Color(0xFF000000),
               shape: BoxShape.circle,
@@ -762,7 +868,8 @@ class _RecentCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 12.w),
-                SizedBox(height: 30.h,
+                SizedBox(
+                  height: 30.h,
                   child: ElevatedButton(
                     onPressed: onPayNow,
                     style: ElevatedButton.styleFrom(

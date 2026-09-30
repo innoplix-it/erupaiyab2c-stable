@@ -20,6 +20,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.bharatConnectHeight,
     this.helpIconSize,
     this.fitTitle = false,
+    this.bottomTrim = 0,
   });
 
   final String title;
@@ -38,6 +39,11 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// large text instead of wrapping into the fixed-height toolbar.
   final bool fitTitle;
 
+  /// Logical px cut from the empty band under the toolbar row, tightening
+  /// the gap between the Bharat Connect icon and the divider. Keep it within
+  /// the row's own bottom padding (6.h) so nothing overlaps the divider.
+  final double bottomTrim;
+
   double get _platformTopPadding {
     final views = WidgetsBinding.instance.platformDispatcher.views;
     if (views.isEmpty) return 0;
@@ -46,8 +52,9 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize =>
-      Size.fromHeight(height ?? (_platformTopPadding + kToolbarHeight + 1));
+  Size get preferredSize => Size.fromHeight(
+        height ?? (_platformTopPadding + kToolbarHeight - bottomTrim + 1),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +65,8 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
             .copyWith(statusBarColor: bgColor);
     final topPadding = MediaQuery.paddingOf(context).top;
-    final resolvedHeight = height ?? (topPadding + kToolbarHeight + 1);
+    final resolvedHeight =
+        height ?? (topPadding + kToolbarHeight - bottomTrim + 1);
     // Old design (kept for reference)
     // return SizedBox(
     //   height: height,
@@ -154,80 +162,85 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
             children: [
               SizedBox(height: topPadding),
               SizedBox(
-                height: kToolbarHeight,
-                child: Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: backgroundColor == null
-                              ? Colors.black
-                              : Colors.white,
-                        ),
-                        onPressed:
-                            onBack ?? () => Navigator.of(context).maybePop(),
-                      ),
-                      SizedBox(width: 4.w),
-                      Expanded(
-                        child: Builder(builder: (context) {
-                          final titleText = Text(
-                            title,
-                            maxLines: fitTitle ? 1 : null,
-                            style: titleStyle ??
-                                Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: backgroundColor == null
-                                          ? Colors.black
-                                          : Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                          );
-                          if (!fitTitle) return titleText;
-                          return Align(
-                            alignment: Alignment.centerLeft,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: titleText,
-                            ),
-                          );
-                        }),
-                      ),
-                      if (trailing != null) trailing!,
-                      if (showHelp) ...[
-                        Image.asset(
-                          FileConstants.bharatConnectColor,
-                          height: (bharatConnectHeight ?? 15).h,
-                          width: (bharatConnectWidth ?? 50).w,
-                          fit: BoxFit.contain,
-                        ),
+                height: kToolbarHeight - bottomTrim,
+                child: OverflowBox(
+                  alignment: Alignment.topCenter,
+                  minHeight: kToolbarHeight,
+                  maxHeight: kToolbarHeight,
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    child: Row(
+                      children: [
                         IconButton(
-                          onPressed: onHelp ??
-                              () => context.push(RouteConstants.helpSupport),
-                          padding: helpIconSize == null
-                              ? const EdgeInsets.all(8)
-                              : EdgeInsets.zero,
-                          constraints: helpIconSize == null
-                              ? null
-                              : BoxConstraints.tightFor(
-                                  width: 32.w,
-                                  height: 32.w,
-                                ),
                           icon: Icon(
-                            Icons.help_outline,
-                            size: helpIconSize?.w,
+                            Icons.arrow_back,
                             color: backgroundColor == null
-                                ? const Color(0xFF000000)
+                                ? Colors.black
                                 : Colors.white,
                           ),
+                          onPressed:
+                              onBack ?? () => Navigator.of(context).maybePop(),
                         ),
+                        SizedBox(width: 4.w),
+                        Expanded(
+                          child: Builder(builder: (context) {
+                            final titleText = Text(
+                              title,
+                              maxLines: fitTitle ? 1 : null,
+                              style: titleStyle ??
+                                  Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        color: backgroundColor == null
+                                            ? Colors.black
+                                            : Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                            );
+                            if (!fitTitle) return titleText;
+                            return Align(
+                              alignment: Alignment.centerLeft,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: titleText,
+                              ),
+                            );
+                          }),
+                        ),
+                        if (trailing != null) trailing!,
+                        if (showHelp) ...[
+                          Image.asset(
+                            FileConstants.bharatConnectColor,
+                            height: (bharatConnectHeight ?? 15).h,
+                            width: (bharatConnectWidth ?? 50).w,
+                            fit: BoxFit.contain,
+                          ),
+                          IconButton(
+                            onPressed: onHelp ??
+                                () => context.push(RouteConstants.helpSupport),
+                            padding: helpIconSize == null
+                                ? const EdgeInsets.all(8)
+                                : EdgeInsets.zero,
+                            constraints: helpIconSize == null
+                                ? null
+                                : BoxConstraints.tightFor(
+                                    width: 32.w,
+                                    height: 32.w,
+                                  ),
+                            icon: Icon(
+                              Icons.help_outline,
+                              size: helpIconSize?.w,
+                              color: backgroundColor == null
+                                  ? const Color(0xFF000000)
+                                  : Colors.white,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),

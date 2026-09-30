@@ -14,7 +14,7 @@ import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/screen_wrapper.dart';
-import '../../../widgets/search_textfield.dart';
+import '../../../widgets/app_search_bar.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/service_recent_section.dart';
@@ -109,11 +109,14 @@ class CreditCardListingView extends HookConsumerWidget {
             onBack: () => context.pop(),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: SearchTextfield(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSearchBar.sideInset,
+              vertical: 12.h,
+            ),
+            child: AppSearchBar(
               hintText: 'Search bank name',
               controller: searchController,
-              onChange: (value) => ref
+              onChanged: (value) => ref
                   .read(billerListingControllerProvider.notifier)
                   .updateSearch(value),
             ),
@@ -148,8 +151,7 @@ class CreditCardListingView extends HookConsumerWidget {
                       child: isSearching
                           ? ListView.builder(
                               primary: false,
-                              padding:
-                                  EdgeInsets.symmetric(horizontal: 16.w),
+                              padding: EdgeInsets.symmetric(horizontal: 16.w),
                               itemCount: billers.length +
                                   (listingState.isFetchingMore ? 1 : 0),
                               itemBuilder: (context, index) {
@@ -165,10 +167,10 @@ class CreditCardListingView extends HookConsumerWidget {
                                           billerDetailControllerProvider
                                               .notifier,
                                         )
-                                    .selectBiller(
-                                      biller,
-                                      categoryName: 'Credit card',
-                                    );
+                                        .selectBiller(
+                                          biller,
+                                          categoryName: 'Credit card',
+                                        );
                                     context.push(
                                       RouteConstants.billerDetail,
                                       extra: BillerDetailArgs(
@@ -193,8 +195,8 @@ class CreditCardListingView extends HookConsumerWidget {
                                     onAction: () {},
                                   ),
                                   Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 16.w),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 16.w),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -357,7 +359,8 @@ class _BillerGridTile extends StatelessWidget {
               ),
             ),
             SizedBox(height: 10.h),
-            SizedBox(height: 32.h,
+            SizedBox(
+              height: 32.h,
               child: Text(
                 biller.billerName,
                 maxLines: 2,

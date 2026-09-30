@@ -6,6 +6,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -14,6 +15,7 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../services/permission_service.dart';
 import '../../../widgets/app_network_image.dart';
+import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/contacts_permission_card.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
@@ -24,6 +26,7 @@ import '../../home/models/banner_model.dart';
 import '../../mobile_prepaid/components/contacts_list.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
+import '../components/fetch_provider_metrics.dart';
 import '../components/service_recent_section.dart';
 import '../controllers/biller_detail_controller.dart';
 import '../controllers/biller_listing_controller.dart';
@@ -174,6 +177,9 @@ class BillerListingView extends HookConsumerWidget {
         showHelp: true,
         onBack: () => context.pop(),
         onHelp: () => context.push(RouteConstants.helpSupport),
+        bottomTrim: uiConfig.appBarTitle == 'Fetch Your Provider'
+            ? (6.h).clamp(0.0, 8.0).toDouble()
+            : 0,
       ),
       body: switch (uiConfig.variant) {
         _BillerListingVariant.standard => _StandardBillerListingBody(
@@ -283,25 +289,16 @@ class _StandardBillerListingBody extends HookConsumerWidget {
       children: [
         if (showSearch)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final barWidth = constraints.maxWidth < 392.w
-                    ? constraints.maxWidth
-                    : 392.w;
-                return Align(
-                  alignment: Alignment.center,
-                  child: CommonSearchBar(
-                    hintText: 'Search Provider',
-                    controller: searchController,
-                    onChanged: (value) => ref
-                        .read(billerListingControllerProvider.notifier)
-                        .updateSearch(value),
-                    width: barWidth,
-                    height: 60.h,
-                  ),
-                );
-              },
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSearchBar.sideInset,
+              vertical: 12.h,
+            ),
+            child: AppSearchBar(
+              hintText: 'Search Provider',
+              controller: searchController,
+              onChanged: (value) => ref
+                  .read(billerListingControllerProvider.notifier)
+                  .updateSearch(value),
             ),
           ),
         Expanded(
@@ -411,18 +408,26 @@ class _ElectricityFlow extends HookConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(
+                FetchProviderMetrics.w(24),
+                12.h,
+                FetchProviderMetrics.w(24),
+                FetchProviderMetrics.h(20),
+              ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  // Width follows the screen; height keeps Figma's 392:117
+                  // ratio so the artwork is never stretched or cropped.
                   final bannerWidth = constraints.maxWidth;
                   final bannerHeight = bannerWidth * (117 / 392);
                   return ClipRRect(
-                    borderRadius: BorderRadius.circular(8.r),
+                    borderRadius:
+                        BorderRadius.circular(FetchProviderMetrics.r(8)),
                     child: Image.asset(
-                      FileConstants.electricityBanner,
+                      FileConstants.electricityEcoins,
                       width: bannerWidth,
                       height: bannerHeight,
-                      fit: BoxFit.fill,
+                      fit: BoxFit.cover,
                     ),
                   );
                 },
@@ -431,14 +436,23 @@ class _ElectricityFlow extends HookConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 8.h),
-              child: CommonSearchBar(
+              padding: EdgeInsets.fromLTRB(
+                AppSearchBar.sideInset,
+                0,
+                AppSearchBar.sideInset,
+                FetchProviderMetrics.h(8),
+              ),
+              child: AppSearchBar(
                 hintText: 'Search by billers',
                 controller: searchController,
+                textStyle: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14.sp,
+                  color: Colors.black,
+                ),
                 onChanged: (value) => ref
                     .read(billerListingControllerProvider.notifier)
                     .updateSearch(value),
-                height: 54.h,
               ),
             ),
           ),
@@ -472,7 +486,12 @@ class _ElectricityFlow extends HookConsumerWidget {
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(
+                FetchProviderMetrics.w(24),
+                FetchProviderMetrics.h(4),
+                FetchProviderMetrics.w(24),
+                16.h,
+              ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -482,6 +501,7 @@ class _ElectricityFlow extends HookConsumerWidget {
                     return _BillerTile(
                       biller: billers[index],
                       onTap: () => openBiller(billers[index]),
+                      figmaStyle: true,
                     );
                   },
                   childCount:
@@ -949,7 +969,8 @@ class _PostpaidRecentSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return recentTransactions.when(
-      loading: () => SizedBox(height: 74.h,
+      loading: () => SizedBox(
+        height: 74.h,
         child: ListView.separated(
           padding: EdgeInsets.zero,
           scrollDirection: Axis.horizontal,
@@ -962,7 +983,8 @@ class _PostpaidRecentSection extends StatelessWidget {
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();
         final display = items.take(10).toList();
-        return SizedBox(height: 74.h,
+        return SizedBox(
+          height: 74.h,
           child: ListView.separated(
             padding: EdgeInsets.zero,
             scrollDirection: Axis.horizontal,
@@ -1806,7 +1828,8 @@ class _StaticRecentRow extends StatelessWidget {
       ),
     ];
 
-    return SizedBox(height: 86.h,
+    return SizedBox(
+      height: 86.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -1918,13 +1941,19 @@ class _BillerTile extends StatelessWidget {
   const _BillerTile({
     required this.biller,
     this.onTap,
+    this.figmaStyle = false,
   });
 
   final Biller biller;
   final VoidCallback? onTap;
 
+  /// Fetch Your Provider (electricity) Figma row: 50x50 logo card, 13sp
+  /// name and 24x24 arrow.
+  final bool figmaStyle;
+
   @override
   Widget build(BuildContext context) {
+    if (figmaStyle) return _buildFigma(context);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -1974,6 +2003,82 @@ class _BillerTile extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildFigma(BuildContext context) {
+    // Square 50px card with the logo nearly filling it, as in Figma; .r keeps
+    // both sides equal on tall phones where .w and .h diverge.
+    final borderWidth = 1.w;
+    final cardSize = FetchProviderMetrics.r(50);
+    final cardPadding = FetchProviderMetrics.r(4);
+    final logoSize = cardSize - 2 * (cardPadding + borderWidth);
+    // The Figma spaces rows 20px apart on a 440-wide frame. Deriving the gap
+    // from the device width (not .h) stops tall phones from getting extra
+    // space between rows.
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final rowGap = screenWidth * 20 / 440;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: rowGap / 2),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: cardSize),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: cardSize,
+                height: cardSize,
+                padding: EdgeInsets.all(cardPadding),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(FetchProviderMetrics.r(16)),
+                  border: Border.all(
+                    color: AppColors.lightBorder2,
+                    width: borderWidth,
+                  ),
+                ),
+                child: _BillerIcon(
+                  name: biller.billerName,
+                  iconUrl: biller.iconUrl,
+                  size: logoSize,
+                  borderRadius:
+                      BorderRadius.circular(FetchProviderMetrics.r(12)),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  _capitalizeWords(biller.billerName),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13.sp,
+                    height: 1.35,
+                    letterSpacing: 0,
+                    color: const Color(0xFF000000),
+                  ),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Image.asset(
+                FileConstants.tiltArrow,
+                width: 24.w,
+                height: 24.h,
+                fit: BoxFit.contain,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _capitalizeWords(String value) => value
+      .trim()
+      .split(RegExp(r'\s+'))
+      .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+      .join(' ');
 }
 
 class _BillerIcon extends StatelessWidget {

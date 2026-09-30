@@ -9,7 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/my_app_bar.dart';
-import '../../../widgets/search_textfield.dart';
+import '../../../widgets/app_search_bar.dart';
 import '../controllers/credit_card_transactions_controller.dart';
 import '../models/credit_card_transaction.dart';
 
@@ -81,12 +81,17 @@ class _CreditCardTransactionsScreenState
                 : CustomScrollView(
                     slivers: [
                       SliverPadding(
-                        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
+                        padding: EdgeInsets.fromLTRB(
+                          AppSearchBar.sideInset,
+                          8.h,
+                          AppSearchBar.sideInset,
+                          12.h,
+                        ),
                         sliver: SliverToBoxAdapter(
-                          child: SearchTextfield(
+                          child: AppSearchBar(
                             hintText: 'Search Transactions',
                             controller: _searchController,
-                            onChange: (_) => setState(() {}),
+                            onChanged: (_) => setState(() {}),
                           ),
                         ),
                       ),

@@ -15,7 +15,7 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../home/controllers/home_tab_controller.dart';
 import '../../../widgets/app_network_image.dart';
-import '../../../widgets/common_search_bar.dart';
+import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
@@ -115,46 +115,22 @@ class _TransactionHistoryScreenState
               helpIconSize: 20,
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
+              padding: EdgeInsets.fromLTRB(
+                AppSearchBar.sideInset,
+                12.h,
+                AppSearchBar.sideInset,
+                8.h,
+              ),
               child: SizedBox(
-                height: 48.h,
+                height: AppSearchBar.height,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: CommonSearchBar(
+                      child: AppSearchBar(
                         hintText: 'Search Transactions',
                         controller: _searchController,
                         onChanged: (_) => setState(() {}),
-                        height: 48.h,
-                        radius: 12.r,
-                        fillColor: const Color(0xFFFFFFFF),
-                        borderColor: const Color(0xFFE6E6E6),
-                        borderWidth: 1,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0x14000000),
-                            offset: Offset(0, 2.h),
-                            blurRadius: 10.r,
-                          ),
-                        ],
-                        searchIconOnRight: true,
-                        searchIconWidth: 22.w,
-                        searchIconHeight: 22.h,
-                        searchIconInset: 14.w,
-                        contentPadding: EdgeInsets.only(left: 4.w),
-                        hintStyle: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14.sp,
-                          height: 18.h / 14.sp,
-                          color: const Color(0xFF000000),
-                        ),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14.sp,
-                          height: 18.h / 14.sp,
-                          color: const Color(0xFF000000),
-                        ),
                       ),
                     ),
                     SizedBox(width: 10.w),
@@ -175,76 +151,77 @@ class _TransactionHistoryScreenState
                 ),
               ),
             ),
-          Expanded(
-            child: isLoading
-                ? const _TransactionHistoryShimmer()
-                : RefreshIndicator(
-                    color: AppColors.primary,
-                    onRefresh: () => _handleRefresh(controller),
-                    child: InfiniteScrollListener(
-                      isLoading: isFetchingMore,
-                      hasMore: hasMore,
-                      onEndReached: () => controller.fetchNextPage(),
-                      child: CustomScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          if (filteredItems.isEmpty)
-                            const SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: _TransactionEmptyState(),
-                            )
-                          else ...[
-                            for (final section in sections) ...[
+            Expanded(
+              child: isLoading
+                  ? const _TransactionHistoryShimmer()
+                  : RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () => _handleRefresh(controller),
+                      child: InfiniteScrollListener(
+                        isLoading: isFetchingMore,
+                        hasMore: hasMore,
+                        onEndReached: () => controller.fetchNextPage(),
+                        child: CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            if (filteredItems.isEmpty)
+                              const SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: _TransactionEmptyState(),
+                              )
+                            else ...[
+                              for (final section in sections) ...[
+                                SliverToBoxAdapter(
+                                  child: _MonthHeader(title: section.title),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final item = section.items[index];
+                                      return _TransactionTile(
+                                        item: item,
+                                        onTap: () {
+                                          context.push(
+                                            RouteConstants
+                                                .transactionDetailForStatus(
+                                              item.paymentStatus,
+                                            ),
+                                            extra: item,
+                                          );
+                                        },
+                                      );
+                                    },
+                                    childCount: section.items.length,
+                                  ),
+                                ),
+                              ],
                               SliverToBoxAdapter(
-                                child: _MonthHeader(title: section.title),
+                                child: SizedBox(height: 12.h),
                               ),
-                              SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) {
-                                    final item = section.items[index];
-                                    return _TransactionTile(
-                                      item: item,
-                                      onTap: () {
-                                        context.push(
-                                          RouteConstants
-                                              .transactionDetailForStatus(
-                                            item.paymentStatus,
-                                          ),
-                                          extra: item,
-                                        );
-                                      },
-                                    );
-                                  },
-                                  childCount: section.items.length,
+                              SliverToBoxAdapter(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: isFetchingMore
+                                      ? Padding(
+                                          padding:
+                                              EdgeInsets.only(bottom: 24.h),
+                                          child: const Center(
+                                            child: SpinKitCircle(
+                                              color: AppColors.primary,
+                                              size: 48,
+                                            ),
+                                          ))
+                                      : SizedBox(height: 24.h),
                                 ),
                               ),
                             ],
-                            SliverToBoxAdapter(
-                              child: SizedBox(height: 12.h),
-                            ),
-                            SliverToBoxAdapter(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: isFetchingMore
-                                    ? Padding(
-                                        padding: EdgeInsets.only(bottom: 24.h),
-                                        child: const Center(
-                                          child: SpinKitCircle(
-                                            color: AppColors.primary,
-                                            size: 48,
-                                          ),
-                                        ))
-                                    : SizedBox(height: 24.h),
-                              ),
-                            ),
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1008,7 +985,8 @@ class _TransactionEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 100.w,
+            SizedBox(
+              width: 100.w,
               height: 100.w,
               child: DecoratedBox(
                 decoration: BoxDecoration(

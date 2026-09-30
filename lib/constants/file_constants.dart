@@ -26,7 +26,8 @@ class FileConstants {
   static String sampleBill = 'assets/images/png/sample_bill.png';
   static String orangeSearch = 'assets/images/png/home_icon/orangeSearch.png';
   static String searchIcon = 'assets/images/png/searchicon.png';
-  static String electricityBanner = 'assets/images/png/electricitybanner.png';
+  static String electricityEcoins = 'assets/images/png/electricityecoins.png';
+  static String autoPayBadge = 'assets/images/svg/autopay_badge.svg';
   static String homeScreenImg = 'assets/images/png/homescreenimghome.png';
   static String cibilImg = 'assets/images/svg/cibil.svg';
   static String cibilLogoPng = 'assets/images/png/cibil.png';
