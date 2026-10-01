@@ -43,20 +43,7 @@ class RechargeStatusResult {
 
     final rawCustomerParams =
         data['customer_params'] ?? json['customer_params'];
-    final customerParams = rawCustomerParams is List
-        ? rawCustomerParams
-            .whereType<Map>()
-            .map(
-              (item) => TransactionCustomerParam.fromJson(
-                item.map((key, value) => MapEntry(key.toString(), value)),
-              ),
-            )
-            .where(
-              (item) =>
-                  item.label.trim().isNotEmpty && item.value.trim().isNotEmpty,
-            )
-            .toList()
-        : const <TransactionCustomerParam>[];
+    final customerParams = parseTransactionCustomerParams(rawCustomerParams);
 
     final rawAmountBreakdown =
         data['amount_breakdown'] ?? json['amount_breakdown'];

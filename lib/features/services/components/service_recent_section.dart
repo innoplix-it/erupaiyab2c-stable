@@ -488,7 +488,7 @@ class _SavedBillerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final billerTitle = txn.billerName.trim();
     final customerName = _capitalizeWords(txn.customerName.trim());
-    final consumerNo = (txn.serviceNoFull ?? txn.serviceNo).trim();
+    final consumerNo = txn.primaryConsumerNumber;
     final lastPaid = _formatWasPaidOn(txn);
 
     final cardWidth = _SavedBillerCard.cardWidth(
@@ -752,7 +752,7 @@ class _RecentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = txn.billerName.trim();
-    final serviceNo = txn.serviceNo.trim();
+    final serviceNo = txn.primaryConsumerNumber;
     final amount = txn.amount;
     final dueLabel = _formatDueDate(txn.dueDate);
 
@@ -1049,8 +1049,7 @@ class _SavedBillerActionSheet extends StatelessWidget {
 
     final billerTitle = txn.billerName.trim();
     final customerName = _capitalizeWords(txn.customerName.trim());
-    final fullNumber = (txn.serviceNoFull ?? '').trim();
-    final consumerNo = fullNumber.isNotEmpty ? fullNumber : txn.serviceNo.trim();
+    final consumerNo = txn.primaryConsumerNumber;
 
     return Container(
       width: screenWidth,

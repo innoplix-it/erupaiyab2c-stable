@@ -33,15 +33,28 @@ class HomeSearchView extends HookConsumerWidget {
     final isLoading = useState(false);
     final hasFetched = useState(false);
     final error = useState<String?>(null);
-    final results = useState<List<QuickActionCategory>>([]);
+    // allResults holds the complete API data — never filtered.
+    final allResults = useState<List<QuickActionCategory>>([]);
     final banners = useState<List<BannerModel>>([]);
     final bannerError = useState<String?>(null);
     final bannerPage = useState(0);
     final requestId = useRef(0);
-    final debounceRef = useRef<Timer?>(null);
     final bannerController =
         useMemoized(() => PageController(viewportFraction: 1), const []);
 
+    // Listen to controller text changes directly to guarantee query state sync.
+    useEffect(() {
+      void onTextChanged() {
+        if (query.value != searchController.text) {
+          query.value = searchController.text;
+        }
+      }
+
+      searchController.addListener(onTextChanged);
+      return () => searchController.removeListener(onTextChanged);
+    }, [searchController]);
+
+    // Fetch banners independently.
     useEffect(() {
       Future<void> fetchBanners() async {
         bannerError.value = null;
@@ -58,6 +71,7 @@ class HomeSearchView extends HookConsumerWidget {
       return null;
     }, const []);
 
+    // Auto-scroll banner carousel.
     useEffect(() {
       if (banners.value.length < 2) return null;
       final timer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -72,37 +86,55 @@ class HomeSearchView extends HookConsumerWidget {
       return timer.cancel;
     }, [banners.value.length]);
 
+    // Fetch ALL services once at mount — no search param sent to backend.
+    // Local filtering is applied on the loaded data for instant, reliable search.
     useEffect(() {
-      final currentRequestId = ++requestId.value;
-
       void fetch() async {
         isLoading.value = true;
         error.value = null;
+        final id = ++requestId.value;
         try {
           final data = await ref
               .read(homeRepositoryProvider)
-              .fetchQuickActions(search: query.value.trim());
-          if (currentRequestId != requestId.value) return;
-          results.value = data.categories;
+              .fetchQuickActions();
+          if (id != requestId.value) return;
+          allResults.value = data.categories;
           hasFetched.value = true;
         } catch (_) {
-          if (currentRequestId != requestId.value) return;
+          if (id != requestId.value) return;
           error.value = 'Failed to fetch services. Please try again.';
           hasFetched.value = true;
         } finally {
-          if (currentRequestId == requestId.value) {
-            isLoading.value = false;
-          }
+          if (id == requestId.value) isLoading.value = false;
         }
       }
 
-      debounceRef.value?.cancel();
-      debounceRef.value = Timer(const Duration(milliseconds: 300), fetch);
+      Future.microtask(fetch);
+      return null;
+    }, const []);
 
-      return () {
-        debounceRef.value?.cancel();
-      };
-    }, [query.value]);
+    // Instant local filtering without stale closures or race conditions.
+    final filteredCategories = useMemoized(() {
+      final q = query.value.trim().toLowerCase();
+      if (q.isEmpty) {
+        return allResults.value;
+      }
+      return allResults.value
+          .map((cat) {
+            final catMatches = cat.category.toLowerCase().contains(q);
+            final matchedServices = cat.services.where((s) {
+              final name = s.name.toLowerCase();
+              final type = (s.type ?? '').toLowerCase();
+              return name.contains(q) || type.contains(q);
+            }).toList();
+            return QuickActionCategory(
+              category: cat.category,
+              services: catMatches ? cat.services : matchedServices,
+            );
+          })
+          .where((cat) => cat.services.isNotEmpty)
+          .toList();
+    }, [query.value, allResults.value]);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -187,28 +219,34 @@ class HomeSearchView extends HookConsumerWidget {
                       ),
                 ),
               )
-            else if (hasFetched.value && results.value.isEmpty)
+            else if (hasFetched.value && filteredCategories.isEmpty)
               Padding(
                 padding:
                     EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-                child: Text(
-                  'No services found',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textPrimary.withOpacity(0.6),
-                      ),
+                child: Center(
+                  child: Text(
+                    'No services found',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textPrimary.withOpacity(0.6),
+                        ),
+                  ),
                 ),
               )
-            else if (results.value.isNotEmpty)
+            else if (filteredCategories.isNotEmpty)
               SafeArea(
                 top: false,
                 child: ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12 + MediaQuery.of(context).padding.bottom,
+                  padding: EdgeInsets.fromLTRB(
+                    16.w,
+                    8.h,
+                    16.w,
+                    12 + MediaQuery.of(context).padding.bottom,
                   ),
-                  itemCount: results.value.length,
+                  itemCount: filteredCategories.length,
                   itemBuilder: (context, index) {
-                    final category = results.value[index];
+                    final category = filteredCategories[index];
                     return _CategorySection(
                       category: category,
                       onServiceTap: (serviceName) {

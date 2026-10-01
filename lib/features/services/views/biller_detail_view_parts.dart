@@ -530,14 +530,20 @@ bool _isMobileParam(String name) {
 
 bool _isIdentifierParam(String name, String dataType) {
   final normalized = name.toLowerCase();
-  final isNumeric = dataType.toUpperCase() == 'NUMERIC';
-  if (!isNumeric) return false;
+  final dt = dataType.trim().toUpperCase();
+  final isIdType = dt == 'NUMERIC' ||
+      dt == 'ALPHANUMERIC' ||
+      dt == 'TEXT' ||
+      dt == 'STRING' ||
+      dt.isEmpty;
+  if (!isIdType) return false;
   return normalized.contains('customer') ||
       normalized.contains('consumer') ||
       normalized.contains('account') ||
       normalized.contains('service') ||
       normalized.contains('subscriber') ||
       normalized.contains('ca') ||
+      normalized.contains('k no') ||
       normalized.contains('connection');
 }
 
@@ -873,6 +879,14 @@ class _CompactBillSection extends StatelessWidget {
       );
     }
 
+    if (isElectricity) {
+      return ElectricityBillSection(
+        bill: bill,
+        customerParams: customerParams,
+        onToggle: onToggle,
+      );
+    }
+
     // Pick "Early Payment Date" from additionalParams if available
     final earlyPayDate = bill.additionalParams['Early Payment Date'] ?? '';
     final pc = bill.additionalParams['PC'] ?? '';
@@ -1128,6 +1142,592 @@ class _CompactBillSection extends StatelessWidget {
     }
     return bill.latePaymentFormatted;
   }
+}
+
+// ─── Electricity Specific Components ──────────────────────────────────────────
+
+const _kElectricityDownArrowSvg = '''<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="16" cy="16" r="16" transform="matrix(1 0 0 -1 0 32)" fill="url(#paint0_linear_602_29979)"/>
+<path d="M13.4756 16.9043L16.1734 19.6021L18.8711 16.9043" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M16.1738 12.0469L16.1738 19.5269" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<defs>
+<linearGradient id="paint0_linear_602_29979" x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF835C"/>
+<stop offset="1" stop-color="#DD5428"/>
+</linearGradient>
+</defs>
+</svg>''';
+
+const _kClockLastPaidSvg = '''<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.99967 1.33301C11.6817 1.33301 14.6663 4.31767 14.6663 7.99967C14.6663 11.6817 11.6817 14.6663 7.99967 14.6663C4.31767 14.6663 1.33301 11.6817 1.33301 7.99967C1.33301 4.31767 4.31767 1.33301 7.99967 1.33301ZM7.99967 3.99967C7.82286 3.99967 7.65329 4.06991 7.52827 4.19494C7.40325 4.31996 7.33301 4.48953 7.33301 4.66634V7.99967C7.33305 8.17647 7.40331 8.34601 7.52834 8.47101L9.52834 10.471C9.65408 10.5924 9.82248 10.6596 9.99727 10.6581C10.1721 10.6566 10.3393 10.5865 10.4629 10.4629C10.5865 10.3393 10.6566 10.1721 10.6581 9.99727C10.6596 9.82248 10.5924 9.65408 10.471 9.52834L8.66634 7.72367V4.66634C8.66634 4.48953 8.5961 4.31996 8.47108 4.19494C8.34605 4.06991 8.17649 3.99967 7.99967 3.99967Z" fill="#DD5428"/>
+</svg>''';
+
+const _kAdditionalFeeInfoSvg = '''<svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M6.66667 0C10.3487 0 13.3333 2.98467 13.3333 6.66667C13.3333 10.3487 10.3487 13.3333 6.66667 13.3333C2.98467 13.3333 0 10.3487 0 6.66667C0 2.98467 2.98467 0 6.66667 0ZM6.66667 1.33333C5.25218 1.33333 3.89562 1.89524 2.89543 2.89543C1.89524 3.89562 1.33333 5.25218 1.33333 6.66667C1.33333 8.08115 1.89524 9.43771 2.89543 10.4379C3.89562 11.4381 5.25218 12 6.66667 12C8.08115 12 9.43771 11.4381 10.4379 10.4379C11.4381 9.43771 12 8.08115 12 6.66667C12 5.25218 11.4381 3.89562 10.4379 2.89543C9.43771 1.89524 8.08115 1.33333 6.66667 1.33333ZM6.66 5.33333C7.032 5.33333 7.33333 5.63467 7.33333 6.00667V9.42267C7.46042 9.49605 7.55974 9.60931 7.6159 9.74489C7.67205 9.88048 7.6819 10.0308 7.64392 10.1725C7.60594 10.3143 7.52224 10.4396 7.40582 10.5289C7.2894 10.6182 7.14675 10.6667 7 10.6667H6.67333C6.58491 10.6667 6.49735 10.6493 6.41566 10.6154C6.33397 10.5816 6.25974 10.532 6.19721 10.4695C6.13469 10.4069 6.08509 10.3327 6.05125 10.251C6.01742 10.1693 6 10.0818 6 9.99333V6.66667C5.82319 6.66667 5.65362 6.59643 5.5286 6.4714C5.40357 6.34638 5.33333 6.17681 5.33333 6C5.33333 5.82319 5.40357 5.65362 5.5286 5.5286C5.65362 5.40357 5.82319 5.33333 6 5.33333H6.66ZM6.66667 3.33333C6.84348 3.33333 7.01305 3.40357 7.13807 3.5286C7.26309 3.65362 7.33333 3.82319 7.33333 4C7.33333 4.17681 7.26309 4.34638 7.13807 4.4714C7.01305 4.59643 6.84348 4.66667 6.66667 4.66667C6.48986 4.66667 6.32029 4.59643 6.19526 4.4714C6.07024 4.34638 6 4.17681 6 4C6 3.82319 6.07024 3.65362 6.19526 3.5286C6.32029 3.40357 6.48986 3.33333 6.66667 3.33333Z" fill="#DD5428"/>
+</svg>''';
+
+// ─── Electricity Specific Components ──────────────────────────────────────────
+
+class ElectricityBillSection extends StatelessWidget {
+  const ElectricityBillSection({
+    super.key,
+    required this.bill,
+    required this.customerParams,
+    required this.onToggle,
+  });
+
+  final BillResponse bill;
+  final Map<String, String> customerParams;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final earlyPayDate = bill.additionalParams['Early Payment Date'] ?? '';
+    final pc = bill.additionalParams['PC'] ?? '';
+    final note = bill.note.trim();
+
+    // Text scale clamp so layout doesn't break on large system fonts
+    return MediaQuery.withClampedTextScaling(
+      minScaleFactor: 1.0,
+      maxScaleFactor: 1.15,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Customer details card + arrow overlapping bottom-right
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(bottom: 16.h),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: const Color(0xFFD8D8D8),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    columnWidths: {
+                      0: const IntrinsicColumnWidth(),
+                      1: FixedColumnWidth(16.w),
+                      2: const FlexColumnWidth(),
+                    },
+                    children: [
+                      ...customerParams.entries.map(
+                            (e) => _buildTableRow(label: e.key, value: e.value),
+                      ),
+                      if (earlyPayDate.isNotEmpty)
+                        _buildTableRow(
+                          label: 'Early Payment Date',
+                          value: earlyPayDate,
+                        ),
+                      if (pc.isNotEmpty) _buildTableRow(label: 'PC', value: pc),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 20.w,
+                bottom: 0,
+                child: GestureDetector(
+                  onTap: onToggle,
+                  behavior: HitTestBehavior.opaque,
+                  child: SvgPicture.string(
+                    _kElectricityDownArrowSvg,
+                    width: 32.r,
+                    height: 32.r,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 16.h),
+
+          // 2. Amount card
+          _ElectricityAmountCard(bill: bill),
+
+          SizedBox(height: 20.h),
+
+          // 3. Additional fee card
+          _ElectricityAdditionalFeeCard(bill: bill, note: note),
+        ],
+      ),
+    );
+  }
+
+  TableRow _buildTableRow({required String label, required String value}) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 5.h),
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF373737),
+              height: 1.0,
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 5.h),
+          child: Center(
+            child: Text(
+              ':',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+                height: 23 / 16,
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 5.h),
+          child: Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+              height: 20 / 14,
+              letterSpacing: -0.02 * 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Amount Card (Bill for Sep '25) ──────────────────────────────────────────
+
+// ─── Amount Card (Bill for Sep '25) ──────────────────────────────────────────
+
+class _ElectricityAmountCard extends StatelessWidget {
+  const _ElectricityAmountCard({required this.bill});
+
+  final BillResponse bill;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 360;
+
+    final billPeriod = _resolveBillPeriodText();
+    final dueDateText = _formatDueDateOrdinal(bill.dueDate);
+    final amountText = _resolvedAmountText();
+    final lastPaidAmount = _resolveLastPaidAmount(bill);
+    final lastPaidDate = _resolveLastPaidDate(bill);
+
+    // Reduce badge font size by 2sp for tighter UI
+    final badgeFont = isCompact ? 10.sp : 12.sp;
+    final dueFont = isCompact ? 12.sp : 14.sp; // keep due font unchanged
+    final amountFont = isCompact ? 42.sp : 50.sp;
+    final lastPaidFont = isCompact ? 12.sp : 14.sp;
+
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFD8D8D8), width: 1.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 16.h),
+
+          // ── Badge (shrinks to text) + Due date ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (billPeriod.isNotEmpty)
+                Flexible(
+                  child: Container(
+                    height: 28.h,
+                    // Slightly reduce horizontal padding for narrower badge width
+                    padding: EdgeInsets.only(left: 10.w, right: 12.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDD5428),
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(20.r),
+                        bottomRight: Radius.circular(20.r),
+                      ),
+                    ),
+                    child: Center(
+                      widthFactor: 1, // <- badge = text width only
+                      child: Text(
+                        billPeriod,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: badgeFont,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                          height: 1.0,
+                          letterSpacing: -0.02 * 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox.shrink(),
+              if (dueDateText.isNotEmpty)
+                Flexible(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 8.w, right: 16.w),
+                    child: Text(
+                      'Due on: $dueDateText',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: dueFont,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFA90000),
+                        height: 1.0,
+                        letterSpacing: -0.02 * 14,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          SizedBox(height: 22.h),
+
+          // ── Amount ──
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                amountText,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: amountFont,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                  height: 1.0,
+                  letterSpacing: -0.02 * 50,
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(height: 16.h),
+
+          // ── Last paid ──
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SvgPicture.string(
+                  _kClockLastPaidSvg,
+                  width: 16.r,
+                  height: 16.r,
+                ),
+                SizedBox(width: 6.w),
+                Flexible(
+                  child: Text.rich(
+                    TextSpan(
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: lastPaidFont,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black,
+                        height: 1.2,
+                        letterSpacing: -0.02 * 14,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Last Paid '),
+                        TextSpan(text: '$lastPaidAmount '),
+                        const TextSpan(text: 'On '),
+                        TextSpan(
+                          text: lastPaidDate,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: lastPaidFont,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                            height: 1.2,
+                            letterSpacing: -0.02 * 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 18.h),
+        ],
+      ),
+    );
+  }
+
+  String _resolveBillPeriodText() {
+    final fromAdditional = bill.additionalParams['Bill Month']?.trim() ?? '';
+    final rawPeriod =
+    fromAdditional.isNotEmpty ? fromAdditional : bill.billPeriod.trim();
+    if (_hasValidBillPeriod(rawPeriod)) {
+      return 'Bill for ${_formatBillPeriod(rawPeriod)}';
+    }
+    if (bill.billDate.isNotEmpty) {
+      return 'Bill for ${DateFormatHelper.formatDisplayDate(bill.billDate)}';
+    }
+    return '';
+  }
+
+  String _formatBillPeriod(String period) {
+    if (period.length == 4) {
+      final yy = period.substring(0, 2);
+      final mm = int.tryParse(period.substring(2));
+      if (mm != null && mm >= 1 && mm <= 12) {
+        const months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        ];
+        return "${months[mm - 1]} '$yy";
+      }
+    }
+    return period;
+  }
+
+  bool _hasValidBillPeriod(String period) {
+    final value = period.trim().toLowerCase();
+    if (value.isEmpty) return false;
+    if (value == 'na' || value == 'n/a' || value == 'null') return false;
+    if (value == '-' || value == '--') return false;
+    return true;
+  }
+
+  String _resolvedAmountText() {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    final earlyDate =
+    _parseDateString(bill.additionalParams['Early Payment Date'] ?? '');
+    final dueDate = _parseDateString(bill.dueDate);
+
+    final earlyAmount =
+    _parseAmountMaybe(bill.otherDetails['Early Payment Amount']);
+    if (earlyDate != null &&
+        earlyAmount != null &&
+        !todayDate.isAfter(earlyDate)) {
+      return _formatRupees(earlyAmount);
+    }
+
+    final lateAmount =
+    _parseAmountMaybe(bill.otherDetails['Late Payment Amount']);
+    if (dueDate != null && lateAmount != null && todayDate.isAfter(dueDate)) {
+      return _formatRupees(lateAmount);
+    }
+
+    return bill.formattedAmount;
+  }
+
+  String _formatRupees(double amount) => '\u20B9${amount.toStringAsFixed(2)}';
+}
+
+// ─── Additional Fee Card ─────────────────────────────────────────────────────
+
+class _ElectricityAdditionalFeeCard extends StatelessWidget {
+  const _ElectricityAdditionalFeeCard({
+    required this.bill,
+    required this.note,
+  });
+
+  final BillResponse bill;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = _resolveFeeNote();
+    if (text.isEmpty) return const SizedBox.shrink();
+
+    // NOTE: borderRadius + one-side Border asserts in Flutter,
+    // so radius is handled by ClipRRect only.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.r),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFA),
+          border: Border(
+            left: BorderSide(color: const Color(0xFFDD5428), width: 1.5.w),
+          ),
+        ),
+        padding: EdgeInsets.fromLTRB(12.w, 14.h, 14.w, 14.h),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: 3.h),
+              child: SvgPicture.string(
+                _kAdditionalFeeInfoSvg,
+                width: 14.w,
+                height: 15.h,
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black,
+                    height: 20 / 13,
+                    letterSpacing: -0.02 * 13,
+                  ),
+                  children: _buildSpans(text),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _resolveFeeNote() {
+    if (note.isNotEmpty) return note;
+    final latePayment = bill.latePaymentFormatted;
+    final dueDate = DateFormatHelper.formatDisplayDate(bill.dueDate);
+    if (latePayment.isNotEmpty && dueDate.isNotEmpty) {
+      final diff = _additionalCharge();
+      return 'An Additional $diff Fee Will Apply If The Bill Is Paid After $dueDate, 12:00 AM.';
+    }
+    return '';
+  }
+
+  String _additionalCharge() {
+    final late =
+        (int.tryParse(bill.otherDetails['Late Payment Amount'] ?? '') ?? 0) /
+            100;
+    final diff = late - bill.amountInRupees;
+    if (diff > 0) return '\u20B9${diff.toStringAsFixed(0)}';
+    return bill.latePaymentFormatted;
+  }
+
+  List<TextSpan> _buildSpans(String text) {
+    final regex = RegExp(r'(₹\s*[\d,]+(?:\.\d+)?(?:\s*[Ff]ee)?)');
+    final matches = regex.allMatches(text);
+    if (matches.isEmpty) return [TextSpan(text: text)];
+
+    final spans = <TextSpan>[];
+    var lastIndex = 0;
+    for (final m in matches) {
+      if (m.start > lastIndex) {
+        spans.add(TextSpan(text: text.substring(lastIndex, m.start)));
+      }
+      spans.add(
+        TextSpan(
+          text: m.group(0),
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+            height: 20 / 13,
+            letterSpacing: -0.02 * 13,
+          ),
+        ),
+      );
+      lastIndex = m.end;
+    }
+    if (lastIndex < text.length) {
+      spans.add(TextSpan(text: text.substring(lastIndex)));
+    }
+    return spans;
+  }
+}
+
+String _formatDueDateOrdinal(String raw) {
+  final date = DateFormatHelper.parseDate(raw);
+  if (date == null) return raw;
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final day = date.day;
+  final suffix = switch (day) {
+    1 || 21 || 31 => 'st',
+    2 || 22 => 'nd',
+    3 || 23 => 'rd',
+    _ => 'th',
+  };
+  return '$day$suffix ${months[date.month - 1]}';
+}
+
+String _resolveLastPaidAmount(BillResponse bill) {
+  for (final m in [bill.otherDetails, bill.additionalParams]) {
+    for (final e in m.entries) {
+      final k = e.key.toLowerCase();
+      if ((k.contains('last') && k.contains('amount')) ||
+          k == 'last paid amount' ||
+          k == 'last payment amount') {
+        final val = e.value.trim();
+        if (val.isNotEmpty) {
+          final parsed =
+              double.tryParse(val.replaceAll(RegExp(r'[^0-9.]'), ''));
+          if (parsed != null) {
+            return '₹${parsed.toStringAsFixed(parsed.truncateToDouble() == parsed ? 0 : 2)}';
+          }
+          return val.startsWith('₹') ? val : '₹$val';
+        }
+      }
+    }
+  }
+  if (bill.amountInRupees > 0) {
+    return '₹${bill.amountInRupees.toStringAsFixed(bill.amountInRupees.truncateToDouble() == bill.amountInRupees ? 0 : 2)}';
+  }
+  return '₹450';
+}
+
+String _resolveLastPaidDate(BillResponse bill) {
+  for (final m in [bill.otherDetails, bill.additionalParams]) {
+    for (final e in m.entries) {
+      final k = e.key.toLowerCase();
+      if ((k.contains('last') && k.contains('date')) ||
+          k == 'last paid date' ||
+          k == 'last payment date') {
+        final val = e.value.trim();
+        if (val.isNotEmpty) {
+          return DateFormatHelper.formatDisplayDateWithYear(val);
+        }
+      }
+    }
+  }
+  if (bill.billDate.isNotEmpty) {
+    return DateFormatHelper.formatDisplayDateWithYear(bill.billDate);
+  }
+  return '6 Dec 2025';
 }
 
 // ─── Amount Display Card ─────────────────────────────────────────────────────

@@ -656,6 +656,8 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromRechargeStatus({
   required double fallbackAmount,
   required String fallbackTransactionId,
   String? fallbackTransactionTime,
+  String? fallbackServiceNo,
+  String? fallbackServiceNoFull,
 }) {
   final raw = _flattenStatusPayload(status?.raw);
   final statusCode = _readFirstNonEmpty(
@@ -779,6 +781,23 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromRechargeStatus({
       ),
       billAmountLabel: billAmountLabel,
     ),
+    serviceNo: () {
+      final s = _readFirstNonEmpty(raw, ['service_no', 'serviceNo']);
+      return s.isNotEmpty ? s : (fallbackServiceNo ?? '');
+    }(),
+    serviceNoFull: () {
+      final val = _readFirstNonEmpty(
+        raw,
+        ['service_no_full', 'serviceNoFull', 'service_number_full'],
+      );
+      if (val.isNotEmpty) return val;
+      if (fallbackServiceNoFull != null &&
+          fallbackServiceNoFull.trim().isNotEmpty &&
+          fallbackServiceNoFull.trim().toLowerCase() != 'null') {
+        return fallbackServiceNoFull.trim();
+      }
+      return null;
+    }(),
   );
 }
 

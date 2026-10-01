@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class TransactionHistoryEntry {
   const TransactionHistoryEntry({
     required this.paymentStatus,
@@ -24,7 +26,36 @@ class TransactionHistoryEntry {
     this.amountBreakdown = const {},
     this.routes = const [],
     this.feeType,
+    this.serviceNo,
+    this.serviceNoFull,
   });
+
+  final String? serviceNo;
+  final String? serviceNoFull;
+
+  String get primaryConsumerNumber {
+    final full = serviceNoFull?.trim();
+    if (full != null && full.isNotEmpty && full.toLowerCase() != 'null') {
+      return full;
+    }
+    final sNo = serviceNo?.trim();
+    if (sNo != null && sNo.isNotEmpty && sNo.toLowerCase() != 'null') {
+      return sNo;
+    }
+    for (final param in customerParams) {
+      final l = param.label.trim().toLowerCase();
+      if (l.contains('consumer') ||
+          l.contains('ca number') ||
+          l.contains('account') ||
+          l.contains('k no')) {
+        final val = param.value.trim();
+        if (val.isNotEmpty && val.toLowerCase() != 'null') {
+          return val;
+        }
+      }
+    }
+    return maskedIdentifier.trim();
+  }
 
   final String paymentStatus;
   final String paymentType;
@@ -53,16 +84,7 @@ class TransactionHistoryEntry {
 
   factory TransactionHistoryEntry.fromJson(Map<String, dynamic> json) {
     final rawCustomerParams = json['customer_params'];
-    final customerParams = rawCustomerParams is List
-        ? rawCustomerParams
-            .whereType<Map>()
-            .map(
-              (e) => TransactionCustomerParam.fromJson(
-                e.map((key, value) => MapEntry(key.toString(), value)),
-              ),
-            )
-            .toList()
-        : const <TransactionCustomerParam>[];
+    final customerParams = parseTransactionCustomerParams(rawCustomerParams);
     final rawAmountBreakdown = json['amount_breakdown'];
     final amountBreakdown = rawAmountBreakdown is Map
         ? rawAmountBreakdown.map(
@@ -137,6 +159,25 @@ class TransactionHistoryEntry {
       feeType: _stringOrEmpty(json['fee_type']).isEmpty
           ? null
           : _stringOrEmpty(json['fee_type']),
+      serviceNo: () {
+        final data = json['data'] is Map ? json['data'] as Map : null;
+        final raw = json['service_no'] ??
+            json['serviceNo'] ??
+            data?['service_no'] ??
+            data?['serviceNo'];
+        return _stringOrEmpty(raw);
+      }(),
+      serviceNoFull: () {
+        final data = json['data'] is Map ? json['data'] as Map : null;
+        final raw = json['service_no_full'] ??
+            json['serviceNoFull'] ??
+            json['service_number_full'] ??
+            data?['service_no_full'] ??
+            data?['serviceNoFull'] ??
+            data?['service_number_full'];
+        final val = _stringOrEmpty(raw);
+        return val.isEmpty ? null : val;
+      }(),
     );
   }
 }
@@ -338,4 +379,134 @@ Map<String, dynamic> composeTransactionAmountBreakdown({
     ordered['Total'] = resolvedTotal;
   }
   return ordered;
+}
+
+List<TransactionCustomerParam> parseTransactionCustomerParams(dynamic raw) {
+  if (raw == null) return const [];
+  final List<TransactionCustomerParam> result = [];
+
+  void addParam(String label, dynamic value) {
+    final cleanLabel = label.trim();
+    if (cleanLabel.isEmpty) return;
+    if (value == null) return;
+
+    if (value is List) {
+      for (final item in value) {
+        if (item is Map) {
+          final pName = _readParamKey(
+            item,
+            ['paramName', 'param_name', 'name', 'label', 'key'],
+          );
+          final pVal = item['paramValue'] ??
+              item['param_value'] ??
+              item['value'] ??
+              item['val'];
+          if (pName.isNotEmpty && pVal != null) {
+            addParam(pName, pVal);
+          }
+        }
+      }
+      return;
+    }
+
+    if (value is Map) {
+      final pName = _readParamKey(
+        value,
+        ['paramName', 'param_name', 'name', 'label', 'key'],
+      );
+      final pVal =
+          value['paramValue'] ?? value['param_value'] ?? value['value'];
+      if (pName.isNotEmpty && pVal != null) {
+        addParam(pName, pVal);
+        return;
+      }
+      for (final entry in value.entries) {
+        addParam(entry.key.toString(), entry.value);
+      }
+      return;
+    }
+
+    final valStr = value.toString().trim();
+    if (valStr.isEmpty || valStr == 'null') return;
+
+    // Check if valStr is JSON encoded string
+    if ((valStr.startsWith('[') && valStr.endsWith(']')) ||
+        (valStr.startsWith('{') && valStr.endsWith('}'))) {
+      try {
+        final decoded = jsonDecode(valStr);
+        if (decoded is List || decoded is Map) {
+          addParam(cleanLabel, decoded);
+          return;
+        }
+      } catch (_) {
+        // Fallback for Dart map toString format: {paramName: ..., paramValue: ...}
+        final regex =
+            RegExp(r'paramName:\s*([^,}]+),\s*paramValue:\s*([^,}]+)');
+        final matches = regex.allMatches(valStr);
+        if (matches.isNotEmpty) {
+          for (final m in matches) {
+            final pName = m.group(1)?.trim() ?? '';
+            final pVal = m.group(2)?.trim() ?? '';
+            if (pName.isNotEmpty && pVal.isNotEmpty) {
+              addParam(pName, pVal);
+            }
+          }
+          return;
+        }
+      }
+    }
+
+    result.add(TransactionCustomerParam(label: cleanLabel, value: valStr));
+  }
+
+  if (raw is List) {
+    for (final item in raw) {
+      if (item is Map) {
+        final label = _readParamKey(
+          item,
+          ['label', 'paramName', 'param_name', 'name', 'key'],
+        );
+        final val = item['value'] ??
+            item['paramValue'] ??
+            item['param_value'] ??
+            item['val'];
+
+        if (label.toLowerCase() == 'input' && val != null) {
+          addParam(label, val);
+        } else if (label.isNotEmpty && val != null) {
+          addParam(label, val);
+        } else {
+          for (final entry in item.entries) {
+            final k = entry.key.toString();
+            if (k != 'label' && k != 'value') {
+              addParam(k, entry.value);
+            }
+          }
+        }
+      }
+    }
+  } else if (raw is Map) {
+    for (final entry in raw.entries) {
+      addParam(entry.key.toString(), entry.value);
+    }
+  }
+
+  return result;
+}
+
+String _readParamKey(Map map, List<String> candidates) {
+  for (final candidate in candidates) {
+    final val = map[candidate];
+    if (val != null && val.toString().trim().isNotEmpty) {
+      return val.toString().trim();
+    }
+    for (final entry in map.entries) {
+      if (entry.key.toString().trim().toLowerCase() ==
+          candidate.toLowerCase()) {
+        final v = entry.value?.toString().trim() ?? '';
+        if (v.isNotEmpty) return v;
+      }
+    }
+  }
+  return '';
 }

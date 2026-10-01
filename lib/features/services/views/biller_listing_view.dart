@@ -227,16 +227,25 @@ class BillerListingView extends HookConsumerWidget {
                 billers: billers,
               );
               if (biller == null) return;
+              final identifier = txn.primaryConsumerNumber;
+              final effectiveBiller = txn.billerName.trim().isNotEmpty
+                  ? Biller(
+                      billerId: biller.billerId,
+                      billerName: txn.billerName.trim(),
+                      icon: biller.icon ??
+                          (txn.icon.trim().isNotEmpty ? txn.icon.trim() : null),
+                    )
+                  : biller;
               ref.read(billerDetailControllerProvider.notifier).selectBiller(
-                    biller,
+                    effectiveBiller,
                     categoryName: categoryName,
                   );
               context.push(
                 RouteConstants.billerDetail,
                 extra: BillerDetailArgs(
-                  biller: biller,
+                  biller: effectiveBiller,
                   paymentType: categoryName,
-                  mobileNumber: txn.serviceNo,
+                  mobileNumber: identifier,
                   autoFetchBill: true,
                   autoOpenPaymentSheet: true,
                 ),
@@ -377,24 +386,33 @@ class _ElectricityFlow extends HookConsumerWidget {
                   );
                   return;
                 }
-                final identifier = (txn.serviceNoFull ?? '').trim().isNotEmpty
-                    ? txn.serviceNoFull!.trim()
-                    : txn.serviceNo.trim();
+                final identifier = txn.primaryConsumerNumber;
                 final isMaskedIdentifier = identifier.contains('*') ||
                     identifier.toLowerCase().contains('x');
 
+                final effectiveBiller = txn.billerName.trim().isNotEmpty
+                    ? Biller(
+                        billerId: biller.billerId,
+                        billerName: txn.billerName.trim(),
+                        icon: biller.icon ??
+                            (txn.icon.trim().isNotEmpty
+                                ? txn.icon.trim()
+                                : null),
+                      )
+                    : biller;
+
                 ref.read(billerDetailControllerProvider.notifier).selectBiller(
-                      biller,
+                      effectiveBiller,
                       categoryName: categoryName,
                     );
                 context.push(
                   RouteConstants.billerDetail,
                   extra: BillerDetailArgs(
-                    biller: biller,
+                    biller: effectiveBiller,
                     paymentType: categoryName,
                     mobileNumber: identifier,
                     autoFetchBill: !isMaskedIdentifier,
-                    autoOpenPaymentSheet: !isMaskedIdentifier,
+                    autoOpenPaymentSheet: false,
                   ),
                 );
 

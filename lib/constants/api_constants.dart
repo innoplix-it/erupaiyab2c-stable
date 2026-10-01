@@ -33,6 +33,7 @@ class ApiConstants {
       '$baseUrl/api/credit-card-transactions';
   static const String profileEndpoint = '$baseUrl/api/user/profile';
   static const String profileUpdateEndpoint =
+
       '$baseUrl/api/user/profile/update';
   static const String completeProfileEndpoint =
       '$baseUrl/api/user/complete-profile';

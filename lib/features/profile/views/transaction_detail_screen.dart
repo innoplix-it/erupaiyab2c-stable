@@ -507,6 +507,300 @@ class TransactionDetailScreen extends StatelessWidget {
 
 List<TransactionCustomerParam> _resolveHeaderParams(
     TransactionHistoryEntry tx) {
+  final paymentType = tx.paymentType.trim().toLowerCase();
+  final billerName = tx.billerName.trim();
+  final customerMobile = tx.customerMobile.trim();
+  final maskedIdentifier = tx.maskedIdentifier.trim();
+
+  // Credit Card transaction flow:
+  // Extract and display "Registered Mobile Number" and "Credit Card Number" (masked with only last 4 digits).
+  if (paymentType.contains('credit')) {
+    // 1. Resolve Registered Mobile Number dynamically
+    String mobileValue = '';
+    for (final param in tx.customerParams) {
+      final l = param.label.trim().toLowerCase();
+      if (l.contains('mobile') ||
+          l.contains('phone') ||
+          l.contains('registered')) {
+        mobileValue = param.value.trim();
+        break;
+      }
+    }
+    if (mobileValue.isEmpty && customerMobile.isNotEmpty) {
+      mobileValue = customerMobile;
+    }
+    if (mobileValue.isEmpty &&
+        maskedIdentifier.length == 10 &&
+        RegExp(r'^\d{10}$').hasMatch(maskedIdentifier)) {
+      mobileValue = maskedIdentifier;
+    }
+    if (mobileValue.isEmpty) {
+      mobileValue = billerName.isNotEmpty ? billerName : '-';
+    }
+
+    // 2. Resolve Credit Card Number dynamically and mask with only last 4 digits visible
+    String cardRaw = '';
+    for (final param in tx.customerParams) {
+      final l = param.label.trim().toLowerCase();
+      if (l.contains('card') ||
+          l.contains('credit') ||
+          l.contains('last 4') ||
+          l.contains('last4') ||
+          l.contains('account')) {
+        cardRaw = param.value.trim();
+        break;
+      }
+    }
+    if (cardRaw.isEmpty &&
+        maskedIdentifier.isNotEmpty &&
+        maskedIdentifier != mobileValue) {
+      cardRaw = maskedIdentifier;
+    }
+
+    final cardDigits = cardRaw.replaceAll(RegExp(r'\D'), '');
+    final last4 = cardDigits.length >= 4
+        ? cardDigits.substring(cardDigits.length - 4)
+        : (cardDigits.isNotEmpty
+            ? cardDigits
+            : (cardRaw.length >= 4
+                ? cardRaw.substring(cardRaw.length - 4)
+                : cardRaw.trim()));
+
+    final maskedCardNumber = last4.isNotEmpty
+        ? '**** **** **** $last4'
+        : '**** **** **** ****';
+
+    return [
+      TransactionCustomerParam(
+        label: 'Registered Mobile Number',
+        value: mobileValue,
+      ),
+      TransactionCustomerParam(
+        label: 'Credit Card Number',
+        value: maskedCardNumber,
+      ),
+    ];
+  }
+
+  // FASTag transaction flow:
+  // Extract and display "Registered Mobile Number" and "Vehicle Registration Number" (or dynamic FASTag param).
+  final isFastag = paymentType.contains('fastag') ||
+      paymentType.contains('fasttag') ||
+      paymentType.contains('fas tag') ||
+      billerName.toLowerCase().contains('fastag') ||
+      billerName.toLowerCase().contains('fasttag');
+  if (isFastag) {
+    // 1. Resolve Registered Mobile Number dynamically
+    String mobileValue = '';
+    for (final param in tx.customerParams) {
+      final l = param.label.trim().toLowerCase();
+      if (l.contains('mobile') ||
+          l.contains('phone') ||
+          l.contains('registered')) {
+        mobileValue = param.value.trim();
+        break;
+      }
+    }
+    if (mobileValue.isEmpty && customerMobile.isNotEmpty) {
+      mobileValue = customerMobile;
+    }
+    if (mobileValue.isEmpty &&
+        maskedIdentifier.length == 10 &&
+        RegExp(r'^\d{10}$').hasMatch(maskedIdentifier)) {
+      mobileValue = maskedIdentifier;
+    }
+
+    // 2. Resolve Vehicle Registration Number / Tag ID dynamically
+    String vehicleValue = '';
+    String vehicleLabel = 'Vehicle Registration Number';
+    for (final param in tx.customerParams) {
+      final l = param.label.trim().toLowerCase();
+      if (l.contains('vehicle') ||
+          l.contains('registration') ||
+          l.contains('reg') ||
+          l.contains('chassis') ||
+          l.contains('car') ||
+          l.contains('tag') ||
+          l.contains('vrn')) {
+        vehicleValue = param.value.trim();
+        vehicleLabel = param.label.trim();
+        break;
+      }
+    }
+    if (vehicleValue.isEmpty) {
+      for (final param in tx.customerParams) {
+        if (param.value.trim() != mobileValue) {
+          vehicleValue = param.value.trim();
+          vehicleLabel = param.label.trim();
+          break;
+        }
+      }
+    }
+    if (vehicleValue.isEmpty &&
+        maskedIdentifier.isNotEmpty &&
+        maskedIdentifier != mobileValue) {
+      vehicleValue = maskedIdentifier;
+    }
+
+    final result = <TransactionCustomerParam>[];
+    if (mobileValue.isNotEmpty) {
+      result.add(
+        TransactionCustomerParam(
+          label: 'Registered Mobile Number',
+          value: mobileValue,
+        ),
+      );
+    }
+    if (vehicleValue.isNotEmpty) {
+      result.add(
+        TransactionCustomerParam(
+          label: vehicleLabel,
+          value: vehicleValue,
+        ),
+      );
+    }
+    if (result.length >= 2) {
+      return result;
+    }
+    if (result.length == 1) {
+      return [
+        result.first,
+        TransactionCustomerParam(
+          label: 'Payment to',
+          value: billerName.isNotEmpty ? billerName : 'FASTag Recharge',
+        ),
+      ];
+    }
+  }
+
+  // Tuition Fee transaction flow:
+  // Extract and display Tuition Fee parameters (e.g. Recipient / Tutor Name, Account Number, Student Details) dynamically without raw Map/List.
+  final feeType = (tx.feeType ?? '').trim().toLowerCase();
+  final isTuitionFee = paymentType.contains('tuition') ||
+      paymentType.contains('tution') ||
+      feeType.contains('tuition') ||
+      feeType.contains('tution');
+  if (isTuitionFee) {
+    final explicit = tx.customerParams
+        .where((p) => p.label.trim().isNotEmpty && p.value.trim().isNotEmpty)
+        .toList();
+
+    if (explicit.length >= 2) {
+      return explicit;
+    }
+
+    String primaryLabel = '';
+    String primaryValue = '';
+    if (explicit.isNotEmpty) {
+      primaryLabel = explicit.first.label;
+      primaryValue = explicit.first.value;
+    } else if (billerName.isNotEmpty) {
+      primaryLabel = 'Recipient Name';
+      primaryValue = billerName;
+    }
+
+    String secondaryLabel = '';
+    String secondaryValue = '';
+
+    if (maskedIdentifier.isNotEmpty && maskedIdentifier != primaryValue) {
+      secondaryLabel = RegExp(r'^\d{10}$').hasMatch(maskedIdentifier)
+          ? 'Registered Mobile Number'
+          : 'Account Number';
+      secondaryValue = maskedIdentifier;
+    } else if (customerMobile.isNotEmpty && customerMobile != primaryValue) {
+      secondaryLabel = 'Registered Mobile Number';
+      secondaryValue = customerMobile;
+    } else {
+      secondaryLabel = 'Fee Type';
+      secondaryValue = 'Tuition Fee';
+    }
+
+    final result = <TransactionCustomerParam>[];
+    if (primaryValue.isNotEmpty) {
+      result.add(
+        TransactionCustomerParam(
+          label: primaryLabel.isNotEmpty ? primaryLabel : 'Recipient Name',
+          value: primaryValue,
+        ),
+      );
+    }
+    if (secondaryValue.isNotEmpty) {
+      result.add(
+        TransactionCustomerParam(
+          label: secondaryLabel,
+          value: secondaryValue,
+        ),
+      );
+    }
+    if (result.length >= 2) return result;
+    if (result.length == 1) {
+      return [
+        result.first,
+        const TransactionCustomerParam(
+          label: 'Fee Type',
+          value: 'Tuition Fee',
+        ),
+      ];
+    }
+  }
+
+  // Electricity transaction flow:
+  // LEFT  → "Payment to"  = biller_name (dynamic operator name from API)
+  // RIGHT → "Consumer No" = service_no_full (full consumer number from API)
+  // Do NOT call ensurePaymentTypeCustomerParam here — it inserts "Payment Type"
+  // at index 1 which would push "Consumer No" to index 2 and break the right
+  // side of the header card.
+  final isElectricity = paymentType.contains('electric') ||
+      paymentType.contains('power') ||
+      paymentType.contains('energy') ||
+      paymentType.contains('discom') ||
+      paymentType.contains('bijli') ||
+      billerName.toLowerCase().contains('electric') ||
+      billerName.toLowerCase().contains('power') ||
+      billerName.toLowerCase().contains('energy') ||
+      billerName.toLowerCase().contains('discom') ||
+      billerName.toLowerCase().contains('bijli') ||
+      billerName.toLowerCase().contains('msedcl') ||
+      billerName.toLowerCase().contains('mahavitaran') ||
+      billerName.toLowerCase().contains('maharashtra state') ||
+      billerName.toLowerCase().contains('cesc') ||
+      billerName.toLowerCase().contains('bescom') ||
+      billerName.toLowerCase().contains('torrent') ||
+      billerName.toLowerCase().contains('bses') ||
+      billerName.toLowerCase().contains('tneb') ||
+      billerName.toLowerCase().contains('uppcl') ||
+      billerName.toLowerCase().contains('dhbvn') ||
+      billerName.toLowerCase().contains('uhbvn') ||
+      billerName.toLowerCase().contains('pspcl') ||
+      (tx.serviceNoFull != null &&
+          tx.serviceNoFull!.trim().isNotEmpty &&
+          tx.serviceNoFull!.trim().toLowerCase() != 'null');
+  if (isElectricity) {
+    final full = tx.serviceNoFull?.trim();
+    final consumerNo = (full != null &&
+            full.isNotEmpty &&
+            full.toLowerCase() != 'null')
+        ? full
+        : (tx.serviceNo?.trim().isNotEmpty == true
+            ? tx.serviceNo!.trim()
+            : tx.primaryConsumerNumber);
+    final operatorName = billerName.isNotEmpty ? billerName : 'Electricity';
+
+    return [
+      TransactionCustomerParam(
+        label: 'Payment to',
+        value: operatorName,
+      ),
+      TransactionCustomerParam(
+        label: 'Consumer No',
+        value: consumerNo.isNotEmpty
+            ? consumerNo
+            : (maskedIdentifier.isNotEmpty ? maskedIdentifier : '-'),
+      ),
+    ];
+  }
+
+  // Generic flow for other transaction types (Education, etc.):
   final explicit = tx.customerParams
       .where(
         (item) => item.label.trim().isNotEmpty && item.value.trim().isNotEmpty,
@@ -517,30 +811,6 @@ List<TransactionCustomerParam> _resolveHeaderParams(
     paymentType: tx.paymentType,
   );
   if (withPaymentType.isNotEmpty) return withPaymentType;
-
-  final paymentType = tx.paymentType.trim().toLowerCase();
-  final billerName = tx.billerName.trim();
-  final customerMobile = tx.customerMobile.trim();
-  final maskedIdentifier = tx.maskedIdentifier.trim();
-
-  if (paymentType.contains('credit')) {
-    final mobileValue = customerMobile.isNotEmpty
-        ? customerMobile
-        : (maskedIdentifier.isNotEmpty ? maskedIdentifier : billerName);
-    final digits = maskedIdentifier.replaceAll(RegExp(r'\D'), '');
-    final last4 =
-        digits.length >= 4 ? digits.substring(digits.length - 4) : digits;
-    return [
-      TransactionCustomerParam(
-        label: 'Registered Mobile Number',
-        value: mobileValue.isNotEmpty ? mobileValue : billerName,
-      ),
-      TransactionCustomerParam(
-        label: 'Last 4 digits of Credit Card Number',
-        value: last4.isNotEmpty ? last4 : billerName,
-      ),
-    ];
-  }
 
   return [
     TransactionCustomerParam(
@@ -657,7 +927,7 @@ class _TransactionResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18.r),
         boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
+            color: const Color(0x14000000),
             blurRadius: 18.r,
             offset: Offset(0.w, 8.h),
           ),
@@ -738,6 +1008,8 @@ class _CardHeading extends StatelessWidget {
       children: [
         Text(
           label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.textPrimary.withOpacity(0.75),
                 fontSize: 9.5.sp,
@@ -883,11 +1155,11 @@ class _ResultActionButton extends StatelessWidget {
               width: 44.w,
               height: 44.w,
               decoration: BoxDecoration(
-                color: Color(0xFFFFEFE8),
+                color: const Color(0xFFFFEFE8),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x0F000000),
+                    color: const Color(0x0F000000),
                     blurRadius: 10.r,
                     offset: Offset(0.w, 4.h),
                   ),

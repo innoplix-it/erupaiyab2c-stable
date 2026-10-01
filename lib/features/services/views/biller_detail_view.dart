@@ -11,7 +11,9 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -449,8 +451,10 @@ class BillerDetailView extends HookConsumerWidget {
         } else if (mobilePrefill != null &&
             mobilePrefill.isNotEmpty &&
             !isLastFourField &&
-            isMobileField) {
-          tc.text = _sanitizePhone(mobilePrefill);
+            (isMobileField ||
+                _isIdentifierParam(param.paramName, param.dataType))) {
+          tc.text =
+              isMobileField ? _sanitizePhone(mobilePrefill) : mobilePrefill;
         } else if (last4Prefill != null &&
             last4Prefill.isNotEmpty &&
             isLastFourField) {
@@ -533,7 +537,7 @@ class BillerDetailView extends HookConsumerWidget {
           child: MyAppBar(
             title: (isCreditCardFlow && detailState.billResponse != null)
                 ? 'Pay Now'
-                : 'Fetch Your Provider',
+                : 'Pay Now',
             showHelp: true,
             onBack: () {
               if (detailState.billResponse != null) {
@@ -972,7 +976,7 @@ class BillerDetailView extends HookConsumerWidget {
                                   : (bill != null
                                       ? (isCreditCardFlow
                                           ? 'Proceed'
-                                          : 'Proceed to Pay')
+                                          : 'Proceed')
                                       : 'CONFIRM');
                               final enteredAmount =
                                   _parseEnteredAmount(value.text);
@@ -1099,6 +1103,10 @@ class BillerDetailView extends HookConsumerWidget {
                                                 fallbackAmount: amountToPay,
                                                 fallbackTransactionId:
                                                     order.transactionRef,
+                                                fallbackServiceNo:
+                                                    args?.mobileNumber,
+                                                fallbackServiceNoFull:
+                                                    args?.mobileNumber,
                                               );
 
                                               Navigator.of(context).push(

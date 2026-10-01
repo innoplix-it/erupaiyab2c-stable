@@ -49,8 +49,15 @@ class LatestTransaction {
       status: (json['status'] ?? '').toString(),
       transactionRef: (json['transaction_ref'] ?? '').toString(),
       serviceNo: (json['service_no'] ?? '').toString(),
-      serviceNoFull:
-          (json['service_no_full'] ?? json['serviceNoFull'])?.toString(),
+      serviceNoFull: () {
+        final val = (json['service_no_full'] ?? json['serviceNoFull'])
+            ?.toString()
+            .trim();
+        if (val == null || val.isEmpty || val.toLowerCase() == 'null') {
+          return null;
+        }
+        return val;
+      }(),
       icon: (json['icon'] ?? '').toString(),
       createdAt: json['created_at']?.toString(),
       expiresAt: (json['expires_at'] ??
@@ -66,6 +73,16 @@ class LatestTransaction {
       customerName: _readCustomerName(json),
       autoPayActive: _parseAutoPay(json),
     );
+  }
+
+  /// Returns the full unmasked consumer/service number if available,
+  /// otherwise falls back to [serviceNo].
+  String get primaryConsumerNumber {
+    final full = serviceNoFull?.trim();
+    if (full != null && full.isNotEmpty && full.toLowerCase() != 'null') {
+      return full;
+    }
+    return serviceNo.trim();
   }
 
   bool get isSuccess => status.trim().toLowerCase() == 'success';

@@ -347,19 +347,21 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                     'Select Payment Options',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 SizedBox(width: 8.w),
                 Text(
                   '\u20B9 ${widget.amount.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16.sp,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),
@@ -412,11 +414,11 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                   children: [
                     Text(
                       '\u20B9 ${remainingAmount.toStringAsFixed(0)}',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                              ),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 24.sp,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const Spacer(),
                     CustomElevatedButton(
@@ -735,10 +737,11 @@ class _PrepaidPaymentBottomSheetState
                     'Select Payment Options',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 SizedBox(width: 8.w),
@@ -1008,17 +1011,19 @@ class _PaymentOptionTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: titleColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: titleColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                    ),
                   ),
                   if (subtitle != null)
                     Text(
                       subtitle!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: subtitleColor,
-                          ),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: subtitleColor,
+                        fontSize: 12.sp,
+                      ),
                     ),
                 ],
               ),
