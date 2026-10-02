@@ -76,8 +76,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Electricity'), findsOneWidget);
-      expect(find.text('Mobile\nPrepaid'), findsOneWidget);
-      expect(find.text('Dth'), findsOneWidget);
+      expect(find.text('Mobile\nPrepaid'), findsWidgets);
+      // DTH is in the Recharge category, so it shows in the strip too.
+      expect(find.text('Dth'), findsWidgets);
       expect(find.text('Gas\nCylinder'), findsOneWidget);
     });
 
@@ -149,8 +150,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Electricity'), findsOneWidget);
-      expect(find.text('Mobile\nPrepaid'), findsOneWidget);
-      expect(find.text('Dth'), findsOneWidget);
+      expect(find.text('Mobile\nPrepaid'), findsWidgets);
+      // DTH is in the Recharge category, so it shows in the strip too.
+      expect(find.text('Dth'), findsWidgets);
       expect(find.text('Gas\nCylinder'), findsOneWidget);
     });
   });

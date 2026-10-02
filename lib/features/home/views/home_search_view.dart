@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/common_search_bar.dart';
@@ -71,7 +73,7 @@ class HomeSearchView extends HookConsumerWidget {
       return null;
     }, const []);
 
-    // Auto-scroll banner carousel.
+    // Auto-scroll banner carousel if multiple banners exist.
     useEffect(() {
       if (banners.value.length < 2) return null;
       final timer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -87,7 +89,6 @@ class HomeSearchView extends HookConsumerWidget {
     }, [banners.value.length]);
 
     // Fetch ALL services once at mount — no search param sent to backend.
-    // Local filtering is applied on the loaded data for instant, reliable search.
     useEffect(() {
       void fetch() async {
         isLoading.value = true;
@@ -136,6 +137,47 @@ class HomeSearchView extends HookConsumerWidget {
           .toList();
     }, [query.value, allResults.value]);
 
+    void handleServiceTap(String serviceName) {
+      final normalized = serviceName.trim().toLowerCase();
+      if (normalized == 'credit card') {
+        context.push(RouteConstants.creditCardMyCards);
+      } else if (normalized == 'mobile prepaid') {
+        context.push(RouteConstants.mobilePrepaid);
+      } else if (normalized == 'digital gold') {
+        context.push(
+          '${RouteConstants.digitalGold}?entry=home',
+        );
+      } else if (normalized == 'digital silver') {
+        context.push(
+          '${RouteConstants.digitalGold}?metal=silver&entry=home',
+        );
+      } else if (normalized == 'tuition fees' ||
+          normalized == 'tution fees' ||
+          normalized == 'school fees' ||
+          normalized == 'college fees' ||
+          normalized.contains('house rent') ||
+          normalized.contains('shop rent')) {
+        context.push(
+          RouteConstants.educationFeesAmount,
+          extra: serviceName,
+        );
+      } else if (normalized.contains('fastag')) {
+        context.push(
+          RouteConstants.billerListing,
+          extra: 'Fastag',
+        );
+      } else {
+        context.push(
+          RouteConstants.billerListing,
+          extra: serviceName,
+        );
+      }
+    }
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalSidePadding = (screenWidth < 360 ? 16.0 : 19.6).w;
+    final isSearching = query.value.trim().isNotEmpty;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -144,68 +186,107 @@ class HomeSearchView extends HookConsumerWidget {
           children: [
             MyAppBar(
               title: 'All Services',
-              showHelp: false,
+              showHelp: true,
               onBack: () => Navigator.of(context).pop(),
-            ),
-            SizedBox(height: 12.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final barWidth = constraints.maxWidth < 392.w
-                      ? constraints.maxWidth
-                      : 392.w;
-                  return Align(
-                    alignment: Alignment.center,
-                    child: CommonSearchBar(
-                      hintText: 'Search Services',
-                      controller: searchController,
-                      onChanged: (value) {
-                        query.value = value;
-                      },
-                      width: barWidth,
-                      height: 54.h,
-                      borderColor: const Color(0xFFD7D7D7),
-                      borderWidth: 0.5,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0x0F000000),
-                          offset: Offset(0, 4.h),
-                          blurRadius: 16.r,
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              titleStyle: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
               ),
             ),
-            SizedBox(height: 8.h),
-            if (bannerError.value == null && banners.value.isNotEmpty)
-              SizedBox(
-                height: _bannerHeight,
-                child: PageView.builder(
-                  controller: bannerController,
-                  padEnds: false,
-                  onPageChanged: (page) => bannerPage.value = page,
-                  itemCount: banners.value.length,
-                  itemBuilder: (_, index) {
-                    final banner = banners.value[index];
-                    return GestureDetector(
-                      onTap: () => BannerRedirectMapper.handle(
-                        context,
-                        banner.redirectUrl,
+            SizedBox(height: 10.h),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalSidePadding,
+                vertical: 6.h,
+              ),
+              child: CommonSearchBar(
+                hintText: 'Search Services',
+                controller: searchController,
+                onChanged: (value) {
+                  query.value = value;
+                },
+                width: double.infinity,
+                height: 52.h,
+                radius: 12.r,
+                borderColor: const Color(0xFFD7D7D7),
+                borderWidth: 0.5,
+                hintStyle: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14.sp,
+                  color: AppColors.textPrimary.withOpacity(0.45),
+                ),
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14.sp,
+                  color: Colors.black,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0x0F000000),
+                    offset: Offset(0, 4.h),
+                    blurRadius: 16.r,
+                  ),
+                ],
+              ),
+            ),
+            if (!isSearching) ...[
+              SizedBox(height: 8.h),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalSidePadding,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: AspectRatio(
+                    aspectRatio: 393 / 67,
+                    child: Image.asset(
+                      'assets/images/investmentallservices.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/images/png/investmentallservices.png',
+                        fit: BoxFit.cover,
                       ),
-                      child: AppNetworkImage(
-                        url: banner.image,
-                        width: double.infinity,
-                        height: _bannerHeight,
-                        fit: BoxFit.contain,
-                      ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
-            SizedBox(height: 8.h),
+              SizedBox(height: 16.h),
+              _RechargeHighlightSection(
+                onServiceTap: handleServiceTap,
+              ),
+              SizedBox(height: 14.h),
+            ] else ...[
+              SizedBox(height: 8.h),
+            ],
+            if (bannerError.value == null && banners.value.isNotEmpty && !isSearching)
+              Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: SizedBox(
+                  height: _bannerHeight,
+                  child: PageView.builder(
+                    controller: bannerController,
+                    padEnds: false,
+                    onPageChanged: (page) => bannerPage.value = page,
+                    itemCount: banners.value.length,
+                    itemBuilder: (_, index) {
+                      final banner = banners.value[index];
+                      return GestureDetector(
+                        onTap: () => BannerRedirectMapper.handle(
+                          context,
+                          banner.redirectUrl,
+                        ),
+                        child: AppNetworkImage(
+                          url: banner.image,
+                          width: double.infinity,
+                          height: _bannerHeight,
+                          fit: BoxFit.contain,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             if (isLoading.value)
               const _HomeSearchLoadingSkeleton()
             else if (error.value != null)
@@ -214,9 +295,10 @@ class HomeSearchView extends HookConsumerWidget {
                     EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
                 child: Text(
                   error.value!,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.red.shade700,
-                      ),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.sp,
+                    color: Colors.red.shade700,
+                  ),
                 ),
               )
             else if (hasFetched.value && filteredCategories.isEmpty)
@@ -226,9 +308,10 @@ class HomeSearchView extends HookConsumerWidget {
                 child: Center(
                   child: Text(
                     'No services found',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textPrimary.withOpacity(0.6),
-                        ),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      color: AppColors.textPrimary.withOpacity(0.6),
+                    ),
                   ),
                 ),
               )
@@ -239,47 +322,17 @@ class HomeSearchView extends HookConsumerWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.fromLTRB(
-                    16.w,
-                    8.h,
-                    16.w,
-                    12 + MediaQuery.of(context).padding.bottom,
+                    horizontalSidePadding,
+                    4.h,
+                    horizontalSidePadding,
+                    16 + MediaQuery.of(context).padding.bottom,
                   ),
                   itemCount: filteredCategories.length,
                   itemBuilder: (context, index) {
                     final category = filteredCategories[index];
                     return _CategorySection(
                       category: category,
-                      onServiceTap: (serviceName) {
-                        final normalized = serviceName.trim().toLowerCase();
-                        if (normalized == 'credit card') {
-                          context.push(RouteConstants.creditCardMyCards);
-                        } else if (normalized == 'mobile prepaid') {
-                          context.push(RouteConstants.mobilePrepaid);
-                        } else if (normalized == 'digital gold') {
-                          context.push(
-                            '${RouteConstants.digitalGold}?entry=home',
-                          );
-                        } else if (normalized == 'digital silver') {
-                          context.push(
-                            '${RouteConstants.digitalGold}?metal=silver&entry=home',
-                          );
-                        } else if (normalized == 'tuition fees' ||
-                            normalized == 'tution fees' ||
-                            normalized == 'school fees' ||
-                            normalized == 'college fees' ||
-                            normalized.contains('house rent') ||
-                            normalized.contains('shop rent')) {
-                          context.push(
-                            RouteConstants.educationFeesAmount,
-                            extra: serviceName,
-                          );
-                        } else {
-                          context.push(
-                            RouteConstants.billerListing,
-                            extra: serviceName,
-                          );
-                        }
-                      },
+                      onServiceTap: handleServiceTap,
                     );
                   },
                 ),
@@ -288,6 +341,95 @@ class HomeSearchView extends HookConsumerWidget {
               const SizedBox.shrink(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _RechargeHighlightSection extends StatelessWidget {
+  const _RechargeHighlightSection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPad = (screenWidth < 360 ? 10.0 : 16.0).w;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPad,
+        vertical: 16.h,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0x4DFFB49D), // rgba(255, 180, 157, 0.3)
+            Color(0x4DDD5428), // rgba(221, 84, 40, 0.3)
+          ],
+          stops: [0.0, 1.0],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 4.w),
+            child: Text(
+              'Recharge',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.02 * 14.sp,
+                color: const Color(0xFF000000),
+              ),
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: HomeIconTile(
+                  label: 'Mobile Prepaid',
+                  iconUrl: FileConstants.mobile,
+                  onTap: () => onServiceTap('Mobile Prepaid'),
+                ),
+              ),
+              Expanded(
+                child: HomeIconTile(
+                  label: 'Mobile Postpaid',
+                  iconUrl: FileConstants.postpaid,
+                  onTap: () => onServiceTap('Mobile Postpaid'),
+                ),
+              ),
+              Expanded(
+                child: HomeIconTile(
+                  label: 'FASTag Recharge',
+                  iconUrl: FileConstants.fastTag,
+                  onTap: () => onServiceTap('FASTag Recharge'),
+                ),
+              ),
+              Expanded(
+                child: HomeIconTile(
+                  label: 'EV Recharge',
+                  svgAsset: 'assets/images/svg/services/ev_recharge.svg',
+                  onTap: () => onServiceTap('EV Recharge'),
+                ),
+              ),
+              Expanded(
+                child: HomeIconTile(
+                  label: 'Fleet Card Recharge',
+                  svgAsset: 'assets/images/svg/services/fleet_card_recharge.svg',
+                  onTap: () => onServiceTap('Fleet Card Recharge'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -372,6 +514,7 @@ class _CategorySection extends HookWidget {
     final visibleServices = canExpand && !expanded.value
         ? category.services.take(maxCollapsedItems).toList()
         : category.services;
+
     return Padding(
       padding: EdgeInsets.only(bottom: 16.h),
       child: Column(
@@ -386,10 +529,12 @@ class _CategorySection extends HookWidget {
                   Expanded(
                     child: Text(
                       category.category,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.sp,
+                        letterSpacing: -0.02 * 14.sp,
+                        color: const Color(0xFF000000),
+                      ),
                     ),
                   ),
                   if (canExpand)
@@ -397,8 +542,8 @@ class _CategorySection extends HookWidget {
                       expanded.value
                           ? Icons.keyboard_arrow_up_rounded
                           : Icons.keyboard_arrow_down_rounded,
-                      size: 26.r,
-                      color: AppColors.textPrimary,
+                      size: 24.r,
+                      color: const Color(0xFF000000),
                     ),
                 ],
               ),
@@ -410,31 +555,34 @@ class _CategorySection extends HookWidget {
             curve: Curves.easeOut,
             child: Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 22.h),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 20.h),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14.r),
-                border: Border.all(color: AppColors.lightBorder),
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(color: const Color(0xFFEBEBEB), width: 1.w),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0x0A000000),
+                    blurRadius: 8.r,
+                    offset: Offset(0, 2.h),
+                  ),
+                ],
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final double maxWidth = constraints.maxWidth;
-                  const double spacing = 12;
+                  final double spacing = (maxWidth < 300 ? 8 : 12).w;
                   final double itemWidth =
                       (maxWidth - (spacing * (columns - 1))) / columns;
 
                   return Wrap(
                     spacing: spacing,
-                    runSpacing: 18,
+                    runSpacing: 18.h,
                     children: List.generate(visibleServices.length, (index) {
                       final service = visibleServices[index];
                       return SizedBox(
                         width: itemWidth,
-                        child: HomeIconTile(
-                          label: displayServiceName(service.name),
-                          iconUrl: service.icon,
-                          onTap: () => onServiceTap(service.name),
-                        ),
+                        child: _buildServiceTile(service, onServiceTap),
                       );
                     }),
                   );
@@ -444,6 +592,105 @@ class _CategorySection extends HookWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildServiceTile(
+    QuickActionService service,
+    void Function(String) onServiceTap,
+  ) {
+    final name = service.name.trim();
+    final lower = name.toLowerCase();
+    final isEv = lower.contains('ev recharge');
+    final isFleet = lower.contains('fleet card');
+    final isElectricity = lower.contains('electricity');
+    final isEChallan = lower.contains('challan');
+    final isNcmc = lower.contains('ncmc');
+
+    String? svgAsset;
+    String? iconUrl = service.icon;
+
+    if (isEv) {
+      svgAsset = 'assets/images/svg/services/ev_recharge.svg';
+    } else if (isFleet) {
+      svgAsset = 'assets/images/svg/services/fleet_card_recharge.svg';
+    } else if (isNcmc) {
+      svgAsset = 'assets/images/svg/services/ncmc_recharge.svg';
+    } else if (isElectricity) {
+      if (iconUrl == null || iconUrl.isEmpty) {
+        iconUrl = FileConstants.electricity;
+      }
+    } else if (isEChallan) {
+      iconUrl = FileConstants.creditcard;
+    } else if (iconUrl == null || iconUrl.isEmpty) {
+      if (lower.contains('prepaid') && lower.contains('mobile')) {
+        iconUrl = FileConstants.mobile;
+      } else if (lower.contains('postpaid') && lower.contains('mobile')) {
+        iconUrl = FileConstants.postpaid;
+      } else if (lower.contains('fastag')) {
+        iconUrl = FileConstants.fastTag;
+      } else if (lower.contains('credit card')) {
+        iconUrl = FileConstants.creditcard;
+      } else if (lower.contains('gold')) {
+        svgAsset = 'assets/images/svg/services/digital_gold.svg';
+      } else if (lower.contains('silver')) {
+        svgAsset = 'assets/images/svg/services/digital_silver.svg';
+      } else if (lower.contains('pipe gas') || lower.contains('piped gas')) {
+        svgAsset = 'assets/images/svg/services/pipe_gas.svg';
+      } else if (lower.contains('book') &&
+          (lower.contains('gas') || lower.contains('lpg'))) {
+        iconUrl = FileConstants.gasCylinder;
+      } else if (lower.contains('prepaid meter')) {
+        svgAsset = 'assets/images/svg/services/prepaid_meter.svg';
+      } else if (lower.contains('cable')) {
+        svgAsset = 'assets/images/svg/services/cable_tv.svg';
+      } else if (lower.contains('dth')) {
+        svgAsset = 'assets/images/svg/services/dth.svg';
+      } else if (lower.contains('broadband')) {
+        svgAsset = 'assets/images/svg/services/broadband.svg';
+      } else if (lower.contains('landline')) {
+        svgAsset = 'assets/images/svg/services/landline.svg';
+      } else if (lower.contains('housing')) {
+        svgAsset = 'assets/images/svg/services/housing_society.svg';
+      } else if (lower.contains('municipal tax')) {
+        svgAsset = 'assets/images/svg/services/municipal_taxes.svg';
+      } else if (lower.contains('municipal')) {
+        svgAsset = 'assets/images/svg/services/municipal_services.svg';
+      } else if (lower.contains('loan') || lower.contains('repayment')) {
+        svgAsset = 'assets/images/svg/services/loan_repayment.svg';
+      } else if (lower.contains('nps') || lower.contains('pension')) {
+        svgAsset = 'assets/images/svg/services/nps.svg';
+      } else if (lower.contains('forex')) {
+        svgAsset = 'assets/images/svg/services/forex.svg';
+      } else if (lower.contains('b2b')) {
+        svgAsset = 'assets/images/svg/services/b2b_payments.svg';
+      } else if (lower.contains('agent')) {
+        svgAsset = 'assets/images/svg/services/agent_collection.svg';
+      } else if (lower.contains('school')) {
+        iconUrl = FileConstants.schoolFees;
+      } else if (lower.contains('college')) {
+        iconUrl = FileConstants.collegeFees;
+      } else if (lower.contains('tution') || lower.contains('tuition')) {
+        iconUrl = FileConstants.tutionFees;
+      } else if (lower.contains('house rent')) {
+        iconUrl = FileConstants.houseRent;
+      } else if (lower.contains('shop rent')) {
+        iconUrl = FileConstants.shopRent;
+      } else if (lower.contains('life')) {
+        iconUrl = FileConstants.lifeInsurance;
+      } else if (lower.contains('health')) {
+        iconUrl = FileConstants.healthInsurance;
+      } else if (lower.contains('general') || lower.contains('insurance')) {
+        iconUrl = FileConstants.generalInsurance;
+      }
+    }
+
+    return HomeIconTile(
+      label: displayServiceName(service.name),
+      iconUrl: iconUrl,
+      svgAsset: svgAsset,
+      offer: service.offers,
+      onTap: () => onServiceTap(service.name),
     );
   }
 }

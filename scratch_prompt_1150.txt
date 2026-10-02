@@ -1,0 +1,823 @@
+<USER_REQUEST>
+Ho bro. **All Services screen** साठी full copy-paste prompt खाली आहे. यात screenshot-based layout, `CommonSearchBar`, `investmentallservices.png`, responsive `MediaQuery + ScreenUtil`, **Plus Jakarta Sans everywhere**, existing Home circular-card properties reuse, आणि **सगळे SVG icons एका common reusable widget/file मध्ये** ठेवण्याची requirement आहे.
+
+```text
+Update the "All Services" screen UI to match the provided Figma/reference screenshot exactly.
+
+IMPORTANT:
+- Use the attached All Services screenshot as the visual reference.
+- Make ONLY the All Services screen UI/component changes.
+- Do NOT change backend/API behavior, service navigation, service IDs, business logic, payment flow, or unrelated screens.
+- Existing dynamic service data must continue to work.
+- Do NOT hardcode service data where the current API/model already provides it.
+- Use Plus Jakarta Sans EVERYWHERE on this screen.
+- DO NOT use Bricolage Grotesque anywhere in this screen.
+- Use flutter_screenutil properly: `.w`, `.h`, `.r`, `.sp`.
+- Use `MediaQuery.sizeOf(context)` only for meaningful responsive width/available-space decisions.
+- The screen must work responsively on 320, 360, 375, 390, 412 and 440 logical-width phones.
+- No overflow, clipping, overlapping, broken wrapping, or horizontal scrolling.
+
+==================================================
+1. HEADER
+==================================================
+
+Keep the existing All Services header/navigation behavior.
+
+Do not change:
+- back navigation
+- Bharat Connect
+- help icon
+- existing header functionality
+
+Only ensure typography uses Plus Jakarta Sans.
+
+==================================================
+2. SEARCH BAR
+==================================================
+
+Use the EXISTING COMMON SEARCH COMPONENT already used elsewhere in the app.
+
+Do NOT create a second custom search field if the existing `CommonSearchBar` / common search widget is available.
+
+Reuse the existing common search widget and preserve its search functionality.
+
+Visual:
+- Match Figma screenshot.
+- Width should be responsive.
+- Figma reference width: 393
+- Horizontal position: 24 from left on the 440-wide Figma frame.
+- Use responsive ScreenUtil/available width, NOT a runtime hardcoded 393.
+- Keep the same rounded shape/border/padding as shown in the screenshot.
+
+Search must continue to use the current dynamic All Services search implementation.
+
+Do NOT break the search fix already implemented.
+
+==================================================
+3. INVESTMENT BANNER
+==================================================
+
+Use:
+
+assets/images/investmentallservices.png
+
+Place it immediately below the Search Bar.
+
+Figma/reference:
+- width: 393
+- height: 67
+- border-radius: 12
+- top: 197
+- left: 24
+
+These are DESIGN REFERENCE dimensions only.
+
+Implementation:
+- Use responsive `.w`, `.h`, `.r`.
+- Do not use literal runtime 393/67.
+- Maintain aspect ratio/visual proportions.
+- Banner must remain fully visible on narrow devices.
+- Do not crop important content.
+- Use the available horizontal width with proper 24-side spacing.
+- If the asset is not already registered, add it to the existing asset configuration/pubspec using the project's current asset structure.
+
+==================================================
+4. RECHARGE SECTION
+==================================================
+
+Create/update the Recharge category section to match Figma.
+
+Figma reference container:
+- width: 440
+- height: 187
+- padding-top: 20
+- padding-right: 24
+- padding-bottom: 20
+- padding-left: 24
+- gap: 26
+- top reference: 282
+
+Background:
+linear-gradient(
+  180deg,
+  rgba(255, 180, 157, 0.3) -52.35%,
+  rgba(221, 84, 40, 0.3) 100%
+)
+
+Do not hardcode runtime width 440.
+
+Use available screen width responsively.
+
+Recharge title:
+- font-family: Plus Jakarta Sans
+- font-weight: 600
+- font-style: normal
+- font-size: 14.sp
+- line-height: 100%
+- letter-spacing: -2%
+- text-transform: capitalize
+- color/background text color: #000000
+
+==================================================
+5. RECHARGE SERVICES
+==================================================
+
+Use the EXISTING COMMON/HOME circular service-card/icon style.
+
+Do NOT create a visually different card just for All Services.
+
+Mobile Prepaid:
+- Reuse the existing Mobile Prepaid icon/widget/style from Home.
+
+Mobile Postpaid:
+- Reuse the existing Mobile Postpaid icon/widget/style from Home.
+
+FASTag Recharge:
+- Reuse the existing FASTag icon/widget/style from Home.
+
+These three must use the SAME icon size, circle size, spacing, typography and behavior already established on the Home screen.
+
+Preserve:
+- circular card styling
+- icon scale
+- label size
+- 2-line label handling
+- centered label
+- spacing
+- gradient/shadow/border
+- responsiveness
+
+Do not duplicate a second implementation.
+
+==================================================
+6. EV RECHARGE SVG
+==================================================
+
+Create/reuse a dedicated common SVG asset for this icon.
+
+Suggested asset:
+assets/images/svg/services/ev_recharge.svg
+
+Use `flutter_svg`.
+
+EXACT SVG:
+
+<svg width="32" height="37" viewBox="0 0 32 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M25.4131 0.100342C26.2146 0.100504 26.8672 0.745952 26.8672 1.54272V3.61206H30.752C31.0502 3.61206 31.2949 3.8533 31.2949 4.15112C31.2949 4.44896 31.0503 4.69019 30.752 4.69019H26.8672V12.3923H30.752C31.0486 12.3923 31.2997 12.6322 31.2998 12.9314C31.2998 13.2291 31.0559 13.4702 30.7578 13.4705H26.8721L26.8711 15.5398C26.8711 16.3366 26.2194 16.9832 25.416 16.9832H14.9404L7.77148 20.5378C6.986 20.924 6.49902 21.7109 6.49902 22.5818V29.575C6.49902 30.3769 5.83797 31.0319 5.03125 31.032H3.84277V35.7605C3.84277 36.0583 3.59805 36.2995 3.2998 36.2996C3.00151 36.2996 2.75684 36.0583 2.75684 35.7605V31.032H1.56836C0.761558 31.032 0.100586 30.377 0.100586 29.575V14.6228C0.100586 11.7358 1.53335 9.04019 3.92969 7.40112V7.40015L14.502 0.196045L14.5049 0.194092C14.5203 0.184371 14.5342 0.17728 14.5449 0.172607C14.5557 0.167926 14.5601 0.166837 14.5645 0.164795C14.5781 0.156352 14.6002 0.142768 14.6279 0.134521V0.135498C14.6809 0.117575 14.744 0.100342 14.8125 0.100342H25.4131ZM4.54785 8.29175H4.54688C2.44002 9.72556 1.18555 12.0925 1.18555 14.6228V29.575C1.18555 29.783 1.35642 29.9539 1.56836 29.9539H5.03027C5.2422 29.9539 5.41309 29.783 5.41309 29.575V22.5818C5.41309 21.2969 6.13357 20.1418 7.28809 19.571L14.2695 16.1082V1.66187L4.54785 8.29175ZM15.3545 15.905H25.4131C25.619 15.9049 25.7812 15.7382 25.7812 15.5398V1.54272C25.7812 1.34062 25.6152 1.17765 25.4131 1.17749H15.3545V15.905ZM21.4746 3.8064C21.6647 3.57598 21.9994 3.5389 22.2373 3.72046H22.2383C22.4732 3.90469 22.5092 4.24433 22.3262 4.48022L22.3252 4.4812L19.4834 8.00269H22.7822C22.9876 8.00276 23.1772 8.12001 23.2686 8.30835C23.3621 8.498 23.3346 8.71928 23.2031 8.87964L19.6621 13.2703L19.6611 13.2712C19.5536 13.4009 19.3964 13.4705 19.2393 13.4705C19.1218 13.4704 19.0003 13.4333 18.9014 13.3523V13.3513C18.6683 13.1668 18.6322 12.8297 18.8145 12.5945L18.8164 12.5925L21.6504 9.07593L18.3545 9.07495C18.1486 9.07495 17.9574 8.95746 17.8662 8.76831C17.7732 8.57888 17.8004 8.35714 17.9316 8.19702L21.4746 3.80737V3.8064Z" fill="#DD5428" stroke="#DD5428" stroke-width="0.2"/>
+</svg>
+
+==================================================
+7. FLEET CARD RECHARGE SVG
+==================================================
+
+Create:
+assets/images/svg/services/fleet_card_recharge.svg
+
+Use exact SVG via flutter_svg:
+
+<svg width="34" height="36" viewBox="0 0 34 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M29.9477 4.7897C29.8705 4.71245 29.7932 4.63519 29.6387 4.55794L27.7847 3.24464C27.4756 3.01288 26.9349 3.09013 26.7031 3.39914C26.4713 3.70816 26.5486 4.24893 26.8576 4.48069L28.5572 5.71674V10.4292C28.5572 10.8927 28.8662 11.2017 29.3297 11.2017H31.261V20.5494C31.261 21.3991 30.5658 22.1717 29.6387 22.1717C28.7117 22.1717 28.0164 21.4764 28.0164 20.5494C28.0164 18.4635 26.3941 16.6867 24.3855 16.4549V0.772532C24.3855 0.309013 24.0765 0 23.613 0H4.37692C3.91341 0 3.60439 0.309013 3.60439 0.772532V29.3562H2.6001C2.29109 29.3562 1.98207 29.588 1.90482 29.897L0.0507443 34.9957C-0.026509 35.2275 -0.0265094 35.4592 0.127997 35.691C0.282504 35.9227 0.514263 36 0.746023 36H27.4756C27.9392 36 28.2482 35.691 28.2482 35.2275C28.2482 35.073 28.1709 34.9185 28.1709 34.8412L26.3168 29.897C26.2396 29.588 25.9306 29.3562 25.6216 29.3562H24.6173V18C25.8533 18.2318 26.7031 19.2361 26.7031 20.5494C26.7031 22.2489 28.0937 23.7167 29.8705 23.7167C31.6473 23.7167 33.0379 22.3262 33.0379 20.5494V7.33906C33.0379 7.1073 32.8834 6.87554 32.7289 6.72103L29.9477 4.7897ZM26.3168 34.4549H1.82757L3.14087 30.9013H4.37692H23.7675H25.0035L26.3168 34.4549ZM5.14946 29.3562V1.54506H22.995V29.3562H5.14946ZM30.1795 9.65665V6.79828L31.3383 7.64807V9.5794H30.1795V9.65665Z" fill="#DD5428"/>
+<path d="M20.7526 3.09009H7.38777C6.92425 3.09009 6.61523 3.3991 6.61523 3.86262V10.8927C6.61523 11.3562 6.92425 11.6652 7.38777 11.6652H20.7526C21.2161 11.6652 21.5251 11.3562 21.5251 10.8927V3.86262C21.5251 3.3991 21.1388 3.09009 20.7526 3.09009ZM19.98 10.0429H8.1603V4.5579H19.98V10.0429Z" fill="#DD5428"/>
+<path d="M14.5718 15.2956C14.2628 15.0639 13.8765 15.0639 13.5675 15.2956C12.9495 15.8364 9.85938 18.463 9.85938 20.6261C9.85938 22.9437 11.7135 24.7978 14.031 24.7978C16.3486 24.7978 18.2027 22.9437 18.2027 20.6261C18.28 18.463 15.1898 15.7592 14.5718 15.2956ZM14.031 23.2527C12.5632 23.2527 11.4044 22.0939 11.4044 20.6261C11.4044 19.6991 12.795 18.0768 14.031 16.918C15.2671 18.0768 16.6577 19.6991 16.6577 20.6261C16.7349 22.0167 15.4989 23.2527 14.031 23.2527Z" fill="#DD5428"/>
+</svg>
+
+==================================================
+8. NCMC RECHARGE SVG
+==================================================
+
+Create:
+assets/images/svg/services/ncmc_recharge.svg
+
+Use exact supplied SVG:
+
+<svg width="39" height="27" viewBox="0 0 39 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+PASTE THE EXACT NCMC SVG PROVIDED IN THIS PROMPT WITHOUT MODIFYING ITS PATH DATA.
+</svg>
+
+IMPORTANT:
+Use the complete SVG exactly as provided above in the user's request.
+
+==================================================
+9. UTILITY BILLS SECTION
+==================================================
+
+Create/update the Utility Bills section to match the screenshot.
+
+Use the same common circular service-card widget/style as Home.
+
+Services:
+- Electricity Bill
+- Book LPG
+- Pipe Gas
+- Prepaid Meter
+- Cable TV
+- DTH
+- Broadband
+- Landline
+- Housing Society
+- Municipal Services
+
+Every icon must be a reusable SVG asset/component.
+
+==================================================
+10. PIPE GAS SVG
+==================================================
+
+Create:
+assets/images/svg/services/pipe_gas.svg
+
+Use the exact Pipe Gas SVG provided in the request.
+
+Do not redraw or approximate it with Material icons.
+
+==================================================
+11. PREPAID METER SVG
+==================================================
+
+Create:
+assets/images/svg/services/prepaid_meter.svg
+
+Use the exact Prepaid Meter SVG provided in the request.
+
+==================================================
+12. CABLE TV
+==================================================
+
+Create:
+assets/images/svg/services/cable_tv.svg
+
+Use the exact Cable TV SVG provided in the request.
+
+Additionally, the small icon/detail shown over Cable TV must use the separate exact 18x18 SVG supplied in the request.
+
+Create:
+assets/images/svg/services/cable_tv_overlay.svg
+
+Use flutter_svg and layer it exactly as shown in the Figma.
+
+==================================================
+13. DTH SVG
+==================================================
+
+Create:
+assets/images/svg/services/dth.svg
+
+Use the exact DTH SVG supplied in the request.
+
+==================================================
+14. BROADBAND SVG
+==================================================
+
+Create:
+assets/images/svg/services/broadband.svg
+
+Use the exact Broadband SVG supplied in the request.
+
+==================================================
+15. LANDLINE SVG
+==================================================
+
+Create:
+assets/images/svg/services/landline.svg
+
+Use the exact Landline SVG supplied in the request.
+
+==================================================
+16. HOUSING SOCIETY SVG
+==================================================
+
+Create:
+assets/images/svg/services/housing_society.svg
+
+Use the exact Housing Society SVG supplied in the request.
+
+==================================================
+17. MUNICIPAL SERVICES SVG
+==================================================
+
+Create:
+assets/images/svg/services/municipal_services.svg
+
+Use the exact Municipal Services SVG supplied in the request.
+
+==================================================
+18. FINANCIAL SECTION
+==================================================
+
+Create/update Financial section exactly like Figma.
+
+Services:
+- Credit Card Bill
+- Digital Gold
+- Digital Silver
+- Loan Repayment
+- Municipal Taxes
+- EChallan
+- NPS
+- Forex
+- Agent Collection
+- B2B Payments
+
+Use the same Home circular-card properties.
+
+==================================================
+19. CREDIT CARD BILL
+==================================================
+
+Reuse the existing Credit Card icon already used elsewhere in the app.
+
+Do NOT create another duplicate SVG if an existing reusable credit-card icon/widget already exists.
+
+==================================================
+20. DIGITAL GOLD SVG
+==================================================
+
+Create:
+assets/images/svg/services/digital_gold.svg
+
+Use the exact Digital Gold SVG supplied in the request.
+
+==================================================
+21. DIGITAL SILVER SVG
+==================================================
+
+Create:
+assets/images/svg/services/digital_silver.svg
+
+Use the exact Digital Silver SVG supplied in the request.
+
+==================================================
+22. LOAN REPAYMENT SVG
+==================================================
+
+Create:
+assets/images/svg/services/loan_repayment.svg
+
+Use the exact Loan Repayment SVG supplied in the request.
+
+==================================================
+23. MUNICIPAL TAXES SVG
+==================================================
+
+Create:
+assets/images/svg/services/municipal_taxes.svg
+
+Use the exact Municipal Taxes SVG supplied in the request.
+
+==================================================
+24. ECHALLAN
+==================================================
+
+EChallan must use the SAME existing Credit Card icon as the Credit Card Bill service.
+
+Do not create a new SVG.
+
+Only the service label and existing service metadata/navigation should differ.
+
+==================================================
+25. NPS SVG
+==================================================
+
+Create:
+assets/images/svg/services/nps.svg
+
+Use the exact NPS SVG supplied in the request.
+
+==================================================
+26. FOREX SVG
+==================================================
+
+Create:
+assets/images/svg/services/forex.svg
+
+Use the exact Forex SVG supplied in the request.
+
+==================================================
+27. AGENT COLLECTION SVG
+==================================================
+
+Create:
+assets/images/svg/services/agent_collection.svg
+
+Use the exact Agent Collection SVG supplied in the request.
+
+==================================================
+28. B2B PAYMENTS SVG
+==================================================
+
+Create:
+assets/images/svg/services/b2b_payments.svg
+
+Use the exact B2B Payments SVG supplied in the request.
+
+==================================================
+29. PAY VIA CREDIT CARD (EDUCATION)
+==================================================
+
+Keep the existing Education section and service behavior.
+
+Use the existing service data/navigation.
+
+Services:
+- School Fees
+- College Fees
+- Tuition Fees
+- Education Fees
+
+Use the same Home circular card styling/properties.
+
+==================================================
+30. INSURANCE SECTION
+==================================================
+
+Keep the existing Insurance section/service behavior.
+
+Services:
+- General Insurance
+- Health Insurance
+- Life Insurance
+
+Use same common circular card styling.
+
+==================================================
+31. RENT & PROPERTY
+==================================================
+
+Keep:
+- House Rent
+- Shop Rent
+- Rental
+
+Use same common circular card styling and Plus Jakarta Sans.
+
+==================================================
+32. COMMON SVG WIDGET — IMPORTANT
+==================================================
+
+Do NOT scatter individual SVG rendering logic across the All Services screen.
+
+Create ONE reusable common custom widget for service SVG icons.
+
+Example:
+
+`lib/widgets/common_service_svg_icon.dart`
+
+or use the project's existing common widgets folder if there is a better established location.
+
+The widget should accept:
+- asset path
+- optional width
+- optional height
+- optional fit/alignment
+
+Example API:
+
+CommonServiceSvgIcon(
+  assetPath: Assets.serviceIcons.evRecharge,
+  width: ...,
+  height: ...,
+)
+
+Internally use:
+
+SvgPicture.asset(...)
+
+Do NOT use:
+- Icon()
+- Icons.*
+- emoji
+- manually approximated vector drawings
+
+for the supplied SVG services.
+
+The goal is:
+- one common reusable widget
+- centralized SVG rendering
+- easy reuse from any service/category
+- same responsive sizing everywhere
+
+==================================================
+33. COMMON SERVICE CARD
+==================================================
+
+Reuse the existing Home circular card widget/component/properties.
+
+The All Services screen must visually use the SAME circular cards as Home.
+
+Use the existing established Home properties:
+- circular size
+- radius
+- border
+- padding
+- radial gradient
+- outer white border
+- shadows
+- icon sizing
+- label spacing
+- centered label
+- 2-line fixed label area
+- ellipsis/wrapping behavior where already implemented
+
+Do NOT create a new inconsistent card design.
+
+If the Home screen already has a reusable card widget, directly reuse that widget.
+
+==================================================
+34. LABEL TYPOGRAPHY
+==================================================
+
+All service labels below icons must use the SAME typography properties as the existing Home circular-card labels.
+
+Use Plus Jakarta Sans everywhere.
+
+Do not use Bricolage Grotesque.
+
+Keep the same:
+- font size
+- weight
+- line height
+- centered alignment
+- 2-line label area
+- spacing below icons
+
+as the existing Home screen circular service cards.
+
+Do NOT invent a separate All Services label style.
+
+==================================================
+35. ICON SIZE / CIRCLE RESPONSIVENESS
+==================================================
+
+All service icons must remain visually centered inside the circle.
+
+The SVG's intrinsic size can differ, so preserve aspect ratio.
+
+Do not stretch SVGs.
+
+Use `.w`, `.h`, `.r` and `.sp` appropriately.
+
+If individual SVGs have different intrinsic widths/heights, center them inside a consistent icon area so the circles remain aligned like the Figma.
+
+==================================================
+36. CATEGORY CONTAINERS
+==================================================
+
+Match the screenshot's category cards/containers.
+
+Keep:
+- rounded border
+- white background
+- internal padding
+- responsive spacing
+- section title
+- expand/collapse arrow
+- service grid alignment
+
+Do not hardcode a fixed overall screen height.
+
+Let sections naturally grow based on content.
+
+==================================================
+37. RESPONSIVE GRID
+==================================================
+
+Do not use fixed pixel-positioned service items.
+
+Build the service grid responsively.
+
+At 320, 360, 375, 390, 412 and 440 widths:
+- icons must fit
+- labels must remain readable
+- no clipping
+- no overlap
+- no RenderFlex overflow
+- no horizontal scrolling
+- no broken last-row alignment
+
+Use the screen width/available width to determine layout where necessary.
+
+==================================================
+38. DATA / NAVIGATION
+==================================================
+
+Keep service data dynamic from the existing source/model/API.
+
+Do not replace current API-driven service objects with hardcoded UI-only objects.
+
+Every service card must preserve:
+- service ID
+- service code
+- category
+- navigation arguments
+- click behavior
+
+Use the original service model/object when navigating.
+
+==================================================
+39. SEARCH
+==================================================
+
+Keep the already-fixed dynamic All Services search working.
+
+Search must continue to filter the actual API-backed services.
+
+Do NOT break:
+- search controller
+- query state
+- filtering logic
+- clear search
+- no-result state
+
+The new UI must use the same common search component and current working search logic.
+
+==================================================
+40. PLUS JAKARTA SANS — GLOBAL
+==================================================
+
+Use Plus Jakarta Sans for EVERY textual element on this All Services screen:
+
+- header
+- Search text/hint
+- Recharge
+- Utility Bills
+- Financial
+- Pay Via Credit Card (Education)
+- Insurance
+- Rent & Property
+- every service label
+- any empty state
+- any helper text
+
+DO NOT use Bricolage Grotesque.
+
+==================================================
+41. EXACT SVG REQUIREMENT
+==================================================
+
+All SVGs supplied in this request are exact source assets.
+
+Do NOT:
+- simplify the paths
+- redraw
+- approximate
+- convert to Material Icons
+- change colors
+- change viewBox
+- change path geometry
+
+Store them as separate `.svg` assets and render with `flutter_svg`.
+
+==================================================
+42. ASSET ORGANIZATION
+==================================================
+
+Prefer this structure:
+
+assets/
+  images/
+    svg/
+      services/
+        ev_recharge.svg
+        fleet_card_recharge.svg
+        ncmc_recharge.svg
+        pipe_gas.svg
+        prepaid_meter.svg
+        cable_tv.svg
+        cable_tv_overlay.svg
+        dth.svg
+        broadband.svg
+        landline.svg
+        housing_society.svg
+        municipal_services.svg
+        digital_gold.svg
+        digital_silver.svg
+        loan_repayment.svg
+        municipal_taxes.svg
+        nps.svg
+        forex.svg
+        agent_collection.svg
+        b2b_payments.svg
+
+And reuse existing credit-card SVG/icon for:
+- Credit Card Bill
+- EChallan
+
+Do not create duplicates when reusable assets already exist.
+
+==================================================
+43. FLUTTER SCREENUTIL + MEDIAQUERY
+==================================================
+
+Use the app's existing ScreenUtil configuration.
+
+Convert Figma references through:
+- `.w`
+- `.h`
+- `.r`
+- `.sp`
+
+Use:
+`MediaQuery.sizeOf(context)`
+
+only where actual available screen width/height affects layout decisions.
+
+Do NOT hardcode Figma coordinates as runtime positions.
+
+For example:
+DO NOT use:
+left: 24
+top: 197
+width: 393
+
+as literal runtime positioning.
+
+Instead build the screen naturally using:
+- padding
+- SizedBox
+- gaps
+- responsive widths
+- ScreenUtil
+
+==================================================
+44. DEVICE VALIDATION
+==================================================
+
+Verify the entire All Services screen at:
+
+320
+360
+375
+390
+412
+440
+
+Check:
+- search bar
+- investment banner
+- Recharge section
+- Utility Bills
+- Financial
+- Education
+- Insurance
+- Rent & Property
+
+No:
+- overflow
+- clipped text
+- clipped SVG
+- stretched SVG
+- overlapping labels
+- broken grids
+- horizontal scroll
+
+==================================================
+45. TESTING
+==================================================
+
+After implementation:
+
+- run formatter
+- run analyzer on all touched files
+- run relevant All Services widget tests
+- verify search behavior
+- verify every service is clickable
+- verify existing navigation is unchanged
+- verify SVG assets load successfully
+- verify asset paths are correct
+- verify no Bricolage Grotesque usage remains on this screen
+- verify Plus Jakarta Sans is used everywhere
+- verify responsive behavior across requested widths
+
+FINAL REPORT MUST INCLUDE:
+1. All files created/changed.
+2. Common SVG widget file path.
+3. Common circular service-card widget reused from Home.
+4. Exact SVG assets added.
+5. Confirmation that all service labels use the Home screen typography.
+6. Confirmation that Plus Jakarta Sans is used everywhere.
+7. Confirmation that the existing Search logic still works.
+8. Analyzer result.
+9. Widget test result.
+10. Responsive verification result for 320/360/375/390/412/440.
+```
+
+### One important implementation point
+
+तू खूप सारे SVG दिले आहेत, त्यामुळे agent ने **एक-एक SVG वेगळ्या `.svg` file मध्ये ठेवायचा आणि एक `CommonServiceSvgIcon` widget बनवायचा**. मग All Services screen मध्ये फक्त asset path call करायचा. त्यामुळे पुढे नवीन service add करायची झाली तरी same widget reuse होईल.
+
+आणि **Mobile Prepaid / Mobile Postpaid / FASTag** साठी नवीन icons बनवू नयेत — Home screen वरचे existing reusable icons/cards वापरायचे. `EChallan` साठीही existing Credit Card icon reuse करायचा.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-01T16:04:49+05:30.
+
+The user's current state is as follows:
+Active Document: /Users/apple/Desktop/flutterfoundation-main/lib/features/mobile_prepaid/components/payment_bottom_sheet.dart (LANGUAGE_DART)
+Cursor is on line: 1
+Other open documents:
+- /Users/apple/Desktop/flutterfoundation-main/lib/features/home/views/home_search_view.dart (LANGUAGE_DART)
+- /Users/apple/Desktop/flutterfoundation-main/lib/features/educationFees/models/education_fees_responses.dart (LANGUAGE_DART)
+- /Users/apple/Desktop/flutterfoundation-main/test/widget/tuition_fee_transaction_detail_test.dart (LANGUAGE_DART)
+- /Users/apple/Desktop/flutterfoundation-main/test/widget/electricity_transaction_detail_test.dart (LANGUAGE_DART)
+- /Users/apple/Desktop/flutterfoundation-main/test/widget/electricity_bill_details_test.dart (LANGUAGE_DART)
+</ADDITIONAL_METADATA>

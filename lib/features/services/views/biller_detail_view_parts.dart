@@ -650,7 +650,8 @@ class _ContactPickerSheetHost extends HookConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(height: 8.h),
-            SizedBox(height: 24.r,
+            SizedBox(
+              height: 24.r,
               width: 24.r,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
@@ -1146,7 +1147,8 @@ class _CompactBillSection extends StatelessWidget {
 
 // ─── Electricity Specific Components ──────────────────────────────────────────
 
-const _kElectricityDownArrowSvg = '''<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+const _kElectricityDownArrowSvg =
+    '''<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
 <circle cx="16" cy="16" r="16" transform="matrix(1 0 0 -1 0 32)" fill="url(#paint0_linear_602_29979)"/>
 <path d="M13.4756 16.9043L16.1734 19.6021L18.8711 16.9043" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M16.1738 12.0469L16.1738 19.5269" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1158,15 +1160,30 @@ const _kElectricityDownArrowSvg = '''<svg width="32" height="32" viewBox="0 0 32
 </defs>
 </svg>''';
 
-const _kClockLastPaidSvg = '''<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+const _kClockLastPaidSvg =
+    '''<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M7.99967 1.33301C11.6817 1.33301 14.6663 4.31767 14.6663 7.99967C14.6663 11.6817 11.6817 14.6663 7.99967 14.6663C4.31767 14.6663 1.33301 11.6817 1.33301 7.99967C1.33301 4.31767 4.31767 1.33301 7.99967 1.33301ZM7.99967 3.99967C7.82286 3.99967 7.65329 4.06991 7.52827 4.19494C7.40325 4.31996 7.33301 4.48953 7.33301 4.66634V7.99967C7.33305 8.17647 7.40331 8.34601 7.52834 8.47101L9.52834 10.471C9.65408 10.5924 9.82248 10.6596 9.99727 10.6581C10.1721 10.6566 10.3393 10.5865 10.4629 10.4629C10.5865 10.3393 10.6566 10.1721 10.6581 9.99727C10.6596 9.82248 10.5924 9.65408 10.471 9.52834L8.66634 7.72367V4.66634C8.66634 4.48953 8.5961 4.31996 8.47108 4.19494C8.34605 4.06991 8.17649 3.99967 7.99967 3.99967Z" fill="#DD5428"/>
 </svg>''';
 
-const _kAdditionalFeeInfoSvg = '''<svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+const _kAdditionalFeeInfoSvg =
+    '''<svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M6.66667 0C10.3487 0 13.3333 2.98467 13.3333 6.66667C13.3333 10.3487 10.3487 13.3333 6.66667 13.3333C2.98467 13.3333 0 10.3487 0 6.66667C0 2.98467 2.98467 0 6.66667 0ZM6.66667 1.33333C5.25218 1.33333 3.89562 1.89524 2.89543 2.89543C1.89524 3.89562 1.33333 5.25218 1.33333 6.66667C1.33333 8.08115 1.89524 9.43771 2.89543 10.4379C3.89562 11.4381 5.25218 12 6.66667 12C8.08115 12 9.43771 11.4381 10.4379 10.4379C11.4381 9.43771 12 8.08115 12 6.66667C12 5.25218 11.4381 3.89562 10.4379 2.89543C9.43771 1.89524 8.08115 1.33333 6.66667 1.33333ZM6.66 5.33333C7.032 5.33333 7.33333 5.63467 7.33333 6.00667V9.42267C7.46042 9.49605 7.55974 9.60931 7.6159 9.74489C7.67205 9.88048 7.6819 10.0308 7.64392 10.1725C7.60594 10.3143 7.52224 10.4396 7.40582 10.5289C7.2894 10.6182 7.14675 10.6667 7 10.6667H6.67333C6.58491 10.6667 6.49735 10.6493 6.41566 10.6154C6.33397 10.5816 6.25974 10.532 6.19721 10.4695C6.13469 10.4069 6.08509 10.3327 6.05125 10.251C6.01742 10.1693 6 10.0818 6 9.99333V6.66667C5.82319 6.66667 5.65362 6.59643 5.5286 6.4714C5.40357 6.34638 5.33333 6.17681 5.33333 6C5.33333 5.82319 5.40357 5.65362 5.5286 5.5286C5.65362 5.40357 5.82319 5.33333 6 5.33333H6.66ZM6.66667 3.33333C6.84348 3.33333 7.01305 3.40357 7.13807 3.5286C7.26309 3.65362 7.33333 3.82319 7.33333 4C7.33333 4.17681 7.26309 4.34638 7.13807 4.4714C7.01305 4.59643 6.84348 4.66667 6.66667 4.66667C6.48986 4.66667 6.32029 4.59643 6.19526 4.4714C6.07024 4.34638 6 4.17681 6 4C6 3.82319 6.07024 3.65362 6.19526 3.5286C6.32029 3.40357 6.48986 3.33333 6.66667 3.33333Z" fill="#DD5428"/>
 </svg>''';
 
 // ─── Electricity Specific Components ──────────────────────────────────────────
+
+const _kElectricityUpArrowSvg =
+    '''<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="16" cy="16" r="16" fill="url(#paint0_linear_82542_13981)"/>
+<path d="M13.4746 15.0957L16.1724 12.3979L18.8702 15.0957" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M16.1719 19.9531L16.1719 12.4731" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<defs>
+<linearGradient id="paint0_linear_82542_13981" x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF835C"/>
+<stop offset="1" stop-color="#DD5428"/>
+</linearGradient>
+</defs>
+</svg>''';
 
 class ElectricityBillSection extends StatelessWidget {
   const ElectricityBillSection({
@@ -1174,17 +1191,121 @@ class ElectricityBillSection extends StatelessWidget {
     required this.bill,
     required this.customerParams,
     required this.onToggle,
+    this.isExpanded = false,
   });
 
   final BillResponse bill;
   final Map<String, String> customerParams;
   final VoidCallback onToggle;
 
+  /// Figma "full details" state: every bill row, an up arrow centred on the
+  /// card's bottom edge, and no additional fee card.
+  final bool isExpanded;
+
+  static const _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  static String _shortDate(String raw, {bool withYear = true}) {
+    final date = DateFormatHelper.parseDate(raw);
+    if (date == null) return raw.trim();
+    final dayMonth = '${date.day} ${_months[date.month - 1]}';
+    return withYear ? '$dayMonth ${date.year}' : dayMonth;
+  }
+
+  List<MapEntry<String, String>> _expandedRows() {
+    final rows = <MapEntry<String, String>>[];
+    final seen = <String>{};
+    void add(String label, String value) {
+      final v = value.trim();
+      if (v.isEmpty || !seen.add(label.trim().toLowerCase())) return;
+      rows.add(MapEntry(label, v));
+    }
+
+    customerParams.forEach(add);
+    bill.additionalParams.forEach(add);
+    add('Customer Name', bill.accountHolderName);
+
+    final earlyRaw = bill.additionalParams['Early Payment Date'] ?? '';
+    final early = DateFormatHelper.parseDate(earlyRaw);
+    final due = DateFormatHelper.parseDate(bill.dueDate);
+    final dueText = _shortDate(bill.dueDate);
+    if (bill.dueDate.trim().isNotEmpty) add('Due Date', dueText);
+
+    if (bill.earlyPaymentFormatted.isNotEmpty) {
+      add(
+        'Early payment date & amount',
+        earlyRaw.trim().isNotEmpty
+            ? 'Before ${_shortDate(earlyRaw)} – ${bill.earlyPaymentFormatted}'
+            : bill.earlyPaymentFormatted,
+      );
+    }
+    if (bill.dueDate.trim().isNotEmpty) {
+      final amount = bill.earlyPaymentFormatted.isNotEmpty
+          ? bill.earlyPaymentFormatted
+          : bill.formattedAmount;
+      final range = earlyRaw.trim().isNotEmpty
+          ? '${_shortDate(earlyRaw, withYear: early?.year != due?.year)} '
+              'to $dueText'
+          : dueText;
+      add('Due payment date & amount', '$range – $amount');
+    }
+    if (bill.latePaymentFormatted.isNotEmpty) {
+      add(
+        'Late payment date & amount',
+        bill.dueDate.trim().isNotEmpty
+            ? 'After $dueText – ${bill.latePaymentFormatted}'
+            : bill.latePaymentFormatted,
+      );
+    }
+    return rows;
+  }
+
   @override
   Widget build(BuildContext context) {
     final earlyPayDate = bill.additionalParams['Early Payment Date'] ?? '';
     final pc = bill.additionalParams['PC'] ?? '';
     final note = bill.note.trim();
+
+    final arrowSize = FetchProviderMetrics.r(32);
+    final arrow = GestureDetector(
+      key: const ValueKey('electricity-details-toggle'),
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: SvgPicture.string(
+        isExpanded ? _kElectricityUpArrowSvg : _kElectricityDownArrowSvg,
+        width: arrowSize,
+        height: arrowSize,
+      ),
+    );
+
+    final rows = isExpanded
+        ? [
+            for (final e in _expandedRows())
+              _buildTableRow(label: e.key, value: e.value),
+          ]
+        : [
+            ...customerParams.entries.map(
+              (e) => _buildTableRow(label: e.key, value: e.value),
+            ),
+            if (earlyPayDate.isNotEmpty)
+              _buildTableRow(
+                label: 'Early Payment Date',
+                value: earlyPayDate,
+              ),
+            if (pc.isNotEmpty) _buildTableRow(label: 'PC', value: pc),
+          ];
 
     // Text scale clamp so layout doesn't break on large system fonts
     return MediaQuery.withClampedTextScaling(
@@ -1198,108 +1319,128 @@ class ElectricityBillSection extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Padding(
-                padding: EdgeInsets.only(bottom: 16.h),
+                padding: EdgeInsets.only(bottom: arrowSize / 2),
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
+                  padding: EdgeInsets.fromLTRB(
+                    FetchProviderMetrics.w(20),
+                    FetchProviderMetrics.h(10),
+                    FetchProviderMetrics.w(20),
+                    FetchProviderMetrics.h(12),
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.r),
+                    borderRadius:
+                        BorderRadius.circular(FetchProviderMetrics.r(12)),
                     border: Border.all(
                       color: const Color(0xFFD8D8D8),
                       width: 1.0,
                     ),
                   ),
                   child: Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    // Expanded rows can wrap to two lines; Figma keeps the
+                    // label, colon and value aligned to the first line.
+                    defaultVerticalAlignment: isExpanded
+                        ? TableCellVerticalAlignment.top
+                        : TableCellVerticalAlignment.middle,
+                    // Figma: label column 180, colon column 15, value column
+                    // takes the rest of the 352 inner width.
                     columnWidths: {
-                      0: const IntrinsicColumnWidth(),
-                      1: FixedColumnWidth(16.w),
-                      2: const FlexColumnWidth(),
+                      0: const FlexColumnWidth(180),
+                      1: FixedColumnWidth(FetchProviderMetrics.w(15)),
+                      2: const FlexColumnWidth(157),
                     },
-                    children: [
-                      ...customerParams.entries.map(
-                            (e) => _buildTableRow(label: e.key, value: e.value),
-                      ),
-                      if (earlyPayDate.isNotEmpty)
-                        _buildTableRow(
-                          label: 'Early Payment Date',
-                          value: earlyPayDate,
-                        ),
-                      if (pc.isNotEmpty) _buildTableRow(label: 'PC', value: pc),
-                    ],
+                    children: rows,
                   ),
                 ),
               ),
-              Positioned(
-                right: 20.w,
-                bottom: 0,
-                child: GestureDetector(
-                  onTap: onToggle,
-                  behavior: HitTestBehavior.opaque,
-                  child: SvgPicture.string(
-                    _kElectricityDownArrowSvg,
-                    width: 32.r,
-                    height: 32.r,
-                  ),
+              if (isExpanded)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Center(child: arrow),
+                )
+              else
+                Positioned(
+                  right: FetchProviderMetrics.w(12),
+                  bottom: 0,
+                  child: arrow,
                 ),
-              ),
             ],
           ),
 
-          SizedBox(height: 16.h),
+          SizedBox(height: FetchProviderMetrics.h(14)),
 
           // 2. Amount card
           _ElectricityAmountCard(bill: bill),
 
-          SizedBox(height: 20.h),
+          if (!isExpanded) ...[
+            SizedBox(height: FetchProviderMetrics.h(20)),
 
-          // 3. Additional fee card
-          _ElectricityAdditionalFeeCard(bill: bill, note: note),
+            // 3. Additional fee card
+            _ElectricityAdditionalFeeCard(bill: bill, note: note),
+          ],
         ],
       ),
     );
   }
 
   TableRow _buildTableRow({required String label, required String value}) {
+    final labelSize = FetchProviderMetrics.font(14, min: 12);
+    final valueSize = FetchProviderMetrics.font(16, min: 13);
+    final rowHeight = FetchProviderMetrics.h(27);
+    final rowGap = isExpanded ? FetchProviderMetrics.h(4) : 0.0;
+
+    Widget cell(Widget child, {Alignment alignment = Alignment.centerLeft}) =>
+        ConstrainedBox(
+          constraints: BoxConstraints(minHeight: rowHeight),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: rowGap),
+            child: Align(
+              alignment: alignment,
+              widthFactor: 1,
+              heightFactor: 1,
+              child: child,
+            ),
+          ),
+        );
+
     return TableRow(
       children: [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 5.h),
-          child: Text(
+        cell(
+          Text(
             label,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 14.sp,
+              fontSize: labelSize,
               fontWeight: FontWeight.w400,
               color: const Color(0xFF373737),
+              // Two-line labels ("Early payment date & amount") need leading.
+              height: isExpanded ? 18 / 14 : 1.0,
+            ),
+          ),
+        ),
+        cell(
+          Text(
+            ':',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: valueSize,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
               height: 1.0,
             ),
           ),
+          alignment: Alignment.center,
         ),
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 5.h),
-          child: Center(
-            child: Text(
-              ':',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-                height: 23 / 16,
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 5.h),
-          child: Text(
+        cell(
+          Text(
             value,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 14.sp,
+              fontSize: valueSize,
               fontWeight: FontWeight.w600,
               color: Colors.black,
-              height: 20 / 14,
-              letterSpacing: -0.02 * 14,
+              height: 20 / 16,
+              letterSpacing: -0.02 * valueSize,
             ),
           ),
         ),
@@ -1319,33 +1460,30 @@ class _ElectricityAmountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isCompact = screenWidth < 360;
-
     final billPeriod = _resolveBillPeriodText();
     final dueDateText = _formatDueDateOrdinal(bill.dueDate);
     final amountText = _resolvedAmountText();
     final lastPaidAmount = _resolveLastPaidAmount(bill);
     final lastPaidDate = _resolveLastPaidDate(bill);
 
-    // Reduce badge font size by 2sp for tighter UI
-    final badgeFont = isCompact ? 10.sp : 12.sp;
-    final dueFont = isCompact ? 12.sp : 14.sp; // keep due font unchanged
-    final amountFont = isCompact ? 42.sp : 50.sp;
-    final lastPaidFont = isCompact ? 12.sp : 14.sp;
+    final badgeFont = FetchProviderMetrics.font(14, min: 11);
+    final dueFont = FetchProviderMetrics.font(16, min: 12);
+    final amountFont = FetchProviderMetrics.font(56, min: 40);
+    final lastPaidFont = FetchProviderMetrics.font(14, min: 12);
+    final sidePadding = FetchProviderMetrics.w(20);
 
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(FetchProviderMetrics.r(16)),
         border: Border.all(color: const Color(0xFFD8D8D8), width: 1.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 16.h),
+          SizedBox(height: FetchProviderMetrics.h(16)),
 
           // ── Badge (shrinks to text) + Due date ──
           Row(
@@ -1355,14 +1493,19 @@ class _ElectricityAmountCard extends StatelessWidget {
               if (billPeriod.isNotEmpty)
                 Flexible(
                   child: Container(
-                    height: 28.h,
-                    // Slightly reduce horizontal padding for narrower badge width
-                    padding: EdgeInsets.only(left: 10.w, right: 12.w),
+                    constraints: BoxConstraints(
+                      minHeight: FetchProviderMetrics.h(29),
+                    ),
+                    padding: EdgeInsets.only(
+                      left: FetchProviderMetrics.w(10),
+                      right: FetchProviderMetrics.w(12),
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFDD5428),
                       borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(20.r),
-                        bottomRight: Radius.circular(20.r),
+                        topRight: Radius.circular(FetchProviderMetrics.r(20)),
+                        bottomRight:
+                            Radius.circular(FetchProviderMetrics.r(20)),
                       ),
                     ),
                     child: Center(
@@ -1376,7 +1519,7 @@ class _ElectricityAmountCard extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
                           height: 1.0,
-                          letterSpacing: -0.02 * 14,
+                          letterSpacing: -0.02 * badgeFont,
                         ),
                       ),
                     ),
@@ -1387,7 +1530,10 @@ class _ElectricityAmountCard extends StatelessWidget {
               if (dueDateText.isNotEmpty)
                 Flexible(
                   child: Padding(
-                    padding: EdgeInsets.only(left: 8.w, right: 16.w),
+                    padding: EdgeInsets.only(
+                      left: FetchProviderMetrics.w(8),
+                      right: FetchProviderMetrics.w(16),
+                    ),
                     child: Text(
                       'Due on: $dueDateText',
                       maxLines: 1,
@@ -1398,7 +1544,7 @@ class _ElectricityAmountCard extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFFA90000),
                         height: 1.0,
-                        letterSpacing: -0.02 * 14,
+                        letterSpacing: -0.02 * dueFont,
                       ),
                     ),
                   ),
@@ -1406,11 +1552,11 @@ class _ElectricityAmountCard extends StatelessWidget {
             ],
           ),
 
-          SizedBox(height: 22.h),
+          SizedBox(height: FetchProviderMetrics.h(23)),
 
           // ── Amount ──
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.symmetric(horizontal: sidePadding),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -1421,26 +1567,26 @@ class _ElectricityAmountCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: Colors.black,
                   height: 1.0,
-                  letterSpacing: -0.02 * 50,
+                  letterSpacing: -0.02 * amountFont,
                 ),
               ),
             ),
           ),
 
-          SizedBox(height: 16.h),
+          SizedBox(height: FetchProviderMetrics.h(14)),
 
           // ── Last paid ──
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.symmetric(horizontal: sidePadding),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 SvgPicture.string(
                   _kClockLastPaidSvg,
-                  width: 16.r,
-                  height: 16.r,
+                  width: FetchProviderMetrics.r(14),
+                  height: FetchProviderMetrics.r(14),
                 ),
-                SizedBox(width: 6.w),
+                SizedBox(width: FetchProviderMetrics.w(6)),
                 Flexible(
                   child: Text.rich(
                     TextSpan(
@@ -1449,7 +1595,7 @@ class _ElectricityAmountCard extends StatelessWidget {
                         fontWeight: FontWeight.w400,
                         color: Colors.black,
                         height: 1.2,
-                        letterSpacing: -0.02 * 14,
+                        letterSpacing: -0.02 * lastPaidFont,
                       ),
                       children: [
                         const TextSpan(text: 'Last Paid '),
@@ -1462,7 +1608,7 @@ class _ElectricityAmountCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
                             height: 1.2,
-                            letterSpacing: -0.02 * 14,
+                            letterSpacing: -0.02 * lastPaidFont,
                           ),
                         ),
                       ],
@@ -1475,7 +1621,7 @@ class _ElectricityAmountCard extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: 18.h),
+          SizedBox(height: FetchProviderMetrics.h(22)),
         ],
       ),
     );
@@ -1484,7 +1630,7 @@ class _ElectricityAmountCard extends StatelessWidget {
   String _resolveBillPeriodText() {
     final fromAdditional = bill.additionalParams['Bill Month']?.trim() ?? '';
     final rawPeriod =
-    fromAdditional.isNotEmpty ? fromAdditional : bill.billPeriod.trim();
+        fromAdditional.isNotEmpty ? fromAdditional : bill.billPeriod.trim();
     if (_hasValidBillPeriod(rawPeriod)) {
       return 'Bill for ${_formatBillPeriod(rawPeriod)}';
     }
@@ -1500,8 +1646,18 @@ class _ElectricityAmountCard extends StatelessWidget {
       final mm = int.tryParse(period.substring(2));
       if (mm != null && mm >= 1 && mm <= 12) {
         const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         return "${months[mm - 1]} '$yy";
       }
@@ -1522,11 +1678,11 @@ class _ElectricityAmountCard extends StatelessWidget {
     final todayDate = DateTime(today.year, today.month, today.day);
 
     final earlyDate =
-    _parseDateString(bill.additionalParams['Early Payment Date'] ?? '');
+        _parseDateString(bill.additionalParams['Early Payment Date'] ?? '');
     final dueDate = _parseDateString(bill.dueDate);
 
     final earlyAmount =
-    _parseAmountMaybe(bill.otherDetails['Early Payment Amount']);
+        _parseAmountMaybe(bill.otherDetails['Early Payment Amount']);
     if (earlyDate != null &&
         earlyAmount != null &&
         !todayDate.isAfter(earlyDate)) {
@@ -1534,7 +1690,7 @@ class _ElectricityAmountCard extends StatelessWidget {
     }
 
     final lateAmount =
-    _parseAmountMaybe(bill.otherDetails['Late Payment Amount']);
+        _parseAmountMaybe(bill.otherDetails['Late Payment Amount']);
     if (dueDate != null && lateAmount != null && todayDate.isAfter(dueDate)) {
       return _formatRupees(lateAmount);
     }
@@ -1561,55 +1717,84 @@ class _ElectricityAdditionalFeeCard extends StatelessWidget {
     final text = _resolveFeeNote();
     if (text.isEmpty) return const SizedBox.shrink();
 
-    // NOTE: borderRadius + one-side Border asserts in Flutter,
-    // so radius is handled by ClipRRect only.
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12.r),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFAFAFA),
-          border: Border(
-            left: BorderSide(color: const Color(0xFFDD5428), width: 1.5.w),
-          ),
-        ),
-        padding: EdgeInsets.fromLTRB(12.w, 14.h, 14.w, 14.h),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 3.h),
-              child: SvgPicture.string(
-                _kAdditionalFeeInfoSvg,
-                width: 14.w,
-                height: 15.h,
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    // Figma 440 frame: 392px card with 24px margins on both sides.
+    final cardWidth = screenWidth - 2 * FetchProviderMetrics.w(24);
+    final fontSize = 12.sp;
+    final lineHeight = fontSize * 20 / 12;
+    final iconWidth = FetchProviderMetrics.w(14);
+    final iconHeight = FetchProviderMetrics.w(15);
+    final textScaler = MediaQuery.textScalerOf(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) => Align(
+        alignment: Alignment.centerLeft,
+        // borderRadius + a one-side Border asserts in BoxDecoration, so the
+        // rounded corners come from the ClipRRect.
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: Container(
+            width: cardWidth.clamp(0.0, constraints.maxWidth).toDouble(),
+            constraints: BoxConstraints(minHeight: FetchProviderMetrics.h(72)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              border: Border(
+                left: BorderSide(width: 1.5.w, color: const Color(0xFFDD5428)),
               ),
             ),
-            SizedBox(width: 10.w),
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black,
-                    height: 20 / 13,
-                    letterSpacing: -0.02 * 13,
+            padding: EdgeInsets.fromLTRB(
+              FetchProviderMetrics.w(16),
+              FetchProviderMetrics.h(16),
+              FetchProviderMetrics.w(16),
+              FetchProviderMetrics.h(16),
+            ),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Centred on the first text line, as in Figma.
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: ((textScaler.scale(lineHeight) - iconHeight) / 2)
+                        .clamp(0.0, double.infinity)
+                        .toDouble(),
                   ),
-                  children: _buildSpans(text),
+                  child: SvgPicture.string(
+                    _kAdditionalFeeInfoSvg,
+                    width: iconWidth,
+                    height: iconHeight,
+                  ),
                 ),
-              ),
+                SizedBox(width: FetchProviderMetrics.w(10)),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      style: _feeTextStyle(fontSize, FontWeight.w400),
+                      children: _buildSpans(text, fontSize),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
+  static TextStyle _feeTextStyle(double fontSize, FontWeight weight) =>
+      GoogleFonts.plusJakartaSans(
+        fontSize: fontSize,
+        fontWeight: weight,
+        color: const Color(0xFF000000),
+        height: 20 / 12,
+        letterSpacing: -0.02 * fontSize,
+      );
+
   String _resolveFeeNote() {
-    if (note.isNotEmpty) return note;
+    if (note.isNotEmpty) return _formatFeeNote(note);
     final latePayment = bill.latePaymentFormatted;
-    final dueDate = DateFormatHelper.formatDisplayDate(bill.dueDate);
+    final dueDate = _formatDueDateOrdinal(bill.dueDate);
     if (latePayment.isNotEmpty && dueDate.isNotEmpty) {
       final diff = _additionalCharge();
       return 'An Additional $diff Fee Will Apply If The Bill Is Paid After $dueDate, 12:00 AM.';
@@ -1626,7 +1811,29 @@ class _ElectricityAdditionalFeeCard extends StatelessWidget {
     return bill.latePaymentFormatted;
   }
 
-  List<TextSpan> _buildSpans(String text) {
+  /// Display-only cleanup of the backend note into the Figma format
+  /// ("Rs.10" -> "₹10", "2026-10-06" -> "6th Oct", "12:00AM" -> "12:00 AM",
+  /// capitalised words). Values themselves are never replaced.
+  static String _formatFeeNote(String raw) {
+    var text = raw.replaceAllMapped(
+      RegExp(r'(?:\bRs\.?|\bINR)\s*(\d[\d,]*(?:\.\d+)?)', caseSensitive: false),
+      (m) => '\u20B9${m[1]}',
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'\b\d{4}-\d{2}-\d{2}\b'),
+      (m) => _formatDueDateOrdinal(m[0]!),
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'(\d{1,2}:\d{2})\s*([AaPp][Mm])\b'),
+      (m) => '${m[1]} ${m[2]!.toUpperCase()}',
+    );
+    return text.replaceAllMapped(
+      RegExp(r'(^|\s)([a-z])'),
+      (m) => '${m[1]}${m[2]!.toUpperCase()}',
+    );
+  }
+
+  List<TextSpan> _buildSpans(String text, double fontSize) {
     final regex = RegExp(r'(₹\s*[\d,]+(?:\.\d+)?(?:\s*[Ff]ee)?)');
     final matches = regex.allMatches(text);
     if (matches.isEmpty) return [TextSpan(text: text)];
@@ -1640,13 +1847,7 @@ class _ElectricityAdditionalFeeCard extends StatelessWidget {
       spans.add(
         TextSpan(
           text: m.group(0),
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w700,
-            color: Colors.black,
-            height: 20 / 13,
-            letterSpacing: -0.02 * 13,
-          ),
+          style: _feeTextStyle(fontSize, FontWeight.w700),
         ),
       );
       lastIndex = m.end;

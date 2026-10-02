@@ -1,0 +1,8 @@
+<svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M17 3C9.27 3 3 9.27 3 17C3 24.73 9.27 31 17 31C24.73 31 31 24.73 31 17C31 9.27 24.73 3 17 3Z" stroke="#DD5428" stroke-width="1.5" fill="none"/>
+<path d="M11 17H23" stroke="#DD5428" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M17 11V23" stroke="#DD5428" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M13 13L21 21" stroke="#DD5428" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+<path d="M21 13L13 21" stroke="#DD5428" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+<text x="10" y="20" font-family="sans-serif" font-size="8" fill="#DD5428" font-weight="700">NPS</text>
+</svg>

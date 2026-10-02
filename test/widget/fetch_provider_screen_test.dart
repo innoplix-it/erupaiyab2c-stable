@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:e_rupaiya/constants/file_constants.dart';
 import 'package:e_rupaiya/features/mobile_prepaid/models/latest_transaction.dart';
+import 'package:e_rupaiya/features/services/components/delete_saved_biller_dialog.dart';
 import 'package:e_rupaiya/features/services/components/fetch_provider_metrics.dart';
 import 'package:e_rupaiya/features/services/controllers/biller_listing_controller.dart';
 import 'package:e_rupaiya/features/services/controllers/service_extras_controller.dart';
@@ -40,6 +41,9 @@ const _saved = LatestTransaction(
   autoPayActive: true,
   createdAt: '2026-09-05T10:00:00Z',
 );
+
+Finder _dots() =>
+    find.byWidgetPredicate((w) => w.runtimeType.toString() == '_VerticalDots');
 
 class _FakeBillerRepository extends BillerRepository {
   _FakeBillerRepository() : super(dio: Dio());
@@ -127,7 +131,7 @@ void main() {
       expect(search.left, greaterThanOrEqualTo(0));
       expect(search.right, lessThanOrEqualTo(size.width));
 
-      final dots = find.byType(PopupMenuButton<String>).first;
+      final dots = _dots().first;
       final card = tester.getRect(
         find.ancestor(of: dots, matching: find.byType(GestureDetector)).last,
       );
@@ -260,7 +264,7 @@ void main() {
       expect(assets.where((a) => a.contains('electricitybanner')), isEmpty);
     });
 
-      testWidgets('typed search text uses Plus Jakarta Sans', (tester) async {
+    testWidgets('typed search text uses Plus Jakarta Sans', (tester) async {
       await pump(tester, const Size(390, 844));
       await tester.enterText(find.byType(TextField), 'adani');
       await tester.pump(const Duration(milliseconds: 100));
@@ -330,7 +334,7 @@ void main() {
           (tester) async {
         await pump(tester, size, savedBillers: () async => const []);
         expectHeader(tester, size);
-        expect(find.byType(PopupMenuButton<String>), findsNothing);
+        expect(_dots(), findsNothing);
         expect(tester.takeException(), isNull);
       });
     }
@@ -354,7 +358,61 @@ void main() {
       pending.complete(const [_saved]);
       await tester.pump(const Duration(milliseconds: 100));
       expectHeader(tester, size);
-      expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+      expect(_dots(), findsOneWidget);
+    });
+  });
+
+  group('Delete Account opens the confirmation instead of the sheet', () {
+    Future<void> openSheet(WidgetTester tester) async {
+      await tester.tap(_dots().first);
+      await tester.pumpAndSettle();
+      expect(find.text('Delete AutoPay'), findsOneWidget);
+    }
+
+    for (final tapIcon in [true, false]) {
+      testWidgets('tapping the ${tapIcon ? 'icon' : 'text'}', (tester) async {
+        await pump(tester, const Size(390, 844));
+        await openSheet(tester);
+
+        final label = find.text('Delete Account');
+        final target = tapIcon
+            ? find.descendant(
+                of: find.ancestor(of: label, matching: find.byType(Row)).first,
+                matching: find.byType(SvgPicture),
+              )
+            : label;
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Delete AutoPay'), findsNothing);
+        expect(find.byType(DeleteSavedBillerDialog), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.text('No'));
+        await tester.pumpAndSettle();
+        expect(find.byType(DeleteSavedBillerDialog), findsNothing);
+        expect(find.text('Delete AutoPay'), findsNothing);
+      });
+    }
+
+    testWidgets('X closes and Yes completes the existing action', (
+      tester,
+    ) async {
+      await pump(tester, const Size(390, 844));
+      await openSheet(tester);
+      await tester.tap(find.text('Delete Account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('delete-account-close')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DeleteSavedBillerDialog), findsNothing);
+
+      await openSheet(tester);
+      await tester.tap(find.text('Delete Account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DeleteSavedBillerDialog), findsNothing);
+      expect(tester.takeException(), isNull);
     });
   });
 

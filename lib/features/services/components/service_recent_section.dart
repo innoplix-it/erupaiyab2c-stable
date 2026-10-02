@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,6 +14,7 @@ import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
+import 'delete_saved_biller_dialog.dart';
 import 'fetch_provider_metrics.dart';
 
 class ServiceRecentSection extends StatelessWidget {
@@ -1025,16 +1028,48 @@ class _SlidingGradientTransform extends GradientTransform {
   }
 }
 
-void _showSavedBillerActionSheet(
+enum _SavedBillerAction { deleteAccount }
+
+Future<void> _showSavedBillerActionSheet(
   BuildContext context,
   LatestTransaction txn,
-) {
-  showModalBottomSheet<void>(
+) async {
+  Animation<double>? sheetAnimation;
+  final action = await showModalBottomSheet<_SavedBillerAction>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (sheetContext) => _SavedBillerActionSheet(txn: txn),
+    builder: (sheetContext) {
+      sheetAnimation = ModalRoute.of(sheetContext)?.animation;
+      return _SavedBillerActionSheet(txn: txn);
+    },
   );
+  if (action != _SavedBillerAction.deleteAccount || !context.mounted) return;
+
+  // The confirmation must not appear over the sheet while it slides away.
+  await _untilDismissed(sheetAnimation);
+  if (!context.mounted) return;
+
+  final confirmed = await showDeleteSavedBillerDialog(context);
+  if (confirmed) {
+    AppSnackbar.show('Account removed from saved billers');
+  }
+}
+
+Future<void> _untilDismissed(Animation<double>? animation) {
+  if (animation == null || animation.status == AnimationStatus.dismissed) {
+    return Future.value();
+  }
+  final done = Completer<void>();
+  void listener(AnimationStatus status) {
+    if (status == AnimationStatus.dismissed) {
+      animation.removeStatusListener(listener);
+      done.complete();
+    }
+  }
+
+  animation.addStatusListener(listener);
+  return done.future;
 }
 
 class _SavedBillerActionSheet extends StatelessWidget {
@@ -1208,10 +1243,8 @@ class _SavedBillerActionSheet extends StatelessWidget {
               _SavedBillerActionRow(
                 iconAsset: FileConstants.deleteAccountSvg,
                 label: 'Delete Account',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  AppSnackbar.show('Account removed from saved billers');
-                },
+                onTap: () =>
+                    Navigator.of(context).pop(_SavedBillerAction.deleteAccount),
               ),
             ],
           ),

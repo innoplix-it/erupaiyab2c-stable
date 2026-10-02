@@ -37,7 +37,9 @@ import '../../mobile_prepaid/components/payment_bottom_sheet.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../../profile/views/transaction_detail_screen.dart';
+import '../components/bharat_connect_consent_card.dart';
 import '../components/credit_card_pay_now/credit_card_pay_now_section.dart';
+import '../components/fetch_provider_metrics.dart';
 import '../components/piped_gas/piped_gas_bill_section.dart';
 import '../components/service_error_banner.dart';
 import '../controllers/biller_detail_controller.dart';
@@ -129,6 +131,9 @@ class BillerDetailView extends HookConsumerWidget {
       billerName: biller?.billerName,
     );
     final showSubscriptionSummary = isSubscription && bill != null;
+    final isElectricityInputStep =
+        isElectricity && detail != null && bill == null;
+    final isElectricityBillStep = isElectricity && detail != null && bill != null;
 
     Map<String, String?> gasCylinderInlineErrors(BillerDetail detail) {
       final errors = <String, String?>{};
@@ -555,7 +560,21 @@ class BillerDetailView extends HookConsumerWidget {
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.all(16.w),
+                      padding: isElectricityInputStep
+                          ? EdgeInsets.fromLTRB(
+                              FetchProviderMetrics.w(24),
+                              FetchProviderMetrics.h(16),
+                              FetchProviderMetrics.w(24),
+                              FetchProviderMetrics.h(33),
+                            )
+                          : isElectricityBillStep
+                              ? EdgeInsets.fromLTRB(
+                                  FetchProviderMetrics.w(24),
+                                  FetchProviderMetrics.h(20),
+                                  FetchProviderMetrics.w(24),
+                                  FetchProviderMetrics.h(20),
+                                )
+                              : EdgeInsets.all(16.w),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -563,6 +582,8 @@ class BillerDetailView extends HookConsumerWidget {
                             title: biller.billerName,
                             subtitle: '',
                             leadingImageUrl: biller.iconUrl,
+                            operatorStyle:
+                                isElectricityInputStep || isElectricityBillStep,
                             actionLabel: 'Change',
                             onAction: () {
                               controller.reset();
@@ -583,7 +604,13 @@ class BillerDetailView extends HookConsumerWidget {
                           //     context.pop();
                           //   },
                           // ),
-                          SizedBox(height: 24.h),
+                          SizedBox(
+                            height: isElectricityInputStep
+                                ? FetchProviderMetrics.h(28)
+                                : isElectricityBillStep
+                                    ? FetchProviderMetrics.h(21)
+                                    : 24.h,
+                          ),
 
                           // --- Loading detail ---
                           if (detailState.isFetchingDetail)
@@ -599,7 +626,7 @@ class BillerDetailView extends HookConsumerWidget {
 
                           // --- Input form (no bill yet) ---
                           else if (detail != null && bill == null) ...[
-                            if (isGasCylinder || isElectricity) ...[
+                            if (isGasCylinder) ...[
                               BillSampleTermsCard(
                                 isExpanded: showBillSample.value,
                                 onToggle: () => showBillSample.value =
@@ -817,15 +844,23 @@ class BillerDetailView extends HookConsumerWidget {
                                             borderSide: const BorderSide(
                                                 color: Colors.red),
                                           ),
-                                          contentPadding:
-                                              EdgeInsets.symmetric(
-                                                  horizontal: 16.w, vertical: 16.h),
+                                          contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 16.w, vertical: 16.h),
                                         ),
                                       ),
                                   ],
                                 ),
                               );
                             }),
+                            if (isElectricity)
+                              BillSampleTermsCard(
+                                isExpanded: showBillSample.value,
+                                onToggle: () => showBillSample.value =
+                                    !showBillSample.value,
+                                billImageUrl: detail.billImage,
+                                termsText: detail.billTermsCond,
+                                viewSampleBillStyle: true,
+                              ),
                             if (isCreditCardFlow &&
                                 creditCardErrorMessage.value != null &&
                                 creditCardErrorMessage.value!
@@ -926,14 +961,23 @@ class BillerDetailView extends HookConsumerWidget {
                           // --- Full details view ---
                           else if (bill != null &&
                               detailState.showFullDetails) ...[
-                            _FullDetailsSection(
-                              bill: bill,
-                              customerParams: customerParamsInput,
-                              onToggle: controller.toggleFullDetails,
-                            ),
+                            if (isElectricity)
+                              ElectricityBillSection(
+                                bill: bill,
+                                customerParams: customerParamsInput,
+                                onToggle: controller.toggleFullDetails,
+                                isExpanded: true,
+                              )
+                            else
+                              _FullDetailsSection(
+                                bill: bill,
+                                customerParams: customerParamsInput,
+                                onToggle: controller.toggleFullDetails,
+                              ),
                           ],
 
                           if (detail != null &&
+                              !isElectricityInputStep &&
                               (bill == null || showSubscriptionSummary)) ...[
                             SizedBox(height: 12.h),
                             const _InfoNoteCard(
@@ -964,10 +1008,24 @@ class BillerDetailView extends HookConsumerWidget {
                       !detailState.isFetchingDetail &&
                       !detailState.isFetchingBill)
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 16.h + bottomInset),
+                      padding: isElectricityInputStep || isElectricityBillStep
+                          ? EdgeInsets.fromLTRB(
+                              FetchProviderMetrics.w(24),
+                              0,
+                              FetchProviderMetrics.w(24),
+                              16.h + bottomInset,
+                            )
+                          : EdgeInsets.fromLTRB(
+                              16.w, 0.h, 16.w, 16.h + bottomInset),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (isElectricity &&
+                              !(isElectricityBillStep &&
+                                  detailState.showFullDetails)) ...[
+                            const BharatConnectConsentCard(),
+                            SizedBox(height: FetchProviderMetrics.h(20)),
+                          ],
                           ValueListenableBuilder<TextEditingValue>(
                             valueListenable: billAmountController,
                             builder: (context, value, _) {
@@ -977,7 +1035,9 @@ class BillerDetailView extends HookConsumerWidget {
                                       ? (isCreditCardFlow
                                           ? 'Proceed'
                                           : 'Proceed')
-                                      : 'CONFIRM');
+                                      : (isElectricity
+                                          ? 'Proceed'
+                                          : 'CONFIRM'));
                               final enteredAmount =
                                   _parseEnteredAmount(value.text);
                               final subscriptionAmount = showSubscriptionSummary

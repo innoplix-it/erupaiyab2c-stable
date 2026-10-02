@@ -3,6 +3,7 @@
 import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/core/barrel_file.dart';
 import 'package:e_rupaiya/features/home/components/quick_action_header_card.dart';
+import 'package:e_rupaiya/features/services/components/fetch_provider_metrics.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SimpleQuickActionCard extends StatelessWidget {
@@ -16,6 +17,7 @@ class SimpleQuickActionCard extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.showShadow = true,
+    this.operatorStyle = false,
   });
 
   final String title;
@@ -27,17 +29,45 @@ class SimpleQuickActionCard extends StatelessWidget {
   final VoidCallback? onAction;
   final bool showShadow;
 
+  /// Figma operator card (Electricity Pay Now): 50x50 logo box, larger title,
+  /// and a card that grows with text instead of a fixed height.
+  final bool operatorStyle;
+
+  static String _capitalizeWords(String value) => value
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+
   @override
   Widget build(BuildContext context) {
     final hasAction = (actionLabel ?? '').trim().isNotEmpty;
+    final titleText = operatorStyle ? _capitalizeWords(title) : title;
+    final titleStyle = operatorStyle
+        ? GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w500,
+            fontSize: 14.sp,
+            height: 1,
+            letterSpacing: -0.02 * 14.sp,
+            color: const Color(0xFF000000),
+          )
+        : GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w600,
+            fontSize: 13.sp,
+            color: const Color(0xFF000000),
+          );
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(22.r),
       child: Container(
         width: double.infinity,
-        height: 56.h,
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
+        height: operatorStyle ? null : 56.h,
+        padding: operatorStyle
+            ? EdgeInsets.symmetric(
+                horizontal: FetchProviderMetrics.w(16),
+                vertical: FetchProviderMetrics.h(15),
+              )
+            : EdgeInsets.symmetric(horizontal: 14.w),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(16.r),
@@ -77,28 +107,25 @@ class SimpleQuickActionCard extends StatelessWidget {
             SimCardIconContainer(
               asset: leadingAsset,
               url: leadingImageUrl,
-              width: 40.w,
-              height: 36.h,
-              borderRadius: 12.r,
-              padding: 10.w,
-              borderWidth: 0.5,
+              width: operatorStyle ? FetchProviderMetrics.r(50) : 40.w,
+              height: operatorStyle ? FetchProviderMetrics.r(50) : 36.h,
+              borderRadius: operatorStyle ? FetchProviderMetrics.r(20) : 12.r,
+              padding: operatorStyle ? FetchProviderMetrics.w(10) : 10.w,
+              borderWidth: operatorStyle ? 1 : 0.5,
             ),
             SizedBox(width: 10.w),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (title.trim().isNotEmpty)
                     Text(
-                      title,
+                      titleText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.sp,
-                        color: const Color(0xFF000000),
-                      ),
+                      style: titleStyle,
                     ),
                   if (title.trim().isNotEmpty && subtitle.trim().isNotEmpty)
                     SizedBox(height: 2.h),

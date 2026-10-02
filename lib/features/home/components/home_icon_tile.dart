@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../widgets/app_network_image.dart';
+import '../../../widgets/common_service_svg_icon.dart';
 
 class HomeServiceCircle extends StatelessWidget {
   const HomeServiceCircle({
@@ -224,6 +225,8 @@ class HomeIconTile extends StatefulWidget {
     this.onTap,
     this.iconSize = 28,
     this.iconUrl,
+    this.customIcon,
+    this.svgAsset,
     this.lottieAsset,
     this.offer,
     this.showHalfRing = false,
@@ -235,6 +238,8 @@ class HomeIconTile extends StatefulWidget {
   final VoidCallback? onTap;
   final double iconSize;
   final String? iconUrl;
+  final Widget? customIcon;
+  final String? svgAsset;
   final String? lottieAsset;
   final int? offer;
   final bool showHalfRing;
@@ -251,6 +256,106 @@ class _HomeIconTileState extends State<HomeIconTile> {
   static const double _orbitCanvas = 96;
   static const double _orbitCircle = 68;
   static const double _orbitCenter = 47.741;
+
+  Widget _buildIconContent(double iconSize) {
+    if (widget.isLoading) {
+      return SizedBox(
+        key: const ValueKey('loading'),
+        height: 24.r,
+        width: 24.r,
+        child: const CircularProgressIndicator(
+          strokeWidth: 2.4,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            AppColors.primary,
+          ),
+        ),
+      );
+    }
+    if (widget.customIcon != null) {
+      return SizedBox(
+        key: const ValueKey('custom-icon'),
+        width: iconSize,
+        height: iconSize,
+        child: Center(child: widget.customIcon),
+      );
+    }
+    if (widget.svgAsset != null) {
+      return SizedBox(
+        key: const ValueKey('svg-icon'),
+        width: iconSize,
+        height: iconSize,
+        child: Center(
+          child: CommonServiceSvgIcon(
+            assetPath: widget.svgAsset!,
+            width: iconSize,
+            height: iconSize,
+          ),
+        ),
+      );
+    }
+    if (widget.lottieAsset != null) {
+      return Lottie.asset(
+        widget.lottieAsset!,
+        key: const ValueKey('lottie-icon'),
+        width: iconSize,
+        height: iconSize,
+        fit: BoxFit.contain,
+      );
+    }
+    final url = widget.iconUrl?.trim() ?? '';
+    if (url.startsWith('assets/')) {
+      if (url.endsWith('.svg')) {
+        return SizedBox(
+          key: const ValueKey('asset-svg'),
+          width: iconSize,
+          height: iconSize,
+          child: Center(
+            child: CommonServiceSvgIcon(
+              assetPath: url,
+              width: iconSize,
+              height: iconSize,
+            ),
+          ),
+        );
+      } else if (url.endsWith('.json')) {
+        return Lottie.asset(
+          url,
+          key: const ValueKey('asset-lottie'),
+          width: iconSize,
+          height: iconSize,
+          fit: BoxFit.contain,
+        );
+      } else {
+        return Image.asset(
+          url,
+          key: const ValueKey('asset-image'),
+          width: iconSize,
+          height: iconSize,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Image.asset(
+            FileConstants.appLogo,
+            height: iconSize,
+            width: iconSize,
+            fit: BoxFit.contain,
+          ),
+        );
+      }
+    }
+    return AppNetworkImage(
+      key: const ValueKey('icon'),
+      url: widget.iconUrl,
+      width: iconSize,
+      height: iconSize,
+      fit: BoxFit.contain,
+      showShimmer: false,
+      errorWidget: Image.asset(
+        FileConstants.appLogo,
+        height: iconSize,
+        width: iconSize,
+        fit: BoxFit.contain,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -280,40 +385,7 @@ class _HomeIconTileState extends State<HomeIconTile> {
                 HomeServiceCircle(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 220),
-                    child: widget.isLoading
-                        ? SizedBox(
-                            key: const ValueKey('loading'),
-                            height: 24.r,
-                            width: 24.r,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.4,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.primary,
-                              ),
-                            ),
-                          )
-                        : widget.lottieAsset != null
-                            ? Lottie.asset(
-                                widget.lottieAsset!,
-                                key: const ValueKey('lottie-icon'),
-                                width: iconSize,
-                                height: iconSize,
-                                fit: BoxFit.contain,
-                              )
-                            : AppNetworkImage(
-                                key: const ValueKey('icon'),
-                                url: widget.iconUrl,
-                                width: iconSize,
-                                height: iconSize,
-                                fit: BoxFit.contain,
-                                showShimmer: false,
-                                errorWidget: Image.asset(
-                                  FileConstants.appLogo,
-                                  height: iconSize,
-                                  width: iconSize,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
+                    child: _buildIconContent(iconSize),
                   ),
                 ),
                 if (widget.showHalfRing)
