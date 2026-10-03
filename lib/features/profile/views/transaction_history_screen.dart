@@ -25,7 +25,12 @@ import '../models/transaction_history_filter.dart';
 import 'transaction_filter_screen.dart';
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
-  const TransactionHistoryScreen({super.key});
+  const TransactionHistoryScreen({
+    super.key,
+    this.initialServiceFilter,
+  });
+
+  final String? initialServiceFilter;
 
   @override
   ConsumerState<TransactionHistoryScreen> createState() =>
@@ -63,11 +68,22 @@ class _TransactionHistoryScreenState
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref
-          .read(transactionHistoryControllerProvider.notifier)
-          .fetchHistory(),
-    );
+    final filterService = widget.initialServiceFilter?.trim();
+    if (filterService != null && filterService.isNotEmpty) {
+      final filter = TransactionHistoryFilter(service: filterService);
+      _activeFilter = filter;
+      Future.microtask(
+        () => ref
+            .read(transactionHistoryControllerProvider.notifier)
+            .applyFilter(filter),
+      );
+    } else {
+      Future.microtask(
+        () => ref
+            .read(transactionHistoryControllerProvider.notifier)
+            .fetchHistory(),
+      );
+    }
   }
 
   @override
@@ -230,8 +246,21 @@ class _TransactionHistoryScreenState
     List<TransactionHistoryEntry> items,
     String query,
   ) {
-    if (query.isEmpty) return items;
-    return items.where((item) {
+    var filtered = items;
+    final serviceFilter = _activeFilter?.service?.trim().toLowerCase();
+    if (serviceFilter != null && serviceFilter.isNotEmpty) {
+      filtered = filtered.where((item) {
+        final pt = item.paymentType.trim().toLowerCase();
+        final bn = item.billerName.trim().toLowerCase();
+        final sf = serviceFilter.toLowerCase();
+        if (sf.contains('electric')) {
+          return pt.contains('electric') || bn.contains('electric');
+        }
+        return pt.contains(sf) || bn.contains(sf) || sf.contains(pt);
+      }).toList(growable: false);
+    }
+    if (query.isEmpty) return filtered;
+    return filtered.where((item) {
       final haystack = '${item.billerName} ${item.paymentType}';
       return haystack.toLowerCase().contains(query);
     }).toList(growable: false);

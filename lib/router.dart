@@ -511,7 +511,9 @@ final routerProvider = Provider<GoRouter>(
         ),
         GoRoute(
           path: RouteConstants.transactions,
-          builder: (context, state) => const TransactionHistoryScreen(),
+          builder: (context, state) => TransactionHistoryScreen(
+            initialServiceFilter: state.extra as String?,
+          ),
         ),
         GoRoute(
           path: RouteConstants.transactionDetailSuccess,

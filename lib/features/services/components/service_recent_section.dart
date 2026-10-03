@@ -14,6 +14,7 @@ import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
+import '../controllers/biller_detail_controller.dart';
 import 'delete_saved_biller_dialog.dart';
 import 'fetch_provider_metrics.dart';
 
@@ -26,6 +27,7 @@ class ServiceRecentSection extends StatelessWidget {
     this.actionText = 'View all',
     this.onAction,
     this.savedBillersStyle = false,
+    this.serviceCategory,
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
@@ -34,6 +36,7 @@ class ServiceRecentSection extends StatelessWidget {
   final String actionText;
   final VoidCallback? onAction;
   final bool savedBillersStyle;
+  final String? serviceCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +68,7 @@ class ServiceRecentSection extends StatelessWidget {
                   : AsyncValue.data(items),
               onPayNow: onPayNow,
               savedBillersStyle: true,
+              serviceCategory: serviceCategory,
             ),
         ],
       );
@@ -88,6 +92,7 @@ class ServiceRecentSection extends StatelessWidget {
               recentTransactions: recentTransactions,
               onPayNow: onPayNow,
               savedBillersStyle: savedBillersStyle,
+              serviceCategory: serviceCategory,
             ),
           ],
         ),
@@ -113,6 +118,7 @@ class ServiceRecentSection extends StatelessWidget {
                 recentTransactions: AsyncValue.data(items),
                 onPayNow: onPayNow,
                 savedBillersStyle: savedBillersStyle,
+                serviceCategory: serviceCategory,
               ),
             ],
           ),
@@ -217,11 +223,13 @@ class _RecentRow extends StatelessWidget {
     required this.recentTransactions,
     required this.onPayNow,
     this.savedBillersStyle = false,
+    this.serviceCategory,
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
   final ValueChanged<LatestTransaction> onPayNow;
   final bool savedBillersStyle;
+  final String? serviceCategory;
 
   Widget _savedBillersRow(List<Widget> cards) {
     return SingleChildScrollView(
@@ -271,7 +279,11 @@ class _RecentRow extends StatelessWidget {
         if (savedBillersStyle) {
           return _savedBillersRow([
             for (final txn in display)
-              _SavedBillerCard(txn: txn, onPayNow: () => onPayNow(txn)),
+              _SavedBillerCard(
+                txn: txn,
+                onPayNow: () => onPayNow(txn),
+                serviceCategory: serviceCategory,
+              ),
           ]);
         }
         return SizedBox(
@@ -285,6 +297,7 @@ class _RecentRow extends StatelessWidget {
             itemBuilder: (context, index) => _RecentCard(
               txn: display[index],
               onPayNow: () => onPayNow(display[index]),
+              serviceCategory: serviceCategory,
             ),
           ),
         );
@@ -473,14 +486,18 @@ class _RecentCardShimmer extends StatelessWidget {
   }
 }
 
+final _autoPayOverridesNotifier = ValueNotifier<Map<String, bool>>({});
+
 class _SavedBillerCard extends StatelessWidget {
   const _SavedBillerCard({
     required this.txn,
     required this.onPayNow,
+    this.serviceCategory,
   });
 
   final LatestTransaction txn;
   final VoidCallback onPayNow;
+  final String? serviceCategory;
 
   /// Narrow phones get a wider share of the screen so the title isn't cut
   /// too early; elsewhere the card keeps Figma's 325/440 width ratio.
@@ -490,202 +507,308 @@ class _SavedBillerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final billerTitle = txn.billerName.trim();
-    final customerName = _capitalizeWords(txn.customerName.trim());
-    final consumerNo = txn.primaryConsumerNumber;
-    final lastPaid = _formatWasPaidOn(txn);
 
     final cardWidth = _SavedBillerCard.cardWidth(
       MediaQuery.sizeOf(context).width,
     );
     final titleSize = FetchProviderMetrics.font(14, min: 11);
     final bodySize = FetchProviderMetrics.font(12, min: 10);
+    final subtitleSize = FetchProviderMetrics.font(11, min: 9.5);
     final subtitleStyle = GoogleFonts.plusJakartaSans(
       fontWeight: FontWeight.w500,
-      fontSize: bodySize,
+      fontSize: subtitleSize,
       height: 1.2,
-      letterSpacing: -0.02 * bodySize,
+      letterSpacing: -0.02 * subtitleSize,
       color: const Color(0xFF696969),
     );
 
-    return GestureDetector(
-      onTap: onPayNow,
-      child: Container(
-        width: cardWidth,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(FetchProviderMetrics.r(16)),
-          border: Border.all(color: const Color(0xFFE2E2E2), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 12.r,
-              offset: Offset(0, 6.h),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Minimum heights (68 + 1 + 62 = 131 on the Figma frame, less the
-            // 1px border on each edge) let the rows grow with larger text
-            // instead of clipping.
-            ConstrainedBox(
-              constraints:
-                  BoxConstraints(minHeight: FetchProviderMetrics.h(68) - 1),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  FetchProviderMetrics.w(16),
-                  FetchProviderMetrics.h(10),
-                  FetchProviderMetrics.w(12),
-                  FetchProviderMetrics.h(10),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SimCardIconContainer(
-                      url: txn.icon.trim().isEmpty ? null : txn.icon.trim(),
-                      width: FetchProviderMetrics.r(40),
-                      height: FetchProviderMetrics.r(40),
-                      borderRadius: FetchProviderMetrics.r(12),
-                      padding: FetchProviderMetrics.r(4),
-                      borderWidth: 1,
-                    ),
-                    SizedBox(width: FetchProviderMetrics.w(10)),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            billerTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w600,
-                              fontSize: titleSize,
-                              height: 1.2,
-                              letterSpacing: -0.02 * titleSize,
-                              color: const Color(0xFF000000),
-                            ),
-                          ),
-                          if (customerName.isNotEmpty ||
-                              consumerNo.isNotEmpty) ...[
-                            SizedBox(height: FetchProviderMetrics.h(4)),
-                            Row(
-                              children: [
-                                if (customerName.isNotEmpty)
-                                  Flexible(
-                                    child: Text(
-                                      customerName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: subtitleStyle,
-                                    ),
-                                  ),
-                                if (customerName.isNotEmpty &&
-                                    consumerNo.isNotEmpty)
-                                  Container(
-                                    width: FetchProviderMetrics.r(5),
-                                    height: FetchProviderMetrics.r(5),
-                                    margin: EdgeInsets.symmetric(
-                                      horizontal: FetchProviderMetrics.w(8),
-                                    ),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFD9D9D9),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                if (consumerNo.isNotEmpty)
-                                  Flexible(
-                                    child: Text(
-                                      consumerNo,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: subtitleStyle,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: FetchProviderMetrics.w(8)),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => _showSavedBillerActionSheet(context, txn),
-                      child: Padding(
-                        padding: EdgeInsets.all(FetchProviderMetrics.r(6)),
-                        child: const _VerticalDots(),
-                      ),
+    return ValueListenableBuilder<Map<String, FetchedBillDetails>>(
+      valueListenable: fetchedBillCacheNotifier,
+      builder: (context, fetchedCache, child) {
+        final cached = fetchedCache['${txn.billerId}_${txn.primaryConsumerNumber}'] ??
+            fetchedCache[txn.billerId];
+        final accountHolderName = _capitalizeWords(
+          (txn.accountHolderName.isNotEmpty
+                  ? txn.accountHolderName
+                  : (cached?.accountHolderName.isNotEmpty == true
+                      ? cached!.accountHolderName
+                      : txn.customerName))
+              .trim(),
+        );
+        final consumerNo = (txn.service_no_full.trim().isNotEmpty
+                ? txn.service_no_full
+                : txn.primaryConsumerNumber)
+            .trim();
+        final rawDueDate = (txn.dueDate != null && txn.dueDate!.isNotEmpty)
+            ? txn.dueDate
+            : (cached?.dueDate.isNotEmpty == true ? cached!.dueDate : txn.expiresAt);
+        final dueLabel = _formatDueDate(rawDueDate);
+        final lastPaid = _formatWasPaidOn(txn);
+        final amountText = '₹${txn.amount.toStringAsFixed(2)}';
+
+        return ValueListenableBuilder<Map<String, bool>>(
+          valueListenable: _autoPayOverridesNotifier,
+          builder: (context, autoPayMap, child) {
+            final isAutoPay = autoPayMap[txn.id] ?? txn.autoPayActive;
+            return GestureDetector(
+              onTap: onPayNow,
+              child: Container(
+                width: cardWidth,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(FetchProviderMetrics.r(16)),
+                  border: Border.all(color: const Color(0xFFE2E2E2), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.cardShadow,
+                      blurRadius: 12.r,
+                      offset: Offset(0, 6.h),
                     ),
                   ],
                 ),
-              ),
-            ),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: AppColors.lightBorder.withValues(alpha: 0.7),
-            ),
-            ConstrainedBox(
-              constraints:
-                  BoxConstraints(minHeight: FetchProviderMetrics.h(62) - 1),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  FetchProviderMetrics.w(16),
-                  FetchProviderMetrics.h(10),
-                  0,
-                  FetchProviderMetrics.h(10),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                clipBehavior: Clip.hardEdge,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'AutoPay Active',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w600,
-                              fontSize: bodySize,
-                              height: 1.2,
-                              letterSpacing: -0.02 * bodySize,
-                              color: const Color(0xFFDD5428),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                          minHeight: FetchProviderMetrics.h(68) - 1),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          FetchProviderMetrics.w(16),
+                          FetchProviderMetrics.h(10),
+                          FetchProviderMetrics.w(12),
+                          FetchProviderMetrics.h(10),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SimCardIconContainer(
+                              url: txn.icon.trim().isEmpty ? null : txn.icon.trim(),
+                              width: FetchProviderMetrics.r(40),
+                              height: FetchProviderMetrics.r(40),
+                              borderRadius: FetchProviderMetrics.r(12),
+                              padding: FetchProviderMetrics.r(4),
+                              borderWidth: 1,
                             ),
-                          ),
-                          if (lastPaid.isNotEmpty) ...[
-                            SizedBox(height: FetchProviderMetrics.h(4)),
-                            Text(
-                              lastPaid,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w500,
-                                fontSize: bodySize,
-                                height: 1.2,
-                                letterSpacing: -0.02 * bodySize,
-                                color: const Color(0xFF000000),
+                            SizedBox(width: FetchProviderMetrics.w(10)),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    billerTitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: titleSize,
+                                      height: 1.2,
+                                      letterSpacing: -0.02 * titleSize,
+                                      color: const Color(0xFF000000),
+                                    ),
+                                  ),
+                                  if (accountHolderName.isNotEmpty ||
+                                      consumerNo.isNotEmpty) ...[
+                                    SizedBox(height: FetchProviderMetrics.h(4)),
+                                    Row(
+                                      children: [
+                                        if (accountHolderName.isNotEmpty)
+                                          Flexible(
+                                            child: Text(
+                                              accountHolderName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: subtitleStyle,
+                                            ),
+                                          ),
+                                        if (accountHolderName.isNotEmpty &&
+                                            consumerNo.isNotEmpty)
+                                          Container(
+                                            width: FetchProviderMetrics.r(5),
+                                            height: FetchProviderMetrics.r(5),
+                                            margin: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  FetchProviderMetrics.w(8),
+                                            ),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFD9D9D9),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        if (consumerNo.isNotEmpty)
+                                          Flexible(
+                                            child: Text(
+                                              consumerNo,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: subtitleStyle,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: FetchProviderMetrics.w(8)),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _showSavedBillerActionSheet(
+                                context,
+                                txn,
+                                serviceCategory: serviceCategory,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(FetchProviderMetrics.r(6)),
+                                child: const _VerticalDots(),
                               ),
                             ),
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                    SizedBox(width: FetchProviderMetrics.w(8)),
-                    const _AutoPayBadge(),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: AppColors.lightBorder.withValues(alpha: 0.7),
+                    ),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                          minHeight: FetchProviderMetrics.h(62) - 1),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          FetchProviderMetrics.w(16),
+                          FetchProviderMetrics.h(10),
+                          isAutoPay ? 0 : FetchProviderMetrics.w(16),
+                          FetchProviderMetrics.h(10),
+                        ),
+                        child: isAutoPay
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'AutoPay Active',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: bodySize,
+                                            height: 1.2,
+                                            letterSpacing: -0.02 * bodySize,
+                                            color: const Color(0xFFDD5428),
+                                          ),
+                                        ),
+                                        if (lastPaid.isNotEmpty) ...[
+                                          SizedBox(
+                                              height: FetchProviderMetrics.h(4)),
+                                          Text(
+                                            lastPaid,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: bodySize,
+                                              height: 1.2,
+                                              letterSpacing: -0.02 * bodySize,
+                                              color: const Color(0xFF000000),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: FetchProviderMetrics.w(8)),
+                                  const _AutoPayBadge(),
+                                ],
+                              )
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Transform.translate(
+                                      offset: Offset(0, -FetchProviderMetrics.h(2)),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            amountText,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14.sp,
+                                              height: 1.2,
+                                              letterSpacing: -0.02 * 14.sp,
+                                              color: const Color(0xFF000000),
+                                            ),
+                                          ),
+                                          if (dueLabel.isNotEmpty) ...[
+                                            SizedBox(
+                                                height: FetchProviderMetrics.h(2)),
+                                            Text(
+                                              dueLabel,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontWeight: FontWeight.w400,
+                                                fontSize: 10.sp,
+                                                height: 1.2,
+                                                letterSpacing: -0.02 * 10.sp,
+                                                color: const Color(0xFFD30000),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: FetchProviderMetrics.w(8)),
+                                  GestureDetector(
+                                    onTap: onPayNow,
+                                    child: Container(
+                                      width: 78.w,
+                                      height: 30.h,
+                                      padding: EdgeInsets.fromLTRB(
+                                          10.w, 6.h, 10.w, 6.h),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDD5428),
+                                        borderRadius: BorderRadius.circular(50.r),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'Pay Now',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 12.sp,
+                                            height: 1.2,
+                                            color: const Color(0xFFFFFFFF),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -747,172 +870,236 @@ String _capitalizeWords(String value) {
 }
 
 class _RecentCard extends StatelessWidget {
-  const _RecentCard({required this.txn, required this.onPayNow});
+  const _RecentCard({
+    required this.txn,
+    required this.onPayNow,
+    this.serviceCategory,
+  });
 
   final LatestTransaction txn;
   final VoidCallback onPayNow;
+  final String? serviceCategory;
 
   @override
   Widget build(BuildContext context) {
     final title = txn.billerName.trim();
-    final serviceNo = txn.primaryConsumerNumber;
     final amount = txn.amount;
-    final dueLabel = _formatDueDate(txn.dueDate);
+    final subtitleStyle = GoogleFonts.plusJakartaSans(
+      fontWeight: FontWeight.w500,
+      fontSize: 11.sp,
+      height: 1.2,
+      letterSpacing: -0.02 * 11.sp,
+      color: const Color(0xFF696969),
+    );
 
-    return Container(
-      width: 280.w,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 12.r,
-            offset: Offset(0.w, 6.h),
+    return ValueListenableBuilder<Map<String, FetchedBillDetails>>(
+      valueListenable: fetchedBillCacheNotifier,
+      builder: (context, fetchedCache, child) {
+        final cached = fetchedCache['${txn.billerId}_${txn.primaryConsumerNumber}'] ??
+            fetchedCache[txn.billerId];
+        final accountHolderName = _capitalizeWords(
+          (txn.accountHolderName.isNotEmpty
+                  ? txn.accountHolderName
+                  : (cached?.accountHolderName.isNotEmpty == true
+                      ? cached!.accountHolderName
+                      : txn.customerName))
+              .trim(),
+        );
+        final consumerNo = (txn.service_no_full.trim().isNotEmpty
+                ? txn.service_no_full
+                : txn.primaryConsumerNumber)
+            .trim();
+        final rawDueDate = (txn.dueDate != null && txn.dueDate!.isNotEmpty)
+            ? txn.dueDate
+            : (cached?.dueDate.isNotEmpty == true ? cached!.dueDate : null);
+        final dueLabel = _formatDueDate(rawDueDate);
+
+        return Container(
+          width: 280.w,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.cardShadow,
+                blurRadius: 12.r,
+                offset: Offset(0.w, 6.h),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.all(13.w),
-            child: Row(
-              children: [
-                Container(
-                  height: 38.w,
-                  width: 38.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                  ),
-                  child: ClipOval(
-                    child: txn.icon.trim().isEmpty
-                        ? Icon(
-                            Icons.bolt,
-                            size: 18.sp,
-                            color: AppColors.primary,
-                          )
-                        : AppNetworkImage(
-                            url: txn.icon,
-                            fit: BoxFit.contain,
-                            showShimmer: false,
-                          ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(13.w),
+                child: Row(
+                  children: [
+                    Container(
+                      height: 38.w,
+                      width: 38.w,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border:
+                            Border.all(color: Colors.black.withValues(alpha: 0.08)),
                       ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        serviceNo,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color:
-                                  AppColors.textPrimary.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w600,
-                            ),
+                      child: ClipOval(
+                        child: txn.icon.trim().isEmpty
+                            ? Icon(
+                                Icons.bolt,
+                                size: 18.sp,
+                                color: AppColors.primary,
+                              )
+                            : AppNetworkImage(
+                                url: txn.icon,
+                                fit: BoxFit.contain,
+                                showShimmer: false,
+                              ),
                       ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showSavedBillerActionSheet(context, txn),
-                  child: Padding(
-                    padding: EdgeInsets.all(4.w),
-                    child: Icon(
-                      Icons.more_vert,
-                      color: AppColors.textPrimary.withValues(alpha: 0.45),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(
-              height: 1, color: AppColors.lightBorder.withValues(alpha: 0.7)),
-          Padding(
-            padding: EdgeInsets.all(14.w),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '₹${amount.toStringAsFixed(2)}',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
                                   color: AppColors.textPrimary,
                                 ),
-                      ),
-                      if (dueLabel.isNotEmpty) ...[
-                        SizedBox(height: 4.h),
-                        Text(
-                          dueLabel,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.red.shade600,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                SizedBox(
-                  height: 30.h,
-                  child: ElevatedButton(
-                    onPressed: onPayNow,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE85A2C),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: EdgeInsets.symmetric(horizontal: 18.w),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22.r),
-                      ),
-                    ),
-                    child: Text(
-                      'Pay Now',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
                           ),
+                          if (accountHolderName.isNotEmpty ||
+                              consumerNo.isNotEmpty) ...[
+                            SizedBox(height: 2.h),
+                            Row(
+                              children: [
+                                if (accountHolderName.isNotEmpty)
+                                  Flexible(
+                                    child: Text(
+                                      accountHolderName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: subtitleStyle,
+                                    ),
+                                  ),
+                                if (accountHolderName.isNotEmpty &&
+                                    consumerNo.isNotEmpty)
+                                  Container(
+                                    width: 4.r,
+                                    height: 4.r,
+                                    margin: EdgeInsets.symmetric(horizontal: 4.w),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFD9D9D9),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                if (consumerNo.isNotEmpty)
+                                  Flexible(
+                                    child: Text(
+                                      consumerNo,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: subtitleStyle,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showSavedBillerActionSheet(
+                        context,
+                        txn,
+                        serviceCategory: serviceCategory,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(4.w),
+                        child: Icon(
+                          Icons.more_vert,
+                          color: AppColors.textPrimary.withValues(alpha: 0.45),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Divider(
+                  height: 1, color: AppColors.lightBorder.withValues(alpha: 0.7)),
+              Padding(
+                padding: EdgeInsets.all(14.w),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '₹${amount.toStringAsFixed(2)}',
+                            style:
+                                Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.textPrimary,
+                                    ),
+                          ),
+                          if (dueLabel.isNotEmpty) ...[
+                            SizedBox(height: 4.h),
+                            Text(
+                              dueLabel,
+                              style:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Colors.red.shade600,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    SizedBox(
+                      height: 30.h,
+                      child: ElevatedButton(
+                        onPressed: onPayNow,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE85A2C),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(horizontal: 18.w),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Pay Now',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 String _formatWasPaidOn(LatestTransaction txn) {
   final raw = (txn.transactionTime ?? txn.createdAt ?? '').trim();
-  if (raw.isEmpty) return '';
-  final parsed = DateTime.tryParse(raw);
   final amountText = '₹${txn.amount.toStringAsFixed(2)}';
-  if (parsed == null) return '$amountText Was Paid On $raw';
+  if (raw.isEmpty) return amountText;
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) return '$amountText Paid On $raw';
   const months = [
     'Jan',
     'Feb',
@@ -922,7 +1109,7 @@ String _formatWasPaidOn(LatestTransaction txn) {
     'Jun',
     'Jul',
     'Aug',
-    'Sept',
+    'Sep',
     'Oct',
     'Nov',
     'Dec',
@@ -936,30 +1123,20 @@ String _formatWasPaidOn(LatestTransaction txn) {
           3 => 'rd',
           _ => 'th',
         };
-  return '$amountText Was Paid On $day$suffix ${months[parsed.month - 1]} ${parsed.year}';
+  return '$amountText Paid On $day$suffix ${months[parsed.month - 1]} ${parsed.year}';
 }
 
 String _formatDueDate(String? raw) {
   final value = (raw ?? '').trim();
   if (value.isEmpty || value.toLowerCase() == 'null') return '';
   final parsed = DateTime.tryParse(value);
-  if (parsed == null) return 'Due On $value';
   const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec'
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
+  if (parsed == null) return 'Due on $value';
   final m = months[parsed.month - 1];
-  return 'Due On ${parsed.day} $m ${parsed.year}';
+  return 'Due on ${parsed.day} $m';
 }
 
 class _Shimmer extends StatefulWidget {
@@ -1028,12 +1205,13 @@ class _SlidingGradientTransform extends GradientTransform {
   }
 }
 
-enum _SavedBillerAction { deleteAccount }
+enum _SavedBillerAction { deleteAccount, toggleAutoPay }
 
 Future<void> _showSavedBillerActionSheet(
   BuildContext context,
-  LatestTransaction txn,
-) async {
+  LatestTransaction txn, {
+  String? serviceCategory,
+}) async {
   Animation<double>? sheetAnimation;
   final action = await showModalBottomSheet<_SavedBillerAction>(
     context: context,
@@ -1041,10 +1219,26 @@ Future<void> _showSavedBillerActionSheet(
     isScrollControlled: true,
     builder: (sheetContext) {
       sheetAnimation = ModalRoute.of(sheetContext)?.animation;
-      return _SavedBillerActionSheet(txn: txn);
+      return _SavedBillerActionSheet(
+        txn: txn,
+        serviceCategory: serviceCategory,
+      );
     },
   );
-  if (action != _SavedBillerAction.deleteAccount || !context.mounted) return;
+  if (action == null || !context.mounted) return;
+
+  if (action == _SavedBillerAction.toggleAutoPay) {
+    final current =
+        _autoPayOverridesNotifier.value[txn.id] ?? txn.autoPayActive;
+    _autoPayOverridesNotifier.value = {
+      ..._autoPayOverridesNotifier.value,
+      txn.id: !current,
+    };
+    AppSnackbar.show('AutoPay settings updated');
+    return;
+  }
+
+  if (action != _SavedBillerAction.deleteAccount) return;
 
   // The confirmation must not appear over the sheet while it slides away.
   await _untilDismissed(sheetAnimation);
@@ -1073,9 +1267,13 @@ Future<void> _untilDismissed(Animation<double>? animation) {
 }
 
 class _SavedBillerActionSheet extends StatelessWidget {
-  const _SavedBillerActionSheet({required this.txn});
+  const _SavedBillerActionSheet({
+    required this.txn,
+    this.serviceCategory,
+  });
 
   final LatestTransaction txn;
+  final String? serviceCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -1083,8 +1281,15 @@ class _SavedBillerActionSheet extends StatelessWidget {
     final screenHeight = MediaQuery.sizeOf(context).height;
 
     final billerTitle = txn.billerName.trim();
-    final customerName = _capitalizeWords(txn.customerName.trim());
+    final customerName = _capitalizeWords(
+      (txn.accountHolderName.isNotEmpty
+              ? txn.accountHolderName
+              : txn.customerName)
+          .trim(),
+    );
     final consumerNo = txn.primaryConsumerNumber;
+    final isAutoPay =
+        _autoPayOverridesNotifier.value[txn.id] ?? txn.autoPayActive;
 
     return Container(
       width: screenWidth,
@@ -1211,15 +1416,21 @@ class _SavedBillerActionSheet extends StatelessWidget {
                 thickness: 1,
                 color: Color(0xFFE2E2E2),
               ),
-              // Delete AutoPay Row
-              _SavedBillerActionRow(
-                iconAsset: FileConstants.deleteAutopaySvg,
-                label: 'Delete AutoPay',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  AppSnackbar.show('AutoPay settings updated');
-                },
-              ),
+              // AutoPay Action Row
+              if (isAutoPay)
+                _SavedBillerActionRow(
+                  iconAsset: FileConstants.deleteAutopaySvg,
+                  label: 'Delete AutoPay',
+                  onTap: () => Navigator.of(context)
+                      .pop(_SavedBillerAction.toggleAutoPay),
+                )
+              else
+                _SavedBillerActionRow(
+                  iconData: Icons.autorenew,
+                  label: 'Add Auto Pay',
+                  onTap: () => Navigator.of(context)
+                      .pop(_SavedBillerAction.toggleAutoPay),
+                ),
               const Divider(
                 height: 1,
                 thickness: 1,
@@ -1231,7 +1442,18 @@ class _SavedBillerActionSheet extends StatelessWidget {
                 label: 'View History',
                 onTap: () {
                   Navigator.of(context).pop();
-                  context.push(RouteConstants.transactions);
+                  final filterService =
+                      (serviceCategory?.trim().isNotEmpty == true)
+                          ? serviceCategory!.trim()
+                          : (txn.paymentType.trim().isNotEmpty
+                              ? txn.paymentType.trim()
+                              : (txn.billerName.toLowerCase().contains('electric')
+                                  ? 'Electricity'
+                                  : null));
+                  context.push(
+                    RouteConstants.transactions,
+                    extra: filterService,
+                  );
                 },
               ),
               const Divider(
@@ -1256,12 +1478,14 @@ class _SavedBillerActionSheet extends StatelessWidget {
 
 class _SavedBillerActionRow extends StatelessWidget {
   const _SavedBillerActionRow({
-    required this.iconAsset,
+    this.iconAsset,
+    this.iconData,
     required this.label,
     required this.onTap,
   });
 
-  final String iconAsset;
+  final String? iconAsset;
+  final IconData? iconData;
   final String label;
   final VoidCallback onTap;
 
@@ -1276,11 +1500,18 @@ class _SavedBillerActionRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              iconAsset,
-              width: 24.w,
-              height: 24.w,
-            ),
+            if (iconAsset != null)
+              SvgPicture.asset(
+                iconAsset!,
+                width: 24.w,
+                height: 24.w,
+              )
+            else if (iconData != null)
+              Icon(
+                iconData,
+                size: 24.r,
+                color: const Color(0xFF000000),
+              ),
             SizedBox(width: 14.w),
             Expanded(
               child: Text(

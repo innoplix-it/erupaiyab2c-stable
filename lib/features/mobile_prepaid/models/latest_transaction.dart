@@ -1,51 +1,64 @@
-class LatestTransaction {
+import '../../services/models/biller_model.dart';
+
+class LatestTransaction extends Biller {
   const LatestTransaction({
     required this.id,
-    this.billerId = '',
+    super.billerId = '',
     required this.paymentType,
-    required this.billerName,
+    required super.billerName,
     required this.amount,
     required this.status,
     required this.transactionRef,
     required this.serviceNo,
     this.serviceNoFull,
-    required this.icon,
+    String? icon = '',
     this.createdAt,
     this.expiresAt,
     this.dueDate,
     this.transactionTime,
     this.daysLeft,
     this.customerName = '',
+    this.accountHolderName = '',
     this.autoPayActive = false,
-  });
+  }) : super(icon: icon);
 
   final String id;
-  final String billerId;
   final String paymentType;
-  final String billerName;
   final num amount;
   final String status;
   final String transactionRef;
   final String serviceNo;
   final String? serviceNoFull;
-  final String icon;
+  @override
+  String get icon => super.icon ?? '';
   final String? createdAt;
   final String? expiresAt;
   final String? dueDate;
   final String? transactionTime;
   final int? daysLeft;
   final String customerName;
+  final String accountHolderName;
   final bool autoPayActive;
 
   factory LatestTransaction.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic>? billerResponse =
+        (json['payload']?['billerResponse'] ?? json['billerResponse']) as Map<String, dynamic>?;
+
     return LatestTransaction(
       id: (json['id'] ?? '').toString(),
       billerId: (json['biller_id'] ?? json['provider_id'] ?? '').toString(),
       paymentType: (json['payment_type'] ?? '').toString(),
       billerName: (json['biller_name'] ?? '').toString(),
-      amount: json['amount'] is num
-          ? (json['amount'] as num)
-          : num.tryParse((json['amount'] ?? '0').toString()) ?? 0,
+      amount: () {
+        final val = billerResponse?['amount'] ??
+            json['amount'] ??
+            json['bill_amount'] ??
+            json['paid_amount'] ??
+            json['total_amount'] ??
+            json['amount_in_rupees'];
+        if (val is num) return val;
+        return num.tryParse((val ?? '0').toString()) ?? 0;
+      }(),
       status: (json['status'] ?? '').toString(),
       transactionRef: (json['transaction_ref'] ?? '').toString(),
       serviceNo: (json['service_no'] ?? '').toString(),
@@ -67,10 +80,24 @@ class LatestTransaction {
               json['next_due'] ??
               json['nextDue'])
           ?.toString(),
-      dueDate: json['due_date']?.toString(),
+      dueDate: (billerResponse?['dueDate'] ??
+              billerResponse?['due_date'] ??
+              json['due_date'] ??
+              json['dueDate'])
+          ?.toString(),
       transactionTime: json['transaction_time']?.toString(),
       daysLeft: _parseDaysLeft(json['days_left'] ?? json['daysLeft']),
       customerName: _readCustomerName(json),
+      accountHolderName: () {
+        final val = billerResponse?['accountHolderName'] ??
+            billerResponse?['account_holder_name'] ??
+            json['accountHolderName'] ??
+            json['account_holder_name'];
+        if (val != null && val.toString().trim().isNotEmpty) {
+          return val.toString().trim();
+        }
+        return _readCustomerName(json);
+      }(),
       autoPayActive: _parseAutoPay(json),
     );
   }
@@ -84,6 +111,9 @@ class LatestTransaction {
     }
     return serviceNo.trim();
   }
+
+  /// Alias for [primaryConsumerNumber] representing the full consumer/service number.
+  String get service_no_full => primaryConsumerNumber;
 
   bool get isSuccess => status.trim().toLowerCase() == 'success';
 

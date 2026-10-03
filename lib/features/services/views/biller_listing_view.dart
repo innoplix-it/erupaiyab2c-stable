@@ -375,6 +375,7 @@ class _ElectricityFlow extends HookConsumerWidget {
               title: 'Saved Billers',
               actionText: 'View all',
               savedBillersStyle: true,
+              serviceCategory: categoryName,
               onPayNow: (txn) {
                 final biller = _findRecentBillerMatch(
                   txn: txn,

@@ -144,6 +144,8 @@ class BillerRepository {
     required String billerName,
     required String paymentType,
     bool useWallet = false,
+    String accountHolderName = '',
+    String dueDate = '',
   }) async {
     try {
       Map<String, dynamic> deviceContext = const <String, dynamic>{};
@@ -163,6 +165,14 @@ class BillerRepository {
         'masked_identifier': maskedIdentifier,
         'use_wallet': useWallet ? 1 : 0,
         'idempotency_key': _generateUuid(),
+        if (accountHolderName.trim().isNotEmpty) ...{
+          'accountHolderName': accountHolderName.trim(),
+          'account_holder_name': accountHolderName.trim(),
+        },
+        if (dueDate.trim().isNotEmpty) ...{
+          'dueDate': dueDate.trim(),
+          'due_date': dueDate.trim(),
+        },
         ...deviceContext,
       };
 

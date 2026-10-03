@@ -1,13 +1,51 @@
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../services/logger_service.dart';
 import '../../../utils/error_message_utils.dart';
+import '../../mobile_prepaid/models/latest_transaction.dart';
 import '../models/biller_detail_model.dart';
 import '../models/biller_detail_state.dart';
 import '../models/biller_model.dart';
 import '../models/recharge_status_result.dart';
 import '../models/service_payment_order_result.dart';
 import '../repositories/biller_repository.dart';
+
+class FetchedBillDetails {
+  const FetchedBillDetails({
+    required this.accountHolderName,
+    required this.dueDate,
+  });
+
+  final String accountHolderName;
+  final String dueDate;
+}
+
+final fetchedBillCacheNotifier =
+    ValueNotifier<Map<String, FetchedBillDetails>>({});
+
+void cacheFetchedBillDetails({
+  required String billerId,
+  required String serviceNo,
+  required String accountHolderName,
+  required String dueDate,
+}) {
+  if (billerId.trim().isEmpty && serviceNo.trim().isEmpty) return;
+  final current = Map<String, FetchedBillDetails>.from(
+    fetchedBillCacheNotifier.value,
+  );
+  final details = FetchedBillDetails(
+    accountHolderName: accountHolderName.trim(),
+    dueDate: dueDate.trim(),
+  );
+  if (billerId.trim().isNotEmpty && serviceNo.trim().isNotEmpty) {
+    current['${billerId.trim()}_${serviceNo.trim()}'] = details;
+  }
+  if (billerId.trim().isNotEmpty) {
+    current[billerId.trim()] = details;
+  }
+  fetchedBillCacheNotifier.value = current;
+}
 
 final billerDetailControllerProvider =
     StateNotifierProvider<BillerDetailController, BillerDetailState>(
@@ -127,9 +165,42 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
             ? detail.planMdmRequirement
             : 'NOT_SUPPORTED',
       );
+
+      Biller? updatedBiller = biller;
+      if (biller is LatestTransaction) {
+        updatedBiller = LatestTransaction(
+          id: biller.id,
+          billerId: biller.billerId,
+          paymentType: biller.paymentType,
+          billerName: biller.billerName,
+          amount: bill.amountInRupees > 0 ? bill.amountInRupees : biller.amount,
+          status: biller.status,
+          transactionRef: biller.transactionRef,
+          serviceNo: biller.serviceNo,
+          serviceNoFull: biller.serviceNoFull,
+          icon: biller.icon,
+          createdAt: biller.createdAt,
+          expiresAt: biller.expiresAt,
+          dueDate: bill.dueDate.isNotEmpty ? bill.dueDate : biller.dueDate,
+          transactionTime: biller.transactionTime,
+          daysLeft: biller.daysLeft,
+          customerName: biller.customerName,
+          accountHolderName: bill.accountHolderName.isNotEmpty ? bill.accountHolderName : biller.accountHolderName,
+          autoPayActive: biller.autoPayActive,
+        );
+      }
+
+      cacheFetchedBillDetails(
+        billerId: biller.billerId,
+        serviceNo: biller is LatestTransaction ? biller.primaryConsumerNumber : '',
+        accountHolderName: bill.accountHolderName,
+        dueDate: bill.dueDate,
+      );
+
       state = state.copyWith(
         isFetchingBill: false,
         billResponse: bill,
+        selectedBiller: updatedBiller,
         errorMessage: null,
         billFetchNote: null,
       );
@@ -200,6 +271,8 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
         billerName: biller.billerName,
         paymentType: paymentType,
         useWallet: useWallet,
+        accountHolderName: bill.accountHolderName,
+        dueDate: bill.dueDate,
       );
       state = state.copyWith(isPayingBill: false);
       if (!order.isSuccess) {
