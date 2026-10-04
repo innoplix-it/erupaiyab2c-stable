@@ -26,6 +26,7 @@ class TransactionHistoryRepository {
     String? paymentType,
     double? minAmount,
     double? maxAmount,
+    String? consumerId,
   }) async {
     try {
       final query = <String, dynamic>{};
@@ -53,6 +54,11 @@ class TransactionHistoryRepository {
       }
       if (maxAmount != null) {
         query['max_amount'] = maxAmount.toStringAsFixed(0);
+      }
+      if (consumerId != null && consumerId.isNotEmpty) {
+        query['consumer_id'] = consumerId;
+        query['customer_number'] = consumerId;
+        query['service_no'] = consumerId;
       }
 
       query['page'] = page;
@@ -87,6 +93,7 @@ class TransactionHistoryRepository {
     String? paymentType,
     double? minAmount,
     double? maxAmount,
+    String? consumerId,
   }) async {
     try {
       final query = <String, dynamic>{};
@@ -114,6 +121,11 @@ class TransactionHistoryRepository {
       }
       if (maxAmount != null) {
         query['max_amount'] = maxAmount.toStringAsFixed(0);
+      }
+      if (consumerId != null && consumerId.isNotEmpty) {
+        query['consumer_id'] = consumerId;
+        query['customer_number'] = consumerId;
+        query['service_no'] = consumerId;
       }
       if (page != null) query['page'] = page;
       if (limit != null) query['limit'] = limit;

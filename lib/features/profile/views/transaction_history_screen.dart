@@ -28,9 +28,11 @@ class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({
     super.key,
     this.initialServiceFilter,
+    this.initialConsumerIdFilter,
   });
 
   final String? initialServiceFilter;
+  final String? initialConsumerIdFilter;
 
   @override
   ConsumerState<TransactionHistoryScreen> createState() =>
@@ -69,8 +71,15 @@ class _TransactionHistoryScreenState
   void initState() {
     super.initState();
     final filterService = widget.initialServiceFilter?.trim();
-    if (filterService != null && filterService.isNotEmpty) {
-      final filter = TransactionHistoryFilter(service: filterService);
+    final filterConsumerId = widget.initialConsumerIdFilter?.trim();
+    final hasService = filterService != null && filterService.isNotEmpty;
+    final hasConsumerId =
+        filterConsumerId != null && filterConsumerId.isNotEmpty;
+    if (hasService || hasConsumerId) {
+      final filter = TransactionHistoryFilter(
+        service: hasService ? filterService : null,
+        consumerId: hasConsumerId ? filterConsumerId : null,
+      );
       _activeFilter = filter;
       Future.microtask(
         () => ref
@@ -247,6 +256,29 @@ class _TransactionHistoryScreenState
     String query,
   ) {
     var filtered = items;
+    final consumerFilter = _activeFilter?.consumerId?.trim();
+    if (consumerFilter != null && consumerFilter.isNotEmpty) {
+      final normalizedTarget = consumerFilter.replaceAll(RegExp(r'\s+'), '');
+      filtered = filtered.where((item) {
+        final candidates = <String>[
+          item.primaryConsumerNumber,
+          item.serviceNoFull ?? '',
+          item.serviceNo ?? '',
+          item.maskedIdentifier,
+        ];
+        for (final cp in item.customerParams) {
+          candidates.add(cp.value);
+        }
+        for (final raw in candidates) {
+          final c = raw.toString().trim().replaceAll(RegExp(r'\s+'), '');
+          if (c.isEmpty) continue;
+          if (c == normalizedTarget || c.contains(normalizedTarget) || normalizedTarget.contains(c)) {
+            return true;
+          }
+        }
+        return false;
+      }).toList(growable: false);
+    }
     final serviceFilter = _activeFilter?.service?.trim().toLowerCase();
     if (serviceFilter != null && serviceFilter.isNotEmpty) {
       filtered = filtered.where((item) {

@@ -83,7 +83,17 @@ class LatestTransaction extends Biller {
       dueDate: (billerResponse?['dueDate'] ??
               billerResponse?['due_date'] ??
               json['due_date'] ??
-              json['dueDate'])
+              json['dueDate'] ??
+              json['next_due'] ??
+              json['nextDue'] ??
+              json['billDueDate'] ??
+              json['bill_due_date'] ??
+              json['billDue'] ??
+              json['bill_due'] ??
+              json['data']?['dueDate'] ??
+              json['data']?['due_date'] ??
+              json['payload']?['dueDate'] ??
+              json['payload']?['due_date'])
           ?.toString(),
       transactionTime: json['transaction_time']?.toString(),
       daysLeft: _parseDaysLeft(json['days_left'] ?? json['daysLeft']),

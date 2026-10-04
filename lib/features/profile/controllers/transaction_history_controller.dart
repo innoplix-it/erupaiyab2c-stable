@@ -118,6 +118,7 @@ class TransactionHistoryController
         paymentType: filter?.paymentType,
         minAmount: filter?.minAmount,
         maxAmount: filter?.maxAmount,
+        consumerId: filter?.consumerId,
       );
       state = state.copyWith(
         isLoading: false,
@@ -158,6 +159,7 @@ class TransactionHistoryController
         paymentType: filter?.paymentType,
         minAmount: filter?.minAmount,
         maxAmount: filter?.maxAmount,
+        consumerId: filter?.consumerId,
       );
       state = state.copyWith(
         isFetchingMore: false,

@@ -511,9 +511,23 @@ final routerProvider = Provider<GoRouter>(
         ),
         GoRoute(
           path: RouteConstants.transactions,
-          builder: (context, state) => TransactionHistoryScreen(
-            initialServiceFilter: state.extra as String?,
-          ),
+          builder: (context, state) {
+            final extra = state.extra;
+            String? serviceFilter;
+            String? consumerIdFilter;
+            if (extra is Map<String, dynamic>) {
+              final s = extra['service'];
+              final c = extra['consumerId'];
+              serviceFilter = s is String && s.trim().isNotEmpty ? s.trim() : null;
+              consumerIdFilter = c is String && c.trim().isNotEmpty ? c.trim() : null;
+            } else if (extra is String) {
+              serviceFilter = extra.trim().isNotEmpty ? extra.trim() : null;
+            }
+            return TransactionHistoryScreen(
+              initialServiceFilter: serviceFilter,
+              initialConsumerIdFilter: consumerIdFilter,
+            );
+          },
         ),
         GoRoute(
           path: RouteConstants.transactionDetailSuccess,

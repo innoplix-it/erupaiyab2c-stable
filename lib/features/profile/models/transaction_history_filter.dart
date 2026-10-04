@@ -8,6 +8,7 @@ class TransactionHistoryFilter {
     this.service,
     this.minAmount,
     this.maxAmount,
+    this.consumerId,
   });
 
   final String? status;
@@ -18,6 +19,7 @@ class TransactionHistoryFilter {
   final String? service;
   final double? minAmount;
   final double? maxAmount;
+  final String? consumerId;
 
   bool get isEmpty =>
       (status == null || status!.isEmpty) &&
@@ -26,6 +28,7 @@ class TransactionHistoryFilter {
       fromDate == null &&
       toDate == null &&
       (service == null || service!.isEmpty) &&
+      (consumerId == null || consumerId!.isEmpty) &&
       minAmount == null &&
       maxAmount == null;
 
@@ -38,6 +41,7 @@ class TransactionHistoryFilter {
     String? service,
     double? minAmount,
     double? maxAmount,
+    String? consumerId,
   }) {
     return TransactionHistoryFilter(
       status: status ?? this.status,
@@ -48,6 +52,7 @@ class TransactionHistoryFilter {
       service: service ?? this.service,
       minAmount: minAmount ?? this.minAmount,
       maxAmount: maxAmount ?? this.maxAmount,
+      consumerId: consumerId ?? this.consumerId,
     );
   }
 }

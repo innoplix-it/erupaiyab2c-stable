@@ -732,71 +732,114 @@ class _SavedBillerCard extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Expanded(
-                                    child: Transform.translate(
-                                      offset: Offset(0, -FetchProviderMetrics.h(2)),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          amountText,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: FetchProviderMetrics.font(
+                                                14,
+                                                min: 11.5),
+                                            height: 1.2,
+                                            letterSpacing:
+                                                -0.02 * FetchProviderMetrics.font(14, min: 11.5),
+                                            color: const Color(0xFF000000),
+                                          ),
+                                        ),
+                                        if (dueLabel.isNotEmpty) ...[
+                                          SizedBox(
+                                              height:
+                                                  FetchProviderMetrics.h(3)),
                                           Text(
-                                            amountText,
-                                            maxLines: 1,
+                                            dueLabel,
+                                            maxLines:
+                                                MediaQuery.sizeOf(context)
+                                                            .width <
+                                                        360
+                                                    ? 2
+                                                    : 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: GoogleFonts.plusJakartaSans(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w400,
+                                              fontSize:
+                                                  FetchProviderMetrics.font(
+                                                      10.5,
+                                                      min: 9),
                                               height: 1.2,
-                                              letterSpacing: -0.02 * 14.sp,
-                                              color: const Color(0xFF000000),
+                                              letterSpacing:
+                                                  -0.02 * FetchProviderMetrics.font(10.5, min: 9),
+                                              color: const Color(0xFFD30000),
                                             ),
                                           ),
-                                          if (dueLabel.isNotEmpty) ...[
-                                            SizedBox(
-                                                height: FetchProviderMetrics.h(2)),
-                                            Text(
-                                              dueLabel,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontWeight: FontWeight.w400,
-                                                fontSize: 10.sp,
-                                                height: 1.2,
-                                                letterSpacing: -0.02 * 10.sp,
-                                                color: const Color(0xFFD30000),
-                                              ),
-                                            ),
-                                          ],
                                         ],
-                                      ),
+                                      ],
                                     ),
                                   ),
                                   SizedBox(width: FetchProviderMetrics.w(8)),
-                                  GestureDetector(
-                                    onTap: onPayNow,
-                                    child: Container(
-                                      width: 78.w,
-                                      height: 30.h,
-                                      padding: EdgeInsets.fromLTRB(
-                                          10.w, 6.h, 10.w, 6.h),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFDD5428),
-                                        borderRadius: BorderRadius.circular(50.r),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          'Pay Now',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 12.sp,
-                                            height: 1.2,
-                                            color: const Color(0xFFFFFFFF),
+                                  LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final screenW =
+                                          MediaQuery.sizeOf(context).width;
+                                      final widthScale =
+                                          (screenW / 392.0).clamp(0.88, 1.12);
+                                      final heightScale =
+                                          (screenW / 392.0).clamp(0.92, 1.08);
+                                      final baseBtnWidth =
+                                          FetchProviderMetrics.w(88) *
+                                              widthScale;
+                                      final payBtnWidth = baseBtnWidth
+                                          .clamp(
+                                            FetchProviderMetrics.w(74),
+                                            constraints.maxWidth > 0
+                                                ? constraints.maxWidth
+                                                : double.infinity,
+                                          )
+                                          .toDouble();
+                                      final payBtnHeight =
+                                          FetchProviderMetrics.h(28) *
+                                              heightScale;
+                                      final payBtnFont =
+                                          FetchProviderMetrics.font(11.5,
+                                              min: 10);
+                                      return GestureDetector(
+                                        onTap: onPayNow,
+                                        child: Container(
+                                          width: payBtnWidth,
+                                          height: payBtnHeight,
+                                          padding: EdgeInsets.fromLTRB(
+                                              FetchProviderMetrics.w(10),
+                                              FetchProviderMetrics.h(4),
+                                              FetchProviderMetrics.w(10),
+                                              FetchProviderMetrics.h(4)),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFDD5428),
+                                            borderRadius:
+                                                BorderRadius.circular(50.r),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Text(
+                                              'Pay Now',
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: payBtnFont,
+                                                height: 1.2,
+                                                color:
+                                                    const Color(0xFFFFFFFF),
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -1450,9 +1493,17 @@ class _SavedBillerActionSheet extends StatelessWidget {
                               : (txn.billerName.toLowerCase().contains('electric')
                                   ? 'Electricity'
                                   : null));
+                  final consumerId = txn.primaryConsumerNumber.trim();
+                  final extra = <String, dynamic>{};
+                  if (filterService != null && filterService.isNotEmpty) {
+                    extra['service'] = filterService;
+                  }
+                  if (consumerId.isNotEmpty && consumerId.toLowerCase() != 'null') {
+                    extra['consumerId'] = consumerId;
+                  }
                   context.push(
                     RouteConstants.transactions,
-                    extra: filterService,
+                    extra: extra.isEmpty ? filterService : extra,
                   );
                 },
               ),

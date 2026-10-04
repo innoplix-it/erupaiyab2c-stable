@@ -1069,6 +1069,8 @@ class BillerDetailView extends HookConsumerWidget {
                                                   entered >
                                                       PipedGasBillSection
                                                           .maxAmount))));
+                              final screenW = MediaQuery.sizeOf(context).width;
+                              final btnHeightScale = (screenW / 392.0).clamp(0.92, 1.08);
                               return CustomElevatedButton(
                                 onPressed: shouldDisablePay ||
                                         detailState.isPayingBill ||
@@ -1314,7 +1316,7 @@ class BillerDetailView extends HookConsumerWidget {
                                     : payLabel,
                                 showArrow: false,
                                 uppercaseLabel: false,
-                                height: 38.h,
+                                height: 36.h * btnHeightScale,
                               );
                             },
                           ),
