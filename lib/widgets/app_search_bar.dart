@@ -124,7 +124,7 @@ class AppSearchBar extends StatelessWidget {
                     : BoxConstraints(minWidth: 16.w),
                 suffixIcon: trailing != null
                     ? Padding(
-                        padding: EdgeInsets.only(right: 8.w),
+                        padding: EdgeInsets.only(right: 6.w),
                         child: trailing,
                       )
                     : value.text.isNotEmpty

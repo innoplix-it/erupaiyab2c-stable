@@ -145,25 +145,36 @@ class SimpleQuickActionCard extends StatelessWidget {
             ),
             if (hasAction) ...[
               SizedBox(width: 10.w),
-              GestureDetector(
-                onTap: onAction ?? onTap,
-                child: Container(
-                  width: 68.w,
-                  height: 26.h,
-                  padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 4.h),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(50.r),
-                  ),
-                  child: Text(
-                    actionLabel!,
-                    maxLines: 1,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 10.sp,
-                      height: 1,
+              SizedBox(
+                height: 26.h,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: onAction ?? onTap,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      constraints: BoxConstraints(
+                        minWidth: FetchProviderMetrics.w(64),
+                        minHeight: 26.h,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: FetchProviderMetrics.w(12),
+                        vertical: 0,
+                      ),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        actionLabel!,
+                        maxLines: 1,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11.sp,
+                          height: 1,
+                        ),
+                      ),
                     ),
                   ),
                 ),

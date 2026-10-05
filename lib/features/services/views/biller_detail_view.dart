@@ -93,7 +93,7 @@ class BillerDetailView extends HookConsumerWidget {
     final contactsController =
         ref.read(contactsCacheControllerProvider.notifier);
     final isCreditCardFlow = args?.isCreditCard ?? false;
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final mobilePrefill = args?.mobileNumber?.trim();
     final last4Prefill = args?.cardLast4?.trim();
     final autoFetchBill = args?.autoFetchBill ?? false;
@@ -537,22 +537,27 @@ class BillerDetailView extends HookConsumerWidget {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(140),
-          child: MyAppBar(
-            title: (isCreditCardFlow && detailState.billResponse != null)
-                ? 'Pay Now'
-                : 'Pay Now',
-            showHelp: true,
-            onBack: () {
-              if (detailState.billResponse != null) {
-                controller.clearBill();
-              } else {
-                controller.reset();
-                context.pop();
-              }
-            },
+        appBar: MyAppBar(
+          title: isElectricityInputStep
+              ? 'Fetch Your Provider'
+              : (isCreditCardFlow && detailState.billResponse != null)
+                  ? 'Pay Now'
+                  : 'Pay Now',
+          titleStyle: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w600,
+            fontSize: 18.sp,
+            color: Colors.black,
           ),
+          fitTitle: true,
+          showHelp: true,
+          onBack: () {
+            if (detailState.billResponse != null) {
+              controller.clearBill();
+            } else {
+              controller.reset();
+              context.pop();
+            }
+          },
         ),
         body: biller == null
             ? const Center(child: Text('No provider selected'))
@@ -585,6 +590,9 @@ class BillerDetailView extends HookConsumerWidget {
                             operatorStyle:
                                 isElectricityInputStep || isElectricityBillStep,
                             actionLabel: 'Change',
+                            showShadow:
+                                !(isElectricityInputStep ||
+                                    isElectricityBillStep),
                             onAction: () {
                               controller.reset();
                               context.pop();
@@ -686,25 +694,45 @@ class BillerDetailView extends HookConsumerWidget {
                                         Flexible(
                                           child: Text(
                                             label,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.copyWith(
-                                                  color: AppColors.textPrimary,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
+                                            style: isElectricity
+                                                ? GoogleFonts.plusJakartaSans(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 14.sp,
+                                                    height: 1,
+                                                    color: AppColors.textPrimary,
+                                                  )
+                                                : Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      color:
+                                                          AppColors.textPrimary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         if (param.optional)
                                           Text(
                                             ' (Optional)',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: AppColors.textPrimary
-                                                      .withOpacity(0.5),
-                                                ),
+                                            style: isElectricity
+                                                ? GoogleFonts.plusJakartaSans(
+                                                    fontWeight: FontWeight.w400,
+                                                    fontSize: 12.sp,
+                                                    color: AppColors
+                                                        .textPrimary
+                                                        .withValues(alpha: 0.5),
+                                                  )
+                                                : Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: AppColors
+                                                          .textPrimary
+                                                          .withValues(alpha: 0.5),
+                                                    ),
                                           ),
                                       ],
                                     ),
@@ -753,15 +781,17 @@ class BillerDetailView extends HookConsumerWidget {
                                         showCursor:
                                             isGasLockedMobile ? false : null,
                                         onTap: isGasLockedMobile
-                                            ? () =>
-                                                FocusScope.of(context).unfocus()
+                                            ? () => FocusScope.of(context)
+                                                .unfocus()
                                             : null,
                                         keyboardType:
                                             param.dataType == 'NUMERIC'
                                                 ? TextInputType.number
                                                 : TextInputType.text,
                                         inputFormatters: isAlphaNumeric
-                                            ? const [_UpperCaseTextFormatter()]
+                                            ? const [
+                                                _UpperCaseTextFormatter()
+                                              ]
                                             : null,
                                         maxLength:
                                             isLastFour ? 4 : param.maxLength,
@@ -782,6 +812,14 @@ class BillerDetailView extends HookConsumerWidget {
                                           counterText: '',
                                           filled: true,
                                           fillColor: Colors.grey.shade50,
+                                          hintStyle: isElectricity
+                                              ? GoogleFonts.plusJakartaSans(
+                                                  fontWeight: FontWeight.w400,
+                                                  fontSize: 14.sp,
+                                                  color: AppColors.textPrimary
+                                                      .withValues(alpha: 0.45),
+                                                )
+                                              : null,
                                           prefixIcon: isLastFour
                                               ? _MaskedPrefix()
                                               : null,
@@ -844,9 +882,24 @@ class BillerDetailView extends HookConsumerWidget {
                                             borderSide: const BorderSide(
                                                 color: Colors.red),
                                           ),
-                                          contentPadding: EdgeInsets.symmetric(
-                                              horizontal: 16.w, vertical: 16.h),
+                                          contentPadding:
+                                              EdgeInsets.symmetric(
+                                            horizontal: isElectricity
+                                                ? FetchProviderMetrics.w(16)
+                                                : 16.w,
+                                            vertical: isElectricity
+                                                ? FetchProviderMetrics.h(16)
+                                                : 16.h,
+                                          ),
                                         ),
+                                        style: isElectricity
+                                            ? GoogleFonts.plusJakartaSans(
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 15.sp,
+                                                color: Colors.black,
+                                                letterSpacing: -0.02 * 15.sp,
+                                              )
+                                            : null,
                                       ),
                                   ],
                                 ),
@@ -1029,17 +1082,23 @@ class BillerDetailView extends HookConsumerWidget {
                           ValueListenableBuilder<TextEditingValue>(
                             valueListenable: billAmountController,
                             builder: (context, value, _) {
+                              final enteredAmount =
+                                  _parseEnteredAmount(value.text);
+                              final amountForLabel = bill != null
+                                  ? (enteredAmount ??
+                                      _resolveDateBasedAmount(bill))
+                                  : 0.0;
                               final payLabel = showSubscriptionSummary
                                   ? 'Pay Now'
                                   : (bill != null
                                       ? (isCreditCardFlow
                                           ? 'Proceed'
-                                          : 'Proceed')
+                                          : (isElectricity
+                                              ? 'Pay ₹${_formatAmountForInput(amountForLabel)}'
+                                              : 'Proceed'))
                                       : (isElectricity
                                           ? 'Proceed'
                                           : 'CONFIRM'));
-                              final enteredAmount =
-                                  _parseEnteredAmount(value.text);
                               final subscriptionAmount = showSubscriptionSummary
                                   ? _resolveSubscriptionAmount(
                                       customerParamsInput,
@@ -1069,9 +1128,15 @@ class BillerDetailView extends HookConsumerWidget {
                                                   entered >
                                                       PipedGasBillSection
                                                           .maxAmount))));
-                              final screenW = MediaQuery.sizeOf(context).width;
-                              final btnHeightScale = (screenW / 392.0).clamp(0.92, 1.08);
-                              return CustomElevatedButton(
+                              return LayoutBuilder(
+                                builder: (context, btnConstraints) =>
+                                    CustomElevatedButton(
+                                  width: btnConstraints.maxWidth
+                                      .clamp(
+                                        FetchProviderMetrics.w(74),
+                                        btnConstraints.maxWidth,
+                                      )
+                                      .toDouble(),
                                 onPressed: shouldDisablePay ||
                                         detailState.isPayingBill ||
                                         isHandlingPayAction.value
@@ -1281,6 +1346,13 @@ class BillerDetailView extends HookConsumerWidget {
                                             // down-arrow in the bill card, not the pay CTA).
                                             final amountToPay = enteredAmount ??
                                                 bill.amountInRupees;
+                                            final consumerForAutoPay =
+                                                isElectricity
+                                                    ? _extractConsumerNumber(
+                                                        customerParamsInput,
+                                                        bill: bill,
+                                                      )
+                                                    : '';
                                             _showPaymentSheet(
                                               context,
                                               amountToPay,
@@ -1290,11 +1362,25 @@ class BillerDetailView extends HookConsumerWidget {
                                                   args?.paymentType,
                                               ecoinsRestrictionsPercent: bill
                                                   .ecoinsRestrictionsPercent,
+                                              isElectricityFlow: isElectricity,
+                                              billerName: biller.billerName,
+                                              providerIconUrl: biller.iconUrl,
+                                              accountHolderName:
+                                                  bill.accountHolderName,
+                                              consumerNumber:
+                                                  consumerForAutoPay,
                                             );
                                           } else {
                                             // Open payment bottom sheet
                                             final amountToPay = enteredAmount ??
                                                 bill.amountInRupees;
+                                            final consumerForAutoPay2 =
+                                                isElectricity
+                                                    ? _extractConsumerNumber(
+                                                        customerParamsInput,
+                                                        bill: bill,
+                                                      )
+                                                    : '';
                                             _showPaymentSheet(
                                               context,
                                               amountToPay,
@@ -1304,6 +1390,13 @@ class BillerDetailView extends HookConsumerWidget {
                                                   args?.paymentType,
                                               ecoinsRestrictionsPercent: bill
                                                   .ecoinsRestrictionsPercent,
+                                              isElectricityFlow: isElectricity,
+                                              billerName: biller.billerName,
+                                              providerIconUrl: biller.iconUrl,
+                                              accountHolderName:
+                                                  bill.accountHolderName,
+                                              consumerNumber:
+                                                  consumerForAutoPay2,
                                             );
                                           }
                                         } finally {
@@ -1316,9 +1409,17 @@ class BillerDetailView extends HookConsumerWidget {
                                     : payLabel,
                                 showArrow: false,
                                 uppercaseLabel: false,
-                                height: 36.h * btnHeightScale,
-                              );
-                            },
+                                height: FetchProviderMetrics.h(56),
+                                labelStyle:
+                                    GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16.sp,
+                                  color: Colors.white,
+                                  height: 1.0,
+                                ),
+                              ),
+                            );
+                          },
                           ),
                           // if (bill == null) ...[
                           //   SizedBox(height: 10.h),
@@ -1360,7 +1461,40 @@ class BillerDetailView extends HookConsumerWidget {
     required bool isCreditCardFlow,
     String? paymentTypeOverride,
     double? ecoinsRestrictionsPercent,
+    bool isElectricityFlow = false,
+    String billerName = '',
+    String? providerIconUrl,
+    String accountHolderName = '',
+    String consumerNumber = '',
   }) {
+    if (isElectricityFlow && billerName.isNotEmpty) {
+      KDialog.instance.openSheet(
+        dialog: AutoPayBottomSheet(
+          amount: amount,
+          billerName: billerName,
+          providerIconUrl: providerIconUrl,
+          accountHolderName: accountHolderName,
+          consumerNumber: consumerNumber,
+          onPayAndSetAutoPay: () {
+            Navigator.of(context).pop();
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) {
+                if (!context.mounted) return;
+                KDialog.instance.openSheet(
+                  dialog: PaymentBottomSheet(
+                    amount: amount,
+                    isCreditCardFlow: isCreditCardFlow,
+                    paymentTypeOverride: paymentTypeOverride,
+                    ecoinsRestrictionsPercent: ecoinsRestrictionsPercent,
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      );
+      return;
+    }
     KDialog.instance.openSheet(
       dialog: PaymentBottomSheet(
         amount: amount,
@@ -1369,6 +1503,42 @@ class BillerDetailView extends HookConsumerWidget {
         ecoinsRestrictionsPercent: ecoinsRestrictionsPercent,
       ),
     );
+  }
+
+  String _extractConsumerNumber(
+    Map<String, String> paramsInput, {
+    required BillResponse bill,
+  }) {
+    const kConsumerKeys = [
+      'consumer',
+      'service_no',
+      'service no',
+      'service number',
+      'customer no',
+      'customer number',
+      'customer_no',
+      'account no',
+      'account number',
+      'ca number',
+      'canumber',
+      'ca_no',
+    ];
+    for (final e in paramsInput.entries) {
+      final k = e.key.toLowerCase();
+      for (final kw in kConsumerKeys) {
+        if (k.contains(kw) && e.value.trim().isNotEmpty) {
+          return e.value.trim();
+        }
+      }
+    }
+    for (final e in paramsInput.entries) {
+      if (e.value.trim().isNotEmpty) return e.value.trim();
+    }
+    final addlCustNo = bill.additionalParams['Customer Number'];
+    if (addlCustNo != null && addlCustNo.trim().isNotEmpty) {
+      return addlCustNo.trim();
+    }
+    return bill.billNumber.trim();
   }
 
   String _buildParamHint(BillerCustomerParam param) {

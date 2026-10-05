@@ -8,6 +8,6 @@ class SslPinningConfig {
   ];
 
   static const List<String> sha256Fingerprints = <String>[
-    '21:54:8F:10:91:52:B6:14:3E:BB:2E:6D:5B:DC:CE:4E:B0:0A:0A:74:2F:04:C8:AE:D7:54:55:B2:68:82:17:4A',
+    'CD:8B:6D:9B:C9:33:D1:DD:E1:4C:32:A8:9A:B5:30:33:16:F7:0F:B2:EE:E9:AE:56:B9:D2:33:77:28:EF:B6:60',
   ];
 }

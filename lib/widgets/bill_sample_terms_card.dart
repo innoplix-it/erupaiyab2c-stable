@@ -56,13 +56,13 @@ class BillSampleTermsCard extends StatelessWidget {
           ? AppNetworkImage(
               url: billImageUrl,
               width: double.infinity,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               showShimmer: true,
             )
           : Image.asset(
               FileConstants.sampleBill,
               width: double.infinity,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
             ),
     );
   }

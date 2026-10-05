@@ -72,7 +72,8 @@ class ContactsList extends StatelessWidget {
           CircleAvatar(
             radius: 22.r,
             backgroundColor: Colors.black.withOpacity(0.08),
-            backgroundImage: photoBytes == null ? null : MemoryImage(photoBytes),
+            backgroundImage:
+                photoBytes == null ? null : MemoryImage(photoBytes),
             child: photoBytes != null
                 ? null
                 : Icon(Icons.person, color: Colors.white, size: 22.sp),
@@ -115,40 +116,44 @@ class ContactsList extends StatelessWidget {
   }
 
   Widget _prepaidRow(String name, String phone, Uint8List? photoBytes) {
-    // Avatar: SIM card shape — same as _OperatorIconBadge
-    final avatarSize = 50.r;
+    // Avatar: rounded-square (squircle) contact photo — matches Figma
+    // (50px box @440 ≈ 41.r, ~28% corner radius ≈ 12.r, 1px #E2E2E2 border)
+    final avatarSize = 41.r;
+    final avatarRadius = 12.r;
     return Container(
-      constraints: BoxConstraints(minHeight: 56.h),
+      constraints: BoxConstraints(minHeight: 50.h),
       alignment: Alignment.center,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // SIM-card rounded rectangle avatar (matches operator icon badge)
+          // Rounded-square contact avatar (Figma: 1px #E2E2E2 border, centered)
           Container(
             width: avatarSize,
             height: avatarSize,
+            padding: const EdgeInsets.all(1),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(12.r),
+              color: const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(avatarRadius),
               border: Border.all(
                 color: const Color(0xFFE2E2E2),
-                width: 0.5,
+                width: 1,
               ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(avatarRadius - 1),
               child: photoBytes != null
                   ? Image.memory(
                       photoBytes,
                       fit: BoxFit.cover,
-                      width: avatarSize,
-                      height: avatarSize,
+                      alignment: Alignment.center,
+                      width: double.infinity,
+                      height: double.infinity,
                     )
                   : Center(
                       child: Icon(
                         Icons.person,
                         color: const Color(0xFFBDBDBD),
-                        size: avatarSize * 0.48,
+                        size: avatarSize * 0.55,
                       ),
                     ),
             ),
@@ -202,6 +207,3 @@ class ContactsList extends StatelessWidget {
     );
   }
 }
-
-
-

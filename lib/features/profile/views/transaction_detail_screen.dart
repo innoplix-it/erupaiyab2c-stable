@@ -809,7 +809,10 @@ List<TransactionCustomerParam> _resolveHeaderParams(
   // Mobile Recharge transaction flow:
   // LEFT  → "Operator Name"  = biller_name (operator from API, e.g. Jio, Airtel)
   // RIGHT → "Mobile Number"  = customerMobile or maskedIdentifier (existing mobile number)
-  final isRecharge = paymentType.contains('recharge');
+  final isRecharge = paymentType.contains('recharge') ||
+      paymentType.contains('prepaid') ||
+      paymentType.contains('postpaid') ||
+      tx.customerParams.any((p) => p.label.trim().toLowerCase() == 'customer_mobile');
   if (isRecharge) {
     // Resolve operator name from biller_name (API key: biller_name)
     final operatorName = billerName.isNotEmpty ? billerName : '';

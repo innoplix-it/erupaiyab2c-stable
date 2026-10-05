@@ -178,23 +178,30 @@ class _RecentPaymentCard extends StatelessWidget {
               ),
             ),
             SizedBox(width: 8.w),
-            GestureDetector(
-              onTap: onRepeat,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 12.w,
-                  vertical: 8.h,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE85A2C),
-                  borderRadius: BorderRadius.circular(20.r),
-                ),
-                child: Text(
-                  'Repeat',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
+            SizedBox(
+              height: 24.h,
+              child: GestureDetector(
+                onTap: onRepeat,
+                child: Container(
+                  height: 24.h,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 0,
+                  ),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE85A2C),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    'Repeat',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11.sp,
+                          height: 1,
+                        ),
+                  ),
                 ),
               ),
             ),

@@ -612,42 +612,25 @@ class _SavedBillerCard extends StatelessWidget {
                                   if (accountHolderName.isNotEmpty ||
                                       consumerNo.isNotEmpty) ...[
                                     SizedBox(height: FetchProviderMetrics.h(4)),
-                                    Row(
-                                      children: [
-                                        if (accountHolderName.isNotEmpty)
-                                          Flexible(
-                                            child: Text(
-                                              accountHolderName,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: subtitleStyle,
-                                            ),
-                                          ),
-                                        if (accountHolderName.isNotEmpty &&
-                                            consumerNo.isNotEmpty)
-                                          Container(
-                                            width: FetchProviderMetrics.r(5),
-                                            height: FetchProviderMetrics.r(5),
-                                            margin: EdgeInsets.symmetric(
-                                              horizontal:
-                                                  FetchProviderMetrics.w(8),
-                                            ),
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFFD9D9D9),
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                        if (consumerNo.isNotEmpty)
-                                          Flexible(
-                                            child: Text(
-                                              consumerNo,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: subtitleStyle,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
+                                    if (accountHolderName.isNotEmpty)
+                                      Text(
+                                        accountHolderName,
+                                        maxLines: 2,
+                                        softWrap: true,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: subtitleStyle,
+                                      ),
+                                    if (accountHolderName.isNotEmpty &&
+                                        consumerNo.isNotEmpty)
+                                      SizedBox(
+                                          height: FetchProviderMetrics.h(2)),
+                                    if (consumerNo.isNotEmpty)
+                                      Text(
+                                        consumerNo,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: subtitleStyle,
+                                      ),
                                   ],
                                 ],
                               ),
@@ -755,26 +738,38 @@ class _SavedBillerCard extends StatelessWidget {
                                         if (dueLabel.isNotEmpty) ...[
                                           SizedBox(
                                               height:
-                                                  FetchProviderMetrics.h(3)),
-                                          Text(
-                                            dueLabel,
-                                            maxLines:
-                                                MediaQuery.sizeOf(context)
-                                                            .width <
-                                                        360
-                                                    ? 2
-                                                    : 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontWeight: FontWeight.w400,
-                                              fontSize:
-                                                  FetchProviderMetrics.font(
-                                                      10.5,
-                                                      min: 9),
-                                              height: 1.2,
-                                              letterSpacing:
-                                                  -0.02 * FetchProviderMetrics.font(10.5, min: 9),
+                                                  FetchProviderMetrics.h(5)),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  FetchProviderMetrics.w(8),
+                                              vertical:
+                                                  FetchProviderMetrics.h(3),
+                                            ),
+                                            decoration: BoxDecoration(
                                               color: const Color(0xFFD30000),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      FetchProviderMetrics
+                                                          .r(6)),
+                                            ),
+                                            child: Text(
+                                              dueLabel,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize:
+                                                    FetchProviderMetrics.font(
+                                                        10.5,
+                                                        min: 9),
+                                                height: 1.1,
+                                                letterSpacing:
+                                                    -0.02 * FetchProviderMetrics.font(10.5, min: 9),
+                                                color:
+                                                    const Color(0xFFFFFFFF),
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -784,26 +779,19 @@ class _SavedBillerCard extends StatelessWidget {
                                   SizedBox(width: FetchProviderMetrics.w(8)),
                                   LayoutBuilder(
                                     builder: (context, constraints) {
-                                      final screenW =
-                                          MediaQuery.sizeOf(context).width;
-                                      final widthScale =
-                                          (screenW / 392.0).clamp(0.88, 1.12);
-                                      final heightScale =
-                                          (screenW / 392.0).clamp(0.92, 1.08);
-                                      final baseBtnWidth =
-                                          FetchProviderMetrics.w(88) *
-                                              widthScale;
-                                      final payBtnWidth = baseBtnWidth
-                                          .clamp(
-                                            FetchProviderMetrics.w(74),
-                                            constraints.maxWidth > 0
-                                                ? constraints.maxWidth
-                                                : double.infinity,
-                                          )
-                                          .toDouble();
+                                      // Single scaling: ScreenUtil via
+                                      // FetchProviderMetrics; LayoutBuilder is
+                                      // used only to clamp to the local
+                                      // available width (overflow guard).
+                                      final payBtnWidth =
+                                          FetchProviderMetrics.w(88).clamp(
+                                        FetchProviderMetrics.w(74),
+                                        constraints.maxWidth > 0
+                                            ? constraints.maxWidth
+                                            : double.infinity,
+                                      ).toDouble();
                                       final payBtnHeight =
-                                          FetchProviderMetrics.h(28) *
-                                              heightScale;
+                                          FetchProviderMetrics.h(28);
                                       final payBtnFont =
                                           FetchProviderMetrics.font(11.5,
                                               min: 10);

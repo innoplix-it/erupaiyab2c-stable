@@ -946,7 +946,7 @@ class _CompactBillSection extends StatelessWidget {
                       ),
                       Positioned(
                         right: 0,
-                        top: -20,
+                        top: -FetchProviderMetrics.h(20),
                         child: _ToggleArrowButton(
                           isExpanded: false,
                           onTap: onToggle,
@@ -1468,7 +1468,7 @@ class _ElectricityAmountCard extends StatelessWidget {
 
     final badgeFont = FetchProviderMetrics.font(14, min: 11);
     final dueFont = FetchProviderMetrics.font(16, min: 12);
-    final amountFont = FetchProviderMetrics.font(56, min: 40);
+    final amountFont = FetchProviderMetrics.font(55, min: 39);
     final lastPaidFont = FetchProviderMetrics.font(14, min: 12);
     final sidePadding = FetchProviderMetrics.w(20);
 
@@ -1970,10 +1970,12 @@ class _AmountDisplayCard extends StatelessWidget {
                       'Bill for ${_formatBillPeriod(_resolveBillMonth(bill))}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: FetchProviderMetrics.font(14, min: 12),
+                        height: 1.0,
+                      ),
                     ),
                   ),
                 ),
@@ -1987,22 +1989,31 @@ class _AmountDisplayCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.end,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.red,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppColors.red,
+                      fontWeight: FontWeight.w700,
+                      fontSize: FetchProviderMetrics.font(16, min: 13),
+                      height: 1.0,
+                    ),
                   ),
                 ),
             ],
           ),
           SizedBox(height: 20.h),
           // Amount
-          Text(
-            _resolvedAmountText(),
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _resolvedAmountText(),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                fontSize: FetchProviderMetrics.font(33, min: 23),
+                height: 1.0,
+                letterSpacing: -0.02 * FetchProviderMetrics.font(33, min: 23),
+              ),
+            ),
           ),
         ],
       ),
@@ -2195,7 +2206,7 @@ class _FullDetailsSection extends StatelessWidget {
             Positioned(
               left: 0,
               right: 0,
-              bottom: -21,
+              bottom: -FetchProviderMetrics.h(21),
               child: showToggle
                   ? Center(
                       child: _ToggleArrowButton(
@@ -2290,6 +2301,8 @@ class _ColonInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelFont = FetchProviderMetrics.font(14, min: 12);
+    final valueFont = FetchProviderMetrics.font(15, min: 12);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
@@ -2298,29 +2311,39 @@ class _ColonInfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textPrimary.withValues(alpha: 0.75),
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary.withValues(alpha: 0.75),
+                fontWeight: FontWeight.w600,
+                fontSize: labelFont,
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           SizedBox(width: 10.w),
           Text(
             ':',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.75),
-                  fontWeight: FontWeight.w700,
-                ),
+            style: GoogleFonts.plusJakartaSans(
+              color: AppColors.textPrimary.withValues(alpha: 0.75),
+              fontWeight: FontWeight.w700,
+              fontSize: valueFont,
+              height: 1.2,
+            ),
           ),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.left,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w800,
+                fontSize: valueFont,
+                height: 1.2,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -2336,6 +2359,7 @@ class _AdditionalNoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final noteFont = FetchProviderMetrics.font(12, min: 11);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
@@ -2353,7 +2377,7 @@ class _AdditionalNoteCard extends StatelessWidget {
             child: Icon(
               Icons.info_outline,
               color: Color(0xFFE85A2C),
-              size: 18,
+              size: FetchProviderMetrics.r(18),
             ),
           ),
           SizedBox(width: 10.w),
@@ -2361,11 +2385,12 @@ class _AdditionalNoteCard extends StatelessWidget {
             child: Text(
               text,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withValues(alpha: 0.8),
-                    fontWeight: FontWeight.w600,
-                    height: 1.35,
-                  ),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w600,
+                fontSize: noteFont,
+                height: 1.35,
+              ),
             ),
           ),
         ],
@@ -2387,6 +2412,8 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelFont = 12.sp;
+    final valueFont = 14.sp;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
@@ -2396,9 +2423,14 @@ class _InfoRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withValues(alpha: 0.6),
-                  ),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
+                fontSize: labelFont,
+                height: 1.25,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           SizedBox(width: 12.w),
@@ -2407,10 +2439,14 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: valueFont,
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -2584,4 +2620,377 @@ double? _parseAmountMaybe(String? raw) {
   if (raw.contains('.')) return value;
   if (cleaned.length > 4) return value / 100;
   return value;
+}
+
+// ─── AutoPay Bottom Sheet (PART 3) ──────────────────────────────────────────
+
+class AutoPayBottomSheet extends HookConsumerWidget {
+  const AutoPayBottomSheet({
+    super.key,
+    required this.amount,
+    required this.billerName,
+    required this.providerIconUrl,
+    required this.accountHolderName,
+    required this.consumerNumber,
+    required this.onPayAndSetAutoPay,
+    this.paymentSchedule = 'Next day after bill generation',
+    this.autoPayLimitAmount = 15000,
+  });
+
+  final double amount;
+  final String billerName;
+  final String? providerIconUrl;
+  final String accountHolderName;
+  final String consumerNumber;
+  final VoidCallback onPayAndSetAutoPay;
+  final String paymentSchedule;
+  final double autoPayLimitAmount;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final amountText = '₹${_formatAmountForInput(amount)}';
+    final autoPayLimitText =
+        'Bills up to ₹${(autoPayLimitAmount).toStringAsFixed(0)} will be paid automatically';
+    final ctaLabel = 'Pay $amountText & Set AutoPay';
+    final valueFont = FetchProviderMetrics.font(16, min: 13);
+    final scheduleLabelFont = FetchProviderMetrics.font(15, min: 13);
+
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(
+        minHeight: FetchProviderMetrics.h(340),
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(FetchProviderMetrics.r(24)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x1A000000),
+            blurRadius: FetchProviderMetrics.r(16),
+            offset: Offset(0, -FetchProviderMetrics.h(4)),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          FetchProviderMetrics.w(24),
+          FetchProviderMetrics.h(20),
+          FetchProviderMetrics.w(24),
+          FetchProviderMetrics.h(16) + bottomInset,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Provider Header Row ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SimCardIconContainer(
+                  url: providerIconUrl,
+                  width: FetchProviderMetrics.r(49),
+                  height: FetchProviderMetrics.r(49),
+                  borderRadius: FetchProviderMetrics.r(19.5),
+                  padding: FetchProviderMetrics.w(10),
+                  borderWidth: 1,
+                ),
+                SizedBox(width: FetchProviderMetrics.w(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        billerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: FetchProviderMetrics.font(18, min: 15),
+                          color: Colors.black,
+                          height: 1.15,
+                        ),
+                      ),
+                      SizedBox(height: FetchProviderMetrics.h(6)),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              accountHolderName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w500,
+                                fontSize: FetchProviderMetrics.font(14, min: 12),
+                                color: const Color(0xFF7A7A7A),
+                                height: 1.0,
+                              ),
+                            ),
+                          ),
+                          if (accountHolderName.isNotEmpty &&
+                              consumerNumber.isNotEmpty) ...[
+                            SizedBox(width: FetchProviderMetrics.w(8)),
+                            Container(
+                              width: FetchProviderMetrics.r(5),
+                              height: FetchProviderMetrics.r(5),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFB9B9B9),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            SizedBox(width: FetchProviderMetrics.w(8)),
+                          ],
+                          if (consumerNumber.isNotEmpty)
+                            Flexible(
+                              child: Text(
+                                consumerNumber,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: FetchProviderMetrics.font(14, min: 12),
+                                  color: const Color(0xFF7A7A7A),
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: FetchProviderMetrics.w(8)),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox(
+                    width: FetchProviderMetrics.w(44),
+                    height: FetchProviderMetrics.w(44),
+                    child: Center(
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.black,
+                        size: FetchProviderMetrics.r(24),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: FetchProviderMetrics.h(20)),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: Color(0xFFECECEC),
+            ),
+            SizedBox(height: FetchProviderMetrics.h(20)),
+
+            // ── Bill Amount Row ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Bill Amount',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w500,
+                    fontSize: FetchProviderMetrics.font(18, min: 15),
+                    color: Colors.black,
+                    height: 1.0,
+                  ),
+                ),
+                const Spacer(),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '₹${amount.toStringAsFixed(2)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                      fontSize: FetchProviderMetrics.font(24, min: 19),
+                      color: Colors.black,
+                      height: 1.0,
+                      letterSpacing:
+                          -0.02 * FetchProviderMetrics.font(24, min: 19),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: FetchProviderMetrics.h(20)),
+
+            // ── AutoPay Settings Card ──
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                FetchProviderMetrics.w(18),
+                FetchProviderMetrics.h(18),
+                FetchProviderMetrics.w(18),
+                FetchProviderMetrics.h(18),
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF4FF),
+                borderRadius:
+                    BorderRadius.circular(FetchProviderMetrics.r(12)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AutoPay Settings',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: FetchProviderMetrics.font(20, min: 16),
+                      color: Colors.black,
+                      height: 1.1,
+                    ),
+                  ),
+                  SizedBox(height: FetchProviderMetrics.h(16)),
+                  // Payment Schedule row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 180,
+                        child: Text(
+                          'Payment Schedule',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w500,
+                            fontSize: scheduleLabelFont,
+                            color: const Color(0xFF373737),
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: FetchProviderMetrics.w(10)),
+                      Text(
+                        ':',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w600,
+                          fontSize: valueFont,
+                          color: Colors.black,
+                          height: 1.2,
+                        ),
+                      ),
+                      SizedBox(width: FetchProviderMetrics.w(10)),
+                      Expanded(
+                        flex: 220,
+                        child: Text(
+                          paymentSchedule,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w500,
+                            fontSize: valueFont,
+                            color: Colors.black,
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: FetchProviderMetrics.h(10)),
+                  // AutoPay Limit row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 180,
+                        child: Text(
+                          'AutoPay Limit',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w500,
+                            fontSize: scheduleLabelFont,
+                            color: const Color(0xFF373737),
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: FetchProviderMetrics.w(10)),
+                      SizedBox.shrink(),
+                      SizedBox(width: FetchProviderMetrics.w(10)),
+                      Expanded(
+                        flex: 220,
+                        child: Text(
+                          autoPayLimitText,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w600,
+                            fontSize: FetchProviderMetrics.font(16, min: 13),
+                            color: Colors.black,
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: FetchProviderMetrics.h(28)),
+
+            // ── CTA: Pay & Set AutoPay ──
+            LayoutBuilder(
+              builder: (context, btnConstraints) => CustomElevatedButton(
+                onPressed: onPayAndSetAutoPay,
+                label: ctaLabel,
+                showArrow: false,
+                uppercaseLabel: false,
+                width: btnConstraints.maxWidth
+                    .clamp(
+                      FetchProviderMetrics.w(74),
+                      btnConstraints.maxWidth,
+                    )
+                    .toDouble(),
+                height: FetchProviderMetrics.h(56),
+                labelStyle: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16.sp,
+                  color: Colors.white,
+                  height: 1.0,
+                ),
+              ),
+            ),
+
+            SizedBox(height: FetchProviderMetrics.h(20)),
+
+            // ── UPI AUTOPAY Branding ──
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    FileConstants.upi,
+                    height: FetchProviderMetrics.h(24),
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(width: FetchProviderMetrics.w(8)),
+                  Text(
+                    'AUTOPAY',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: FetchProviderMetrics.font(22, min: 18),
+                      color: Colors.black,
+                      height: 1.0,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
