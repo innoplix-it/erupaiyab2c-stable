@@ -300,18 +300,32 @@ class TransactionDetailScreen extends StatelessWidget {
                     Stack(
                       alignment: Alignment.center,
                       children: [
-                        SvgPicture.asset(
-                          FileConstants.successVectorIcon,
-                          width: 50.w,
-                          height: 50.w,
-                          fit: BoxFit.contain,
-                        ),
-                        Image.asset(
-                          statusMeta.iconAsset,
-                          width: 52.w,
-                          height: 52.w,
-                          fit: BoxFit.contain,
-                        ),
+                        // Green check seal is only the backdrop for the raster
+                        // (success) icon. The new failed/pending icons are
+                        // self-contained white SVGs with a cut-out glyph, so
+                        // they render straight on the status gradient and the
+                        // glyph picks up the correct red/amber color.
+                        if (!statusMeta.iconAsset.endsWith('.svg'))
+                          SvgPicture.asset(
+                            FileConstants.successVectorIcon,
+                            width: 50.w,
+                            height: 50.w,
+                            fit: BoxFit.contain,
+                          ),
+                        if (statusMeta.iconAsset.endsWith('.svg'))
+                          SvgPicture.asset(
+                            statusMeta.iconAsset,
+                            width: 52.w,
+                            height: 52.w,
+                            fit: BoxFit.contain,
+                          )
+                        else
+                          Image.asset(
+                            statusMeta.iconAsset,
+                            width: 52.w,
+                            height: 52.w,
+                            fit: BoxFit.contain,
+                          ),
                       ],
                     ),
                     SizedBox(height: 10.h),

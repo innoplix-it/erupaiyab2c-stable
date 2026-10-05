@@ -149,8 +149,8 @@ class FileConstants {
       'assets/images/png/home_icon/agent_collection.png';
   static String eChalan = 'assets/images/png/home_icon/e_challan.png';
   static String referBg = 'assets/images/png/home_icon/referBg.png';
-  static String failedIcon = 'assets/images/png/failedIcon.png';
-  static String pendingIcon = 'assets/images/png/pendingIcon.png';
+  static String failedIcon = 'assets/images/svg/failedIcon.svg';
+  static String pendingIcon = 'assets/images/svg/pendingIcon.svg';
   static String successIcon = 'assets/images/png/successIcon.png';
   static String processingIcon = 'assets/images/png/Vector.png';
   static String processingStatic = 'assets/images/png/processingstatic.png';

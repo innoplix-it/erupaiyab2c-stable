@@ -1378,7 +1378,7 @@ class _PayNowSection extends StatelessWidget {
                                 overflow: TextOverflow.visible,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 40.sp,
+                                  fontSize: 38.sp,
                                   height: 40.h / 40,
                                   color: const Color(0xFF000000),
                                 ),
@@ -2051,7 +2051,7 @@ class _SuggestedPlanCard extends StatelessWidget {
                           maxLines: 1,
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w700,
-                            fontSize: 24.sp,
+                            fontSize: 23.sp,
                             color: Colors.black,
                             height: 1,
                           ),

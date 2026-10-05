@@ -511,8 +511,8 @@ class _SavedBillerCard extends StatelessWidget {
     final cardWidth = _SavedBillerCard.cardWidth(
       MediaQuery.sizeOf(context).width,
     );
-    final titleSize = FetchProviderMetrics.font(14, min: 11);
-    final bodySize = FetchProviderMetrics.font(12, min: 10);
+    final titleSize = FetchProviderMetrics.font(13, min: 10.5);
+    final bodySize = FetchProviderMetrics.font(11, min: 9.5);
     final subtitleSize = FetchProviderMetrics.font(11, min: 9.5);
     final subtitleStyle = GoogleFonts.plusJakartaSans(
       fontWeight: FontWeight.w500,
@@ -612,25 +612,44 @@ class _SavedBillerCard extends StatelessWidget {
                                   if (accountHolderName.isNotEmpty ||
                                       consumerNo.isNotEmpty) ...[
                                     SizedBox(height: FetchProviderMetrics.h(4)),
-                                    if (accountHolderName.isNotEmpty)
-                                      Text(
-                                        accountHolderName,
-                                        maxLines: 2,
-                                        softWrap: true,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: subtitleStyle,
-                                      ),
-                                    if (accountHolderName.isNotEmpty &&
-                                        consumerNo.isNotEmpty)
-                                      SizedBox(
-                                          height: FetchProviderMetrics.h(2)),
-                                    if (consumerNo.isNotEmpty)
-                                      Text(
-                                        consumerNo,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: subtitleStyle,
-                                      ),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        if (accountHolderName.isNotEmpty)
+                                          Flexible(
+                                            child: Text(
+                                              accountHolderName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: subtitleStyle,
+                                            ),
+                                          ),
+                                        if (accountHolderName.isNotEmpty &&
+                                            consumerNo.isNotEmpty)
+                                          Container(
+                                            width: 3.r,
+                                            height: 3.r,
+                                            margin: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  FetchProviderMetrics.w(6),
+                                            ),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF696969),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        if (consumerNo.isNotEmpty)
+                                          Flexible(
+                                            child: Text(
+                                              consumerNo,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: subtitleStyle,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ],
                                 ],
                               ),
@@ -727,11 +746,11 @@ class _SavedBillerCard extends StatelessWidget {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontWeight: FontWeight.w700,
                                             fontSize: FetchProviderMetrics.font(
-                                                14,
-                                                min: 11.5),
+                                                18,
+                                                min: 14),
                                             height: 1.2,
                                             letterSpacing:
-                                                -0.02 * FetchProviderMetrics.font(14, min: 11.5),
+                                                -0.02 * FetchProviderMetrics.font(18, min: 14),
                                             color: const Color(0xFF000000),
                                           ),
                                         ),
@@ -739,37 +758,21 @@ class _SavedBillerCard extends StatelessWidget {
                                           SizedBox(
                                               height:
                                                   FetchProviderMetrics.h(5)),
-                                          Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal:
-                                                  FetchProviderMetrics.w(8),
-                                              vertical:
-                                                  FetchProviderMetrics.h(3),
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFD30000),
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      FetchProviderMetrics
-                                                          .r(6)),
-                                            ),
-                                            child: Text(
-                                              dueLabel,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style:
-                                                  GoogleFonts.plusJakartaSans(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize:
-                                                    FetchProviderMetrics.font(
-                                                        10.5,
-                                                        min: 9),
-                                                height: 1.1,
-                                                letterSpacing:
-                                                    -0.02 * FetchProviderMetrics.font(10.5, min: 9),
-                                                color:
-                                                    const Color(0xFFFFFFFF),
-                                              ),
+                                          Text(
+                                            dueLabel,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize:
+                                                  FetchProviderMetrics.font(
+                                                      9.5,
+                                                      min: 8),
+                                              height: 1.1,
+                                              letterSpacing:
+                                                  -0.02 * FetchProviderMetrics.font(9.5, min: 8),
+                                              color:
+                                                  const Color(0xFFD30000),
                                             ),
                                           ),
                                         ],
@@ -1236,7 +1239,7 @@ class _SlidingGradientTransform extends GradientTransform {
   }
 }
 
-enum _SavedBillerAction { deleteAccount, toggleAutoPay }
+enum _SavedBillerAction { deleteAccount, toggleAutoPay, viewHistory }
 
 Future<void> _showSavedBillerActionSheet(
   BuildContext context,
@@ -1266,6 +1269,34 @@ Future<void> _showSavedBillerActionSheet(
       txn.id: !current,
     };
     AppSnackbar.show('AutoPay settings updated');
+    return;
+  }
+
+  if (action == _SavedBillerAction.viewHistory) {
+    // Dismiss the sheet fully, then navigate on this stable outer context.
+    // Doing pop -> push inline on the (soon-deactivated) sheet context raced
+    // the modal teardown and intermittently dropped the navigation.
+    await _untilDismissed(sheetAnimation);
+    if (!context.mounted) return;
+    final filterService = (serviceCategory?.trim().isNotEmpty == true)
+        ? serviceCategory!.trim()
+        : (txn.paymentType.trim().isNotEmpty
+            ? txn.paymentType.trim()
+            : (txn.billerName.toLowerCase().contains('electric')
+                ? 'Electricity'
+                : null));
+    final consumerId = txn.primaryConsumerNumber.trim();
+    final extra = <String, dynamic>{};
+    if (filterService != null && filterService.isNotEmpty) {
+      extra['service'] = filterService;
+    }
+    if (consumerId.isNotEmpty && consumerId.toLowerCase() != 'null') {
+      extra['consumerId'] = consumerId;
+    }
+    context.push(
+      RouteConstants.transactions,
+      extra: extra.isEmpty ? filterService : extra,
+    );
     return;
   }
 
@@ -1471,29 +1502,8 @@ class _SavedBillerActionSheet extends StatelessWidget {
               _SavedBillerActionRow(
                 iconAsset: FileConstants.deleteAutopaySvg,
                 label: 'View History',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  final filterService =
-                      (serviceCategory?.trim().isNotEmpty == true)
-                          ? serviceCategory!.trim()
-                          : (txn.paymentType.trim().isNotEmpty
-                              ? txn.paymentType.trim()
-                              : (txn.billerName.toLowerCase().contains('electric')
-                                  ? 'Electricity'
-                                  : null));
-                  final consumerId = txn.primaryConsumerNumber.trim();
-                  final extra = <String, dynamic>{};
-                  if (filterService != null && filterService.isNotEmpty) {
-                    extra['service'] = filterService;
-                  }
-                  if (consumerId.isNotEmpty && consumerId.toLowerCase() != 'null') {
-                    extra['consumerId'] = consumerId;
-                  }
-                  context.push(
-                    RouteConstants.transactions,
-                    extra: extra.isEmpty ? filterService : extra,
-                  );
-                },
+                onTap: () =>
+                    Navigator.of(context).pop(_SavedBillerAction.viewHistory),
               ),
               const Divider(
                 height: 1,
