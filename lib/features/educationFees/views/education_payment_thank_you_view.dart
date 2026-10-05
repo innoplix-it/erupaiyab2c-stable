@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -9,8 +7,9 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../widgets/payment_success_flow.dart';
 
-class EducationPaymentThankYouView extends StatelessWidget {
+class EducationPaymentThankYouView extends StatefulWidget {
   const EducationPaymentThankYouView({
     super.key,
     required this.amount,
@@ -27,13 +26,35 @@ class EducationPaymentThankYouView extends StatelessWidget {
   final String paymentType;
 
   @override
+  State<EducationPaymentThankYouView> createState() =>
+      _EducationPaymentThankYouViewState();
+}
+
+class _EducationPaymentThankYouViewState
+    extends State<EducationPaymentThankYouView> {
+  @override
+  void initState() {
+    super.initState();
+    // Play the existing project success sound exactly once on confirmed success.
+    // Reuses PaymentSoundController — same singleton used by PaymentThankYouScreen
+    // and PaymentResultScreen. Guard inside controller prevents duplicate play.
+    PaymentSoundController.play();
+  }
+
+  @override
+  void dispose() {
+    PaymentSoundController.stop();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final formattedAmount = _displayApiAmount(
-      amount.trim().isNotEmpty ? amount : payableAmount,
+      widget.amount.trim().isNotEmpty ? widget.amount : widget.payableAmount,
     );
-    final formattedDate = _formatHeaderDate(transactionTime);
-    final imageUrl = bannerImage.trim();
-    final title = _thankYouTitle(paymentType);
+    final formattedDate = _formatHeaderDate(widget.transactionTime);
+    final imageUrl = widget.bannerImage.trim();
+    final title = _thankYouTitle(widget.paymentType);
     final sx = 1.sw / 441.0;
     double x(double value) => value * sx;
     final headerTop = MediaQuery.paddingOf(context).top + 40.h;

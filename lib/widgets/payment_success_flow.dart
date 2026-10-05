@@ -84,7 +84,7 @@ class _PaymentThankYouScreenState extends State<PaymentThankYouScreen>
     _animationController.forward();
 
     if (widget.playSound) {
-      _PaymentSoundController.play();
+      PaymentSoundController.play();
     }
     if (widget.onAutoNavigate != null) {
       _timer = Timer(widget.autoNavigateAfter, () {
@@ -280,7 +280,7 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
   void initState() {
     super.initState();
     if (widget.playSound) {
-      _PaymentSoundController.play(asset: widget.soundAsset);
+      PaymentSoundController.play(asset: widget.soundAsset);
     }
     _scheduleRatingSheet();
   }
@@ -289,7 +289,7 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
   void dispose() {
     _ratingTimer?.cancel();
     if (widget.stopSoundOnExit) {
-      _PaymentSoundController.stop();
+      PaymentSoundController.stop();
     }
     super.dispose();
   }
@@ -627,7 +627,7 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
   }
 }
 
-class _PaymentSoundController {
+class PaymentSoundController {
   static AudioPlayer? _player;
   static bool _isPlaying = false;
 

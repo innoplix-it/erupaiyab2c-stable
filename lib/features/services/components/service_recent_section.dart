@@ -1174,12 +1174,12 @@ String _formatDueDate(String? raw) {
   if (value.isEmpty || value.toLowerCase() == 'null') return '';
   final parsed = DateTime.tryParse(value);
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
-  if (parsed == null) return 'Due on $value';
+  if (parsed == null) return 'Due On $value';
   final m = months[parsed.month - 1];
-  return 'Due on ${parsed.day} $m';
+  return 'Due On ${parsed.day} $m ${parsed.year}';
 }
 
 class _Shimmer extends StatefulWidget {

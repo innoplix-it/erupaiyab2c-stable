@@ -197,7 +197,10 @@ class _TransactionHistoryScreenState
                             else ...[
                               for (final section in sections) ...[
                                 SliverToBoxAdapter(
-                                  child: _MonthHeader(title: section.title),
+                                  child: _MonthHeader(
+                                    title: section.title,
+                                    count: section.items.length,
+                                  ),
                                 ),
                                 SliverList(
                                   delegate: SliverChildBuilderDelegate(
@@ -430,53 +433,36 @@ class _TransactionTile extends StatelessWidget {
     final displayAmount =
         amount.isEmpty ? '' : (amount.startsWith('₹') ? amount : '₹ $amount');
 
-    final titleStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        );
-    final subStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.textPrimary.withOpacity(0.7),
-          fontWeight: FontWeight.w500,
-        );
     final status = _resolveStatus(item.paymentStatus);
     final amountColor = _amountColor(status);
-    final amountStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: amountColor,
-          fontWeight: FontWeight.w700,
-        );
 
     final displayPaymentType = _getDisplayPaymentType(item);
-
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final scale = (screenWidth / 392.0).clamp(0.85, 1.15);
-    final iconBoxSize = (50.0 * scale).r;
-    final iconRadius = (20.0 * scale).r;
-    final iconPadding = (10.0 * scale).r;
-    final iconGap = (10.0 * scale).w;
+    final consumerDisplay = _getConsumerDisplay(item);
 
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(
-            bottom: BorderSide(
-              color: AppColors.lightBorder.withOpacity(0.8),
-            ),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: AppColors.lightBorder.withOpacity(0.5),
+            width: 0.5,
           ),
         ),
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
         child: Row(
           children: [
             Container(
-              width: iconBoxSize,
-              height: iconBoxSize,
-              padding: EdgeInsets.all(iconPadding),
+              width: 44.w,
+              height: 44.w,
+              padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(iconRadius),
+                borderRadius: BorderRadius.circular(22.r),
                 border: Border.all(
-                  color: const Color(0x66FF835C), // #FF835C with 40% (0x66) opacity
+                  color: const Color(0x66FF835C),
                   width: 1,
                 ),
               ),
@@ -488,22 +474,61 @@ class _TransactionTile extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(width: iconGap),
+            SizedBox(width: 10.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(displayPaymentType, style: titleStyle),
-                  SizedBox(height: 1.h),
-                  Text(_formatTxnTime(item.transactionTime), style: subStyle),
+                  Text(
+                    displayPaymentType,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF000000),
+                    ),
+                  ),
+                  if (consumerDisplay.isNotEmpty) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      consumerDisplay,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: 2.h),
+                  Text(
+                    _formatTxnTime(item.transactionTime),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF7C7C7C),
+                    ),
+                  ),
                 ],
               ),
             ),
+            SizedBox(width: 8.w),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(displayAmount, style: amountStyle),
-                SizedBox(height: 1.h),
+                Text(
+                  displayAmount,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                    color: amountColor,
+                  ),
+                ),
+                SizedBox(height: 4.h),
                 _StatusChip(
                   status: status,
                   methodIcon: item.methodIcon,
@@ -533,108 +558,83 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (status) {
       case _TxnStatus.success:
-        final iconUrl = methodIcon.trim();
-        final mode = method.trim();
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Paid From',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withOpacity(0.6),
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            if (iconUrl.isNotEmpty) ...[
-              SizedBox(width: 6.w),
-              AppNetworkImage(
-                url: iconUrl,
-                width: 16.w,
-                height: 16.w,
-                fit: BoxFit.contain,
-                showShimmer: false,
-              ),
-            ] else if (mode.isNotEmpty) ...[
-              SizedBox(width: 6.w),
-              Text(
-                mode,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ],
-          ],
+        // "Paid From" green pill badge — exact SVG from design
+        return SvgPicture.asset(
+          'assets/images/badge_paid_from.svg',
+          height: 21.h,
+          fit: BoxFit.contain,
         );
       case _TxnStatus.failed:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Failed',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.info_outline,
-              size: 14.sp,
-              color: Colors.red,
-            ),
-          ],
+        // "Failed" red pill badge
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Failed',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              SizedBox(width: 4.w),
+              Icon(
+                Icons.info_outline,
+                size: 13.sp,
+                color: Colors.red,
+              ),
+            ],
+          ),
         );
       case _TxnStatus.processing:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Processing',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.orange,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.refresh,
-              size: 14.sp,
-              color: Colors.orange,
-            ),
-          ],
+        // "Processing" orange pill badge — exact SVG from design
+        return SvgPicture.asset(
+          'assets/images/badge_processing.svg',
+          height: 20.h,
+          fit: BoxFit.contain,
         );
     }
   }
 }
 
 class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({required this.title});
+  const _MonthHeader({required this.title, required this.count});
 
   final String title;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 44.h,
-      color: const Color(0xFFEFEFEF),
-      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h),
-      alignment: Alignment.centerLeft,
-      child: SizedBox(
-        height: 20.h,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
+    final countLabel = '$count Transaction${count == 1 ? '' : 's'}';
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 4.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
             title,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
               height: 1,
-              letterSpacing: 0,
               color: const Color(0xFF000000),
             ),
           ),
-        ),
+          Text(
+            countLabel,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              height: 1,
+              color: const Color(0xFF7C7C7C),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -834,6 +834,16 @@ String _getDisplayPaymentType(TransactionHistoryEntry item) {
     return _formatFeeType(feeType);
   }
   return item.paymentType;
+}
+
+String _getConsumerDisplay(TransactionHistoryEntry item) {
+  final consumer = item.primaryConsumerNumber;
+  if (consumer.isNotEmpty &&
+      consumer.toLowerCase() != 'null' &&
+      consumer != item.paymentType) {
+    return consumer;
+  }
+  return '';
 }
 
 String _formatFeeType(String feeType) {
@@ -1113,38 +1123,25 @@ class _TransactionTileSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        );
-    final subStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.textPrimary.withOpacity(0.7),
-          fontWeight: FontWeight.w500,
-        );
-    final amountStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Colors.green,
-          fontWeight: FontWeight.w700,
-        );
-
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.lightBorder.withOpacity(0.8),
-          ),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.lightBorder.withOpacity(0.5),
+          width: 0.5,
         ),
       ),
       child: Row(
         children: [
           Container(
-            width: 50.w,
-            height: 50.w,
-            padding: EdgeInsets.all(10.w),
+            width: 44.w,
+            height: 44.w,
+            padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(20.r),
+              borderRadius: BorderRadius.circular(22.r),
               border: Border.all(
                 color: const Color(0x66FF835C),
                 width: 1,
@@ -1153,28 +1150,66 @@ class _TransactionTileSkeleton extends StatelessWidget {
             child: Center(
               child: Icon(
                 Icons.account_balance_wallet_outlined,
-                size: 20.sp,
+                size: 18.sp,
                 color: AppColors.primary,
               ),
             ),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 10.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Loading transaction', style: titleStyle),
-                SizedBox(height: 1.h),
-                Text('Loading date & time', style: subStyle),
+                Text(
+                  'Loading transaction',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF000000),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  '1234567890',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF000000),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  '01 January, 12:00AM',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF7C7C7C),
+                  ),
+                ),
               ],
             ),
           ),
+          SizedBox(width: 8.w),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('₹ 0.00', style: amountStyle),
-              SizedBox(height: 1.h),
-              Text('Paid From', style: subStyle),
+              Text(
+                '₹ 0.00',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.green,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                'Paid From',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF7C7C7C),
+                ),
+              ),
             ],
           ),
         ],

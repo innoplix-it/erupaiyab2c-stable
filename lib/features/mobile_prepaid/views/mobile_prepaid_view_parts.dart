@@ -1226,45 +1226,18 @@ class _PlanSection extends HookWidget {
               ),
             ),
 
-          // Search field
+          // Search field — unified AppSearchBar (same as Transaction History)
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0.h),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final barWidth =
-                    constraints.maxWidth < 392.w ? constraints.maxWidth : 392.w;
-                return Align(
-                  alignment: Alignment.center,
-                  child: CommonSearchBar(
-                    hintText: 'Search a plan, eg 299, 5g,etc.',
-                    controller: planSearchController,
-                    onChanged: onPlanSearchChanged,
-                    width: barWidth,
-                    height: 54.w,
-                    borderColor: const Color(0xFFD7D7D7),
-                    borderWidth: 0.5,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0x0F000000),
-                        offset: Offset(0, 4.h),
-                        blurRadius: 16.r,
-                      ),
-                    ],
-                    hintStyle: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14.sp,
-                      height: 1,
-                      color: const Color(0xFF7C7C7C),
-                    ),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
-                      height: 1,
-                      color: Colors.black,
-                    ),
-                  ),
-                );
-              },
+            child: AppSearchBar(
+              hintText: 'Search a plan, eg 299, 5g,etc.',
+              controller: planSearchController,
+              onChanged: onPlanSearchChanged,
+              textStyle: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w500,
+                fontSize: 14.sp,
+                color: Colors.black,
+              ),
             ),
           ),
 
@@ -1422,7 +1395,7 @@ class _PayNowSection extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20.r),
+                borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(
                   color: AppColors.lightBorder,
                   width: 1.w,
@@ -1434,13 +1407,13 @@ class _PayNowSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: EdgeInsets.only(top: 14.h, left: 20.w),
+                    padding: EdgeInsets.only(top: 10.h, left: 16.w),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SizedBox(
                           width: 81.w,
-                          height: 44.h,
+                          height: 40.h,
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: FittedBox(
@@ -1453,7 +1426,7 @@ class _PayNowSection extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 40.sp,
-                                  height: 44.h / 40,
+                                  height: 40.h / 40,
                                   color: const Color(0xFF000000),
                                 ),
                               ),
@@ -1468,7 +1441,7 @@ class _PayNowSection extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 4.h, 16.w, 16.h),
+                    padding: EdgeInsets.fromLTRB(16.w, 2.h, 14.w, 12.h),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1491,9 +1464,9 @@ class _PayNowSection extends StatelessWidget {
                             ),
                           ),
                         ),
-                        SizedBox(height: 10.h),
+                        SizedBox(height: 6.h),
                         const PlanValidityDivider(),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 8.h),
                         Text(
                           plan.description.isEmpty
                               ? 'No description available.'
@@ -1507,7 +1480,7 @@ class _PayNowSection extends StatelessWidget {
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 8.h),
                         Row(
                           children: [
                             Expanded(
@@ -1550,13 +1523,13 @@ class _PayNowSection extends StatelessWidget {
                             GestureDetector(
                               onTap: () => controller.deselectPlan(),
                               child: Container(
-                                width: 146.w,
-                                height: 37.h,
+                                width: 130.w,
+                                height: 32.h,
                                 padding: EdgeInsets.fromLTRB(
-                                  20.w,
-                                  10.h,
-                                  20.w,
-                                  10.h,
+                                  16.w,
+                                  8.h,
+                                  16.w,
+                                  8.h,
                                 ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF084591),
@@ -1564,10 +1537,9 @@ class _PayNowSection extends StatelessWidget {
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    SizedBox(
-                                      width: 83.w,
-                                      height: 17.h,
+                                    Flexible(
                                       child: FittedBox(
                                         fit: BoxFit.scaleDown,
                                         alignment: Alignment.center,
@@ -1577,21 +1549,17 @@ class _PayNowSection extends StatelessWidget {
                                           style: GoogleFonts.plusJakartaSans(
                                             color: const Color(0xFFFFFFFF),
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 14.sp,
-                                            height: 17.h / 14,
+                                            fontSize: 13.sp,
+                                            height: 1,
                                           ),
                                         ),
                                       ),
                                     ),
-                                    SizedBox(width: 7.w),
-                                    SizedBox(
-                                      width: 16.r,
-                                      height: 16.r,
-                                      child: Icon(
-                                        Icons.sync,
-                                        size: 16.w,
-                                        color: const Color(0xFFFFFFFF),
-                                      ),
+                                    SizedBox(width: 4.w),
+                                    Icon(
+                                      Icons.sync,
+                                      size: 14.w,
+                                      color: const Color(0xFFFFFFFF),
                                     ),
                                   ],
                                 ),
@@ -1610,13 +1578,13 @@ class _PayNowSection extends StatelessWidget {
         Padding(
           padding: EdgeInsets.fromLTRB(
             16.w,
-            10.h,
+            8.h,
             16.w,
-            16.h + MediaQuery.of(context).viewPadding.bottom,
+            14.h + MediaQuery.of(context).viewPadding.bottom,
           ),
           child: SizedBox(
             width: double.infinity,
-            height: 48.h,
+            height: 44.h,
             child: ElevatedButton(
               onPressed: state.isRecharging
                   ? null
@@ -2032,7 +2000,7 @@ class _PlanFilterChip extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w600,
-                fontSize: 9.sp,
+                fontSize: 11.sp,
                 color: selected ? AppColors.primary : AppColors.textPrimary,
               ),
             ),
@@ -2060,7 +2028,7 @@ class _SuggestedPlanCards extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayPlans = plans.take(5).toList();
     return SizedBox(
-      height: 105.h,
+      height: 95.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
@@ -2096,7 +2064,7 @@ class _SuggestedPlanCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 256.w,
-        height: 105.h,
+        height: 95.h,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
@@ -2112,7 +2080,7 @@ class _SuggestedPlanCard extends StatelessWidget {
         child: Stack(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(18.w, 8.h, 44.w, 8.h),
+              padding: EdgeInsets.fromLTRB(16.w, 6.h, 40.w, 6.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2205,8 +2173,8 @@ class _SuggestedPlanCard extends StatelessWidget {
               top: 12.h,
               child: IgnorePointer(
                 child: Container(
-                  width: 28.r,
-                  height: 28.r,
+                  width: 24.r,
+                  height: 24.r,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
@@ -2222,7 +2190,7 @@ class _SuggestedPlanCard extends StatelessWidget {
                   child: Icon(
                     Icons.chevron_right,
                     color: Colors.white,
-                    size: 18.sp,
+                    size: 16.sp,
                   ),
                 ),
               ),
@@ -2377,7 +2345,7 @@ class _CategoryTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 24.h,
+      height: 28.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -2398,7 +2366,7 @@ class _CategoryTabs extends StatelessWidget {
                       color: isActive
                           ? Colors.black
                           : AppColors.textPrimary.withOpacity(0.45),
-                      fontSize: 12.sp,
+                      fontSize: 14.sp,
                       height: 1,
                     ),
                   ),

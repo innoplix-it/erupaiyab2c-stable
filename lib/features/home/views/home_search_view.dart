@@ -14,7 +14,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
-import '../../../widgets/common_search_bar.dart';
+import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/home_icon_tile.dart';
 import '../components/service_utils.dart';
@@ -200,34 +200,17 @@ class HomeSearchView extends HookConsumerWidget {
                 horizontal: horizontalSidePadding,
                 vertical: 6.h,
               ),
-              child: CommonSearchBar(
+              child: AppSearchBar(
                 hintText: 'Search Services',
                 controller: searchController,
                 onChanged: (value) {
                   query.value = value;
                 },
-                width: double.infinity,
-                height: 52.h,
-                radius: 12.r,
-                borderColor: const Color(0xFFD7D7D7),
-                borderWidth: 0.5,
-                hintStyle: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14.sp,
-                  color: AppColors.textPrimary.withOpacity(0.45),
-                ),
-                style: GoogleFonts.plusJakartaSans(
+                textStyle: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w500,
                   fontSize: 14.sp,
                   color: Colors.black,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0x0F000000),
-                    offset: Offset(0, 4.h),
-                    blurRadius: 16.r,
-                  ),
-                ],
               ),
             ),
             if (!isSearching) ...[

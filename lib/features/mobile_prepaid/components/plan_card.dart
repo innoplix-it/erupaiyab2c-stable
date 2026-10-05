@@ -60,12 +60,12 @@ class PlanCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.only(top: 14.h, left: 20.w),
+              padding: EdgeInsets.only(top: 10.h, left: 16.w),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(width: 81.w,
-                    height: 44.h,
+                    height: 40.h,
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: FittedBox(
@@ -78,7 +78,7 @@ class PlanCard extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             fontSize: 40.sp,
                             color: Colors.black,
-                            height: 44.h / 40,
+                            height: 40.h / 40,
                           ),
                         ),
                       ),
@@ -90,7 +90,7 @@ class PlanCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 4.h, 16.w, 10.h),
+              padding: EdgeInsets.fromLTRB(16.w, 2.h, 14.w, 8.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -98,14 +98,14 @@ class PlanCard extends StatelessWidget {
                     plan: plan,
                     onBenefitsTap: () => _openPlanDetailsSheet(context),
                   ),
-                  SizedBox(height: 10.h),
+                  SizedBox(height: 6.h),
                   const PlanValidityDivider(),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: 6.h),
                   if (plan.description.trim().isNotEmpty) ...[
                     ConstrainedBox(
                       constraints: BoxConstraints(
                         minWidth: double.infinity,
-                        minHeight: 44.h,
+                        minHeight: 36.h,
                       ),
                       child: Text(
                         plan.description,
@@ -119,9 +119,9 @@ class PlanCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: 6.h),
                   ] else
-                    SizedBox(height: 8.h),
+                    SizedBox(height: 6.h),
                   Row(
                     children: [
                       GestureDetector(
@@ -145,8 +145,8 @@ class PlanCard extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      SizedBox(width: 114.w,
-                        height: 32.h,
+                      SizedBox(width: 100.w,
+                        height: 28.h,
                         child: _PlanPayNowButton(
                           onTap: onPayNow ?? onTap,
                         ),
@@ -193,9 +193,9 @@ class GetAssuredCoinsBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 163.w,
-      height: 27.h,
-      padding: EdgeInsets.fromLTRB(12.w, 5.h, 16.w, 5.h),
+      width: 148.w,
+      height: 24.h,
+      padding: EdgeInsets.fromLTRB(10.w, 4.h, 12.w, 4.h),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFF193459),
@@ -215,7 +215,7 @@ class GetAssuredCoinsBadge extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
-                fontSize: 11.sp,
+                fontSize: 10.sp,
                 height: 1,
               ),
             ),
@@ -303,7 +303,7 @@ class _PlanInfoColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: 32.h),
+      constraints: BoxConstraints(minHeight: 28.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -367,14 +367,14 @@ class _PlanBenefitImages extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: (visibleBenefits.length * 22.0).w + 8.w,
-            height: 26.h,
+            width: (visibleBenefits.length * 18.0).w + 8.w,
+            height: 22.h,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 for (int i = 0; i < visibleBenefits.length; i++)
                   Positioned(
-                    left: (i * 22.0).w,
+                    left: (i * 18.0).w,
                     child: _BenefitIconAvatar(benefit: visibleBenefits[i]),
                   ),
               ],
@@ -404,8 +404,8 @@ class _BenefitIconAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 30.w,
-      height: 30.w,
+      width: 26.w,
+      height: 26.w,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2.w),
@@ -424,8 +424,8 @@ class _BenefitIconAvatar extends StatelessWidget {
               )
             : Image.network(
                 benefit.image!,
-                width: 30.w,
-                height: 30.w,
+                width: 26.w,
+                height: 26.w,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   color: Colors.grey.shade200,

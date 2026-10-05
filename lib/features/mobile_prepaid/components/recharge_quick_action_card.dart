@@ -61,7 +61,7 @@ class SimpleQuickActionCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22.r),
       child: Container(
         width: double.infinity,
-        height: operatorStyle ? null : 56.h,
+        height: operatorStyle ? null : 68.h,
         padding: operatorStyle
             ? EdgeInsets.symmetric(
                 horizontal: FetchProviderMetrics.w(16),
@@ -107,8 +107,8 @@ class SimpleQuickActionCard extends StatelessWidget {
             SimCardIconContainer(
               asset: leadingAsset,
               url: leadingImageUrl,
-              width: operatorStyle ? FetchProviderMetrics.r(50) : 40.w,
-              height: operatorStyle ? FetchProviderMetrics.r(50) : 36.h,
+              width: operatorStyle ? FetchProviderMetrics.r(50) : 44.w,
+              height: operatorStyle ? FetchProviderMetrics.r(50) : 44.w,
               borderRadius: operatorStyle ? FetchProviderMetrics.r(20) : 12.r,
               padding: operatorStyle ? FetchProviderMetrics.w(10) : 10.w,
               borderWidth: operatorStyle ? 1 : 0.5,
@@ -148,8 +148,8 @@ class SimpleQuickActionCard extends StatelessWidget {
               GestureDetector(
                 onTap: onAction ?? onTap,
                 child: Container(
-                  width: 60.w,
-                  height: 22.h,
+                  width: 68.w,
+                  height: 26.h,
                   padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 4.h),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(

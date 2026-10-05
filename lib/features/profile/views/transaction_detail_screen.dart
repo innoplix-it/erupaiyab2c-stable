@@ -712,7 +712,8 @@ List<TransactionCustomerParam> _resolveHeaderParams(
       secondaryValue = customerMobile;
     } else {
       secondaryLabel = 'Fee Type';
-      secondaryValue = 'Tuition Fee';
+      // Use actual payment_type from API — do NOT hardcode 'Tuition Fee'
+      secondaryValue = tx.paymentType.trim().isNotEmpty ? tx.paymentType.trim() : '';
     }
 
     final result = <TransactionCustomerParam>[];
@@ -734,13 +735,18 @@ List<TransactionCustomerParam> _resolveHeaderParams(
     }
     if (result.length >= 2) return result;
     if (result.length == 1) {
-      return [
-        result.first,
-        const TransactionCustomerParam(
-          label: 'Fee Type',
-          value: 'Tuition Fee',
-        ),
-      ];
+      // Use actual payment_type from API — do NOT hardcode 'Tuition Fee'
+      final feeTypeValue = tx.paymentType.trim();
+      if (feeTypeValue.isNotEmpty) {
+        return [
+          result.first,
+          TransactionCustomerParam(
+            label: 'Fee Type',
+            value: feeTypeValue,
+          ),
+        ];
+      }
+      return [result.first, result.first];
     }
   }
 
@@ -800,7 +806,84 @@ List<TransactionCustomerParam> _resolveHeaderParams(
     ];
   }
 
-  // Generic flow for other transaction types (Education, etc.):
+  // Mobile Recharge transaction flow:
+  // LEFT  → "Operator Name"  = biller_name (operator from API, e.g. Jio, Airtel)
+  // RIGHT → "Mobile Number"  = customerMobile or maskedIdentifier (existing mobile number)
+  final isRecharge = paymentType.contains('recharge');
+  if (isRecharge) {
+    // Resolve operator name from biller_name (API key: biller_name)
+    final operatorName = billerName.isNotEmpty ? billerName : '';
+
+    // Resolve mobile number: prefer customerMobile, fallback to maskedIdentifier
+    String mobileValue = customerMobile;
+    if (mobileValue.isEmpty && maskedIdentifier.isNotEmpty) {
+      mobileValue = maskedIdentifier;
+    }
+    // Also check customerParams for a mobile/phone entry
+    if (mobileValue.isEmpty) {
+      for (final param in tx.customerParams) {
+        final l = param.label.trim().toLowerCase();
+        if (l.contains('mobile') || l.contains('phone') || l.contains('number')) {
+          mobileValue = param.value.trim();
+          break;
+        }
+      }
+    }
+
+    return [
+      TransactionCustomerParam(
+        label: 'Operator Name',
+        value: operatorName.isNotEmpty ? operatorName : '-',
+      ),
+      TransactionCustomerParam(
+        label: 'Mobile Number',
+        value: mobileValue.isNotEmpty ? mobileValue : '-',
+      ),
+    ];
+  }
+
+  // Education transaction flow (School Fee / College Fee):
+  // LEFT  → "Recipient Name" = billerName (existing recipient/institution name)
+  // RIGHT → "Fee Type"       = paymentType (API key: payment_type, e.g. School Fee)
+  final feeTypeLower = (tx.feeType ?? '').trim().toLowerCase();
+  final isEducation = paymentType.contains('school') ||
+      paymentType.contains('college') ||
+      paymentType.contains('education') ||
+      feeTypeLower.contains('school') ||
+      feeTypeLower.contains('college') ||
+      feeTypeLower.contains('education');
+  if (isEducation) {
+    // Resolve recipient name from customer_params where label == "Recipient Name"
+    String recipientName = '';
+    final TransactionCustomerParam fallbackParam = TransactionCustomerParam(label: '', value: '');
+    final TransactionCustomerParam recipientParam = tx.customerParams.firstWhere(
+      (p) => p.label.trim().toLowerCase() == 'recipient name',
+      orElse: () => fallbackParam,
+    );
+    if (recipientParam.value.trim().isNotEmpty) {
+      recipientName = recipientParam.value.trim();
+    }
+    // Fallback to maskedIdentifier if still empty
+    if (recipientName.isEmpty && maskedIdentifier.isNotEmpty) {
+      recipientName = maskedIdentifier;
+    }
+
+    // Fee Type from payment_type field (API key: payment_type)
+    final feeTypeDisplay = tx.paymentType.trim();
+
+    return [
+      TransactionCustomerParam(
+        label: 'Recipient Name',
+        value: recipientName.isNotEmpty ? recipientName : '-',
+      ),
+      TransactionCustomerParam(
+        label: 'Fee Type',
+        value: feeTypeDisplay.isNotEmpty ? feeTypeDisplay : '-',
+      ),
+    ];
+  }
+
+  // Generic flow for other transaction types:
   final explicit = tx.customerParams
       .where(
         (item) => item.label.trim().isNotEmpty && item.value.trim().isNotEmpty,
