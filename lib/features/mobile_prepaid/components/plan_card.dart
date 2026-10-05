@@ -75,8 +75,8 @@ class PlanCard extends StatelessWidget {
                           '₹ ${plan.amount}',
                           maxLines: 1,
                           style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 38.sp,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 37.sp,
                             color: Colors.black,
                             height: 40.h / 40,
                           ),

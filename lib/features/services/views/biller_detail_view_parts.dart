@@ -2357,45 +2357,85 @@ class _AdditionalNoteCard extends StatelessWidget {
 
   final String text;
 
+  // Highlights ₹ amounts / numbers so the value renders at weight 700 while the
+  // surrounding copy stays at weight 400 (Ma'am's Figma spec).
+  static final RegExp _valuePattern = RegExp(r'₹\s?\d[\d,]*');
+
   @override
   Widget build(BuildContext context) {
     final noteFont = FetchProviderMetrics.font(12, min: 11);
+    // 20px Figma line height, converted through the same 440x956 → 360x690
+    // frame mapping used for the font size (no double scaling).
+    final noteLineHeight = FetchProviderMetrics.h(20) / noteFont;
+    // Figma letter-spacing: -2% of the font size.
+    final noteLetterSpacing = noteFont * -0.02;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
+      padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 12.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7F4),
-        borderRadius: BorderRadius.circular(14.r),
-        border:
-            Border.all(color: const Color(0xFFE85A2C).withValues(alpha: 0.4)),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        border: const Border(
+          left: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: 2.h),
-            child: Icon(
-              Icons.info_outline,
-              color: Color(0xFFE85A2C),
-              size: FetchProviderMetrics.r(18),
-            ),
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
-                color: AppColors.textPrimary.withValues(alpha: 0.8),
-                fontWeight: FontWeight.w600,
-                fontSize: noteFont,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
+      child: Text.rich(
+        _buildNoteSpan(noteFont, noteLineHeight, noteLetterSpacing),
+        textAlign: TextAlign.left,
       ),
     );
+  }
+
+  TextSpan _buildNoteSpan(
+    double fontSize,
+    double height,
+    double letterSpacing,
+  ) {
+    final baseStyle = GoogleFonts.plusJakartaSans(
+      color: AppColors.black,
+      fontWeight: FontWeight.w400,
+      fontSize: fontSize,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+    final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.w700);
+
+    final children = <InlineSpan>[];
+    final matches = _valuePattern.allMatches(text).toList();
+    var cursor = 0;
+    for (final match in matches) {
+      if (match.start > cursor) {
+        children.add(
+          TextSpan(text: text.substring(cursor, match.start)),
+        );
+      }
+      children.add(
+        TextSpan(text: match.group(0), style: boldStyle),
+      );
+      cursor = match.end;
+    }
+    if (cursor < text.length) {
+      children.add(TextSpan(text: text.substring(cursor)));
+    }
+
+    return TextSpan(
+      style: baseStyle,
+      children: children.isEmpty
+          ? [const TextSpan(text: '--')]
+          : children.map(_capSpan).toList(),
+    );
+  }
+
+  /// Applies Figma's `text-transform: capitalize` without mutating the
+  /// API-provided note string used elsewhere in the flow.
+  static InlineSpan _capSpan(InlineSpan span) {
+    if (span is! TextSpan || span.text == null) return span;
+    final words = span.text!.split(RegExp(r'(\s+)'));
+    final capped = words.map((word) {
+      if (word.isEmpty || RegExp(r'^\s+$').hasMatch(word)) return word;
+      return word[0].toUpperCase() + word.substring(1);
+    }).join();
+    return TextSpan(text: capped, style: span.style);
   }
 }
 

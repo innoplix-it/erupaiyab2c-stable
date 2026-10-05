@@ -75,9 +75,9 @@ class PlanDetailsSheet extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style:
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
-                                  fontSize: 26.sp,
+                                  fontSize: 25.sp,
                                 ),
                       ),
                     ),

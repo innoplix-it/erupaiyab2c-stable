@@ -496,7 +496,7 @@ class _TransactionTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.sp,
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF000000),
                       ),
@@ -508,7 +508,7 @@ class _TransactionTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.sp,
+                      fontSize: 10.sp,
                       fontWeight: FontWeight.w400,
                       color: const Color(0xFF7C7C7C),
                     ),
@@ -1172,7 +1172,7 @@ class _TransactionTileSkeleton extends StatelessWidget {
                 Text(
                   '1234567890',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF000000),
                   ),
@@ -1181,7 +1181,7 @@ class _TransactionTileSkeleton extends StatelessWidget {
                 Text(
                   '01 January, 12:00AM',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w400,
                     color: const Color(0xFF7C7C7C),
                   ),

@@ -13,20 +13,17 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
-import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_search_bar.dart';
+import '../../../widgets/common_service_svg_icon.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/home_icon_tile.dart';
 import '../components/service_utils.dart';
 import '../controllers/home_controller.dart';
 import '../models/banner_model.dart';
 import '../models/quick_action_model.dart';
-import '../utils/banner_redirect_mapper.dart';
 
 class HomeSearchView extends HookConsumerWidget {
   const HomeSearchView({super.key});
-
-  static const double _bannerHeight = 80;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -242,34 +239,6 @@ class HomeSearchView extends HookConsumerWidget {
             ] else ...[
               SizedBox(height: 8.h),
             ],
-            if (bannerError.value == null && banners.value.isNotEmpty && !isSearching)
-              Padding(
-                padding: EdgeInsets.only(bottom: 12.h),
-                child: SizedBox(
-                  height: _bannerHeight,
-                  child: PageView.builder(
-                    controller: bannerController,
-                    padEnds: false,
-                    onPageChanged: (page) => bannerPage.value = page,
-                    itemCount: banners.value.length,
-                    itemBuilder: (_, index) {
-                      final banner = banners.value[index];
-                      return GestureDetector(
-                        onTap: () => BannerRedirectMapper.handle(
-                          context,
-                          banner.redirectUrl,
-                        ),
-                        child: AppNetworkImage(
-                          url: banner.image,
-                          width: double.infinity,
-                          height: _bannerHeight,
-                          fit: BoxFit.contain,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
             if (isLoading.value)
               const _HomeSearchLoadingSkeleton()
             else if (error.value != null)
@@ -360,15 +329,27 @@ class _RechargeHighlightSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(left: 4.w),
-            child: Text(
-              'Recharge',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.02 * 14.sp,
-                color: const Color(0xFF000000),
-              ),
+            padding: EdgeInsets.only(left: 4.w, right: 4.w),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Recharge',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.02 * 14.sp,
+                      color: const Color(0xFF000000),
+                    ),
+                  ),
+                ),
+                CommonServiceSvgIcon(
+                  assetPath: 'assets/images/svg/services/down_arrow.svg',
+                  width: 14.w,
+                  height: 8.w,
+                ),
+              ],
             ),
           ),
           SizedBox(height: 16.h),
@@ -378,14 +359,14 @@ class _RechargeHighlightSection extends StatelessWidget {
               Expanded(
                 child: HomeIconTile(
                   label: 'Mobile Prepaid',
-                  iconUrl: FileConstants.mobile,
+                  svgAsset: 'assets/images/svg/services/mobile_recharge.svg',
                   onTap: () => onServiceTap('Mobile Prepaid'),
                 ),
               ),
               Expanded(
                 child: HomeIconTile(
                   label: 'Mobile Postpaid',
-                  iconUrl: FileConstants.postpaid,
+                  svgAsset: 'assets/images/svg/services/mobile_recharge.svg',
                   onTap: () => onServiceTap('Mobile Postpaid'),
                 ),
               ),
@@ -607,9 +588,9 @@ class _CategorySection extends HookWidget {
       iconUrl = FileConstants.creditcard;
     } else if (iconUrl == null || iconUrl.isEmpty) {
       if (lower.contains('prepaid') && lower.contains('mobile')) {
-        iconUrl = FileConstants.mobile;
+        svgAsset = 'assets/images/svg/services/mobile_recharge.svg';
       } else if (lower.contains('postpaid') && lower.contains('mobile')) {
-        iconUrl = FileConstants.postpaid;
+        svgAsset = 'assets/images/svg/services/mobile_recharge.svg';
       } else if (lower.contains('fastag')) {
         iconUrl = FileConstants.fastTag;
       } else if (lower.contains('credit card')) {
