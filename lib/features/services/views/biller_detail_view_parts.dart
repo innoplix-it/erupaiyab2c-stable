@@ -1908,7 +1908,7 @@ String _resolveLastPaidAmount(BillResponse bill) {
   if (bill.amountInRupees > 0) {
     return '₹${bill.amountInRupees.toStringAsFixed(bill.amountInRupees.truncateToDouble() == bill.amountInRupees ? 0 : 2)}';
   }
-  return '₹450';
+  return '—';
 }
 
 String _resolveLastPaidDate(BillResponse bill) {
@@ -1928,7 +1928,7 @@ String _resolveLastPaidDate(BillResponse bill) {
   if (bill.billDate.isNotEmpty) {
     return DateFormatHelper.formatDisplayDateWithYear(bill.billDate);
   }
-  return '6 Dec 2025';
+  return '—';
 }
 
 // ─── Amount Display Card ─────────────────────────────────────────────────────
@@ -2806,8 +2806,8 @@ class AutoPayBottomSheet extends HookConsumerWidget {
                   onTap: () => Navigator.of(context).pop(),
                   behavior: HitTestBehavior.opaque,
                   child: SizedBox(
-                    width: FetchProviderMetrics.w(44),
-                    height: FetchProviderMetrics.w(44),
+                    width: FetchProviderMetrics.r(44),
+                    height: FetchProviderMetrics.r(44),
                     child: Center(
                       child: Icon(
                         Icons.close,

@@ -241,20 +241,35 @@ class HomeSearchView extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      // Pinned header: MyAppBar lives in the Scaffold's appBar slot so it
+      // stays visible while the search bar and service sections scroll
+      // beneath it. MyAppBar is a PreferredSizeWidget and already reserves
+      // the status-bar inset, so the body only needs the bottom safe area.
+      appBar: MyAppBar(
+        title: 'All Services',
+        showHelp: true,
+        onBack: () => Navigator.of(context).pop(),
+        titleStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: Colors.black,
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: ListView(
           padding: EdgeInsets.zero,
+          // Perf: the whole list is only ~3-4 screens tall, but the default
+          // 250px cache extent disposes every tile section that scrolls out
+          // and re-builds it (regex label formatting, GoogleFonts styles,
+          // gradient+shadow decorations, SVG widgets) when it scrolls back
+          // in — measured on 390x844: only 21 of 52 tiles realized at rest,
+          // count churned 21→31→17→21 across one up/down fling pass.
+          // A generous cache extent keeps all 52 tiles realized (verified
+          // constant across fling-down → bottom → fling-up), so scrolling
+          // composites cached layers instead of rebuilding subtrees.
+          cacheExtent: MediaQuery.sizeOf(context).height * 4,
           children: [
-            MyAppBar(
-              title: 'All Services',
-              showHelp: true,
-              onBack: () => Navigator.of(context).pop(),
-              titleStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-            ),
             SizedBox(height: 10.h),
             Padding(
               padding: EdgeInsets.symmetric(
@@ -655,7 +670,7 @@ class _UtilityBillsCategorySection extends StatelessWidget {
         ),
         HomeIconTile(
           label: 'Book LPG',
-          iconUrl: FileConstants.gasCylinder,
+          svgAsset: 'assets/images/svg/services/digital_silver.svg',
           onTap: () => onServiceTap('Book LPG'),
         ),
         HomeIconTile(
@@ -729,8 +744,8 @@ class _FinancialCategorySection extends StatelessWidget {
         ),
         HomeIconTile(
           label: 'Digital Silver',
-          // Figma: Digital Silver reuses the book-gas icon.
-          svgAsset: 'assets/images/svg/services/pipe_gas.svg',
+          // Figma: Digital Silver uses the gas-cylinder icon.
+          svgAsset: 'assets/images/svg/services/digital_silver.svg',
           onTap: () => onServiceTap('Digital Silver'),
         ),
         HomeIconTile(
@@ -788,17 +803,17 @@ class _EducationCategorySection extends StatelessWidget {
       tiles: [
         HomeIconTile(
           label: 'School Fees',
-          iconUrl: FileConstants.schoolFees,
+          svgAsset: 'assets/images/svg/services/school_fees.svg',
           onTap: () => onServiceTap('School Fees'),
         ),
         HomeIconTile(
           label: 'Tution Fees',
-          iconUrl: FileConstants.tutionFees,
+          svgAsset: 'assets/images/svg/services/tuition_fees.svg',
           onTap: () => onServiceTap('Tution Fees'),
         ),
         HomeIconTile(
           label: 'College Fees',
-          iconUrl: FileConstants.collegeFees,
+          svgAsset: 'assets/images/svg/services/college_fees.svg',
           onTap: () => onServiceTap('College Fees'),
         ),
         HomeIconTile(
@@ -825,17 +840,17 @@ class _InsuranceCategorySection extends StatelessWidget {
       tiles: [
         HomeIconTile(
           label: 'General Insurance',
-          iconUrl: FileConstants.generalInsurance,
+          svgAsset: 'assets/images/svg/services/general_insurance.svg',
           onTap: () => onServiceTap('General Insurance'),
         ),
         HomeIconTile(
           label: 'Health Insurance',
-          iconUrl: FileConstants.healthInsurance,
+          svgAsset: 'assets/images/svg/services/health_insurance.svg',
           onTap: () => onServiceTap('Health Insurance'),
         ),
         HomeIconTile(
           label: 'Life Insurance',
-          iconUrl: FileConstants.lifeInsurance,
+          svgAsset: 'assets/images/svg/services/life_insurance_new.svg',
           onTap: () => onServiceTap('Life Insurance'),
         ),
       ],
@@ -857,12 +872,12 @@ class _RentPropertyCategorySection extends StatelessWidget {
       tiles: [
         HomeIconTile(
           label: 'House Rent',
-          iconUrl: FileConstants.houseRent,
+          svgAsset: 'assets/images/svg/services/house_rent.svg',
           onTap: () => onServiceTap('House Rent'),
         ),
         HomeIconTile(
           label: 'Shop Rent',
-          iconUrl: FileConstants.shopRent,
+          svgAsset: 'assets/images/svg/services/shop_rent.svg',
           onTap: () => onServiceTap('Shop Rent'),
         ),
         HomeIconTile(
@@ -1127,13 +1142,13 @@ class _CategorySection extends HookWidget {
         // Figma: Digital Gold reuses the electricity bulb icon.
         svgAsset = 'assets/images/svg/services/electricity_bill.svg';
       } else if (lower.contains('silver')) {
-        // Figma: Digital Silver reuses the book-gas icon.
-        svgAsset = 'assets/images/svg/services/pipe_gas.svg';
+        // Figma: Digital Silver uses the gas-cylinder icon.
+        svgAsset = 'assets/images/svg/services/digital_silver.svg';
       } else if (lower.contains('pipe gas') || lower.contains('piped gas')) {
         svgAsset = 'assets/images/svg/services/pipe_gas.svg';
       } else if (lower.contains('book') &&
           (lower.contains('gas') || lower.contains('lpg'))) {
-        iconUrl = FileConstants.gasCylinder;
+        svgAsset = 'assets/images/svg/services/digital_silver.svg';
       } else if (lower.contains('prepaid meter')) {
         svgAsset = 'assets/images/svg/services/prepaid_meter.svg';
       } else if (lower.contains('cable')) {

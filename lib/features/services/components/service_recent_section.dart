@@ -1461,12 +1461,17 @@ class _SavedBillerActionSheet extends StatelessWidget {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => Navigator.of(context).pop(),
-                    child: Padding(
-                      padding: EdgeInsets.all(4.r),
-                      child: Icon(
-                        Icons.close,
-                        size: 24.r,
-                        color: const Color(0xFF1E1E1E),
+                    child: SizedBox(
+                      // Touch-target ergonomic floor (>=44dp); kept unscaled so
+                      // it stays >=44 on every device. Visible icon unchanged.
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Icon(
+                          Icons.close,
+                          size: 24.r,
+                          color: const Color(0xFF1E1E1E),
+                        ),
                       ),
                     ),
                   ),

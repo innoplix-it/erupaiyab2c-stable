@@ -1,6 +1,9 @@
 package com.innoplix.erupaiya
 
 import android.content.pm.ActivityInfo
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.provider.Settings
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.Handler
@@ -31,6 +34,7 @@ class MainActivity: FlutterFragmentActivity() {
     private val channel = "com.innoplix.erupaiya/screen_security"
     private val receiptChannel = "com.innoplix.erupaiya/receipt_print"
     private val phoneHintChannel = "com.innoplix.erupaiya/phone_hint"
+    private val developerModeChannel = "com.innoplix.erupaiya/developer_mode"
     private var pendingPhoneHintResult: MethodChannel.Result? = null
 
     private val phoneHintLauncher =
@@ -108,6 +112,42 @@ class MainActivity: FlutterFragmentActivity() {
                 when (call.method) {
                     "getPhoneNumberHint" -> {
                         requestPhoneNumberHint(result)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Developer Options app lock: read the live system setting and expose
+        // a direct jump to the Developer Options screen. Reading
+        // Settings.Global.DEVELOPMENT_SETTINGS_ENABLED requires no runtime
+        // permission and does not rely on USB-debugging state.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, developerModeChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getDevelopmentSettingsEnabled" -> {
+                        try {
+                            val enabled = Settings.Global.getInt(
+                                contentResolver,
+                                Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
+                                0
+                            )
+                            result.success(if (enabled == 1) 1 else 0)
+                        } catch (e: Exception) {
+                            result.error("detect_failed", e.message, null)
+                        }
+                    }
+                    "openDeveloperSettings" -> {
+                        try {
+                            val intent =
+                                Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e: ActivityNotFoundException) {
+                            result.success(false)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
                     }
                     else -> result.notImplemented()
                 }

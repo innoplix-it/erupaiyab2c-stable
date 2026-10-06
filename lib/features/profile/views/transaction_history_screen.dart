@@ -162,12 +162,12 @@ class _TransactionHistoryScreenState
                     GestureDetector(
                       onTap: () => _openFilterScreen(controller),
                       child: SizedBox(
-                        width: 24.w,
-                        height: 24.w,
+                        width: 24.r,
+                        height: 24.r,
                         child: SvgPicture.string(
                           _transactionFilterSvg,
-                          width: 24.w,
-                          height: 24.w,
+                          width: 24.r,
+                          height: 24.r,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -243,6 +243,16 @@ class _TransactionHistoryScreenState
                                 ),
                               ),
                             ],
+                            // Bottom system/gesture inset so the last
+                            // transaction (or the empty state) stays clear of
+                            // the navigation area. Applied once; this screen
+                            // has no SafeArea, so there is no double-counting.
+                            SliverToBoxAdapter(
+                              child: SizedBox(
+                                height:
+                                    MediaQuery.viewPaddingOf(context).bottom,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -455,8 +465,8 @@ class _TransactionTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 44.w,
-              height: 44.w,
+              width: 44.r,
+              height: 44.r,
               padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFFFF),
@@ -520,12 +530,20 @@ class _TransactionTile extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  displayAmount,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w700,
-                    color: amountColor,
+                ConstrainedBox(
+                  // Defensive cap: an unusually large amount ellipsizes
+                  // instead of overflowing the card at 320px. Normal amounts
+                  // are far narrower and render exactly as before.
+                  constraints: BoxConstraints(maxWidth: 150.w),
+                  child: Text(
+                    displayAmount,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: amountColor,
+                    ),
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -1057,8 +1075,8 @@ class _TransactionEmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 100.w,
-              height: 100.w,
+              width: 100.r,
+              height: 100.r,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.08),
@@ -1136,8 +1154,8 @@ class _TransactionTileSkeleton extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 44.w,
-            height: 44.w,
+            width: 44.r,
+            height: 44.r,
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),

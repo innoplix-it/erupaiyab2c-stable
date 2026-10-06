@@ -148,7 +148,7 @@ class TransactionDetailScreen extends StatelessWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final hasStatusMessage = statusMeta.message.isNotEmpty;
-          final topPadding = MediaQuery.of(context).padding.top;
+          final topPadding = MediaQuery.paddingOf(context).top;
           final headerTop = topPadding + 40.h;
           final headerHorizontalPadding = 24.w;
           final sectionGap = 10.h;
@@ -281,7 +281,7 @@ class TransactionDetailScreen extends StatelessWidget {
               ),
               Positioned(
                 left: 12.w,
-                top: MediaQuery.of(context).padding.top + 8.h,
+                top: MediaQuery.paddingOf(context).top + 8.h,
                 child: IconButton(
                   onPressed: effectiveOnBack ??
                       () => Navigator.of(context).maybePop(),
@@ -308,22 +308,22 @@ class TransactionDetailScreen extends StatelessWidget {
                         if (!statusMeta.iconAsset.endsWith('.svg'))
                           SvgPicture.asset(
                             FileConstants.successVectorIcon,
-                            width: 50.w,
-                            height: 50.w,
+                            width: 50.r,
+                            height: 50.r,
                             fit: BoxFit.contain,
                           ),
                         if (statusMeta.iconAsset.endsWith('.svg'))
                           SvgPicture.asset(
                             statusMeta.iconAsset,
-                            width: 52.w,
-                            height: 52.w,
+                            width: 52.r,
+                            height: 52.r,
                             fit: BoxFit.contain,
                           )
                         else
                           Image.asset(
                             statusMeta.iconAsset,
-                            width: 52.w,
-                            height: 52.w,
+                            width: 52.r,
+                            height: 52.r,
                             fit: BoxFit.contain,
                           ),
                       ],
@@ -360,8 +360,8 @@ class TransactionDetailScreen extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    width: 8.w,
-                                    height: 8.w,
+                                    width: 8.r,
+                                    height: 8.r,
                                     decoration: BoxDecoration(
                                       gradient: statusMeta
                                               .messageIndicatorGradient
@@ -1252,8 +1252,8 @@ class _ResultActionButton extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              width: 44.w,
-              height: 44.w,
+              width: 44.r,
+              height: 44.r,
               decoration: BoxDecoration(
                 color: const Color(0xFFFFEFE8),
                 shape: BoxShape.circle,

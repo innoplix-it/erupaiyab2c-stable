@@ -247,7 +247,7 @@ void main() {
     expect(tilesNamed(tester, 'Digital Gold').single.svgAsset,
         'assets/images/svg/services/electricity_bill.svg');
     expect(tilesNamed(tester, 'Digital Silver').single.svgAsset,
-        'assets/images/svg/services/pipe_gas.svg');
+        'assets/images/svg/services/digital_silver.svg');
     expect(tilesNamed(tester, 'Agent Collection').single.svgAsset,
         'assets/images/svg/services/agent_collection.svg');
     expect(tilesNamed(tester, 'B2B Payments').single.svgAsset,

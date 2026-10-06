@@ -360,8 +360,8 @@ class _MonthCheck extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 18.w,
-            height: 18.w,
+            width: 18.r,
+            height: 18.r,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4.r),
               border: Border.all(

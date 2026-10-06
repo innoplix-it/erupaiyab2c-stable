@@ -3,6 +3,7 @@ import 'package:e_rupaiya/widgets/processing_overlay.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'config/app_env.dart';
 import 'config/temporary_block_debug_config.dart';
 import 'constants/routes_constant.dart';
 import 'core/barrel_file.dart';
@@ -15,6 +16,8 @@ import 'features/auth/views/otp_verification_view.dart';
 import 'features/auth/views/pin_setup_view.dart';
 import 'features/auth/views/splash_view.dart';
 import 'features/auth/views/temporary_block_identity_completion_view.dart';
+import 'features/developer_mode/controllers/developer_mode_guard.dart';
+import 'features/developer_mode/views/developer_mode_view.dart';
 import 'features/digital_gold/models/digital_gold_preview.dart';
 import 'features/digital_gold/models/digital_gold_purchase_receipt.dart';
 import 'features/digital_gold/models/digital_metal.dart';
@@ -89,11 +92,33 @@ final routerProvider = Provider<GoRouter>(
     final router = GoRouter(
       navigatorKey: navigatorKey,
       observers: [navigationInteractionLock],
+      // Re-evaluate the redirect whenever the Developer Options lock changes
+      // (startup probe resolution, resume re-check, Close/Open Settings).
+      refreshListenable: DeveloperModeGuard.instance,
       initialLocation: RouteConstants.splash,
       redirect: (context, state) {
         logger.info('Redirecting to ${state.matchedLocation}');
         final authState = ref.read(authControllerProvider);
         final location = state.matchedLocation;
+
+        // Developer Options app lock — gates ALL normal access and runs
+        // before the splash/auth logic below. No individual screen checks.
+        final guardRedirect = developerModeGuardRedirect(
+          featureFlagEnabled: AppEnv.isDeveloperModeCheckEnabled,
+          lockState: DeveloperModeGuard.instance.lockState,
+          location: location,
+          splashRoute: RouteConstants.splash,
+          developerRoute: RouteConstants.developerModeEnabled,
+        );
+        if (guardRedirect != null) return guardRedirect;
+        // Sitting on the lock screen while blocked/pending: stop here so the
+        // auth redirects below cannot bounce us off it.
+        if (AppEnv.isDeveloperModeCheckEnabled &&
+            location == RouteConstants.developerModeEnabled &&
+            DeveloperModeGuard.instance.lockState !=
+                DeveloperModeLockState.allowed) {
+          return null;
+        }
 
         // Always let the in-app splash render on cold start/reopen.
         // SplashView itself decides whether to continue to Home or Login
@@ -153,6 +178,10 @@ final routerProvider = Provider<GoRouter>(
         GoRoute(
           path: RouteConstants.splash,
           builder: (context, state) => SplashView(key: state.pageKey),
+        ),
+        GoRoute(
+          path: RouteConstants.developerModeEnabled,
+          builder: (context, state) => const DeveloperModeEnabledScreen(),
         ),
         GoRoute(
           path: RouteConstants.home,

@@ -10,6 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import 'features/profile/controllers/theme_mode_controller.dart';
+import 'features/developer_mode/controllers/developer_mode_guard.dart';
 // import 'package:no_screenshot/no_screenshot.dart';
 
 import 'router.dart';
@@ -28,6 +29,9 @@ Future<void> main() async {
   ]);
   FlutterNativeSplash.preserve(widgetsBinding: binding);
   // NoScreenshot.instance.screenshotOff();
+  // Kick off the Developer Options app-lock probe before the first frame so
+  // the router guard has a resolved state as early as possible.
+  DeveloperModeGuard.instance.recheck();
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -96,6 +100,15 @@ class MyApp extends HookConsumerWidget {
         DeviceOrientation.portraitUp,
       ]);
       return null;
+    }, const []);
+    useEffect(() {
+      // Single lifecycle observer: re-probe Developer Options only when we
+      // are actually locked (e.g. returning from system settings). This is how
+      // "Open Settings -> disable -> resume" unlocks the app without a loop.
+      final lifecycleListener = AppLifecycleListener(
+        onResume: () => DeveloperModeGuard.instance.recheckIfLocked(),
+      );
+      return lifecycleListener.dispose;
     }, const []);
     useEffect(() {
       // Allows PushNotificationService to navigate after notification taps.
