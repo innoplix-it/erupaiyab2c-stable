@@ -64,8 +64,9 @@ class PlanCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(width: 81.w,
-                    height: 40.h,
+                  Expanded(
+                    child: SizedBox(
+                      height: 40.h,
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: FittedBox(
@@ -75,7 +76,7 @@ class PlanCard extends StatelessWidget {
                           '₹ ${plan.amount}',
                           maxLines: 1,
                           style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             fontSize: 37.sp,
                             color: Colors.black,
                             height: 40.h / 40,
@@ -84,8 +85,8 @@ class PlanCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  GetAssuredCoinsBadge(label: assuredLabel),
+                ),
+                GetAssuredCoinsBadge(label: assuredLabel),
                 ],
               ),
             ),
@@ -126,7 +127,8 @@ class PlanCard extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: onViewDetails ?? onTap,
-                        child: SizedBox(width: 83.w,
+                        child: SizedBox(
+                          width: 83.w,
                           height: 17.h,
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
@@ -145,7 +147,8 @@ class PlanCard extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      SizedBox(width: 100.w,
+                      SizedBox(
+                        width: 100.w,
                         height: 24.h,
                         child: _PlanPayNowButton(
                           onTap: onPayNow ?? onTap,
@@ -308,7 +311,8 @@ class _PlanInfoColumn extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(width: 36.w,
+          SizedBox(
+            width: 36.w,
             height: 16.h,
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -384,11 +388,11 @@ class _PlanBenefitImages extends StatelessWidget {
             Text(
               '+$remaining',
               style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                    fontSize: 13.sp,
-                    height: 1,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                fontSize: 13.sp,
+                height: 1,
+              ),
             ),
         ],
       ),
@@ -404,8 +408,8 @@ class _BenefitIconAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 26.w,
-      height: 26.w,
+      width: 26.r,
+      height: 26.r,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2.w),
@@ -424,8 +428,8 @@ class _BenefitIconAvatar extends StatelessWidget {
               )
             : Image.network(
                 benefit.image!,
-                width: 26.w,
-                height: 26.w,
+                width: 26.r,
+                height: 26.r,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   color: Colors.grey.shade200,
@@ -473,5 +477,3 @@ class _PlanPayNowButton extends StatelessWidget {
     );
   }
 }
-
-

@@ -107,8 +107,8 @@ class SimpleQuickActionCard extends StatelessWidget {
             SimCardIconContainer(
               asset: leadingAsset,
               url: leadingImageUrl,
-              width: operatorStyle ? FetchProviderMetrics.r(50) : 44.w,
-              height: operatorStyle ? FetchProviderMetrics.r(50) : 44.w,
+              width: operatorStyle ? FetchProviderMetrics.r(50) : 44.r,
+              height: operatorStyle ? FetchProviderMetrics.r(50) : 44.r,
               borderRadius: operatorStyle ? FetchProviderMetrics.r(20) : 12.r,
               padding: operatorStyle ? FetchProviderMetrics.w(10) : 10.w,
               borderWidth: operatorStyle ? 1 : 0.5,

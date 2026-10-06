@@ -368,7 +368,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
             SizedBox(height: 12.h),
             // Orange progress bar
             Container(
-              height: 3,
+              height: 3.h,
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(2.r),
@@ -759,7 +759,7 @@ class _PrepaidPaymentBottomSheetState
 
             // Orange progress bar
             Container(
-              height: 3,
+              height: 3.h,
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(2.r),
@@ -987,8 +987,8 @@ class _PaymentOptionTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 44.w,
-              height: 44.w,
+              width: 44.r,
+              height: 44.r,
               decoration: BoxDecoration(
                 color: effectiveIconColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12.r),

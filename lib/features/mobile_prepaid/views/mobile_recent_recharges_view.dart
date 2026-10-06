@@ -55,10 +55,10 @@ class MobileRecentRechargesView extends HookConsumerWidget {
           ),
           Expanded(
             child: isFetching || recharges == null || recharges.isEmpty
-                ? const Center(
+                ? Center(
                     child: SpinKitCircle(
                       color: AppColors.primary,
-                      size: 48,
+                      size: 48.r,
                     ),
                   )
                 : Column(
@@ -67,7 +67,12 @@ class MobileRecentRechargesView extends HookConsumerWidget {
                       // Recent recharges list
                       Expanded(
                         child: ListView.separated(
-                          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+                          padding: EdgeInsets.fromLTRB(
+                            16.w,
+                            16.h,
+                            16.w,
+                            16.h + MediaQuery.paddingOf(context).bottom,
+                          ),
                           itemCount: recharges.length,
                           separatorBuilder: (_, __) => SizedBox(height: 12.h),
                           itemBuilder: (context, index) {
@@ -95,7 +100,12 @@ class MobileRecentRechargesView extends HookConsumerWidget {
                       ),
                       // New recharge button
                       Padding(
-                        padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 24.h),
+                        padding: EdgeInsets.fromLTRB(
+                          16.w,
+                          0.h,
+                          16.w,
+                          24.h + MediaQuery.paddingOf(context).bottom,
+                        ),
                         child: SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -174,8 +184,8 @@ class _RechargeCard extends StatelessWidget {
             children: [
               // Operator icon
               Container(
-                width: 44.w,
-                height: 44.w,
+                width: 44.r,
+                height: 44.r,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.08),
                   shape: BoxShape.circle,
@@ -184,8 +194,8 @@ class _RechargeCard extends StatelessWidget {
                   child: item.icon?.isNotEmpty == true
                       ? AppNetworkImage(
                           url: item.icon,
-                          width: 44.w,
-                          height: 44.w,
+                          width: 44.r,
+                          height: 44.r,
                           fit: BoxFit.cover,
                           showShimmer: false,
                         )

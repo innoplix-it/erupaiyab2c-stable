@@ -44,7 +44,8 @@ class RecentRechargePayments extends StatelessWidget {
             children: [
               _Header(onViewAll: onViewAll),
               SizedBox(height: 12.h),
-              SizedBox(height: 75.h,
+              SizedBox(
+                height: 75.h,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: EdgeInsets.zero,
@@ -130,8 +131,8 @@ class _RecentPaymentCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              height: 45.h,
-              width: 45.h,
+              height: 45.r,
+              width: 45.r,
               padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -218,7 +219,8 @@ class _RecentPaymentsShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Shimmer(
-      child: SizedBox(height: 78.h,
+      child: SizedBox(
+        height: 78.h,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: 3,
@@ -234,8 +236,8 @@ class _RecentPaymentsShimmer extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  height: 45.h,
-                  width: 45.h,
+                  height: 45.r,
+                  width: 45.r,
                   decoration: BoxDecoration(
                     color: AppColors.lightBorder.withOpacity(0.25),
                     borderRadius: BorderRadius.circular(16.r),

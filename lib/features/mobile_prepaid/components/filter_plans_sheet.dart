@@ -143,7 +143,7 @@ class _FilterPlansSheetState extends State<FilterPlansSheet> {
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
-                  splashRadius: 20,
+                  splashRadius: 20.r,
                 ),
               ],
             ),

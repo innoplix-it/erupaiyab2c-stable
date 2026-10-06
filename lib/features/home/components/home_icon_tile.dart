@@ -144,6 +144,9 @@ class HomeServiceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Single-word labels (e.g. Subscription) must never break mid-word: keep
+    // them on one row at the original font size instead of rescaling.
+    final isSingleLine = !text.contains('\n');
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -153,9 +156,10 @@ class HomeServiceLabel extends StatelessWidget {
           height: homeServiceCardLabelBoxHeight(context),
           child: Text(
             text,
-            maxLines: maxLines,
-            softWrap: maxLines > 1,
-            overflow: TextOverflow.ellipsis,
+            maxLines: isSingleLine ? 1 : maxLines,
+            softWrap: !isSingleLine && maxLines > 1,
+            overflow:
+                isSingleLine ? TextOverflow.visible : TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             textHeightBehavior: HomeServiceItemMetrics._labelHeightBehavior,
             style: homeServiceCardLabelStyle(),
@@ -213,7 +217,13 @@ String homeServiceCardLabelText(String input) {
         .where((word) => word.isNotEmpty)
         .map((word) {
       if (word.isEmpty) return word;
-      return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+      // Preserve Figma casing for mixed-case/acronym words (FASTag, NCMC,
+      // LPG, DTH, B2B, EChallan); only capitalize all-lowercase words.
+      final hasUpper = word.contains(RegExp(r'[A-Z]'));
+      final capitalized = '${word[0].toUpperCase()}${word.substring(1)}';
+      return hasUpper
+          ? capitalized
+          : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
     }).join(' ');
   }).join('\n');
 }
@@ -363,7 +373,12 @@ class _HomeIconTileState extends State<HomeIconTile> {
         .split(RegExp(r'\s+'))
         .where((word) => word.isNotEmpty)
         .toList();
-    final isTwoWordLabel = labelWords.length == 2;
+    // Multi-word labels keep the last word on its own line, e.g.
+    // "Fleet Card Recharge" -> "Fleet Card\nRecharge", "Mobile Prepaid" ->
+    // "Mobile\nPrepaid". Single-word labels stay on one row.
+    final formattedLabel = labelWords.length <= 1
+        ? labelWords.join(' ')
+        : '${labelWords.sublist(0, labelWords.length - 1).join(' ')}\n${labelWords.last}';
 
     final circleSize = HomeServiceCircle.size;
     final ringSize = circleSize + 2 * HomeServiceCircle.borderWidth;
@@ -429,11 +444,7 @@ class _HomeIconTileState extends State<HomeIconTile> {
                   ),
               ],
             ),
-            HomeServiceLabel(
-              isTwoWordLabel
-                  ? '${labelWords.first}\n${labelWords.last}'
-                  : labelWords.join(' '),
-            ),
+            HomeServiceLabel(formattedLabel),
           ],
         ),
       ),

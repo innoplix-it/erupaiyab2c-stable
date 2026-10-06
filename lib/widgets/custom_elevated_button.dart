@@ -83,8 +83,9 @@ class CustomElevatedButton extends StatelessWidget {
                 : MainAxisAlignment.center,
             children: [
               if (isLoading && !showArrow) ...[
-                SizedBox(height: 16.h,
-                  width: 16.h,
+                SizedBox(
+                  height: 16.r,
+                  width: 16.r,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -96,8 +97,7 @@ class CustomElevatedButton extends StatelessWidget {
               ],
               Text(
                 uppercaseLabel ? label.toUpperCase() : label,
-                style: (labelStyle ??
-                        Theme.of(context).textTheme.labelLarge)
+                style: (labelStyle ?? Theme.of(context).textTheme.labelLarge)
                     ?.copyWith(
                   color: labelColor ?? Colors.white,
                   letterSpacing: labelStyle == null ? 1.1 : null,

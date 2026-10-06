@@ -18,13 +18,19 @@ class MobilePrepaidShimmer extends StatelessWidget {
           SizedBox(height: 36.h),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+              padding: EdgeInsets.fromLTRB(
+                16.w,
+                16.h,
+                16.w,
+                24.h + MediaQuery.paddingOf(context).bottom,
+              ),
               children: [
-                _ShimmerBox(height: 46.h, radius: 14.r),
-                SizedBox(height: 18.h),
+                // Real screen order: Suggested Plans -> Search -> Filters ->
+                // Plan cards.
                 _ShimmerLine(width: 140.w, height: 16.h),
                 SizedBox(height: 14.h),
-                SizedBox(height: 150.h,
+                SizedBox(
+                  height: 150.h,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: 3,
@@ -33,6 +39,8 @@ class MobilePrepaidShimmer extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 12.h),
+                _ShimmerBox(height: 46.h, radius: 14.r),
+                SizedBox(height: 18.h),
                 const _CategoryTabsShimmer(),
                 SizedBox(height: 10.h),
                 ...List.generate(
@@ -58,13 +66,19 @@ class MobilePrepaidContentShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Shimmer(
       child: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+        padding: EdgeInsets.fromLTRB(
+          16.w,
+          16.h,
+          16.w,
+          24.h + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
-          _ShimmerBox(height: 46.h, radius: 14.r),
-          SizedBox(height: 18.h),
+          // Real screen order: Suggested Plans -> Search -> Filters ->
+          // Plan cards.
           _ShimmerLine(width: 140.w, height: 16.h),
           SizedBox(height: 14.h),
-          SizedBox(height: 150.h,
+          SizedBox(
+            height: 150.h,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 3,
@@ -73,6 +87,8 @@ class MobilePrepaidContentShimmer extends StatelessWidget {
             ),
           ),
           SizedBox(height: 12.h),
+          _ShimmerBox(height: 46.h, radius: 14.r),
+          SizedBox(height: 18.h),
           const _CategoryTabsShimmer(),
           SizedBox(height: 10.h),
           ...List.generate(
@@ -121,7 +137,7 @@ class MobilePrepaidMyNumberCardShimmer extends StatelessWidget {
             _ShimmerBox(height: 28.h, width: 88.w, radius: 22.r),
           ],
         ),
-    ),
+      ),
     );
   }
 }
@@ -170,7 +186,8 @@ class _ShimmerAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(height: 175.h,
+    return SizedBox(
+      height: 175.h,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -180,8 +197,7 @@ class _ShimmerAppBar extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                 child: Row(
                   children: [
                     _ShimmerCircle(size: 34.r),
@@ -195,8 +211,8 @@ class _ShimmerAppBar extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: 16,
-            right: 16,
+            left: 16.w,
+            right: 16.w,
             bottom: -38.h,
             height: 72.h,
             child: Container(
@@ -284,7 +300,8 @@ class _CategoryTabsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(height: 38.h,
+    return SizedBox(
+      height: 38.h,
       child: Row(
         children: [
           _ShimmerLine(width: 60.w, height: 12.h),
@@ -428,12 +445,12 @@ class _ShimmerBox extends StatelessWidget {
   const _ShimmerBox({
     required this.height,
     this.width,
-    this.radius = 12,
+    this.radius,
   });
 
   final double height;
   final double? width;
-  final double radius;
+  final double? radius;
 
   @override
   Widget build(BuildContext context) {
@@ -442,7 +459,7 @@ class _ShimmerBox extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(radius ?? 12.r),
       ),
     );
   }

@@ -33,7 +33,7 @@ class PlanDetailsSheet extends StatelessWidget {
     final dataValue = extractPlanDataValue(plan);
     final benefits = plan.additionalBenefits;
     final maxHeight = 0.82.sh;
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     return SizedBox(
       height: maxHeight,
       child: Column(
@@ -75,7 +75,7 @@ class PlanDetailsSheet extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style:
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                   color: AppColors.textPrimary,
                                   fontSize: 25.sp,
                                 ),
@@ -304,8 +304,8 @@ class _BenefitLeadingIcon extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14.r),
       child: Container(
-        width: 48.w,
-        height: 48.w,
+        width: 48.r,
+        height: 48.r,
         color: Colors.grey.shade100,
         child: benefit.image == null
             ? Icon(Icons.card_giftcard, size: 24.sp, color: AppColors.primary)

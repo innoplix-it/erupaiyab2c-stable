@@ -541,7 +541,7 @@ class MobilePrepaidView extends HookConsumerWidget {
                           child: Center(
                             child: Icon(
                               Icons.help_outline,
-                              size: 16.67.w,
+                              size: 16.67.r,
                               color: const Color(0xFF000000),
                             ),
                           ),

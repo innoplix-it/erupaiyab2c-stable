@@ -367,36 +367,59 @@ class _SearchModeToggle extends StatelessWidget {
       required _MobilePrepaidSearchMode value,
     }) {
       final active = mode == value;
-      return InkWell(
-        onTap: () => onChanged(value),
-        borderRadius: BorderRadius.circular(90.r),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 36.w,
-          height: 16.h,
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+      return SizedBox(
+        width: 36.w,
+        height: 16.h,
+        child: Stack(
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: active ? const Color(0xFFDD5428) : Colors.transparent,
-            borderRadius: BorderRadius.circular(90.r),
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              maxLines: 1,
-              softWrap: false,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
-                color:
-                    active ? const Color(0xFFFFFFFF) : const Color(0xFF000000),
-                fontWeight: FontWeight.w500,
-                fontSize: 10.sp,
-                height: 1.0,
-                letterSpacing: 0,
+          clipBehavior: Clip.none,
+          children: [
+            // ~44x44 tap target without enlarging the visible chip.
+            Positioned(
+              top: -14.h,
+              bottom: -14.h,
+              left: -4.w,
+              right: -4.w,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onChanged(value),
+                child: const SizedBox.shrink(),
               ),
             ),
-          ),
+            InkWell(
+              onTap: () => onChanged(value),
+              borderRadius: BorderRadius.circular(90.r),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 36.w,
+                height: 16.h,
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? const Color(0xFFDD5428) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(90.r),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: active
+                          ? const Color(0xFFFFFFFF)
+                          : const Color(0xFF000000),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10.sp,
+                      height: 1.0,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -570,37 +593,57 @@ class _RechargePillButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 78.5.w,
-      height: 22.r,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFDD5428),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(23.r),
-          ),
-          visualDensity: VisualDensity.compact,
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'Recharge',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-              height: 1.0,
-              letterSpacing: 0,
-              color: const Color(0xFFFFFFFF),
+      height: 22.h,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // ~44 tall tap target without enlarging the visible pill.
+          Positioned(
+            top: -11.h,
+            bottom: -11.h,
+            left: 0,
+            right: 0,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onPressed,
+              child: const SizedBox.shrink(),
             ),
           ),
-        ),
+          Positioned.fill(
+            child: ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDD5428),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(23.r),
+                ),
+                visualDensity: VisualDensity.compact,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Recharge',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                    letterSpacing: 0,
+                    color: const Color(0xFFFFFFFF),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -617,37 +660,57 @@ class _RepeatPillButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 65.5.w,
-      height: 22.r,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFDD5428),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(23.r),
-          ),
-          visualDensity: VisualDensity.compact,
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'Repeat',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-              height: 1.0,
-              letterSpacing: 0,
-              color: const Color(0xFFFFFFFF),
+      height: 22.h,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // ~44 tall tap target without enlarging the visible pill.
+          Positioned(
+            top: -11.h,
+            bottom: -11.h,
+            left: 0,
+            right: 0,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onPressed,
+              child: const SizedBox.shrink(),
             ),
           ),
-        ),
+          Positioned.fill(
+            child: ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDD5428),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(23.r),
+                ),
+                visualDensity: VisualDensity.compact,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Repeat',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                    letterSpacing: 0,
+                    color: const Color(0xFFFFFFFF),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1077,8 +1140,8 @@ class _OperatorIconBadge extends StatelessWidget {
     return Semantics(
       label: label,
       child: Container(
-        width: 40.w,
-        height: 40.w,
+        width: 40.r,
+        height: 40.r,
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
@@ -1149,7 +1212,7 @@ class _PlanSection extends HookWidget {
           0.w,
           0.h,
           0.w,
-          24.h + MediaQuery.of(context).viewPadding.bottom,
+          24.h + MediaQuery.viewPaddingOf(context).bottom,
         ),
         children: [
           // Suggested plans block should be at the top (edge-to-edge gradient).
@@ -1377,7 +1440,7 @@ class _PayNowSection extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.visible,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 37.sp,
                                   height: 40.h / 40,
                                   color: const Color(0xFF000000),
@@ -1511,8 +1574,8 @@ class _PayNowSection extends StatelessWidget {
                                     SizedBox(width: 6.w),
                                     SvgPicture.string(
                                       '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.65381 13.2699L1.59698 13.2077L1.44639 14.3515C1.43521 14.4399 1.40535 14.5253 1.35852 14.6029C1.3117 14.6805 1.24885 14.7486 1.17361 14.8034C1.06022 14.8883 0.92211 14.9395 0.777168 14.9504C0.632226 14.9612 0.487134 14.9312 0.360688 14.8642C0.234242 14.7972 0.132269 14.6964 0.0679792 14.5747C0.00368921 14.453 -0.019955 14.3162 0.000109539 14.1818L0.396487 11.2196V11.2103C0.399034 11.192 0.40283 11.1738 0.407852 11.156C0.429734 11.0697 0.469624 10.9883 0.525244 10.9164C0.580864 10.8446 0.651122 10.7836 0.732003 10.7371C0.812883 10.6906 0.902801 10.6594 0.996614 10.6453C1.09043 10.6312 1.1863 10.6345 1.27875 10.655C2.34143 10.8785 3.40318 11.106 4.46397 11.3375C4.55658 11.3567 4.64414 11.3929 4.72149 11.4441C4.79884 11.4954 4.86441 11.5605 4.91434 11.6358C5.015 11.7877 5.04765 11.9705 5.00526 12.1447C4.98457 12.2309 4.94564 12.3123 4.89074 12.3842C4.83585 12.4561 4.7661 12.5171 4.6856 12.5635C4.52362 12.6584 4.32792 12.6893 4.14147 12.6497C3.67122 12.5503 3.20096 12.4482 2.73213 12.3475C2.85932 12.4863 2.99399 12.619 3.13561 12.7451C4.15727 13.6765 5.45575 14.2995 6.86212 14.533C7.55227 14.6468 8.25694 14.662 8.95198 14.5781C9.63975 14.4984 10.3102 14.32 10.9396 14.0493C11.1782 13.9441 11.407 13.8319 11.6258 13.7126C11.8474 13.5894 12.0619 13.4582 12.2665 13.315C12.7134 13.0115 13.1215 12.661 13.4826 12.2706C13.8366 11.8876 14.1412 11.4672 14.3905 11.0181L14.47 10.8723L15.8907 11.2289L15.7771 11.4489C15.4767 12.031 15.0996 12.576 14.6547 13.0711C14.2026 13.5736 13.6869 14.0231 13.1189 14.4098C12.8802 14.5728 12.6274 14.7279 12.3631 14.8737C12.0988 15.0195 11.8332 15.148 11.5476 15.2713C10.7837 15.6063 9.96911 15.8298 9.13241 15.934C8.29203 16.0369 7.43971 16.0195 6.60498 15.8823C4.91117 15.6012 3.34759 14.8501 2.11838 13.7272C1.9479 13.5735 1.7973 13.421 1.65807 13.2699H1.65381ZM14.3492 2.73052L14.4061 2.79281L14.5481 1.64901C14.5581 1.55942 14.5872 1.47259 14.6336 1.39361C14.68 1.31462 14.7429 1.24507 14.8184 1.18901C14.894 1.13296 14.9808 1.09153 15.0738 1.06716C15.1667 1.04278 15.2639 1.03595 15.3597 1.04705C15.4556 1.05816 15.548 1.08699 15.6318 1.13184C15.7155 1.1767 15.7888 1.23668 15.8474 1.30829C15.9059 1.37989 15.9486 1.46168 15.9729 1.54886C15.9972 1.63604 16.0026 1.72686 15.9887 1.816L15.5995 4.78088V4.79016C15.5995 4.80739 15.5995 4.82594 15.5895 4.8445C15.5453 5.01729 15.4297 5.16681 15.268 5.26061C15.1063 5.35441 14.9114 5.38491 14.7257 5.34549C13.6645 5.1215 12.5947 4.89486 11.5405 4.66292C11.4482 4.64362 11.3609 4.6073 11.2838 4.55609C11.2067 4.50488 11.1413 4.43981 11.0916 4.36471C10.9898 4.21314 10.9566 4.03013 10.9992 3.85576C11.0199 3.76961 11.0588 3.68818 11.1137 3.61626C11.1686 3.54433 11.2384 3.48337 11.3189 3.43694C11.4814 3.34203 11.6775 3.31105 11.8644 3.35079C12.3347 3.4502 12.8035 3.55225 13.2738 3.65298C13.1544 3.52044 13.0223 3.38791 12.8703 3.24874C12.3611 2.78483 11.7802 2.3948 11.147 2.09168C10.5178 1.7876 9.84287 1.57401 9.1452 1.45815C8.45553 1.3444 7.75133 1.32921 7.05676 1.41309C6.36761 1.4971 5.69662 1.68041 5.06777 1.95649C4.82815 2.06076 4.59941 2.17297 4.38157 2.29314C4.15852 2.4164 3.94541 2.54761 3.73941 2.69075C3.29263 2.99395 2.88501 3.34442 2.52471 3.73516C2.1698 4.1175 1.86504 4.53796 1.61687 4.98764L1.53589 5.13343L0.108083 4.7716L0.22174 4.55159C0.522458 3.96959 0.89946 3.42467 1.3441 2.92932C1.79655 2.4272 2.3122 1.97775 2.87988 1.59069C3.12046 1.42722 3.37239 1.2726 3.6357 1.1268C3.89285 0.986315 4.16562 0.852451 4.45118 0.729191C5.21512 0.394191 6.02969 0.170686 6.86639 0.0665001C7.70864 -0.037023 8.56291 -0.0195909 9.39951 0.11819C10.241 0.256961 11.0553 0.513439 11.8147 0.878959C12.5764 1.2446 13.2751 1.71458 13.8875 2.27326C14.0566 2.427 14.2086 2.57942 14.3478 2.73052H14.3492Z" fill="white"/></svg>',
-                                      width: 14.w,
-                                      height: 14.w,
+                                      width: 14.r,
+                                      height: 14.r,
                                       fit: BoxFit.contain,
                                     ),
                                   ],
@@ -1534,7 +1597,7 @@ class _PayNowSection extends StatelessWidget {
             16.w,
             8.h,
             16.w,
-            14.h + MediaQuery.of(context).viewPadding.bottom,
+            14.h + MediaQuery.viewPaddingOf(context).bottom,
           ),
           child: SizedBox(
             width: double.infinity,
@@ -1765,7 +1828,14 @@ class _RegionSelectSheetState extends ConsumerState<_RegionSelectSheet> {
             .toList();
 
     return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+      padding: EdgeInsets.fromLTRB(
+        20.w,
+        16.h,
+        20.w,
+        24.h +
+            MediaQuery.paddingOf(context).bottom +
+            MediaQuery.viewInsetsOf(context).bottom,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
@@ -2050,7 +2120,7 @@ class _SuggestedPlanCard extends StatelessWidget {
                           '₹ ${plan.amount}'.toUpperCase(),
                           maxLines: 1,
                           style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             fontSize: 23.sp,
                             color: Colors.black,
                             height: 1,

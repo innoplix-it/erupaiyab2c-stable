@@ -92,11 +92,49 @@ class HomeSearchView extends HookConsumerWidget {
         error.value = null;
         final id = ++requestId.value;
         try {
-          final data = await ref
-              .read(homeRepositoryProvider)
-              .fetchQuickActions();
+          final data =
+              await ref.read(homeRepositoryProvider).fetchQuickActions();
           if (id != requestId.value) return;
-          allResults.value = data.categories;
+          // Permanently hidden containers per Figma (hidden at the data
+          // source so they appear in no state, search included):
+          //   - "Pay Bills & Expenses"
+          //   - "Banking & Investments"
+          // "Other Services" is NOT hidden anymore — it renders as the
+          // static _OtherServicesCategorySection at the bottom, so the API
+          // category is only suppressed at render time (see
+          // replacedByStaticSections) and stays searchable.
+          final hiddenCategories = <String>[
+            'pay bills',
+            // Banking & Investments container is commented out per Figma;
+            // this entry keeps it hidden until Figma re-enables it.
+            'banking',
+          ];
+
+          // Figma: the "Other Services" container keeps only these cards;
+          // every other item of the API category is commented out (hidden
+          // in browse and search). Substring match, lower-case.
+          const otherServicesKeep = <String>[
+            'subscription',
+            'pipe', // covers "Pipe Gas" and "Piped Gas"
+            'water',
+            'metro', // covers "Metro Recharge"
+            'prepaid meter',
+          ];
+          allResults.value = data.categories.where((c) {
+            final name = c.category.trim().toLowerCase();
+            return !hiddenCategories.any(name.contains);
+          }).map((c) {
+            if (!c.category.trim().toLowerCase().contains('other services')) {
+              return c;
+            }
+            return QuickActionCategory(
+              category: c.category,
+              services: c.services.where((s) {
+                final n = s.name.trim().toLowerCase();
+                return otherServicesKeep.any(n.contains);
+              }).toList(),
+            );
+          }).toList();
           hasFetched.value = true;
         } catch (_) {
           if (id != requestId.value) return;
@@ -152,6 +190,7 @@ class HomeSearchView extends HookConsumerWidget {
           normalized == 'tution fees' ||
           normalized == 'school fees' ||
           normalized == 'college fees' ||
+          normalized == 'education fees' ||
           normalized.contains('house rent') ||
           normalized.contains('shop rent')) {
         context.push(
@@ -162,6 +201,11 @@ class HomeSearchView extends HookConsumerWidget {
         context.push(
           RouteConstants.billerListing,
           extra: 'Fastag',
+        );
+      } else if (normalized == 'electricity bill') {
+        context.push(
+          RouteConstants.billerListing,
+          extra: 'Electricity',
         );
       } else {
         context.push(
@@ -174,6 +218,26 @@ class HomeSearchView extends HookConsumerWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalSidePadding = (screenWidth < 360 ? 16.0 : 19.6).w;
     final isSearching = query.value.trim().isNotEmpty;
+
+    // API categories replaced by the hardcoded Figma containers above.
+    // In browse mode they must NOT render again (no duplicates); in search
+    // mode they stay searchable so static-only services remain findable.
+    const replacedByStaticSections = <String>[
+      'recharge',
+      'utilit', // covers "Utility Bills" and "Utilities"
+      'financial',
+      'education',
+      'lifestyle',
+      'insurance',
+      'rent',
+      'other services', // rendered as the static section at the bottom
+    ];
+    final apiCategories = isSearching
+        ? filteredCategories
+        : filteredCategories
+            .where((cat) => !replacedByStaticSections
+                .any(cat.category.trim().toLowerCase().contains))
+            .toList();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -212,30 +276,59 @@ class HomeSearchView extends HookConsumerWidget {
             ),
             if (!isSearching) ...[
               SizedBox(height: 8.h),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalSidePadding,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12.r),
-                  child: AspectRatio(
-                    aspectRatio: 393 / 67,
-                    child: Image.asset(
-                      'assets/images/investmentallservices.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        'assets/images/png/investmentallservices.png',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 16.h),
               _RechargeHighlightSection(
                 onServiceTap: handleServiceTap,
               ),
               SizedBox(height: 14.h),
+              Padding(
+                padding:
+                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
+                child: _RechargeCategorySection(
+                  onServiceTap: handleServiceTap,
+                ),
+              ),
+              Padding(
+                padding:
+                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
+                child: _UtilityBillsCategorySection(
+                  onServiceTap: handleServiceTap,
+                ),
+              ),
+              Padding(
+                padding:
+                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
+                child: _FinancialCategorySection(
+                  onServiceTap: handleServiceTap,
+                ),
+              ),
+              Padding(
+                padding:
+                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
+                child: _EducationCategorySection(
+                  onServiceTap: handleServiceTap,
+                ),
+              ),
+              Padding(
+                padding:
+                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
+                child: _InsuranceCategorySection(
+                  onServiceTap: handleServiceTap,
+                ),
+              ),
+              Padding(
+                padding:
+                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
+                child: _RentPropertyCategorySection(
+                  onServiceTap: handleServiceTap,
+                ),
+              ),
+              Padding(
+                padding:
+                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
+                child: _OtherServicesCategorySection(
+                  onServiceTap: handleServiceTap,
+                ),
+              ),
             ] else ...[
               SizedBox(height: 8.h),
             ],
@@ -243,8 +336,7 @@ class HomeSearchView extends HookConsumerWidget {
               const _HomeSearchLoadingSkeleton()
             else if (error.value != null)
               Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
                 child: Text(
                   error.value!,
                   style: GoogleFonts.plusJakartaSans(
@@ -253,10 +345,9 @@ class HomeSearchView extends HookConsumerWidget {
                   ),
                 ),
               )
-            else if (hasFetched.value && filteredCategories.isEmpty)
+            else if (isSearching && hasFetched.value && apiCategories.isEmpty)
               Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
                 child: Center(
                   child: Text(
                     'No services found',
@@ -267,26 +358,25 @@ class HomeSearchView extends HookConsumerWidget {
                   ),
                 ),
               )
-            else if (filteredCategories.isNotEmpty)
+            else if (apiCategories.isNotEmpty)
               SafeArea(
                 top: false,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
+                child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     horizontalSidePadding,
                     4.h,
                     horizontalSidePadding,
                     16 + MediaQuery.of(context).padding.bottom,
                   ),
-                  itemCount: filteredCategories.length,
-                  itemBuilder: (context, index) {
-                    final category = filteredCategories[index];
-                    return _CategorySection(
-                      category: category,
-                      onServiceTap: handleServiceTap,
-                    );
-                  },
+                  child: Column(
+                    children: [
+                      for (final category in apiCategories)
+                        _CategorySection(
+                          category: category,
+                          onServiceTap: handleServiceTap,
+                        ),
+                    ],
+                  ),
                 ),
               )
             else
@@ -329,27 +419,15 @@ class _RechargeHighlightSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(left: 4.w, right: 4.w),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Recharge',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.02 * 14.sp,
-                      color: const Color(0xFF000000),
-                    ),
-                  ),
-                ),
-                CommonServiceSvgIcon(
-                  assetPath: 'assets/images/svg/services/down_arrow.svg',
-                  width: 14.w,
-                  height: 8.w,
-                ),
-              ],
+            padding: EdgeInsets.only(left: 4.w),
+            child: Text(
+              'Recharge',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.02 * 14.sp,
+                color: const Color(0xFF000000),
+              ),
             ),
           ),
           SizedBox(height: 16.h),
@@ -373,7 +451,7 @@ class _RechargeHighlightSection extends StatelessWidget {
               Expanded(
                 child: HomeIconTile(
                   label: 'FASTag Recharge',
-                  iconUrl: FileConstants.fastTag,
+                  svgAsset: 'assets/images/svg/services/fastag_recharge.svg',
                   onTap: () => onServiceTap('FASTag Recharge'),
                 ),
               ),
@@ -387,7 +465,8 @@ class _RechargeHighlightSection extends StatelessWidget {
               Expanded(
                 child: HomeIconTile(
                   label: 'Fleet Card Recharge',
-                  svgAsset: 'assets/images/svg/services/fleet_card_recharge.svg',
+                  svgAsset:
+                      'assets/images/svg/services/fleet_card_recharge.svg',
                   onTap: () => onServiceTap('Fleet Card Recharge'),
                 ),
               ),
@@ -395,6 +474,447 @@ class _RechargeHighlightSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RechargeCategorySection extends StatelessWidget {
+  const _RechargeCategorySection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaticCategorySection(
+      title: 'Recharge',
+      showArrow: true,
+      tiles: [
+        HomeIconTile(
+          label: 'Mobile Prepaid',
+          svgAsset: 'assets/images/svg/services/mobile_recharge.svg',
+          onTap: () => onServiceTap('Mobile Prepaid'),
+        ),
+        HomeIconTile(
+          label: 'Mobile Postpaid',
+          svgAsset: 'assets/images/svg/services/mobile_recharge.svg',
+          onTap: () => onServiceTap('Mobile Postpaid'),
+        ),
+        HomeIconTile(
+          label: 'FASTag Recharge',
+          svgAsset: 'assets/images/svg/services/fastag_recharge.svg',
+          onTap: () => onServiceTap('FASTag Recharge'),
+        ),
+        HomeIconTile(
+          label: 'EV Recharge',
+          svgAsset: 'assets/images/svg/services/ev_recharge.svg',
+          onTap: () => onServiceTap('EV Recharge'),
+        ),
+        HomeIconTile(
+          label: 'Fleet Card Recharge',
+          svgAsset: 'assets/images/svg/services/fleet_card_recharge.svg',
+          onTap: () => onServiceTap('Fleet Card Recharge'),
+        ),
+        HomeIconTile(
+          label: 'NCMC Recharge',
+          svgAsset: 'assets/images/svg/services/ncmc_recharge.svg',
+          onTap: () => onServiceTap('NCMC Recharge'),
+        ),
+      ],
+    );
+  }
+}
+
+/// A white-card category section with a fixed, hardcoded list of service
+/// tiles (icon + label), matching the API-driven [_CategorySection] styling:
+/// 4-column wrap, Home-sized [HomeIconTile] circles and text.
+class _StaticCategorySection extends HookWidget {
+  const _StaticCategorySection({
+    required this.title,
+    required this.tiles,
+    this.showArrow = true,
+  });
+
+  final String title;
+  final List<Widget> tiles;
+  final bool showArrow;
+
+  @override
+  Widget build(BuildContext context) {
+    const int columns = 4;
+    final expanded = useState(true);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 16.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: showArrow ? () => expanded.value = !expanded.value : null,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 4.h),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.sp,
+                        letterSpacing: -0.02 * 14.sp,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ),
+                  if (showArrow)
+                    AnimatedRotation(
+                      turns: expanded.value ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 180),
+                      child: CommonServiceSvgIcon(
+                        assetPath: 'assets/images/svg/services/down_arrow.svg',
+                        width: 14.w,
+                        height: 8.w,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: expanded.value
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: 10.h),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 20.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(
+                            color: const Color(0xFFEBEBEB),
+                            width: 1.w,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0x0A000000),
+                              blurRadius: 8.r,
+                              offset: Offset(0, 2.h),
+                            ),
+                          ],
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final double maxWidth = constraints.maxWidth;
+                            final double spacing = (maxWidth < 300 ? 8 : 12).w;
+                            final double itemWidth =
+                                (maxWidth - (spacing * (columns - 1))) /
+                                    columns;
+                            return Wrap(
+                              spacing: spacing,
+                              runSpacing: 18.h,
+                              children: [
+                                for (final tile in tiles)
+                                  SizedBox(width: itemWidth, child: tile),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Utility Bills — hardcoded category shown below the Recharge sections.
+class _UtilityBillsCategorySection extends StatelessWidget {
+  const _UtilityBillsCategorySection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaticCategorySection(
+      title: 'Utility Bills',
+      tiles: [
+        HomeIconTile(
+          label: 'Electricity Bill',
+          svgAsset: 'assets/images/svg/services/electricity_bill.svg',
+          onTap: () => onServiceTap('Electricity Bill'),
+        ),
+        HomeIconTile(
+          label: 'Book LPG',
+          iconUrl: FileConstants.gasCylinder,
+          onTap: () => onServiceTap('Book LPG'),
+        ),
+        HomeIconTile(
+          label: 'Pipe Gas',
+          svgAsset: 'assets/images/svg/services/pipe_gas.svg',
+          onTap: () => onServiceTap('Pipe Gas'),
+        ),
+        HomeIconTile(
+          label: 'Prepaid Meter',
+          svgAsset: 'assets/images/svg/services/prepaid_meter.svg',
+          onTap: () => onServiceTap('Prepaid Meter'),
+        ),
+        HomeIconTile(
+          label: 'Cable TV',
+          svgAsset: 'assets/images/svg/services/cable_tv.svg',
+          onTap: () => onServiceTap('Cable TV'),
+        ),
+        HomeIconTile(
+          label: 'DTH',
+          svgAsset: 'assets/images/svg/services/dth.svg',
+          onTap: () => onServiceTap('DTH'),
+        ),
+        HomeIconTile(
+          label: 'Broadband',
+          svgAsset: 'assets/images/svg/services/broadband.svg',
+          onTap: () => onServiceTap('Broadband'),
+        ),
+        HomeIconTile(
+          label: 'Landline',
+          svgAsset: 'assets/images/svg/services/landline.svg',
+          onTap: () => onServiceTap('Landline'),
+        ),
+        HomeIconTile(
+          label: 'Housing Society',
+          svgAsset: 'assets/images/svg/services/housing_society.svg',
+          onTap: () => onServiceTap('Housing Society'),
+        ),
+        HomeIconTile(
+          label: 'Municipal Services',
+          svgAsset: 'assets/images/svg/services/municipal_services.svg',
+          onTap: () => onServiceTap('Municipal Services'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Financial — hardcoded category with the collapse arrow, matching Figma.
+class _FinancialCategorySection extends StatelessWidget {
+  const _FinancialCategorySection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaticCategorySection(
+      title: 'Financial',
+      showArrow: true,
+      tiles: [
+        HomeIconTile(
+          label: 'Credit Card Bill',
+          // Figma: same icon as the NCMC Recharge card.
+          svgAsset: 'assets/images/svg/services/ncmc_recharge.svg',
+          onTap: () => onServiceTap('Credit Card Bill'),
+        ),
+        HomeIconTile(
+          label: 'Digital Gold',
+          // Figma: Digital Gold reuses the electricity bulb icon.
+          svgAsset: 'assets/images/svg/services/electricity_bill.svg',
+          onTap: () => onServiceTap('Digital Gold'),
+        ),
+        HomeIconTile(
+          label: 'Digital Silver',
+          // Figma: Digital Silver reuses the book-gas icon.
+          svgAsset: 'assets/images/svg/services/pipe_gas.svg',
+          onTap: () => onServiceTap('Digital Silver'),
+        ),
+        HomeIconTile(
+          label: 'Loan Repayment',
+          svgAsset: 'assets/images/svg/services/loan_repayment.svg',
+          onTap: () => onServiceTap('Loan Repayment'),
+        ),
+        HomeIconTile(
+          label: 'Municipal Taxes',
+          svgAsset: 'assets/images/svg/services/municipal_taxes.svg',
+          onTap: () => onServiceTap('Municipal Taxes'),
+        ),
+        HomeIconTile(
+          label: 'eChallan',
+          // Figma: same icon as the NCMC Recharge card.
+          svgAsset: 'assets/images/svg/services/ncmc_recharge.svg',
+          onTap: () => onServiceTap('Echallan'),
+        ),
+        HomeIconTile(
+          label: 'NPS',
+          svgAsset: 'assets/images/svg/services/nps.svg',
+          onTap: () => onServiceTap('NPS'),
+        ),
+        HomeIconTile(
+          label: 'Forex',
+          svgAsset: 'assets/images/svg/services/forex.svg',
+          onTap: () => onServiceTap('Forex'),
+        ),
+        HomeIconTile(
+          label: 'Agent Collection',
+          svgAsset: 'assets/images/svg/services/agent_collection.svg',
+          onTap: () => onServiceTap('Agent Collection'),
+        ),
+        HomeIconTile(
+          label: 'B2B Payments',
+          svgAsset: 'assets/images/svg/services/b2b_payments.svg',
+          onTap: () => onServiceTap('B2B Payments'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pay via credit card (Education) — replaces the old API
+/// "Education and Lifestyle" container per Figma.
+class _EducationCategorySection extends StatelessWidget {
+  const _EducationCategorySection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaticCategorySection(
+      title: 'Pay via Credit Card (Education)',
+      tiles: [
+        HomeIconTile(
+          label: 'School Fees',
+          iconUrl: FileConstants.schoolFees,
+          onTap: () => onServiceTap('School Fees'),
+        ),
+        HomeIconTile(
+          label: 'Tution Fees',
+          iconUrl: FileConstants.tutionFees,
+          onTap: () => onServiceTap('Tution Fees'),
+        ),
+        HomeIconTile(
+          label: 'College Fees',
+          iconUrl: FileConstants.collegeFees,
+          onTap: () => onServiceTap('College Fees'),
+        ),
+        HomeIconTile(
+          // Replaces the old Gym Membership tile, with its own Figma icon.
+          label: 'Education Fees',
+          svgAsset: 'assets/images/svg/services/education_fees.svg',
+          onTap: () => onServiceTap('Education Fees'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Insurance — same card styling and size as the container above.
+class _InsuranceCategorySection extends StatelessWidget {
+  const _InsuranceCategorySection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaticCategorySection(
+      title: 'Insurance',
+      tiles: [
+        HomeIconTile(
+          label: 'General Insurance',
+          iconUrl: FileConstants.generalInsurance,
+          onTap: () => onServiceTap('General Insurance'),
+        ),
+        HomeIconTile(
+          label: 'Health Insurance',
+          iconUrl: FileConstants.healthInsurance,
+          onTap: () => onServiceTap('Health Insurance'),
+        ),
+        HomeIconTile(
+          label: 'Life Insurance',
+          iconUrl: FileConstants.lifeInsurance,
+          onTap: () => onServiceTap('Life Insurance'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Rent & Property — House Rent / Shop Rent moved out of the old
+/// education container, plus the new Rental tile from Figma.
+class _RentPropertyCategorySection extends StatelessWidget {
+  const _RentPropertyCategorySection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaticCategorySection(
+      title: 'Rent & Property',
+      tiles: [
+        HomeIconTile(
+          label: 'House Rent',
+          iconUrl: FileConstants.houseRent,
+          onTap: () => onServiceTap('House Rent'),
+        ),
+        HomeIconTile(
+          label: 'Shop Rent',
+          iconUrl: FileConstants.shopRent,
+          onTap: () => onServiceTap('Shop Rent'),
+        ),
+        HomeIconTile(
+          label: 'Rental',
+          svgAsset: 'assets/images/svg/services/rental.svg',
+          onTap: () => onServiceTap('Rental'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Other Services — re-enabled per Figma as the LAST container with only
+/// the approved cards (Subscription, Pipe Gas, Water, Metro Recharge,
+/// Prepaid Meter). All other items from the old API category stay
+/// commented out (see otherServicesKeep in the fetch effect).
+class _OtherServicesCategorySection extends StatelessWidget {
+  const _OtherServicesCategorySection({required this.onServiceTap});
+
+  final void Function(String serviceName) onServiceTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaticCategorySection(
+      title: 'Other Services',
+      tiles: [
+        HomeIconTile(
+          label: 'Subscription',
+          iconUrl: FileConstants.subscriptions,
+          onTap: () => onServiceTap('Subscription'),
+        ),
+        HomeIconTile(
+          label: 'Pipe Gas',
+          svgAsset: 'assets/images/svg/services/pipe_gas.svg',
+          onTap: () => onServiceTap('Pipe Gas'),
+        ),
+        HomeIconTile(
+          label: 'Water',
+          iconUrl: FileConstants.water,
+          onTap: () => onServiceTap('Water'),
+        ),
+        HomeIconTile(
+          label: 'Metro Recharge',
+          iconUrl: FileConstants.metro,
+          onTap: () => onServiceTap('Metro Recharge'),
+        ),
+        HomeIconTile(
+          label: 'Prepaid Meter',
+          svgAsset: 'assets/images/svg/services/prepaid_meter.svg',
+          onTap: () => onServiceTap('Prepaid Meter'),
+        ),
+      ],
     );
   }
 }
@@ -570,6 +1090,9 @@ class _CategorySection extends HookWidget {
     final isElectricity = lower.contains('electricity');
     final isEChallan = lower.contains('challan');
     final isNcmc = lower.contains('ncmc');
+    // Figma: the Gym Membership tile is replaced by Education Fees here.
+    final label =
+        lower.contains('gym') ? 'Education Fees' : displayServiceName(name);
 
     String? svgAsset;
     String? iconUrl = service.icon;
@@ -582,23 +1105,30 @@ class _CategorySection extends HookWidget {
       svgAsset = 'assets/images/svg/services/ncmc_recharge.svg';
     } else if (isElectricity) {
       if (iconUrl == null || iconUrl.isEmpty) {
-        iconUrl = FileConstants.electricity;
+        svgAsset = 'assets/images/svg/services/electricity_bill.svg';
       }
     } else if (isEChallan) {
-      iconUrl = FileConstants.creditcard;
+      // Figma: same icon as the NCMC Recharge card.
+      svgAsset = 'assets/images/svg/services/ncmc_recharge.svg';
     } else if (iconUrl == null || iconUrl.isEmpty) {
       if (lower.contains('prepaid') && lower.contains('mobile')) {
         svgAsset = 'assets/images/svg/services/mobile_recharge.svg';
       } else if (lower.contains('postpaid') && lower.contains('mobile')) {
         svgAsset = 'assets/images/svg/services/mobile_recharge.svg';
       } else if (lower.contains('fastag')) {
-        iconUrl = FileConstants.fastTag;
+        svgAsset = 'assets/images/svg/services/fastag_recharge.svg';
+      } else if (lower.contains('gym') || lower.contains('education fees')) {
+        svgAsset = 'assets/images/svg/services/education_fees.svg';
+      } else if (lower.contains('rental')) {
+        svgAsset = 'assets/images/svg/services/rental.svg';
       } else if (lower.contains('credit card')) {
-        iconUrl = FileConstants.creditcard;
+        svgAsset = 'assets/images/svg/services/ncmc_recharge.svg';
       } else if (lower.contains('gold')) {
-        svgAsset = 'assets/images/svg/services/digital_gold.svg';
+        // Figma: Digital Gold reuses the electricity bulb icon.
+        svgAsset = 'assets/images/svg/services/electricity_bill.svg';
       } else if (lower.contains('silver')) {
-        svgAsset = 'assets/images/svg/services/digital_silver.svg';
+        // Figma: Digital Silver reuses the book-gas icon.
+        svgAsset = 'assets/images/svg/services/pipe_gas.svg';
       } else if (lower.contains('pipe gas') || lower.contains('piped gas')) {
         svgAsset = 'assets/images/svg/services/pipe_gas.svg';
       } else if (lower.contains('book') &&
@@ -650,7 +1180,7 @@ class _CategorySection extends HookWidget {
     }
 
     return HomeIconTile(
-      label: displayServiceName(service.name),
+      label: label,
       iconUrl: iconUrl,
       svgAsset: svgAsset,
       offer: service.offers,
