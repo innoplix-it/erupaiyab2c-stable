@@ -2,7 +2,7 @@ enum SpinRewardType {
   coins,
   extraSpin,
   jackpot,
-  betterLuck,
+  betterLuck, surprise,
 }
 
 class SpinReward {

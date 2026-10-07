@@ -91,6 +91,7 @@ flutter:
     - assets/animations/history-icon.json
     - assets/sounds/
     - assets/gif/
+    - assets/spin/
 
 
 

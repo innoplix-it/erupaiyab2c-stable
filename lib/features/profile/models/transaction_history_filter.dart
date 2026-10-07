@@ -9,6 +9,7 @@ class TransactionHistoryFilter {
     this.minAmount,
     this.maxAmount,
     this.consumerId,
+    this.electricityCardScoped = false,
   });
 
   final String? status;
@@ -21,7 +22,13 @@ class TransactionHistoryFilter {
   final double? maxAmount;
   final String? consumerId;
 
+  /// True only for the Electricity Saved Biller card-scoped View History
+  /// flow (3 dots -> View History). Generic/main history always uses false,
+  /// so its filtering, search, grouping and pagination stay untouched.
+  final bool electricityCardScoped;
+
   bool get isEmpty =>
+      !electricityCardScoped &&
       (status == null || status!.isEmpty) &&
       (paymentType == null || paymentType!.isEmpty) &&
       (month == null || month!.isEmpty) &&
@@ -42,6 +49,7 @@ class TransactionHistoryFilter {
     double? minAmount,
     double? maxAmount,
     String? consumerId,
+    bool? electricityCardScoped,
   }) {
     return TransactionHistoryFilter(
       status: status ?? this.status,
@@ -53,6 +61,8 @@ class TransactionHistoryFilter {
       minAmount: minAmount ?? this.minAmount,
       maxAmount: maxAmount ?? this.maxAmount,
       consumerId: consumerId ?? this.consumerId,
+      electricityCardScoped:
+          electricityCardScoped ?? this.electricityCardScoped,
     );
   }
 }

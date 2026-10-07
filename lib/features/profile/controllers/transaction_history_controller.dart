@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../models/electricity_card_history_scope.dart';
 import '../models/transaction_history_entry.dart';
 import '../models/transaction_history_filter.dart';
 import '../repositories/transaction_history_repository.dart';
@@ -198,6 +199,84 @@ class TransactionHistoryController
 
   Future<void> applyFilter(TransactionHistoryFilter filter) async {
     await fetchHistory(filter: filter, range: null, lastYears: null);
+  }
+
+  /// Electricity Saved Biller Card-Scoped View History (3 dots -> View
+  /// History). Fetches ALL pages for the selected card's exact
+  /// `service_no_full` with the SAME scope on every page
+  /// (`service=Electricity` + `service_no_full=<selected>`), merges them and
+  /// drops only true duplicate transaction IDs. No fixed client-side limit:
+  /// 5 records -> 5, 130 records -> 130. Generic history paths are untouched.
+  Future<void> fetchElectricityCardHistory({
+    required String serviceNoFull,
+    String? status,
+    String? month,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    final normalized = serviceNoFull.trim().replaceAll(RegExp(r'\s+'), '');
+    if (normalized.isEmpty || normalized.toLowerCase() == 'null') return;
+    final scope = ElectricityCardHistoryScope(serviceNoFull: normalized);
+    final filter = TransactionHistoryFilter(
+      service: ElectricityCardHistoryScope.serviceName,
+      consumerId: normalized,
+      electricityCardScoped: true,
+      status: status,
+      month: month,
+      fromDate: fromDate,
+      toDate: toDate,
+    );
+    _activeFilter = filter;
+    state = state.copyWith(
+      isLoading: true,
+      isFetchingMore: false,
+      errorMessage: null,
+      currentPage: 1,
+      totalPages: 1,
+      items: const [],
+    );
+    try {
+      var page = 1;
+      var totalPages = 1;
+      var merged = <TransactionHistoryEntry>[];
+      var limit = state.limit;
+      do {
+        final result = await _repository.fetchHistoryPage(
+          page: page,
+          limit: limit,
+          service: filter.service,
+          consumerId: filter.consumerId,
+          status: filter.status,
+          month: filter.month,
+          fromDate: filter.fromDate,
+          toDate: filter.toDate,
+        );
+        limit = result.limit;
+        totalPages = result.totalPages;
+        // Strict card scope on every page: the backend may ignore
+        // service_no_full and return other Electricity consumers; only rows
+        // belonging to the selected card survive. Genuine duplicate
+        // transaction ids across overlapping pages are dropped once.
+        final scopedRows =
+            result.items.where(scope.includesEntry).toList(growable: false);
+        merged = [...merged, ..._withoutDuplicates(merged, scopedRows)];
+        page++;
+      } while (page <= totalPages);
+      state = state.copyWith(
+        isLoading: false,
+        items: merged,
+        selectedDays: state.selectedDays,
+        selectedRange: null,
+        currentPage: totalPages,
+        totalPages: totalPages,
+        limit: limit,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to load transactions. Please try again.',
+      );
+    }
   }
 }
 

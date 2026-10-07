@@ -20,6 +20,7 @@ import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../controllers/transaction_history_controller.dart';
+import '../models/electricity_card_history_scope.dart';
 import '../models/transaction_history_entry.dart';
 import '../models/transaction_history_filter.dart';
 import 'transaction_filter_screen.dart';
@@ -81,10 +82,15 @@ class TransactionHistoryScreen extends ConsumerStatefulWidget {
     super.key,
     this.initialServiceFilter,
     this.initialConsumerIdFilter,
+    this.initialElectricityCardScoped = false,
   });
 
   final String? initialServiceFilter;
   final String? initialConsumerIdFilter;
+
+  /// True only when opened from an Electricity Saved Biller card
+  /// (3 dots -> View History). Generic/main history always uses false.
+  final bool initialElectricityCardScoped;
 
   @override
   ConsumerState<TransactionHistoryScreen> createState() =>
@@ -99,6 +105,21 @@ class _TransactionHistoryScreenState
   List<_TxnSection> _cachedSections = const [];
 
   void _handleBack() {
+    // Electricity card-scoped View History returns directly to the
+    // Electricity Fetch Your Provider screen (the Saved Billers flow that
+    // opened it). Generic history keeps its existing behavior below.
+    if (widget.initialElectricityCardScoped) {
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop();
+        return;
+      }
+      context.go(
+        RouteConstants.billerListing,
+        extra: ElectricityCardHistoryScope.backFallbackCategory,
+      );
+      return;
+    }
     final location = GoRouterState.of(context).matchedLocation;
     if (location == RouteConstants.transactions) {
       context.go(RouteConstants.home);
@@ -121,6 +142,19 @@ class _TransactionHistoryScreenState
   @override
   void initState() {
     super.initState();
+    // Electricity card-scoped mode: fetch ALL pages for the selected card's
+    // exact service_no_full. Generic history keeps the existing branches.
+    if (widget.initialElectricityCardScoped) {
+      final serviceNoFull = widget.initialConsumerIdFilter?.trim() ?? '';
+      if (serviceNoFull.isNotEmpty) {
+        Future.microtask(
+          () => ref
+              .read(transactionHistoryControllerProvider.notifier)
+              .fetchElectricityCardHistory(serviceNoFull: serviceNoFull),
+        );
+        return;
+      }
+    }
     final filterService = widget.initialServiceFilter?.trim();
     final filterConsumerId = widget.initialConsumerIdFilter?.trim();
     final hasService = filterService != null && filterService.isNotEmpty;
@@ -182,11 +216,12 @@ class _TransactionHistoryScreenState
               title: 'Transactions',
               showHelp: true,
               onBack: _handleBack,
-              titleStyle: GoogleFonts.bricolageGrotesque(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF000000),
-              ),
+              // No custom titleStyle on purpose: this falls through to
+              // MyAppBar's default title style
+              // (Theme.titleMedium.copyWith(color: black, fontWeight: w700)),
+              // which is byte-for-byte identical to the Mobile Prepaid AppBar
+              // title (font family, size, weight, letter spacing, line height,
+              // alignment and color all match). The visible text is unchanged.
               bharatConnectWidth: 52,
               bharatConnectHeight: 25,
               helpIconSize: 20,
@@ -314,6 +349,35 @@ class _TransactionHistoryScreenState
     String query,
     TransactionHistoryFilter? filter,
   ) {
+    // Electricity card-scoped View History ONLY. The API request is already
+    // scoped by service_no_full; this preserves every valid row for the
+    // selected card (including rows missing service_no_full) and drops just
+    // rows that explicitly belong to another card or another service.
+    // Generic/main history uses the untouched path below.
+    if (filter?.electricityCardScoped == true ||
+        widget.initialElectricityCardScoped) {
+      final target = (filter?.consumerId?.trim() ??
+              widget.initialConsumerIdFilter?.trim() ??
+              '')
+          .replaceAll(RegExp(r'\s+'), '');
+      // Same strict rule the controller already applied per page; kept here
+      // so the visible list can never drift from the selected card's scope.
+      final scoped = target.isEmpty
+          ? items
+              .where((item) => !item.isDefinitelyOtherService)
+              .toList(growable: false)
+          : items
+              .where(
+                ElectricityCardHistoryScope(serviceNoFull: target)
+                    .includesEntry,
+              )
+              .toList(growable: false);
+      if (query.isEmpty) return scoped;
+      return scoped.where((item) {
+        final haystack = '${item.billerName} ${item.paymentType}';
+        return haystack.toLowerCase().contains(query);
+      }).toList(growable: false);
+    }
     var filtered = items;
     final consumerFilter = filter?.consumerId?.trim();
     if (consumerFilter != null && consumerFilter.isNotEmpty) {
@@ -364,6 +428,20 @@ class _TransactionHistoryScreenState
     // page 1 for the SAME biller/consumer instead of falling back to the
     // generic history scope.
     final filter = controller.activeFilter;
+    // Electricity card-scoped mode re-fetches ALL pages for the same card.
+    if (filter != null && filter.electricityCardScoped) {
+      final serviceNoFull = filter.consumerId?.trim() ?? '';
+      if (serviceNoFull.isNotEmpty) {
+        await controller.fetchElectricityCardHistory(
+          serviceNoFull: serviceNoFull,
+          status: filter.status,
+          month: filter.month,
+          fromDate: filter.fromDate,
+          toDate: filter.toDate,
+        );
+        return;
+      }
+    }
     if (filter == null || filter.isEmpty) {
       await controller.fetchHistory();
       return;
@@ -388,6 +466,36 @@ class _TransactionHistoryScreenState
     );
     if (!mounted) return;
     if (result == null) return;
+    // Electricity card-scoped mode keeps its card scope even when the user
+    // refines status/date filters; only generic history may go fully generic.
+    final scoped = controller.activeFilter?.electricityCardScoped == true ||
+        widget.initialElectricityCardScoped;
+    if (scoped) {
+      final scopeId = controller.activeFilter?.consumerId?.trim().isNotEmpty ==
+              true
+          ? controller.activeFilter!.consumerId!.trim()
+          : widget.initialConsumerIdFilter?.trim() ?? '';
+      if (scopeId.isEmpty) {
+        if (result.isEmpty) {
+          await controller.fetchHistory();
+        } else {
+          await controller.applyFilter(result);
+        }
+        return;
+      }
+      if (result.isEmpty) {
+        await controller.fetchElectricityCardHistory(serviceNoFull: scopeId);
+        return;
+      }
+      await controller.fetchElectricityCardHistory(
+        serviceNoFull: scopeId,
+        status: result.status,
+        month: result.month,
+        fromDate: result.fromDate,
+        toDate: result.toDate,
+      );
+      return;
+    }
     if (result.isEmpty) {
       await controller.fetchHistory();
     } else {

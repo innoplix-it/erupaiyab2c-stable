@@ -63,6 +63,10 @@ class TransactionHistoryEntry {
   /// when a candidate carries the full target as a substring (prefix/suffix
   /// tolerant). The previous reverse check (target containing a candidate)
   /// let short masked values like "5046" match unrelated transactions.
+  ///
+  /// NOTE: generic/main history path. Left untouched for the Electricity
+  /// card-scoped flow, which uses [explicitServiceNoFull] /
+  /// [explicitlyBelongsToDifferentCard] / [isDefinitelyOtherService] below.
   bool matchesConsumerId(String normalizedTarget) {
     if (normalizedTarget.isEmpty) return true;
     final candidates = <String>[
@@ -80,6 +84,89 @@ class TransactionHistoryEntry {
       if (c == normalizedTarget || c.contains(normalizedTarget)) return true;
     }
     return false;
+  }
+
+  /// Partial identifiers (last-4 / last-5 style) are never full consumer
+  /// numbers, so they must not be used to exclude a row from a card scope.
+  static const int _minFullConsumerNumberLength = 6;
+
+  static String? _unmaskedFullNumber(String? raw, {bool trusted = false}) {
+    final value = (raw ?? '').trim().replaceAll(RegExp(r'\s+'), '');
+    if (value.isEmpty || value.toLowerCase() == 'null') return null;
+    // Masked values ("XXXX5841", "****5841") carry no full number.
+    if (value.contains('*') || value.toLowerCase().contains('x')) return null;
+    if (!trusted && value.length < _minFullConsumerNumberLength) return null;
+    return value;
+  }
+
+  /// Explicit, unmasked FULL consumer number carried by this row, if any.
+  ///
+  /// Used ONLY by the Electricity card-scoped View History flow. Reads, in
+  /// order, `service_no_full`, an unmasked full `service_no`, then an unmasked
+  /// consumer-labelled customer param. `masked_identifier`, `customer_mobile`
+  /// and short/partial values are never considered. Returns null when the row
+  /// carries no explicit full number (such rows are preserved, since the API
+  /// request itself is already scoped by service_no_full).
+  String? get explicitFullConsumerNumber {
+    final full = _unmaskedFullNumber(serviceNoFull, trusted: true);
+    if (full != null) return full;
+    final sNo = _unmaskedFullNumber(serviceNo);
+    if (sNo != null) return sNo;
+    for (final param in customerParams) {
+      final l = param.label.trim().toLowerCase();
+      if (l.contains('consumer') ||
+          l.contains('ca number') ||
+          l.contains('account') ||
+          l.contains('k no')) {
+        final val = _unmaskedFullNumber(param.value);
+        if (val != null) return val;
+      }
+    }
+    return null;
+  }
+
+  /// True only when this row explicitly identifies a DIFFERENT full consumer
+  /// number than the selected card (normalized exact equality; no
+  /// contains/startsWith/endsWith/last-4). Rows without an explicit full
+  /// number return false (preserved, not filtered out).
+  bool explicitlyBelongsToDifferentCard(String normalizedTarget) {
+    if (normalizedTarget.isEmpty) return false;
+    final own = explicitFullConsumerNumber;
+    if (own == null || own.isEmpty) return false;
+    return own != normalizedTarget;
+  }
+
+  /// True only when this row is definitely a non-Electricity service
+  /// (FASTag, Mobile Prepaid/Postpaid, Tuition/School/College fee, DTH, Gas,
+  /// Water, Broadband, Credit Card, Insurance, ...). Electricity rows and
+  /// ambiguous/empty rows return false so valid scoped records are preserved.
+  bool get isDefinitelyOtherService {
+    final haystack =
+        '${paymentType.trim()} ${billerName.trim()} ${feeType?.trim() ?? ''}'
+            .trim()
+            .toLowerCase();
+    if (haystack.isEmpty) return false;
+    if (haystack.contains('electric')) return false;
+    const otherMarkers = [
+      'fastag',
+      'mobile',
+      'recharge',
+      'postpaid',
+      'tuition',
+      'tution',
+      'school',
+      'college',
+      'education',
+      'dth',
+      'gas',
+      'water',
+      'broadband',
+      'landline',
+      'credit card',
+      'insurance',
+      'loan',
+    ];
+    return otherMarkers.any(haystack.contains);
   }
 
   final String paymentStatus;

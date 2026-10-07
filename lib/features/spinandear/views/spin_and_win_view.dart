@@ -5,8 +5,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lottie/lottie.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
@@ -15,18 +17,51 @@ import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../home/controllers/home_tab_controller.dart';
 import '../../profile/controllers/profile_controller.dart';
-import '../components/spin_result_dialog.dart';
+import '../components/spin_result_popup.dart';
 import '../components/spin_wheel.dart';
 import '../controllers/spin_options_controller.dart';
 import '../models/spin_reward.dart';
 import '../repositories/spin_repository.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+// Figma order after the coin slices: Surprise, Extra Spin, Jackpot, Better Luck.
 const _staticRewards = [
-  SpinReward(label: 'Better Luck\nNext Time', type: SpinRewardType.betterLuck),
-  SpinReward(label: 'Extra Spin', type: SpinRewardType.extraSpin),
-  SpinReward(label: 'Jackpot Spin', type: SpinRewardType.jackpot),
+  SpinReward(label: 'Surprise', type: SpinRewardType.surprise),
+  SpinReward(label: 'Extra Spin 🔄', type: SpinRewardType.extraSpin),
+  SpinReward(label: 'Jackpot Spin 🎉', type: SpinRewardType.jackpot),
+  SpinReward(label: 'Better Luck 😂', type: SpinRewardType.betterLuck),
 ];
+
+/// The gold `star.json` sparkle with a blink: it continuously scales down
+/// and back up (pulse). Purely decorative, so it never absorbs taps.
+class _BlinkingStar extends HookWidget {
+  const _BlinkingStar({
+    required this.size,
+    this.duration = const Duration(milliseconds: 900),
+  });
+
+  final double size;
+  final Duration duration;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useAnimationController(duration: duration)
+      ..repeat(reverse: true);
+    return IgnorePointer(
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.6, end: 1.15).animate(
+          CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+        ),
+        child: Lottie.asset(
+          'assets/lottie/star.json',
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
 
 class SpinAndWinView extends HookConsumerWidget {
   const SpinAndWinView({super.key});
@@ -50,7 +85,7 @@ class SpinAndWinView extends HookConsumerWidget {
       duration: const Duration(milliseconds: 2800),
     );
     final animation = useMemoized(
-      () => CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
+          () => CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
       [controller],
     );
     final animValue = useAnimation(animation);
@@ -70,34 +105,9 @@ class SpinAndWinView extends HookConsumerWidget {
       final rewards = _buildRewards(spinOptionsState.options);
       if (isSpinning.value) return;
       if (totalSpins == 0) {
-        await showGeneralDialog<void>(
-          context: context,
-          barrierDismissible: true,
-          barrierLabel: 'No spins left',
-          barrierColor: Colors.black.withOpacity(0.55),
-          transitionDuration: const Duration(milliseconds: 220),
-          pageBuilder: (dialogContext, animation, secondaryAnimation) {
-            return Center(
-              child: _NoSpinsLeftDialog(
-                onClose: () => Navigator.of(dialogContext).pop(),
-              ),
-            );
-          },
-          transitionBuilder: (context, animation, secondaryAnimation, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutBack,
-              reverseCurve: Curves.easeInCubic,
-            );
-            return FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.92, end: 1).animate(curved),
-                child: child,
-              ),
-            );
-          },
-        );
+        // No spins left — do nothing. The old "All spins used!" dialog was
+        // removed per design; the "You have 0 free spins left today" text
+        // already communicates this state.
         return;
       }
       if (rewards.isEmpty) return;
@@ -116,13 +126,16 @@ class SpinAndWinView extends HookConsumerWidget {
       final reward = currentRewards[targetIndex];
 
       try {
+        // NOTE: confirm with backend that 'surprise' is an accepted spinType.
         final spinType = reward.type == SpinRewardType.betterLuck
             ? 'better_luck'
             : reward.type == SpinRewardType.jackpot
-                ? 'jackpot'
-                : reward.type == SpinRewardType.extraSpin
-                    ? 'extra'
-                    : 'normal';
+            ? 'jackpot'
+            : reward.type == SpinRewardType.extraSpin
+            ? 'extra'
+            : reward.type == SpinRewardType.surprise
+            ? 'surprise'
+            : 'normal';
 
         await spinRepository.recordSpin(
           spinType: spinType,
@@ -146,12 +159,13 @@ class SpinAndWinView extends HookConsumerWidget {
       }
 
       KDialog.instance.openDialog(
-        dialog: SpinResultDialog(
+        barrierColor: const Color(0xDB000000),
+        dialog: SpinResultPopup(
           reward: reward,
           onPrimaryTap: () async {
             await profileController.fetchProfile();
             final error =
-                ref.read(profileControllerProvider).errorMessage?.trim();
+            ref.read(profileControllerProvider).errorMessage?.trim();
             if (error != null && error.isNotEmpty && context.mounted) {
               AppSnackbar.show(
                 error,
@@ -203,17 +217,13 @@ class SpinAndWinView extends HookConsumerWidget {
     Future<bool> handleBackNavigation() async {
       final navigator = Navigator.of(context);
 
-      // If spinning, confirm first.
       if (isSpinning.value) {
         final shouldExit = await showExitDuringSpinDialog();
         if (!shouldExit) return false;
       }
 
-      // If this screen was pushed on top of another route, pop back.
       if (navigator.canPop()) return true;
 
-      // If this screen is hosted inside the persistent bottom tab view,
-      // switch back to Home tab instead of exiting the app.
       ref.read(homeTabControllerProvider).jumpToTab(0);
       return false;
     }
@@ -221,39 +231,20 @@ class SpinAndWinView extends HookConsumerWidget {
     return WillPopScope(
       onWillPop: handleBackNavigation,
       child: Scaffold(
-        backgroundColor: const Color(0xFF255E60),
+        backgroundColor: Colors.transparent,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final wheelSize = math.min(constraints.maxWidth * 0.72, 280.0);
+            final wheelSize = math.min(
+              constraints.maxWidth * 0.9,
+              math.min(constraints.maxHeight * 0.44, 330.0),
+            );
             return Stack(
               children: [
                 Positioned.fill(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF2F6E70),
-                          Color(0xFF1E5153),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: -20,
-                  bottom: -20,
-                  left: -20,
-                  right: -20,
-                  child: RepaintBoundary(
-                    child: Image.asset(
-                      FileConstants.spinRewardGif,
-                      fit: BoxFit.cover,
-                      width: constraints.maxWidth + 40,
-                      color: const Color(0xFF387C80).withOpacity(0.35),
-                      colorBlendMode: BlendMode.srcATop,
-                    ),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {},
+                    child: const ColoredBox(color: Color(0xDB000000)),
                   ),
                 ),
                 SafeArea(
@@ -264,82 +255,144 @@ class SpinAndWinView extends HookConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.white,
-                              ),
-                              onPressed: () async {
+                            const Spacer(),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () async {
                                 final ok = await handleBackNavigation();
                                 if (!context.mounted || !ok) return;
                                 context.pop();
                               },
-                            ),
-                            const Spacer(),
-                            Container(
-                              height: 36.r,
-                              width: 36.r,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.16),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.help_outline,
-                                color: Colors.white,
-                                size: 18.r,
+                              child: Padding(
+                                padding: EdgeInsets.all(6.r),
+                                child: SvgPicture.asset(
+                                  FileConstants.spinCloseSvg,
+                                  width: 40.r,
+                                  height: 40.r,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 6.h),
-                        Text(
-                          'Spin The Wheel',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: Colors.white,
+                        SizedBox(height: 28.h),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            ShaderMask(
+                              shaderCallback: (bounds) =>
+                                  const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0xFFF39207),
+                                      Color(0xFFB44623),
+                                    ],
+                                  ).createShader(bounds),
+                              child: Padding(
+                                padding: EdgeInsets.only(bottom: 4.h),
+                                child: Text(
+                                  'Spin To Win',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 32.sp,
                                     fontWeight: FontWeight.w800,
+                                    height: 1.15,
+                                    color: Colors.white,
                                   ),
+                                ),
+                              ),
+                            ),
+                            // Figma: big sparkle sits just right of the "n"
+                            // of "Win", a little above the text line.
+                            Positioned(
+                              top: -26.h,
+                              right: -46.w,
+                              child: _BlinkingStar(size: 40.r),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 6.h),
-                        Text(
-                          'And Add More Points To Your Wallet',
-                          textAlign: TextAlign.center,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
-                                    height: 1.4,
-                                  ),
-                        ),
-                        SizedBox(height: 10.h),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 14.w,
-                            vertical: 6.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.16),
-                            borderRadius: BorderRadius.circular(18.r),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                        SizedBox(height: 2.h),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: math.min(
+                              constraints.maxWidth * 0.82,
+                              300.w,
                             ),
                           ),
                           child: Text(
-                            'Daily Spin Remaining $totalSpins',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            'And add more points to your\nwallet to use in real',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              height: 20 / 14,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                        SizedBox(height: 18.h),
+                        SizedBox(height: 8.h),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.w,
+                            vertical: 10.h,
+                          ),
+                          decoration: BoxDecoration(
+                            // Figma pill background: #4E2512 @ 60% (99 alpha).
+                            color: const Color(0x994E2512),
+                            borderRadius: BorderRadius.circular(90.r),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Daily Spin Remaining',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.0,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              // Figma badge: dark circle (#2D0B00) with the
+                              // API value in gold (#D3A30E). The supplied SVG
+                              // bakes a literal "1" into its path, so the
+                              // count is rendered as live text in that same
+                              // badge style to stay dynamic.
+                              Container(
+                                width: 18.r,
+                                height: 18.r,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF2D0B00),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '$totalSpins',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.0,
+                                    color: const Color(0xFFD3A30E),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 4.h),
                         Expanded(
-                          child: Center(
+                          child: Align(
+                            alignment: const Alignment(0, -0.15),
                             child: SizedBox(
-                              width: wheelSize * 1.3,
-                              height: wheelSize * 1.3,
+                              width: wheelSize,
+                              height: wheelSize,
                               child: Stack(
                                 alignment: Alignment.center,
+                                clipBehavior: Clip.none,
                                 children: [
                                   SizedBox(
                                     width: wheelSize,
@@ -347,97 +400,107 @@ class SpinAndWinView extends HookConsumerWidget {
                                     child: spinOptionsState.isLoading
                                         ? _SpinWheelShimmer(size: wheelSize)
                                         : spinOptionsState.errorMessage != null
-                                            ? Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.error_outline,
-                                                    color: Colors.white,
-                                                    size: 40.r,
-                                                  ),
-                                                  SizedBox(height: 8.h),
-                                                  Text(
-                                                    'Failed to load.\nPlease try again.',
-                                                    textAlign: TextAlign.center,
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: Colors.white,
-                                                        ),
-                                                  ),
-                                                  SizedBox(height: 10.h),
-                                                  TextButton(
-                                                    onPressed: () => ref
-                                                        .read(
-                                                          spinOptionsControllerProvider
-                                                              .notifier,
-                                                        )
-                                                        .fetchSpinOptions(),
-                                                    child: const Text(
-                                                      'Retry',
-                                                      style: TextStyle(
-                                                          color: Colors.white),
-                                                    ),
-                                                  ),
-                                                ],
-                                              )
-                                            : SpinWheel(
-                                                rewards: _buildRewards(
-                                                    spinOptionsState.options),
-                                                rotation: targetRotation.value *
-                                                    animValue,
-                                                size: wheelSize,
-                                              ),
+                                        ? Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          color: Colors.white,
+                                          size: 40.r,
+                                        ),
+                                        SizedBox(height: 8.h),
+                                        Text(
+                                          'Failed to load.\nPlease try again.',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        SizedBox(height: 10.h),
+                                        TextButton(
+                                          onPressed: () => ref
+                                              .read(
+                                            spinOptionsControllerProvider
+                                                .notifier,
+                                          )
+                                              .fetchSpinOptions(),
+                                          child: const Text(
+                                            'Retry',
+                                            style: TextStyle(
+                                                color: Colors.white),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                        : SpinWheel(
+                                      rewards: _buildRewards(
+                                          spinOptionsState.options),
+                                      rotation: targetRotation.value *
+                                          animValue,
+                                      size: wheelSize,
+                                    ),
                                   ),
-                                  // Positioned.fill(
-                                  //   child: Image.asset(
-                                  //     FileConstants.spinBlast,
-                                  //     fit: BoxFit.fill,
-                                  //   ),
-                                  // ),
+                                  // Figma: second sparkle at upper-left of wheel.
+                                  Positioned(
+                                    top: wheelSize * -0.04,
+                                    left: wheelSize * 0.06,
+                                    child: _BlinkingStar(
+                                      size: 36.r,
+                                      duration: const Duration(
+                                        milliseconds: 1100,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 2.h),
                         SizedBox(
-                          width: constraints.maxWidth * 0.55,
+                          width: math.min(constraints.maxWidth * 0.62, 220.w),
                           height: 46.h,
                           child: ElevatedButton(
                             onPressed: (isSpinning.value) ? null : handleSpin,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0B5E5A),
+                              backgroundColor: const Color(0xFFDD5428),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24.r),
+                                borderRadius: BorderRadius.circular(90.r),
                               ),
                               elevation: 0,
                             ),
                             child: Text(
-                              isSpinning.value ? 'Spinning...' : 'Spin Now',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                              isSpinning.value
+                                  ? 'Spinning...'
+                                  : 'Spin The Wheel',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
                         Text(
                           'You have $totalSpins free spin'
-                          '${totalSpins == 1 ? '' : 's'} left today.',
+                              '${totalSpins == 1 ? '' : 's'} left today.',
                           textAlign: TextAlign.center,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.white.withOpacity(0.8),
-                                  ),
+                          // Reduced by 2: 18 -> 16.
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            height: 1.0,
+                            color: Colors.white.withOpacity(0.85),
+                          ),
                         ),
-                        SizedBox(height: 12.h),
+                        // Bigger bottom gap lifts the button + text upward.
+                        SizedBox(height: 34.h),
                       ],
                     ),
                   ),
@@ -452,15 +515,19 @@ class SpinAndWinView extends HookConsumerWidget {
 }
 
 List<SpinReward> _buildRewards(Map<String, List<int>> options) {
-  final normalValues = options['Normal'] ?? const <int>[];
+  // Drop the extra "1 E-Coins" slice — it is not present in the Figma wheel
+  // (which shows only 10 / 25 / 50 / 100 E-Coins before the static rewards).
+  final normalValues = [
+    ...(options['Normal'] ?? const <int>[]).where((v) => v != 1),
+  ]..sort();
   final coinRewards = normalValues
       .map(
         (v) => SpinReward(
-          label: '${v}E-Coins',
-          type: SpinRewardType.coins,
-          coins: v,
-        ),
-      )
+      label: '$v E-Coins',
+      type: SpinRewardType.coins,
+      coins: v,
+    ),
+  )
       .toList();
   return [...coinRewards, ..._staticRewards];
 }
@@ -556,7 +623,8 @@ class _NoSpinsLeftDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: 120.h,
+            SizedBox(
+              height: 120.h,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -593,18 +661,18 @@ class _NoSpinsLeftDialog extends StatelessWidget {
               'All spins used!',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0B5E5A),
-                  ),
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0B5E5A),
+              ),
             ),
             SizedBox(height: 8.h),
             Text(
               'You\u2019ve finished today\u2019s free spins.\nCome back tomorrow for more chances to win.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.black.withOpacity(0.7),
-                    height: 1.35,
-                  ),
+                color: Colors.black.withOpacity(0.7),
+                height: 1.35,
+              ),
             ),
             SizedBox(height: 16.h),
             SizedBox(
@@ -742,18 +810,18 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                       'Wheel is Spinning',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     SizedBox(height: 6.h),
                     Text(
                       'Leaving now may lose your reward.\nWant to exit anyway?',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withOpacity(0.88),
-                            height: 1.4,
-                          ),
+                        color: Colors.white.withOpacity(0.88),
+                        height: 1.4,
+                      ),
                     ),
                     SizedBox(height: 16.h),
                     Row(

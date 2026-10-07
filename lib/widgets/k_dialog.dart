@@ -33,10 +33,12 @@ class KDialog {
   Future<void> openDialog({
     required Widget dialog,
     bool barrierDismissible = true,
+    Color? barrierColor,
   }) async {
     showDialog(
       context: _context,
       barrierDismissible: barrierDismissible,
+      barrierColor: barrierColor,
       builder: (context) => dialog,
     );
   }

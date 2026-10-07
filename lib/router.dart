@@ -49,6 +49,7 @@ import 'features/onboarding/views/language_selection_view.dart';
 import 'features/onboarding/views/pan_verification_view.dart';
 import 'features/onboarding/views/verification_result_view.dart';
 import 'features/profile/constants/policy_page_slugs.dart';
+import 'features/profile/models/electricity_card_history_scope.dart';
 import 'features/profile/models/transaction_history_entry.dart';
 import 'features/profile/views/about_app_screen.dart';
 import 'features/profile/views/about_us_screen.dart';
@@ -456,7 +457,18 @@ final routerProvider = Provider<GoRouter>(
         ),
         GoRoute(
           path: RouteConstants.spinAndWin,
-          builder: (context, state) => const SpinAndWinView(),
+          // Non-opaque, zero-transition page so the Home screen stays visible
+          // behind the translucent #000000DB Spin Win scrim.
+          pageBuilder: (context, state) => CustomTransitionPage<void>(
+            key: state.pageKey,
+            opaque: false,
+            barrierDismissible: false,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+            child: const SpinAndWinView(),
+          ),
         ),
         GoRoute(
           path: RouteConstants.mobileRecentRecharges,
@@ -544,17 +556,55 @@ final routerProvider = Provider<GoRouter>(
             final extra = state.extra;
             String? serviceFilter;
             String? consumerIdFilter;
+            var electricityCardScoped = false;
             if (extra is Map<String, dynamic>) {
               final s = extra['service'];
-              final c = extra['consumerId'];
+              final c = extra['consumerId'] ?? extra['serviceNoFull'];
               serviceFilter = s is String && s.trim().isNotEmpty ? s.trim() : null;
               consumerIdFilter = c is String && c.trim().isNotEmpty ? c.trim() : null;
+              // Electricity card-scoped View History only (3 dots -> View
+              // History on an Electricity saved-biller card). Generic history
+              // extras never carry this flag, so generic behavior is untouched.
+              final scopedFlag = extra['electricityCardScoped'] == true ||
+                  extra['scope'] == 'electricity-card';
+              final serviceOk = serviceFilter == null ||
+                  serviceFilter.trim().toLowerCase().contains('electric') ||
+                  serviceFilter.trim().toLowerCase() == 'electricity';
+              electricityCardScoped = scopedFlag &&
+                  serviceOk &&
+                  consumerIdFilter != null &&
+                  consumerIdFilter.isNotEmpty;
+              if (electricityCardScoped) {
+                serviceFilter =
+                    ElectricityCardHistoryScope.serviceName;
+              }
+            } else if (extra is Map) {
+              final mapped =
+                  extra.map((key, value) => MapEntry(key.toString(), value));
+              final s = mapped['service'];
+              final c = mapped['consumerId'] ?? mapped['serviceNoFull'];
+              serviceFilter = s is String && s.trim().isNotEmpty ? s.trim() : null;
+              consumerIdFilter = c is String && c.trim().isNotEmpty ? c.trim() : null;
+              final scopedFlag = mapped['electricityCardScoped'] == true ||
+                  mapped['scope'] == 'electricity-card';
+              final serviceOk = serviceFilter == null ||
+                  serviceFilter.trim().toLowerCase().contains('electric') ||
+                  serviceFilter.trim().toLowerCase() == 'electricity';
+              electricityCardScoped = scopedFlag &&
+                  serviceOk &&
+                  consumerIdFilter != null &&
+                  consumerIdFilter.isNotEmpty;
+              if (electricityCardScoped) {
+                serviceFilter =
+                    ElectricityCardHistoryScope.serviceName;
+              }
             } else if (extra is String) {
               serviceFilter = extra.trim().isNotEmpty ? extra.trim() : null;
             }
             return TransactionHistoryScreen(
               initialServiceFilter: serviceFilter,
               initialConsumerIdFilter: consumerIdFilter,
+              initialElectricityCardScoped: electricityCardScoped,
             );
           },
         ),

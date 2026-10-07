@@ -14,6 +14,7 @@ import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
+import '../../profile/models/electricity_card_history_scope.dart';
 import '../controllers/biller_detail_controller.dart';
 import 'delete_saved_biller_dialog.dart';
 import 'fetch_provider_metrics.dart';
@@ -1278,6 +1279,24 @@ Future<void> _showSavedBillerActionSheet(
     // the modal teardown and intermittently dropped the navigation.
     await _untilDismissed(sheetAnimation);
     if (!context.mounted) return;
+    // Electricity Saved Biller card-scoped flow: the exact dynamic
+    // `service_no_full` of THIS card becomes the history scope. No
+    // fallbacks (service_no / masked / mobile / params) are used.
+    if (ElectricityCardHistoryScope.isElectricityCategory(serviceCategory)) {
+      final scope = ElectricityCardHistoryScope.fromTransaction(
+        txn,
+        serviceCategory: serviceCategory,
+      );
+      if (scope == null || !scope.isValid) {
+        AppSnackbar.show('Consumer number not available for this card');
+        return;
+      }
+      context.push(
+        RouteConstants.transactions,
+        extra: scope.toNavigationExtra(),
+      );
+      return;
+    }
     final filterService = (serviceCategory?.trim().isNotEmpty == true)
         ? serviceCategory!.trim()
         : (txn.paymentType.trim().isNotEmpty

@@ -143,6 +143,9 @@ class FileConstants {
   static String creditcard = 'assets/images/png/credit_icon.png';
   static String spin = 'assets/images/png/spin.png';
   static String spinBlast = 'assets/images/png/spin_blast.png';
+  static String spinCloseSvg = 'assets/spin/spin_close.svg';
+  static String spinRupeeSvg = 'assets/spin/spin_rupee.svg';
+  static String spinPointerSvg = 'assets/spin/spin_pointer.svg';
   static String subscriptions = 'assets/images/png/home_icon/subscriptions.png';
   static String housing = 'assets/images/png/home_icon/housing_society.png';
   static String agentCollection =

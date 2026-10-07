@@ -7,7 +7,6 @@ import 'package:e_rupaiya/constants/app_text_styles.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:e_rupaiya/features/home/components/home_shimmer.dart';
 import 'package:e_rupaiya/features/home/models/banner_model.dart';
-import 'package:e_rupaiya/features/spinandear/views/spin_and_win_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -244,14 +243,12 @@ class HomeView extends HookConsumerWidget {
             leading: navLeading,
             trailing: navTrailing,
             onItemSelected: (index) {
-              // Spin & Win opens full screen (no bottom bar) and keeps the
-              // current tab selected.
+              // Spin & Win opens as a full-screen translucent overlay over
+              // Home. The /spin-and-win route is registered non-opaque with a
+              // zero-duration transition, so Home stays visible behind the
+              // #000000DB scrim and the current tab remains selected.
               if (index == 2) {
-                PersistentNavBarNavigator.pushNewScreen(
-                  context,
-                  screen: const SpinAndWinView(),
-                  withNavBar: false,
-                );
+                context.push(RouteConstants.spinAndWin);
                 return;
               }
               if (index == tabController.index) {
