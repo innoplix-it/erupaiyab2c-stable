@@ -86,6 +86,12 @@ class TransactionHistoryController
   final TransactionHistoryRepository _repository;
   TransactionHistoryFilter? _activeFilter;
 
+  /// Single source of truth for the currently applied filter (e.g. the
+  /// consumer/service_full_no scope of a View History flow). Persists
+  /// across refresh, pagination and retry; only replaced by the next
+  /// fetchHistory/applyFilter call.
+  TransactionHistoryFilter? get activeFilter => _activeFilter;
+
   Future<void> fetchHistory({
     int? days,
     DateTimeRange? range,
@@ -163,7 +169,9 @@ class TransactionHistoryController
       );
       state = state.copyWith(
         isFetchingMore: false,
-        items: [...state.items, ...page.items],
+        // Append only genuinely-new rows: server pages can overlap when new
+        // transactions shift the pagination window mid-session.
+        items: [...state.items, ..._withoutDuplicates(state.items, page.items)],
         currentPage: page.currentPage,
         totalPages: page.totalPages,
         limit: page.limit,
@@ -191,4 +199,30 @@ class TransactionHistoryController
   Future<void> applyFilter(TransactionHistoryFilter filter) async {
     await fetchHistory(filter: filter, range: null, lastYears: null);
   }
+}
+
+/// Identity keys of a transaction entry (empty ids ignored).
+List<String> _entryIds(TransactionHistoryEntry item) => [
+      item.transactionId,
+      item.pgTransactionId,
+      item.ecoinsTransactionId,
+      item.referenceId,
+      item.bankReferenceId,
+    ].map((id) => id.trim()).where((id) => id.isNotEmpty).toList(growable: false);
+
+/// Filters out incoming items whose id already exists in [current].
+List<TransactionHistoryEntry> _withoutDuplicates(
+  List<TransactionHistoryEntry> current,
+  List<TransactionHistoryEntry> incoming,
+) {
+  final seen = <String>{for (final item in current) ..._entryIds(item)};
+  if (seen.isEmpty) return incoming;
+  final fresh = <TransactionHistoryEntry>[];
+  for (final item in incoming) {
+    final ids = _entryIds(item);
+    if (ids.isNotEmpty && ids.any(seen.contains)) continue;
+    seen.addAll(ids);
+    fresh.add(item);
+  }
+  return fresh;
 }

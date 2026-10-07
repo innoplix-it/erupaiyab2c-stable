@@ -57,6 +57,31 @@ class TransactionHistoryEntry {
     return maskedIdentifier.trim();
   }
 
+  /// Client-side safety net for the View History consumer filter.
+  /// [normalizedTarget] must be the selected biller's full consumer number
+  /// (service_no_full) with whitespace stripped. Matches only on equality or
+  /// when a candidate carries the full target as a substring (prefix/suffix
+  /// tolerant). The previous reverse check (target containing a candidate)
+  /// let short masked values like "5046" match unrelated transactions.
+  bool matchesConsumerId(String normalizedTarget) {
+    if (normalizedTarget.isEmpty) return true;
+    final candidates = <String>[
+      primaryConsumerNumber,
+      serviceNoFull ?? '',
+      serviceNo ?? '',
+      maskedIdentifier,
+    ];
+    for (final param in customerParams) {
+      candidates.add(param.value);
+    }
+    for (final raw in candidates) {
+      final c = raw.trim().replaceAll(RegExp(r'\s+'), '');
+      if (c.isEmpty || c.toLowerCase() == 'null') continue;
+      if (c == normalizedTarget || c.contains(normalizedTarget)) return true;
+    }
+    return false;
+  }
+
   final String paymentStatus;
   final String paymentType;
   final String billerName;

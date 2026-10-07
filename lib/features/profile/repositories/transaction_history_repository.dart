@@ -59,6 +59,11 @@ class TransactionHistoryRepository {
         query['consumer_id'] = consumerId;
         query['customer_number'] = consumerId;
         query['service_no'] = consumerId;
+        // Backend's canonical full consumer-number field (the same key both
+        // transaction models parse back from responses). Without it the API
+        // falls back to looser matching and leaks unrelated service
+        // transactions into View History results.
+        query['service_no_full'] = consumerId;
       }
 
       query['page'] = page;
@@ -126,6 +131,8 @@ class TransactionHistoryRepository {
         query['consumer_id'] = consumerId;
         query['customer_number'] = consumerId;
         query['service_no'] = consumerId;
+        // See fetchHistoryPage: keep the exact biller scope server-side.
+        query['service_no_full'] = consumerId;
       }
       if (page != null) query['page'] = page;
       if (limit != null) query['limit'] = limit;

@@ -466,11 +466,6 @@ class _ContactHelpCard extends StatelessWidget {
             icon: Icons.email_outlined,
             text: 'support@erupaiya.com',
           ),
-          SizedBox(height: 10.h),
-          const _ContactRow(
-            icon: Icons.call_outlined,
-            text: '+917350735046',
-          ),
           SizedBox(height: 16.h),
           Row(
             children: [

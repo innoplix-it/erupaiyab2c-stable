@@ -24,6 +24,58 @@ import '../models/transaction_history_entry.dart';
 import '../models/transaction_history_filter.dart';
 import 'transaction_filter_screen.dart';
 
+// --- Figma (440x956 frame) -> ScreenUtil single-scaling helpers -----------
+// Same approved pre-compensation pattern as AppSearchBar / HomeServiceCircle:
+// the value is first converted from the 440 frame to the 360 design width and
+// then scaled exactly once by ScreenUtil, so a 440-wide phone renders the
+// Figma pixel size and every other width scales proportionally.
+double _figmaW(double px) => (px * 360 / 440).w;
+double _figmaH(double px) => (px * 690 / 956).h;
+double _figmaR(double px) => (px * 360 / 440).r;
+
+/// Display-only "first letter of each word" casing (e.g. MOBILE PREPAID FOR
+/// -> Mobile Prepaid For). Underlying entry data is never mutated.
+String _capitalizeWords(String value) {
+  if (value.isEmpty) return value;
+  return value.toLowerCase().split(' ').map((word) {
+    if (word.isEmpty) return word;
+    return word[0].toUpperCase() + word.substring(1);
+  }).join(' ');
+}
+
+/// The exact 5-layer box-shadow stack from the Figma card style:
+/// 0/11/24 #DBDBDB1A, 0/43/43 #DBDBDB17, 0/97/58 #DBDBDB0D,
+/// 0/172/69 #DBDBDB03, 0/270/75 #DBDBDB00.
+/// CSS blur is 2 sigma, so Flutter blurRadius = figmaBlur / 2 (the same
+/// conversion Figma's own Flutter export uses); offsets keep their values.
+List<BoxShadow> _figmaCardShadow() => [
+      BoxShadow(
+        color: const Color(0x1ADBDBDB),
+        offset: Offset(0, _figmaH(11)),
+        blurRadius: _figmaR(12),
+      ),
+      BoxShadow(
+        color: const Color(0x17DBDBDB),
+        offset: Offset(0, _figmaH(43)),
+        blurRadius: _figmaR(21.5),
+      ),
+      BoxShadow(
+        color: const Color(0x0DDBDBDB),
+        offset: Offset(0, _figmaH(97)),
+        blurRadius: _figmaR(29),
+      ),
+      BoxShadow(
+        color: const Color(0x03DBDBDB),
+        offset: Offset(0, _figmaH(172)),
+        blurRadius: _figmaR(34.5),
+      ),
+      BoxShadow(
+        color: const Color(0x00DBDBDB),
+        offset: Offset(0, _figmaH(270)),
+        blurRadius: _figmaR(37.5),
+      ),
+    ];
+
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({
     super.key,
@@ -42,7 +94,6 @@ class TransactionHistoryScreen extends ConsumerStatefulWidget {
 class _TransactionHistoryScreenState
     extends ConsumerState<TransactionHistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  TransactionHistoryFilter? _activeFilter;
   List<TransactionHistoryEntry>? _cachedItems;
   String _cachedQuery = '';
   List<_TxnSection> _cachedSections = const [];
@@ -80,7 +131,8 @@ class _TransactionHistoryScreenState
         service: hasService ? filterService : null,
         consumerId: hasConsumerId ? filterConsumerId : null,
       );
-      _activeFilter = filter;
+      // The controller owns the active filter (single source of truth); it
+      // survives refresh/pagination/retry for the lifetime of this scope.
       Future.microtask(
         () => ref
             .read(transactionHistoryControllerProvider.notifier)
@@ -113,7 +165,7 @@ class _TransactionHistoryScreenState
 
     final controller = ref.read(transactionHistoryControllerProvider.notifier);
     final query = _searchController.text.trim().toLowerCase();
-    final filteredItems = _filterItems(items, query);
+    final filteredItems = _filterItems(items, query, controller.activeFilter);
     final sections = _sectionsFor(items, query, filteredItems);
 
     return PopScope(
@@ -123,7 +175,7 @@ class _TransactionHistoryScreenState
         _handleBack();
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF9F9F9),
         body: Column(
           children: [
             MyAppBar(
@@ -140,39 +192,32 @@ class _TransactionHistoryScreenState
               helpIconSize: 20,
             ),
             Padding(
+              // Figma (440 frame): 16px above the search field; the field
+              // bottom sits only ~17px above the month-header ink, and the
+              // header's own top padding covers that — no extra padding here.
               padding: EdgeInsets.fromLTRB(
                 AppSearchBar.sideInset,
-                12.h,
+                _figmaW(16),
                 AppSearchBar.sideInset,
-                8.h,
+                0,
               ),
-              child: SizedBox(
-                height: AppSearchBar.height,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: AppSearchBar(
-                        hintText: 'Search Transactions',
-                        controller: _searchController,
-                        onChanged: (_) => setState(() {}),
-                      ),
+              // The field spans the full content width like the reference;
+              // the filter entry lives inside it as a trailing action.
+              child: AppSearchBar(
+                hintText: 'Search by Transactions',
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                trailing: GestureDetector(
+                  onTap: () => _openFilterScreen(controller),
+                  child: Padding(
+                    padding: EdgeInsets.only(right: _figmaW(14)),
+                    child: SvgPicture.string(
+                      _transactionFilterSvg,
+                      width: _figmaR(24),
+                      height: _figmaR(24),
+                      fit: BoxFit.contain,
                     ),
-                    SizedBox(width: 10.w),
-                    GestureDetector(
-                      onTap: () => _openFilterScreen(controller),
-                      child: SizedBox(
-                        width: 24.r,
-                        height: 24.r,
-                        child: SvgPicture.string(
-                          _transactionFilterSvg,
-                          width: 24.r,
-                          height: 24.r,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -267,32 +312,20 @@ class _TransactionHistoryScreenState
   List<TransactionHistoryEntry> _filterItems(
     List<TransactionHistoryEntry> items,
     String query,
+    TransactionHistoryFilter? filter,
   ) {
     var filtered = items;
-    final consumerFilter = _activeFilter?.consumerId?.trim();
+    final consumerFilter = filter?.consumerId?.trim();
     if (consumerFilter != null && consumerFilter.isNotEmpty) {
+      // Safety net only: the API already scopes by service_no_full. Exact
+      // candidate matching (see TransactionHistoryEntry.matchesConsumerId)
+      // keeps unrelated short-substring rows out of the list.
       final normalizedTarget = consumerFilter.replaceAll(RegExp(r'\s+'), '');
-      filtered = filtered.where((item) {
-        final candidates = <String>[
-          item.primaryConsumerNumber,
-          item.serviceNoFull ?? '',
-          item.serviceNo ?? '',
-          item.maskedIdentifier,
-        ];
-        for (final cp in item.customerParams) {
-          candidates.add(cp.value);
-        }
-        for (final raw in candidates) {
-          final c = raw.toString().trim().replaceAll(RegExp(r'\s+'), '');
-          if (c.isEmpty) continue;
-          if (c == normalizedTarget || c.contains(normalizedTarget) || normalizedTarget.contains(c)) {
-            return true;
-          }
-        }
-        return false;
-      }).toList(growable: false);
+      filtered = filtered
+          .where((item) => item.matchesConsumerId(normalizedTarget))
+          .toList(growable: false);
     }
-    final serviceFilter = _activeFilter?.service?.trim().toLowerCase();
+    final serviceFilter = filter?.service?.trim().toLowerCase();
     if (serviceFilter != null && serviceFilter.isNotEmpty) {
       filtered = filtered.where((item) {
         final pt = item.paymentType.trim().toLowerCase();
@@ -327,7 +360,10 @@ class _TransactionHistoryScreenState
   }
 
   Future<void> _handleRefresh(TransactionHistoryController controller) async {
-    final filter = _activeFilter;
+    // Reuse the controller's persistent filter so pull-to-refresh re-requests
+    // page 1 for the SAME biller/consumer instead of falling back to the
+    // generic history scope.
+    final filter = controller.activeFilter;
     if (filter == null || filter.isEmpty) {
       await controller.fetchHistory();
       return;
@@ -346,13 +382,12 @@ class _TransactionHistoryScreenState
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
         pageBuilder: (_, __, ___) => TransactionFilterScreen(
-          initialFilter: _activeFilter,
+          initialFilter: controller.activeFilter,
         ),
       ),
     );
     if (!mounted) return;
     if (result == null) return;
-    _activeFilter = result;
     if (result.isEmpty) {
       await controller.fetchHistory();
     } else {
@@ -451,83 +486,113 @@ class _TransactionTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      customBorder: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_figmaR(12)),
+      ),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        // Figma (measured on the 440 frame): 24px side margins, 12px
+        // card-to-card gap (6 x 2), 76px card = 13px vertical padding +
+        // 50px icon circle (tallest element), 16px left padding to the
+        // circle. Pitch works out to exactly 88px, matching the reference.
+        margin: EdgeInsets.symmetric(
+          horizontal: _figmaW(24),
+          vertical: _figmaW(6),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          _figmaW(16),
+          _figmaW(13),
+          _figmaW(16),
+          _figmaW(13),
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: AppColors.lightBorder.withOpacity(0.5),
-            width: 0.5,
-          ),
+          borderRadius: BorderRadius.circular(_figmaR(12)),
+          boxShadow: _figmaCardShadow(),
         ),
-        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
         child: Row(
           children: [
             Container(
-              width: 44.r,
-              height: 44.r,
-              padding: EdgeInsets.all(8.w),
+              width: _figmaR(50),
+              height: _figmaR(50),
+              padding: EdgeInsets.all(_figmaR(10)),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(22.r),
+                shape: BoxShape.circle,
                 border: Border.all(
                   color: const Color(0x66FF835C),
                   width: 1,
                 ),
               ),
               child: Center(
-                child: AppNetworkImage(
-                  url: item.iconUrl,
-                  fit: BoxFit.contain,
-                  showShimmer: false,
+                child: SizedBox(
+                  // Identical inner icon box on every row regardless of
+                  // status/service type (outer circle is already fixed).
+                  width: _figmaR(30),
+                  height: _figmaR(30),
+                  child: AppNetworkImage(
+                    url: item.iconUrl,
+                    fit: BoxFit.contain,
+                    showShimmer: false,
+                  ),
                 ),
               ),
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: _figmaW(12)),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    displayPaymentType,
+                    // Figma typography: SemiBold 600, 10.sp, 100%
+                    // line-height, 0% letter-spacing, capitalize each word.
+                    _capitalizeWords(displayPaymentType),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.sp,
+                      fontSize: 10.sp,
                       fontWeight: FontWeight.w600,
+                      height: 1,
+                      letterSpacing: 0,
                       color: const Color(0xFF000000),
                     ),
                   ),
                   if (consumerDisplay.isNotEmpty) ...[
-                    SizedBox(height: 2.h),
+                    // Figma rhythm: operator->number gap == number->date gap
+                    // (equal visual spacing, measured off the reference).
+                    // 6+6 keeps the 48.4px text block inside the 50px circle
+                    // so the card height stays icon-driven at exactly 76px.
+                    SizedBox(height: _figmaW(6)),
                     Text(
                       consumerDisplay,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.sp,
+                        fontSize: 9.sp,
                         fontWeight: FontWeight.w700,
+                        height: 1.1,
                         color: const Color(0xFF000000),
                       ),
                     ),
                   ],
-                  SizedBox(height: 2.h),
+                  SizedBox(height: _figmaW(6)),
                   Text(
                     _formatTxnTime(item.transactionTime),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10.sp,
+                      fontSize: 9.sp,
                       fontWeight: FontWeight.w400,
+                      height: 1.1,
                       color: const Color(0xFF7C7C7C),
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: _figmaW(8)),
             Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 ConstrainedBox(
@@ -540,13 +605,18 @@ class _TransactionTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
+                      // Figma: measured digit ink ~11px on the 440 frame
+                      // (was 16.sp, unnecessarily large). SemiBold 600,
+                      // 100% line-height, 0% letter-spacing.
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      height: 1,
+                      letterSpacing: 0,
                       color: amountColor,
                     ),
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: _figmaW(4)),
                 _StatusChip(
                   status: status,
                   methodIcon: item.methodIcon,
@@ -579,31 +649,40 @@ class _StatusChip extends StatelessWidget {
         // "Paid From" green pill badge — exact SVG from design
         return SvgPicture.asset(
           'assets/images/badge_paid_from.svg',
-          height: 21.h,
+          height: _figmaR(21),
           fit: BoxFit.contain,
         );
       case _TxnStatus.failed:
         // "Failed" red pill badge
         return Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: _figmaW(8),
+            vertical: _figmaW(3),
+          ),
           decoration: BoxDecoration(
             color: Colors.red.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(_figmaR(10)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'Failed',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.red,
-                      fontWeight: FontWeight.w700,
-                    ),
+                // Same text style/size as the Paid From / Processing SVG
+                // badges, whose baked glyph size is ~10.3px on the 440
+                // frame (= 8.4.sp). 8.5.sp matches them visually.
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 8.5.sp,
+                  fontWeight: FontWeight.w600,
+                  height: 1,
+                  letterSpacing: 0,
+                  color: Colors.red,
+                ),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: _figmaW(4)),
               Icon(
                 Icons.info_outline,
-                size: 13.sp,
+                size: _figmaR(13),
                 color: Colors.red,
               ),
             ],
@@ -613,7 +692,7 @@ class _StatusChip extends StatelessWidget {
         // "Processing" orange pill badge — exact SVG from design
         return SvgPicture.asset(
           'assets/images/badge_processing.svg',
-          height: 20.h,
+          height: _figmaR(20),
           fit: BoxFit.contain,
         );
     }
@@ -630,25 +709,46 @@ class _MonthHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final countLabel = '$count Transaction${count == 1 ? '' : 's'}';
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 4.h),
+      // Figma (440 frame): 24px side margins. Header ink sits ~17px below
+      // the search bottom and ~25px below the previous card bottom (both
+      // incl. the 6px card margin), and ~22px above the next card top.
+      padding: EdgeInsets.fromLTRB(
+        _figmaW(24),
+        _figmaW(15),
+        _figmaW(24),
+        _figmaW(12),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w700,
-              height: 1,
-              color: const Color(0xFF000000),
+          // Long month names ellipsize instead of pushing the count out.
+          Expanded(
+            child: Text(
+              // Capitalize per spec (month names already are); size kept
+              // exactly at the current 15.sp as required.
+              _capitalizeWords(title),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                height: 1,
+                letterSpacing: 0,
+                color: const Color(0xFF000000),
+              ),
             ),
           ),
+          SizedBox(width: _figmaW(8)),
           Text(
             countLabel,
+            maxLines: 1,
+            // Same size as the month/year title (15.sp); Plus Jakarta Sans
+            // w600, 100% line-height, 0% letter-spacing, capitalize (the
+            // label is built as "3 Transactions", already capitalized).
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w400,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
               height: 1,
+              letterSpacing: 0,
               color: const Color(0xFF7C7C7C),
             ),
           ),
@@ -1124,11 +1224,10 @@ class _TransactionHistoryShimmer extends StatelessWidget {
     return Skeletonizer(
       enabled: true,
       child: IgnorePointer(
-        child: ListView.separated(
-          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 80.h),
+        child: ListView.builder(
+          padding: EdgeInsets.fromLTRB(0, _figmaW(16), 0, 80.h),
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: 6,
-          separatorBuilder: (_, __) => SizedBox(height: 12.h),
           itemBuilder: (_, __) => const _TransactionTileSkeleton(),
         ),
       ),
@@ -1142,24 +1241,30 @@ class _TransactionTileSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      margin: EdgeInsets.symmetric(
+        horizontal: _figmaW(24),
+        vertical: _figmaW(6),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        _figmaW(16),
+        _figmaW(13),
+        _figmaW(16),
+        _figmaW(13),
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: AppColors.lightBorder.withOpacity(0.5),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(_figmaR(12)),
+        boxShadow: _figmaCardShadow(),
       ),
       child: Row(
         children: [
           Container(
-            width: 44.r,
-            height: 44.r,
-            padding: EdgeInsets.all(8.w),
+            width: _figmaR(50),
+            height: _figmaR(50),
+            padding: EdgeInsets.all(_figmaR(10)),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(22.r),
+              shape: BoxShape.circle,
               border: Border.all(
                 color: const Color(0x66FF835C),
                 width: 1,
@@ -1168,63 +1273,79 @@ class _TransactionTileSkeleton extends StatelessWidget {
             child: Center(
               child: Icon(
                 Icons.account_balance_wallet_outlined,
-                size: 18.sp,
+                size: _figmaR(30),
                 color: AppColors.primary,
               ),
             ),
           ),
-          SizedBox(width: 10.w),
+          SizedBox(width: _figmaW(12)),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Loading transaction',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF000000),
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  '1234567890',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF000000),
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  '01 January, 12:00AM',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10.sp,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                    letterSpacing: 0,
+                    color: const Color(0xFF000000),
+                  ),
+                ),
+                SizedBox(height: _figmaW(6)),
+                Text(
+                  '1234567890',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
+                    color: const Color(0xFF000000),
+                  ),
+                ),
+                SizedBox(height: _figmaW(6)),
+                Text(
+                  '01 January, 12:00AM',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 9.sp,
                     fontWeight: FontWeight.w400,
+                    height: 1.1,
                     color: const Color(0xFF7C7C7C),
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: _figmaW(8)),
           Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 '₹ 0.00',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                  height: 1,
+                  letterSpacing: 0,
                   color: Colors.green,
                 ),
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: _figmaW(4)),
               Text(
                 'Paid From',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w400,
+                  fontSize: 8.5.sp,
+                  fontWeight: FontWeight.w600,
+                  height: 1,
+                  letterSpacing: 0,
                   color: const Color(0xFF7C7C7C),
                 ),
               ),
