@@ -146,6 +146,9 @@ class FileConstants {
   static String spinCloseSvg = 'assets/spin/spin_close.svg';
   static String spinRupeeSvg = 'assets/spin/spin_rupee.svg';
   static String spinPointerSvg = 'assets/spin/spin_pointer.svg';
+  static String spinCoinSvg = 'assets/spin/spin_coin.svg';
+  static String surpriseIconSvg = 'assets/images/svg/surprise_icon.svg';
+  static String extraSpinIconSvg = 'assets/images/svg/extra_spin_icon.svg';
   static String subscriptions = 'assets/images/png/home_icon/subscriptions.png';
   static String housing = 'assets/images/png/home_icon/housing_society.png';
   static String agentCollection =
@@ -160,8 +163,7 @@ class FileConstants {
   static String securePayments = 'assets/images/png/securepayments.png';
   static String rbiCompliant = 'assets/images/png/rbicomplient.png';
   static String trustedBy = 'assets/images/png/trustedby.png';
-  static String processingLottie =
-      'assets/lottie/Payment-processing-60s.json';
+  static String processingLottie = 'assets/lottie/Payment-processing-60s.json';
   static String paymentProcessingLottie =
       'assets/lottie/Payment-processing-60s.json';
   static String nps = 'assets/images/png/home_icon/nps.png';
@@ -231,6 +233,7 @@ class FileConstants {
   static String arrow = 'assets/images/png/arrow.png';
   static String referAndEarn = 'assets/images/png/referearn.png';
   static String coin_3d = 'assets/images/png/3dcoin.png';
+  static String coin_100_svg = 'assets/images/svg/coin_100.svg';
   static String myTeam = 'assets/images/png/my_team.png';
   static String recentReferrals = 'assets/images/png/recent_referrals.png';
   static String referralsWorks = 'assets/images/png/referrals_works.png';

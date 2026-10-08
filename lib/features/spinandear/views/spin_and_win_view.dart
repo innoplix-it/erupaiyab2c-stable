@@ -85,7 +85,7 @@ class SpinAndWinView extends HookConsumerWidget {
       duration: const Duration(milliseconds: 2800),
     );
     final animation = useMemoized(
-          () => CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
+      () => CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
       [controller],
     );
     final animValue = useAnimation(animation);
@@ -139,12 +139,12 @@ class SpinAndWinView extends HookConsumerWidget {
         final spinType = reward.type == SpinRewardType.betterLuck
             ? 'better_luck'
             : reward.type == SpinRewardType.jackpot
-            ? 'jackpot'
-            : reward.type == SpinRewardType.extraSpin
-            ? 'extra'
-            : reward.type == SpinRewardType.surprise
-            ? 'surprise'
-            : 'normal';
+                ? 'jackpot'
+                : reward.type == SpinRewardType.extraSpin
+                    ? 'extra'
+                    : reward.type == SpinRewardType.surprise
+                        ? 'surprise'
+                        : 'normal';
 
         await spinRepository.recordSpin(
           spinType: spinType,
@@ -174,7 +174,7 @@ class SpinAndWinView extends HookConsumerWidget {
           onPrimaryTap: () async {
             await profileController.fetchProfile();
             final error =
-            ref.read(profileControllerProvider).errorMessage?.trim();
+                ref.read(profileControllerProvider).errorMessage?.trim();
             if (error != null && error.isNotEmpty && context.mounted) {
               AppSnackbar.show(
                 error,
@@ -256,6 +256,15 @@ class SpinAndWinView extends HookConsumerWidget {
                     child: const ColoredBox(color: Color(0xDB000000)),
                   ),
                 ),
+                // Decorative sunburst glow over the dark scrim, behind content.
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Image.asset(
+                      'assets/images/png/sunburst.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
                 SafeArea(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 14.w),
@@ -289,15 +298,14 @@ class SpinAndWinView extends HookConsumerWidget {
                           alignment: Alignment.center,
                           children: [
                             ShaderMask(
-                              shaderCallback: (bounds) =>
-                                  const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0xFFF39207),
-                                      Color(0xFFB44623),
-                                    ],
-                                  ).createShader(bounds),
+                              shaderCallback: (bounds) => const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Color(0xFFF39207),
+                                  Color(0xFFB44623),
+                                ],
+                              ).createShader(bounds),
                               child: Padding(
                                 padding: EdgeInsets.only(bottom: 4.h),
                                 child: Text(
@@ -396,74 +404,85 @@ class SpinAndWinView extends HookConsumerWidget {
                         Expanded(
                           child: Align(
                             alignment: const Alignment(0, -0.15),
-                            child: SizedBox(
-                              width: wheelSize,
-                              height: wheelSize,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                clipBehavior: Clip.none,
-                                children: [
-                                  SizedBox(
-                                    width: wheelSize,
-                                    height: wheelSize,
-                                    child: spinOptionsState.isLoading
-                                        ? _SpinWheelShimmer(size: wheelSize)
-                                        : spinOptionsState.errorMessage != null
-                                        ? Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.error_outline,
-                                          color: Colors.white,
-                                          size: 40.r,
-                                        ),
-                                        SizedBox(height: 8.h),
-                                        Text(
-                                          'Failed to load.\nPlease try again.',
-                                          textAlign: TextAlign.center,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        SizedBox(height: 10.h),
-                                        TextButton(
-                                          onPressed: () => ref
-                                              .read(
-                                            spinOptionsControllerProvider
-                                                .notifier,
-                                          )
-                                              .fetchSpinOptions(),
-                                          child: const Text(
-                                            'Retry',
-                                            style: TextStyle(
-                                                color: Colors.white),
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                        : SpinWheel(
-                                      rewards: _buildRewards(
-                                          spinOptionsState.options),
-                                      rotation: targetRotation.value *
-                                          animValue,
-                                      size: wheelSize,
+                            // Defensive: shrink the wheel if the Expanded
+                            // region is shorter than wheelSize on small /
+                            // large-inset devices. No-op when there is room.
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: SizedBox(
+                                width: wheelSize,
+                                height: wheelSize,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    SizedBox(
+                                      width: wheelSize,
+                                      height: wheelSize,
+                                      child: spinOptionsState.isLoading
+                                          ? _SpinWheelShimmer(size: wheelSize)
+                                          : spinOptionsState.errorMessage !=
+                                                  null
+                                              ? Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.error_outline,
+                                                      color: Colors.white,
+                                                      size: 40.r,
+                                                    ),
+                                                    SizedBox(height: 8.h),
+                                                    Text(
+                                                      'Failed to load.\nPlease try again.',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color: Colors.white,
+                                                          ),
+                                                    ),
+                                                    SizedBox(height: 10.h),
+                                                    TextButton(
+                                                      onPressed: () => ref
+                                                          .read(
+                                                            spinOptionsControllerProvider
+                                                                .notifier,
+                                                          )
+                                                          .fetchSpinOptions(),
+                                                      child: const Text(
+                                                        'Retry',
+                                                        style: TextStyle(
+                                                            color:
+                                                                Colors.white),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                )
+                                              : SpinWheel(
+                                                  rewards: _buildRewards(
+                                                      spinOptionsState.options),
+                                                  rotation:
+                                                      targetRotation.value *
+                                                          animValue,
+                                                  size: wheelSize,
+                                                ),
                                     ),
-                                  ),
-                                  // Figma: second sparkle at upper-left of wheel.
-                                  Positioned(
-                                    top: wheelSize * -0.04,
-                                    left: wheelSize * 0.06,
-                                    child: _BlinkingStar(
-                                      size: 36.r,
-                                      duration: const Duration(
-                                        milliseconds: 1100,
+                                    // Figma: second sparkle at upper-left of wheel.
+                                    Positioned(
+                                      top: wheelSize * -0.04,
+                                      left: wheelSize * 0.06,
+                                      child: _BlinkingStar(
+                                        size: 36.r,
+                                        duration: const Duration(
+                                          milliseconds: 1100,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -498,7 +517,7 @@ class SpinAndWinView extends HookConsumerWidget {
                         SizedBox(height: 10.h),
                         Text(
                           'You have $totalSpins free spin'
-                              '${totalSpins == 1 ? '' : 's'} left today.',
+                          '${totalSpins == 1 ? '' : 's'} left today.',
                           textAlign: TextAlign.center,
                           // Reduced by 2: 18 -> 16.
                           style: GoogleFonts.plusJakartaSans(
@@ -531,11 +550,11 @@ List<SpinReward> _buildRewards(Map<String, List<int>> options) {
   final coinRewards = coinValues
       .map(
         (v) => SpinReward(
-      label: '$v E-Coins',
-      type: SpinRewardType.coins,
-      coins: v,
-    ),
-  )
+          label: '$v E-Coins',
+          type: SpinRewardType.coins,
+          coins: v,
+        ),
+      )
       .toList();
   return [...coinRewards, ..._staticRewards];
 }
@@ -723,18 +742,18 @@ class _SpinExitDialogState extends State<_SpinExitDialog>
                       'Wheel is Spinning',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
                     SizedBox(height: 6.h),
                     Text(
                       'Leaving now may lose your reward.\nWant to exit anyway?',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.88),
-                        height: 1.4,
-                      ),
+                            color: Colors.white.withOpacity(0.88),
+                            height: 1.4,
+                          ),
                     ),
                     SizedBox(height: 16.h),
                     Row(

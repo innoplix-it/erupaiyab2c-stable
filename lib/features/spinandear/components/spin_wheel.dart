@@ -38,6 +38,19 @@ const String _coinSvg = '''
 </svg>
 ''';
 
+/// Surprise gift-box icon (inline, same 26x26 viewBox as the coin icon).
+const String _surpriseSvg = '''
+<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="5" y="13" width="16" height="10" rx="1.5" fill="#F39207"/>
+<rect x="3" y="9" width="20" height="5" rx="1.5" fill="#DD5428"/>
+<rect x="11.5" y="9" width="3" height="14" fill="#FCF0E3"/>
+<path d="M13 9C13 9 8 9 8 6.2C8 4 11.3 4 13 9Z" fill="#FCF0E3"/>
+<path d="M13 9C13 9 18 9 18 6.2C18 4 14.7 4 13 9Z" fill="#FCF0E3"/>
+<rect x="5" y="13" width="16" height="10" rx="1.5" stroke="#1B1B25" stroke-width="1"/>
+<rect x="3" y="9" width="20" height="5" rx="1.5" stroke="#1B1B25" stroke-width="1"/>
+</svg>
+''';
+
 class SpinWheel extends StatelessWidget {
   const SpinWheel({
     super.key,
@@ -215,7 +228,7 @@ class _SliceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget? icon;
+    late Widget icon;
     String text;
 
     switch (reward.type) {
@@ -228,7 +241,11 @@ class _SliceLabel extends StatelessWidget {
         text = '${reward.coins} E-Coins';
         break;
       case SpinRewardType.surprise:
-      // Text only, no icon.
+        icon = SvgPicture.string(
+          _surpriseSvg,
+          width: _iconSize,
+          height: _iconSize,
+        );
         text = 'Surprise';
         break;
       case SpinRewardType.extraSpin:
@@ -249,7 +266,8 @@ class _SliceLabel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (icon != null) ...[icon, const SizedBox(width: 4)],
+        icon,
+        const SizedBox(width: 4),
         Text(
           text,
           maxLines: 1,
@@ -305,11 +323,9 @@ class _WheelPainter extends CustomPainter {
       // Jackpot W, Better Luck G). No divider lines.
       //
       // The orange ramp is painted ONCE across the whole wheel (shader rect
-      // = the full wheel `rect`, not each slice's own bounds). Applying it
-      // per-slice dropped the bright #FED06A stop in the middle of every
-      // orange slice, which read as an extra shine/band. A single continuous
-      // 169deg gradient makes each slice a uniform slice of the wheel-wide
-      // ramp, matching the Figma reference. Text/icons/count are unchanged.
+      // = the full wheel `rect`, not each slice's own bounds). A single
+      // continuous 169deg gradient makes each slice a uniform slice of the
+      // wheel-wide ramp, matching the Figma reference.
       if (i.isEven) {
         paint.color = Colors.white;
       } else {
