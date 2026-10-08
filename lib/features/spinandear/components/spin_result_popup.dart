@@ -46,12 +46,15 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     // Structural available space only (SafeArea-aware); sizes come from
-    // ScreenUtil. The card can never exceed this height, so the X, title,
-    // value and CTA always stay on screen, even on short devices.
-    final maxPopupHeight =
-        mq.size.height * 0.8 - mq.padding.top - mq.padding.bottom;
+    // ScreenUtil. The card is sized so that card + gap + CTA always fit the
+    // available height (the previous `maxPopupHeight / _cardAspect` formula
+    // was dimensionally wrong and made the card too short on short screens).
+    final chromeHeight = 14.h + 55.h;
+    final availableHeight =
+        mq.size.height - mq.padding.top - mq.padding.bottom;
+    final maxCardHeight = (availableHeight * 0.85) - chromeHeight;
     final cardWidth = math
-        .min(mq.size.width - 24.w, maxPopupHeight / _cardAspect)
+        .min(mq.size.width - 24.w, maxCardHeight * _cardAspect)
         .clamp(0.0, double.infinity);
 
     return Dialog(
@@ -91,25 +94,39 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
           left: 10.w,
           right: 10.w,
           bottom: 10.h,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              SizedBox(height: 26.h),
-              _buildTitle(),
-              SizedBox(height: 6.h),
-              Text(
-                'You Earned',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  height: 1.0,
-                  color: Colors.white,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Scale the whole content block down if it is ever taller than
+              // the card, so it can never overflow the artwork.
+              return FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 26.h),
+                      _buildTitle(),
+                      SizedBox(height: 6.h),
+                      Text(
+                        'You Earned',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                          height: 1.0,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      _buildEarnedValue(),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 10.h),
-              _buildEarnedValue(),
-            ],
+              );
+            },
           ),
         ),
         // X sits at the card's top-right corner; the small negative offsets

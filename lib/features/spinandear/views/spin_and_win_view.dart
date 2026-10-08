@@ -105,9 +105,18 @@ class SpinAndWinView extends HookConsumerWidget {
       final rewards = _buildRewards(spinOptionsState.options);
       if (isSpinning.value) return;
       if (totalSpins == 0) {
-        // No spins left — do nothing. The old "All spins used!" dialog was
-        // removed per design; the "You have 0 free spins left today" text
-        // already communicates this state.
+        // No spins left — route to the new Figma result popup instead of the
+        // old "All spins used!" dialog.
+        KDialog.instance.openDialog(
+          barrierColor: const Color(0xDB000000),
+          dialog: SpinResultPopup(
+            reward: const SpinReward(
+              label: 'Better Luck',
+              type: SpinRewardType.betterLuck,
+            ),
+            onPrimaryTap: () async {},
+          ),
+        );
         return;
       }
       if (rewards.isEmpty) return;
@@ -515,12 +524,11 @@ class SpinAndWinView extends HookConsumerWidget {
 }
 
 List<SpinReward> _buildRewards(Map<String, List<int>> options) {
-  // Drop the extra "1 E-Coins" slice — it is not present in the Figma wheel
-  // (which shows only 10 / 25 / 50 / 100 E-Coins before the static rewards).
-  final normalValues = [
-    ...(options['Normal'] ?? const <int>[]).where((v) => v != 1),
-  ]..sort();
-  final coinRewards = normalValues
+  final normalValues = [...(options['Normal'] ?? const <int>[])]..sort();
+  // Force exactly 4 coin slices → total always 8 (4 coins + 4 static).
+  // This removes the extra slice that appeared when API sent >4 values.
+  final coinValues = normalValues.take(4).toList();
+  final coinRewards = coinValues
       .map(
         (v) => SpinReward(
       label: '$v E-Coins',
@@ -603,101 +611,6 @@ class _SpinShimmerTransform extends GradientTransform {
   @override
   Matrix4 transform(Rect bounds, {TextDirection? textDirection}) {
     return Matrix4.translationValues(bounds.width * slidePercent, 0, 0);
-  }
-}
-
-class _NoSpinsLeftDialog extends StatelessWidget {
-  const _NoSpinsLeftDialog({required this.onClose});
-
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
-      insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 16.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 120.h,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Opacity(
-                    opacity: 0.75,
-                    child: Lottie.asset(
-                      'assets/lottie/spin_rays.json',
-                      repeat: true,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                  Container(
-                    height: 62.r,
-                    width: 62.r,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFF3FAF9),
-                      border: Border.all(color: const Color(0xFFBFE7E2)),
-                    ),
-                    child: const Icon(
-                      Icons.hourglass_bottom_rounded,
-                      color: Color(0xFF0B5E5A),
-                      size: 32,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              'All spins used!',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0B5E5A),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              'You\u2019ve finished today\u2019s free spins.\nCome back tomorrow for more chances to win.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.black.withOpacity(0.7),
-                height: 1.35,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              height: 44.h,
-              child: ElevatedButton(
-                onPressed: onClose,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0B5E5A),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Got it',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
