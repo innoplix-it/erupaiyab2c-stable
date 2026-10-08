@@ -42,13 +42,11 @@ class _BlinkingStar extends HookWidget {
 
 /// Post-spin "Congratulations" popup (Figma).
 ///
-/// Layout order: X close -> spinpopup.png card (⭐ Congratulations ⭐ /
-/// You Earned / dynamic reward value) -> Claim Now CTA. The card size is
-/// derived from the supplied artwork's aspect ratio and clamped by the
-/// available height, so the popup stays fully visible on short screens.
-/// All dimensions use ScreenUtil (.w/.h/.r/.sp) against the 360x690 design
-/// frame; MediaQuery only supplies the structural max-height clamp, so
-/// nothing is ever double-scaled.
+/// Layout order: X close -> spinpopup.png card (⭐ Title ⭐ / You Earned /
+/// dynamic reward value) -> CTA. The card size is derived from the supplied
+/// artwork's aspect ratio and clamped by the available height, so the popup
+/// stays fully visible on short screens. All dimensions use ScreenUtil
+/// (.w/.h/.r/.sp) against the 360x690 design frame.
 class SpinResultPopup extends StatefulWidget {
   const SpinResultPopup({
     super.key,
@@ -74,9 +72,6 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    // Structural available space only (SafeArea-aware); sizes come from
-    // ScreenUtil. The card is sized so that card + gap + CTA always fit the
-    // available height.
     final chromeHeight = 16.h;
     final availableHeight = mq.size.height - mq.padding.top - mq.padding.bottom;
     final maxCardHeight = (availableHeight * 0.75) - chromeHeight;
@@ -106,11 +101,10 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Extra clearance so the X sits above the card (Figma),
-                // not overlapping its top edge.
+                // Clearance so the X sits above the card (Figma).
                 SizedBox(height: 54.h),
                 _buildCard(cardWidth),
-                SizedBox(height: 16.h),
+                SizedBox(height: 12.h),
                 _buildClaimButton(cardWidth),
               ],
             ),
@@ -155,135 +149,84 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
           bottom: 12.h,
           child: widget.reward.type == SpinRewardType.coins
               ? LayoutBuilder(
-                  builder: (context, constraints) {
-                    // Scale the whole content block down if it is ever taller
-                    // than the card, so it can never overflow the artwork.
-                    return FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.topCenter,
-                      child: SizedBox(
-                        width: constraints.maxWidth,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 30.h),
-                            _buildTitle(),
-                            SizedBox(height: 12.h),
-                            Text(
-                              'You\'ve Earned',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                                height: 1.0,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 16.h),
-                            _buildEarnedValue(),
-                          ],
+            builder: (context, constraints) {
+              // Scale the content block down if it is ever taller than
+              // the card, so it can never overflow the artwork.
+              return FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // card top -> title (12 inset + 14 = ~26)
+                      SizedBox(height: 14.h),
+                      _buildStarTitle('Congratulations'),
+                      // title -> "You Earned"
+                      SizedBox(height: 10.h),
+                      Text(
+                        'You Earned',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          height: 1.0,
+                          color: Colors.white,
                         ),
                       ),
-                    );
-                  },
-                )
-              // Non-coin outcomes (better luck / extra spin / jackpot):
-              // no "Congratulations" / "You Earned" - the result message and
-              // its subtitle are centered in the middle of the card.
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    return FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        width: constraints.maxWidth,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildOutcomeMessage(),
-                            SizedBox(height: 12.h),
-                            _buildOutcomeSubtitle(),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                      // "You Earned" -> coin
+                      SizedBox(height: 13.h),
+                      _buildEarnedValue(),
+                    ],
+                  ),
                 ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTitle() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        _BlinkingStar(size: 24.r),
-        Flexible(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            child: Text(
-              'Congratulations',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w800,
-                height: 1.0,
-                color: Colors.white,
-              ),
-            ),
+              );
+            },
+          )
+          // Non-coin outcomes: title (with stars) + subtitle, centered.
+              : LayoutBuilder(
+            builder: (context, constraints) {
+              return FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildStarTitle(_outcomeMessage),
+                      SizedBox(height: 12.h),
+                      _buildOutcomeSubtitle(),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
-        _BlinkingStar(size: 24.r),
       ],
     );
   }
 
-  /// Non-coin outcome text with blinking `star.json` sparkles on the left and
-  /// right, styled like the "Congratulations" title. The wording is derived
-  /// from the spin result (reward type), never hardcoded per-instance.
-  /// For surprise and extra spin types, the left star is replaced with their
-  /// respective icons (with circle background like spin close).
-  Widget _buildOutcomeMessage() {
-    final message = switch (widget.reward.type) {
-      SpinRewardType.extraSpin => 'Extra Spin!',
-      SpinRewardType.jackpot => 'Jackpot Spin!',
-      SpinRewardType.surprise => 'Surprise!',
-      _ => 'Better Luck Next Time!',
-    };
-    Widget? leftIcon;
-    if (widget.reward.type == SpinRewardType.surprise) {
-      leftIcon = SvgPicture.asset(
-        FileConstants.surpriseIconSvg,
-        width: 24.r,
-        height: 24.r,
-        fit: BoxFit.contain,
-      );
-    } else if (widget.reward.type == SpinRewardType.extraSpin) {
-      leftIcon = SvgPicture.asset(
-        FileConstants.extraSpinIconSvg,
-        width: 24.r,
-        height: 24.r,
-        fit: BoxFit.contain,
-      );
-    }
+  /// Main title with a blinking `star.json` sparkle on the left AND right.
+  /// Shared by the coin popup ("Congratulations") and every non-coin outcome.
+  Widget _buildStarTitle(String text) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          leftIcon ?? _BlinkingStar(size: 24.r),
+          _BlinkingStar(size: 24.r),
           Flexible(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10.w),
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
               child: Text(
-                message,
+                text,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20.sp,
@@ -298,6 +241,16 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
         ],
       ),
     );
+  }
+
+  /// Title wording derived from the spin result (reward type).
+  String get _outcomeMessage {
+    return switch (widget.reward.type) {
+      SpinRewardType.extraSpin => 'Extra Spin!',
+      SpinRewardType.jackpot => 'Jackpot Spin!',
+      SpinRewardType.surprise => 'Surprise!',
+      _ => 'Better Luck Next Time!',
+    };
   }
 
   /// Supporting line shown under the non-coin outcome title.
@@ -324,65 +277,61 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
   }
 
   /// Dynamic reward value taken straight from the spin result - never
-  /// hardcoded. Coins render inside the SVG coin; the other outcomes keep
-  /// their existing result wording.
+  /// hardcoded. Only used for the coins outcome.
   Widget _buildEarnedValue() {
     final reward = widget.reward;
-    if (reward.type == SpinRewardType.coins) {
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          SvgPicture.asset(
-            FileConstants.spinCoinSvg,
-            width: 96.r,
-            height: 96.r,
-            fit: BoxFit.contain,
-            // If the SVG ever fails to load (e.g. a stale asset bundle),
-            // fall back to a gold coin disc instead of rendering nothing.
-            errorBuilder: (context, error, stackTrace) => Container(
-              width: 96.r,
-              height: 96.r,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFCC33),
-                shape: BoxShape.circle,
-              ),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SvgPicture.asset(
+          FileConstants.spinCoinSvg,
+          width: 104.r,
+          height: 104.r,
+          fit: BoxFit.contain,
+          // Fallback gold disc if the SVG fails to load.
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: 104.r,
+            height: 104.r,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFCC33),
+              shape: BoxShape.circle,
             ),
           ),
-          Text(
-            '${reward.coins ?? 0}',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.w900,
-              height: 1.0,
-              color: const Color(0xFF8A4A12),
-            ),
-          ),
-        ],
-      );
-    }
-    final message = switch (reward.type) {
-      SpinRewardType.extraSpin => 'Extra Spin!',
-      SpinRewardType.jackpot => 'Jackpot Spin!',
-      _ => 'Better Luck Next Time!',
-    };
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 18.sp,
-          fontWeight: FontWeight.w800,
-          height: 1.2,
-          color: Colors.white,
         ),
-      ),
+        Text(
+          '${reward.coins ?? 0}',
+          // Fake-bold: same-colour zero-blur shadows thicken the glyph edges
+          // without changing the font size.
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 28.sp,
+            fontWeight: FontWeight.w900,
+            height: 1.0,
+            color: const Color(0xFF8A4A12),
+          ).copyWith(
+            shadows: [
+              for (final d in const <Offset>[
+                Offset(0.8, 0),
+                Offset(-0.8, 0),
+                Offset(0, 0.8),
+                Offset(0, -0.8),
+                Offset(0.6, 0.6),
+                Offset(-0.6, 0.6),
+                Offset(0.6, -0.6),
+                Offset(-0.6, -0.6),
+              ])
+                Shadow(
+                  color: const Color(0xFF8A4A12),
+                  blurRadius: 0,
+                  offset: d,
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  /// Primary button label varies with the outcome:
-  /// coins -> Claim Now, extra spin -> Spin Again, jackpot -> Spin Now,
-  /// better luck -> Try Again.
+  /// Primary button label varies with the outcome.
   String get _primaryLabel {
     return switch (widget.reward.type) {
       SpinRewardType.coins => 'Claim Now',
@@ -401,17 +350,17 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
         onPressed: _isSubmitting
             ? null
             : () async {
-                setState(() => _isSubmitting = true);
-                try {
-                  // Existing claim/refresh callback - unchanged behaviour:
-                  // run it, then close the popup back to the spin screen.
-                  await widget.onPrimaryTap();
-                  if (!context.mounted) return;
-                  _close();
-                } finally {
-                  if (mounted) setState(() => _isSubmitting = false);
-                }
-              },
+          setState(() => _isSubmitting = true);
+          try {
+            // Existing claim/refresh callback - unchanged behaviour:
+            // run it, then close the popup back to the spin screen.
+            await widget.onPrimaryTap();
+            if (!context.mounted) return;
+            _close();
+          } finally {
+            if (mounted) setState(() => _isSubmitting = false);
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFDD5428),
           foregroundColor: Colors.white,

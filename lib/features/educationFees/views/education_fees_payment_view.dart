@@ -112,7 +112,7 @@ class EducationFeesPaymentView extends HookConsumerWidget {
                 processingNavigationStarted.value = true;
                 openEducationPaymentProcessing({
                   'transactionRefId': order.transactionRefId,
-                  'paymentType': 'Education Fees',
+                  'paymentType': state.feeType ?? 'Education Fees',
                   'recipientName': state.recipientName,
                   'maskedAccount': _maskAccount(state.accountNumber),
                   'fallbackAmount': payable.toStringAsFixed(2),
@@ -124,7 +124,7 @@ class EducationFeesPaymentView extends HookConsumerWidget {
                 processingNavigationStarted.value = true;
                 openEducationPaymentProcessing({
                   'transactionRefId': order.transactionRefId,
-                  'paymentType': 'Education Fees',
+                  'paymentType': state.feeType ?? 'Education Fees',
                   'recipientName': state.recipientName,
                   'maskedAccount': _maskAccount(state.accountNumber),
                   'fallbackAmount': payable.toStringAsFixed(2),

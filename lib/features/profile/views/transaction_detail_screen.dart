@@ -283,8 +283,8 @@ class TransactionDetailScreen extends StatelessWidget {
                 left: 12.w,
                 top: MediaQuery.paddingOf(context).top + 8.h,
                 child: IconButton(
-                  onPressed: effectiveOnBack ??
-                      () => Navigator.of(context).maybePop(),
+                  onPressed:
+                      effectiveOnBack ?? () => Navigator.of(context).maybePop(),
                   icon: const Icon(
                     Icons.arrow_back,
                     color: Colors.white,
@@ -580,9 +580,8 @@ List<TransactionCustomerParam> _resolveHeaderParams(
                 ? cardRaw.substring(cardRaw.length - 4)
                 : cardRaw.trim()));
 
-    final maskedCardNumber = last4.isNotEmpty
-        ? '**** **** **** $last4'
-        : '**** **** **** ****';
+    final maskedCardNumber =
+        last4.isNotEmpty ? '**** **** **** $last4' : '**** **** **** ****';
 
     return [
       TransactionCustomerParam(
@@ -727,7 +726,8 @@ List<TransactionCustomerParam> _resolveHeaderParams(
     } else {
       secondaryLabel = 'Fee Type';
       // Use actual payment_type from API — do NOT hardcode 'Tuition Fee'
-      secondaryValue = tx.paymentType.trim().isNotEmpty ? tx.paymentType.trim() : '';
+      secondaryValue =
+          tx.paymentType.trim().isNotEmpty ? tx.paymentType.trim() : '';
     }
 
     final result = <TransactionCustomerParam>[];
@@ -797,13 +797,12 @@ List<TransactionCustomerParam> _resolveHeaderParams(
           tx.serviceNoFull!.trim().toLowerCase() != 'null');
   if (isElectricity) {
     final full = tx.serviceNoFull?.trim();
-    final consumerNo = (full != null &&
-            full.isNotEmpty &&
-            full.toLowerCase() != 'null')
-        ? full
-        : (tx.serviceNo?.trim().isNotEmpty == true
-            ? tx.serviceNo!.trim()
-            : tx.primaryConsumerNumber);
+    final consumerNo =
+        (full != null && full.isNotEmpty && full.toLowerCase() != 'null')
+            ? full
+            : (tx.serviceNo?.trim().isNotEmpty == true
+                ? tx.serviceNo!.trim()
+                : tx.primaryConsumerNumber);
     final operatorName = billerName.isNotEmpty ? billerName : 'Electricity';
 
     return [
@@ -826,7 +825,8 @@ List<TransactionCustomerParam> _resolveHeaderParams(
   final isRecharge = paymentType.contains('recharge') ||
       paymentType.contains('prepaid') ||
       paymentType.contains('postpaid') ||
-      tx.customerParams.any((p) => p.label.trim().toLowerCase() == 'customer_mobile');
+      tx.customerParams
+          .any((p) => p.label.trim().toLowerCase() == 'customer_mobile');
   if (isRecharge) {
     // Resolve operator name from biller_name (API key: biller_name)
     final operatorName = billerName.isNotEmpty ? billerName : '';
@@ -840,7 +840,9 @@ List<TransactionCustomerParam> _resolveHeaderParams(
     if (mobileValue.isEmpty) {
       for (final param in tx.customerParams) {
         final l = param.label.trim().toLowerCase();
-        if (l.contains('mobile') || l.contains('phone') || l.contains('number')) {
+        if (l.contains('mobile') ||
+            l.contains('phone') ||
+            l.contains('number')) {
           mobileValue = param.value.trim();
           break;
         }
@@ -872,8 +874,9 @@ List<TransactionCustomerParam> _resolveHeaderParams(
   if (isEducation) {
     // Resolve recipient name from customer_params where label == "Recipient Name"
     String recipientName = '';
-    final TransactionCustomerParam fallbackParam = TransactionCustomerParam(label: '', value: '');
-    final TransactionCustomerParam recipientParam = tx.customerParams.firstWhere(
+    const fallbackParam = TransactionCustomerParam(label: '', value: '');
+    final TransactionCustomerParam recipientParam =
+        tx.customerParams.firstWhere(
       (p) => p.label.trim().toLowerCase() == 'recipient name',
       orElse: () => fallbackParam,
     );
@@ -896,6 +899,49 @@ List<TransactionCustomerParam> _resolveHeaderParams(
       TransactionCustomerParam(
         label: 'Fee Type',
         value: feeTypeDisplay.isNotEmpty ? feeTypeDisplay : '-',
+      ),
+    ];
+  }
+
+  // Rent transaction flow:
+  // LEFT  -> "Recipient Name" = recipient name (customer_params "Recipient
+  //           Name", else biller_name, else masked_identifier — all API-sourced)
+  // RIGHT -> "Fee Type"       = fee_type (API key: fee_type)
+  // The value comes straight from the API `fee_type`; nothing is hardcoded. It
+  // falls back to `payment_type` only when `fee_type` is absent, so a missing
+  // fee_type never fabricates a fake value.
+  final isRent = feeTypeLower.contains('rent') ||
+      paymentType.contains('rent');
+  if (isRent) {
+    String recipientName = '';
+    const rentFallback = TransactionCustomerParam(label: '', value: '');
+    final TransactionCustomerParam rentRecipientParam =
+        tx.customerParams.firstWhere(
+      (p) => p.label.trim().toLowerCase() == 'recipient name',
+      orElse: () => rentFallback,
+    );
+    if (rentRecipientParam.value.trim().isNotEmpty) {
+      recipientName = rentRecipientParam.value.trim();
+    }
+    if (recipientName.isEmpty && billerName.isNotEmpty) {
+      recipientName = billerName;
+    }
+    if (recipientName.isEmpty && maskedIdentifier.isNotEmpty) {
+      recipientName = maskedIdentifier;
+    }
+
+    final rawFeeType = (tx.feeType ?? '').trim();
+    final rentFeeTypeDisplay =
+        rawFeeType.isNotEmpty ? rawFeeType : tx.paymentType.trim();
+
+    return [
+      TransactionCustomerParam(
+        label: 'Recipient Name',
+        value: recipientName.isNotEmpty ? recipientName : '-',
+      ),
+      TransactionCustomerParam(
+        label: 'Fee Type',
+        value: rentFeeTypeDisplay.isNotEmpty ? rentFeeTypeDisplay : '-',
       ),
     ];
   }
@@ -1248,7 +1294,8 @@ class _ResultActionButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16.r),
-      child: SizedBox(width: 96.w,
+      child: SizedBox(
+        width: 96.w,
         child: Column(
           children: [
             Container(
@@ -1342,7 +1389,8 @@ _StatusMeta _statusMeta(
   String status, {
   required String refundAmount,
 }) {
-  final value = status.trim().toUpperCase().replaceAll('-', '_').replaceAll(' ', '_');
+  final value =
+      status.trim().toUpperCase().replaceAll('-', '_').replaceAll(' ', '_');
 
   if (value.contains('SUCCESS')) {
     return _StatusMeta(
@@ -1375,7 +1423,9 @@ _StatusMeta _statusMeta(
   }
 
   if (value.contains('REFUND') &&
-      (value.contains('PENDING') || value == 'REFUND' || value.contains('INITIAT'))) {
+      (value.contains('PENDING') ||
+          value == 'REFUND' ||
+          value.contains('INITIAT'))) {
     return _StatusMeta(
       title: 'Transaction Failed',
       iconAsset: FileConstants.failedIcon,

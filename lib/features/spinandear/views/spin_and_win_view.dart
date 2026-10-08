@@ -243,9 +243,17 @@ class SpinAndWinView extends HookConsumerWidget {
         backgroundColor: Colors.transparent,
         body: LayoutBuilder(
           builder: (context, constraints) {
+            // Figma: the wheel is 320px inside a 440px-wide frame (~0.727 of
+            // the viewport). Derive it from the available width so the same
+            // proportion is preserved on every device. Clamp by height for
+            // short screens and cap so it never grows past the ~320 reference
+            // on large/tablet widths. This is a pure structural width ratio
+            // (MediaQuery/LayoutBuilder) — deliberately NOT `320.w`, because
+            // the 360 design width makes `.w` scale UP past Figma on >=412
+            // devices.
             final wheelSize = math.min(
-              constraints.maxWidth * 0.9,
-              math.min(constraints.maxHeight * 0.44, 330.0),
+              constraints.maxWidth * 0.72,
+              math.min(constraints.maxHeight * 0.42, 340.0),
             );
             return Stack(
               children: [
@@ -348,7 +356,7 @@ class SpinAndWinView extends HookConsumerWidget {
                             ),
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 16.h),
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: 20.w,
@@ -400,7 +408,7 @@ class SpinAndWinView extends HookConsumerWidget {
                             ],
                           ),
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 6.h),
                         Expanded(
                           child: Align(
                             alignment: const Alignment(0, -0.15),
@@ -528,7 +536,7 @@ class SpinAndWinView extends HookConsumerWidget {
                           ),
                         ),
                         // Bigger bottom gap lifts the button + text upward.
-                        SizedBox(height: 34.h),
+                        SizedBox(height: 50.h),
                       ],
                     ),
                   ),

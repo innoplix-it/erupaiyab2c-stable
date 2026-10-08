@@ -261,16 +261,25 @@ class TransactionHistoryEntry {
         existingBreakdown: amountBreakdown,
         fallbackBillAmount: amount,
         fallbackTotal: _stringOrEmpty(
-          json['payable_amount'] ??
-              json['total_payable'] ??
-              totalAmountCharged,
+          json['payable_amount'] ?? json['total_payable'] ?? totalAmountCharged,
         ),
         billAmountLabel: billAmountLabel,
       ),
       routes: routes,
-      feeType: _stringOrEmpty(json['fee_type']).isEmpty
-          ? null
-          : _stringOrEmpty(json['fee_type']),
+      // fee_type may arrive at the top level OR nested under the order `data`
+      // map (the same map `createOrder` writes `data['fee_type']` into, and the
+      // one service_no/serviceNoFull already read from). Check both so a rent
+      // row's fee type is not silently dropped. Still returns null when the API
+      // truly omits it — never fabricates a value.
+      feeType: () {
+        final data = json['data'] is Map ? json['data'] as Map : null;
+        final raw = json['fee_type'] ??
+            json['feeType'] ??
+            data?['fee_type'] ??
+            data?['feeType'];
+        final val = _stringOrEmpty(raw);
+        return val.isEmpty || val.toLowerCase() == 'null' ? null : val;
+      }(),
       serviceNo: () {
         final data = json['data'] is Map ? json['data'] as Map : null;
         final raw = json['service_no'] ??
@@ -433,8 +442,11 @@ Map<String, dynamic> composeTransactionAmountBreakdown({
 
   final serviceCharge = _readMappedValue(
     flattened,
-    ['Service Charge', ''
-        ''],
+    [
+      'Service Charge',
+      ''
+          ''
+    ],
   );
   final gstOnServiceCharge = _readMappedValue(
     flattened,

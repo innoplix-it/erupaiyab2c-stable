@@ -700,6 +700,11 @@ TransactionHistoryEntry _buildTransactionEntry({
   return TransactionHistoryEntry(
     paymentStatus: result.paymentStatus.trim().toUpperCase(),
     paymentType: resolvedPaymentType,
+    // The caller passes the order's fee type here (education/rent flow sends
+    // state.feeType, e.g. "House Rent"). Populate feeType so the immediate
+    // status detail resolves the same LEFT Recipient Name / RIGHT Fee Type as
+    // the persisted history row, instead of falling back to a generic param.
+    feeType: paymentType.trim().isNotEmpty ? paymentType.trim() : null,
     billerName:
         recipientName.trim().isEmpty ? resolvedPaymentType : recipientName,
     maskedIdentifier:

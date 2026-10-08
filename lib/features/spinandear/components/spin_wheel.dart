@@ -159,16 +159,16 @@ class SpinWheel extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Figma centre: navy (#292C4F) disc, white inner circle,
-                  // gold rupee mark.
+                  // Figma centre: reward-segment (#DD5428) disc, white inner
+                  // circle, rupee mark (kept white / unchanged).
                   Container(
                     width: inner * 0.30,
                     height: inner * 0.30,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF292C4F),
+                      color: kSpinRewardSegmentColor,
                       border: Border.all(
-                        color: const Color(0xFF292C4F),
+                        color: kSpinRewardSegmentColor,
                         width: 2.r,
                       ),
                     ),

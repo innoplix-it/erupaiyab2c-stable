@@ -57,6 +57,14 @@ class _EducationPaymentThankYouViewState
     final title = _thankYouTitle(widget.paymentType);
     final sx = 1.sw / 441.0;
     double x(double value) => value * sx;
+    // Local fallback shown in the ad slot when the API returns no banner image
+    // or the remote image fails to load.
+    final fallbackBanner = Image.asset(
+      FileConstants.thankYouScreenBanner,
+      width: x(392),
+      height: x(450),
+      fit: BoxFit.cover,
+    );
     final headerTop = MediaQuery.paddingOf(context).top + 40.h;
     final dateStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.white.withOpacity(0.9),
@@ -184,13 +192,16 @@ class _EducationPaymentThankYouViewState
                       child: SizedBox(
                         width: x(392),
                         height: x(450),
-                        child: AppNetworkImage(
-                          url: imageUrl,
-                          width: x(392),
-                          height: x(450),
-                          fit: BoxFit.cover,
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
+                        child: imageUrl.isEmpty
+                            ? fallbackBanner
+                            : AppNetworkImage(
+                                url: imageUrl,
+                                width: x(392),
+                                height: x(450),
+                                fit: BoxFit.cover,
+                                borderRadius: BorderRadius.circular(12.r),
+                                errorWidget: fallbackBanner,
+                              ),
                       ),
                     ),
                     Positioned(

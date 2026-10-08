@@ -1,9 +1,9 @@
 class AppEnv {
   AppEnv._();
 
-  static const bool isProduction = true;
+  static const bool isProduction = false;
 
-  /// Master switch for the Developer Options app lock.
+
   ///
   /// true  -> the app checks Android Developer Options at startup/resume
   ///          and blocks all normal app access while they are enabled.

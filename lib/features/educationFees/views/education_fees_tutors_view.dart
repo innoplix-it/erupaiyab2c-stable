@@ -93,7 +93,7 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                 processingNavigationStarted.value = true;
                 openEducationPaymentProcessing({
                   'transactionRefId': order.transactionRefId,
-                  'paymentType': 'Education Fees',
+                  'paymentType': feeType ?? 'Education Fees',
                   'recipientName': tutor.name,
                   'maskedAccount': tutor.accountMasked,
                   'fallbackAmount': payable.toStringAsFixed(2),
@@ -105,7 +105,7 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                 processingNavigationStarted.value = true;
                 openEducationPaymentProcessing({
                   'transactionRefId': order.transactionRefId,
-                  'paymentType': 'Education Fees',
+                  'paymentType': feeType ?? 'Education Fees',
                   'recipientName': tutor.name,
                   'maskedAccount': tutor.accountMasked,
                   'fallbackAmount': payable.toStringAsFixed(2),
@@ -173,7 +173,8 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                             ),
-                            SizedBox(height: 30.h,
+                            SizedBox(
+                              height: 30.h,
                               child: ElevatedButton(
                                 onPressed: () {
                                   expandedIndex.value =
