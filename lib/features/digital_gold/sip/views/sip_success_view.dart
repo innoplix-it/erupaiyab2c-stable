@@ -8,9 +8,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../constants/app_colors.dart';
 import '../../../../constants/routes_constant.dart';
 import '../../../../widgets/custom_elevated_button.dart';
+import '../../../../widgets/payment_success_flow.dart';
 import '../../models/digital_gold_purchase_receipt.dart';
 
-class DigitalGoldSipSuccessView extends ConsumerWidget {
+class DigitalGoldSipSuccessView extends ConsumerStatefulWidget {
   const DigitalGoldSipSuccessView({
     super.key,
     this.receipt,
@@ -19,8 +20,21 @@ class DigitalGoldSipSuccessView extends ConsumerWidget {
   final DigitalGoldPurchaseReceipt? receipt;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final r = receipt;
+  ConsumerState<DigitalGoldSipSuccessView> createState() =>
+      _DigitalGoldSipSuccessViewState();
+}
+
+class _DigitalGoldSipSuccessViewState
+    extends ConsumerState<DigitalGoldSipSuccessView> {
+  @override
+  void initState() {
+    super.initState();
+    PaymentSoundController.play();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.receipt;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

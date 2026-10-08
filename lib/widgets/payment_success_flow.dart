@@ -43,6 +43,7 @@ class PaymentThankYouScreen extends StatefulWidget {
     this.autoNavigateAfter = const Duration(milliseconds: 1500),
     this.onAutoNavigate,
     this.playSound = true,
+    this.paymentName,
   });
 
   final String title;
@@ -54,6 +55,7 @@ class PaymentThankYouScreen extends StatefulWidget {
   final Duration autoNavigateAfter;
   final FutureOr<void> Function(BuildContext context)? onAutoNavigate;
   final bool playSound;
+  final String? paymentName;
 
   @override
   State<PaymentThankYouScreen> createState() => _PaymentThankYouScreenState();
@@ -128,7 +130,9 @@ class _PaymentThankYouScreenState extends State<PaymentThankYouScreen>
                 ),
                 SizedBox(height: 24.h),
                 Text(
-                  widget.title,
+                  widget.paymentName != null && widget.paymentName!.trim().isNotEmpty
+                      ? 'Thank you for ${widget.paymentName!.trim()} Payment'
+                      : widget.title,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: AppColors.textPrimary,

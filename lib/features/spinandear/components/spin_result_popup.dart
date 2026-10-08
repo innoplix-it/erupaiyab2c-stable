@@ -211,22 +211,28 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
     );
   }
 
-  /// Main title with a blinking `star.json` sparkle on the left AND right.
-  /// Shared by the coin popup ("Congratulations") and every non-coin outcome.
+  /// Main title with a blinking `star.json` sparkle hugging the text on the
+  /// left AND right. The Row sits inside a FittedBox, so the text never wraps
+  /// to a 2nd line (e.g. "Better Luck Next Time!"); if it's too wide, the
+  /// whole star + text + star group scales down together and the stars stay
+  /// right beside the text.
   Widget _buildStarTitle(String text) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8.w),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _BlinkingStar(size: 24.r),
-          Flexible(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _BlinkingStar(size: 24.r),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6.w),
               child: Text(
                 text,
+                maxLines: 1,
+                softWrap: false,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20.sp,
@@ -236,9 +242,9 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
                 ),
               ),
             ),
-          ),
-          _BlinkingStar(size: 24.r),
-        ],
+            _BlinkingStar(size: 24.r),
+          ],
+        ),
       ),
     );
   }

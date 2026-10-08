@@ -28,23 +28,22 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class CreditCardListingView extends HookConsumerWidget {
   const CreditCardListingView({super.key});
 
-  static const String _categoryName = 'Credit Card';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listingState = ref.watch(billerListingControllerProvider);
     final searchController = useTextEditingController();
     useListenable(searchController);
     final profileState = ref.watch(profileControllerProvider);
+    final categoryName = 'Credit Card';
     final recentTransactions = ref.watch(
-      serviceLatestTransactionsProvider(_categoryName),
+      serviceLatestTransactionsProvider(categoryName),
     );
 
     useEffect(() {
       Future.microtask(() {
         ref
             .read(billerListingControllerProvider.notifier)
-            .fetchBillers(categoryName: _categoryName, searchQuery: '');
+            .fetchBillers(categoryName: categoryName, searchQuery: '');
         searchController.clear();
       });
       return null;
@@ -84,14 +83,18 @@ class CreditCardListingView extends HookConsumerWidget {
       final biller = match.first;
       ref.read(billerDetailControllerProvider.notifier).selectBiller(
             biller,
-            categoryName: 'Credit card',
+            categoryName: biller.billerName.trim().isNotEmpty
+                ? biller.billerName.trim()
+                : categoryName,
           );
       context.push(
         RouteConstants.billerDetail,
         extra: BillerDetailArgs(
           biller: biller,
           isCreditCard: true,
-          paymentType: 'Credit card',
+          paymentType: biller.billerName.trim().isNotEmpty
+              ? biller.billerName.trim()
+              : categoryName,
           mobileNumber: mobile.isNotEmpty ? mobile : null,
           cardLast4: last4.length == 4 ? last4 : null,
           autoFetchBill: canAutoFetch,
@@ -137,7 +140,7 @@ class CreditCardListingView extends HookConsumerWidget {
                               onPressed: () => ref
                                   .read(
                                       billerListingControllerProvider.notifier)
-                                  .fetchBillers(categoryName: _categoryName),
+                                  .fetchBillers(categoryName: categoryName),
                               child: const Text('Retry'),
                             ),
                           ]
@@ -169,14 +172,18 @@ class CreditCardListingView extends HookConsumerWidget {
                                         )
                                         .selectBiller(
                                           biller,
-                                          categoryName: 'Credit card',
+                                          categoryName: biller.billerName.trim().isNotEmpty
+                                              ? biller.billerName.trim()
+                                              : categoryName,
                                         );
                                     context.push(
                                       RouteConstants.billerDetail,
                                       extra: BillerDetailArgs(
                                         biller: biller,
                                         isCreditCard: true,
-                                        paymentType: 'Credit card',
+                                        paymentType: biller.billerName.trim().isNotEmpty
+                                            ? biller.billerName.trim()
+                                            : categoryName,
                                       ),
                                     );
                                   },
@@ -238,7 +245,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                                             .selectBiller(
                                                               biller,
                                                               categoryName:
-                                                                  'Credit card',
+                                                                  biller.billerName.trim().isNotEmpty
+                                                                      ? biller.billerName.trim()
+                                                                      : categoryName,
                                                             );
                                                         context.push(
                                                           RouteConstants
@@ -248,7 +257,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                                             biller: biller,
                                                             isCreditCard: true,
                                                             paymentType:
-                                                                'Credit card',
+                                                                biller.billerName.trim().isNotEmpty
+                                                                    ? biller.billerName.trim()
+                                                                    : categoryName,
                                                           ),
                                                         );
                                                       },
@@ -285,7 +296,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                                         .selectBiller(
                                                           biller,
                                                           categoryName:
-                                                              'Credit card',
+                                                              biller.billerName.trim().isNotEmpty
+                                                                  ? biller.billerName.trim()
+                                                                  : categoryName,
                                                         );
                                                     context.push(
                                                       RouteConstants
@@ -294,7 +307,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                                         biller: biller,
                                                         isCreditCard: true,
                                                         paymentType:
-                                                            'Credit card',
+                                                            biller.billerName.trim().isNotEmpty
+                                                                ? biller.billerName.trim()
+                                                                : categoryName,
                                                       ),
                                                     );
                                                   },

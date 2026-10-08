@@ -683,6 +683,21 @@ class _TransactionTile extends StatelessWidget {
                       ),
                     ),
                   ],
+                  // Show fee_type above date/time for House Rent and Shop Rent
+                  if (_shouldShowFeeType(item)) ...[
+                    SizedBox(height: _figmaW(6)),
+                    Text(
+                      _getFeeTypeDisplay(item),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 9.sp,
+                        fontWeight: FontWeight.w600,
+                        height: 1.1,
+                        color: const Color(0xFF7C7C7C),
+                      ),
+                    ),
+                  ],
                   SizedBox(height: _figmaW(6)),
                   Text(
                     _formatTxnTime(item.transactionTime),
@@ -1088,6 +1103,22 @@ String _formatFeeType(String feeType) {
     default:
       return feeType;
   }
+}
+
+bool _shouldShowFeeType(TransactionHistoryEntry item) {
+  final feeType = item.feeType?.trim().toLowerCase();
+  final paymentType = item.paymentType.trim().toLowerCase();
+  // Only show fee_type for House Rent and Shop Rent
+  return (feeType?.contains('rent') == true) ||
+      (paymentType.contains('rent') && feeType != null && feeType.isNotEmpty);
+}
+
+String _getFeeTypeDisplay(TransactionHistoryEntry item) {
+  final feeType = item.feeType?.trim();
+  if (feeType != null && feeType.isNotEmpty) {
+    return _formatFeeType(feeType);
+  }
+  return '';
 }
 
 class _FilterFab extends StatelessWidget {

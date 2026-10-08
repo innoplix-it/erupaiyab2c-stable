@@ -21,6 +21,7 @@ import '../../../config/app_env.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
+import '../../../constants/routes_constant.dart';
 import '../../../services/permission_service.dart';
 import '../../../utils/date_format_helper.dart';
 import '../../../widgets/app_snackbar.dart';
@@ -1159,7 +1160,9 @@ class BillerDetailView extends HookConsumerWidget {
                                                     .trim()
                                                     .isNotEmpty
                                                 ? biller.billerName.trim()
-                                                : 'Subscription';
+                                                : detail.billerCategoryName.trim().isNotEmpty
+                                                    ? detail.billerCategoryName.trim()
+                                                    : 'Payment';
                                             if (!await RazorpayGuard
                                                 .ensureProfileReadyAndNotPaused(
                                               ref,
@@ -1171,7 +1174,9 @@ class BillerDetailView extends HookConsumerWidget {
                                                         .trim()
                                                         .isNotEmpty
                                                     ? args!.paymentType!.trim()
-                                                    : 'Subscription';
+                                                    : detail.billerCategoryName.trim().isNotEmpty
+                                                        ? detail.billerCategoryName.trim()
+                                                        : 'Payment';
                                             final order = await controller
                                                 .createPayAllServicesOrder(
                                               amount: amountToPay,
@@ -1236,16 +1241,60 @@ class BillerDetailView extends HookConsumerWidget {
                                                     args?.mobileNumber,
                                               );
 
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      TransactionDetailScreen(
-                                                    entry: entry,
-                                                    doneLabel: 'Continue',
-                                                    navigateHomeOnExit: true,
+                                              final isSuccess = normalized == 'SUCCESS';
+                                              if (isSuccess) {
+                                                final amountText =
+                                                    '\u20B9${amountToPay.toStringAsFixed(amountToPay.truncateToDouble() == amountToPay ? 0 : 2)}';
+                                                final paymentName = (args?.paymentType?.trim().isNotEmpty == true
+                                                        ? args!.paymentType!.trim()
+                                                        : detail.billerCategoryName.trim())
+                                                    .trim();
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        PaymentThankYouScreen(
+                                                      title: 'Thank You',
+                                                      subtitle:
+                                                          'for your $amountText payment',
+                                                      highlightedSubtitleText:
+                                                          amountText,
+                                                      playSound: true,
+                                                      autoNavigateAfter:
+                                                          const Duration(
+                                                              seconds: 2),
+                                                      paymentName: paymentName.isNotEmpty ? paymentName : null,
+                                                      onAutoNavigate:
+                                                          (screenContext) {
+                                                            Navigator.of(
+                                                                screenContext)
+                                                                .pushReplacement(
+                                                              MaterialPageRoute(
+                                                                builder: (_) =>
+                                                                    TransactionDetailScreen(
+                                                                  entry: entry,
+                                                                  doneLabel:
+                                                                      'View Transaction History',
+                                                                  onBack: () => screenContext.go(RouteConstants.home),
+                                                                  onDone: () => screenContext.go(RouteConstants.transactions),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                    ),
                                                   ),
-                                                ),
-                                              );
+                                                );
+                                              } else {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        TransactionDetailScreen(
+                                                      entry: entry,
+                                                      doneLabel: 'Continue',
+                                                      navigateHomeOnExit: true,
+                                                    ),
+                                                  ),
+                                                );
+                                              }
                                             }
 
                                             await RazorpayService.instance

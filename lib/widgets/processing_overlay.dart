@@ -14,6 +14,7 @@ import '../constants/routes_constant.dart';
 import '../features/educationFees/controllers/education_fees_controller.dart';
 import '../features/educationFees/models/education_fees_responses.dart';
 import '../features/profile/models/transaction_history_entry.dart';
+import '../features/profile/views/transaction_detail_screen.dart';
 import '../services/logger_service.dart';
 import 'k_dialog.dart';
 import 'payment_processing_loader.dart';
@@ -501,16 +502,41 @@ class PaymentProcessingOverlay extends HookConsumerWidget {
           logger.info(
             'Payment SUCCESS for ${transactionRefId.trim()}',
           );
+          final entry = _buildTransactionEntry(
+            result: result,
+            transactionRefId: transactionRefId.trim(),
+            paymentType: paymentType,
+            recipientName: recipientName,
+            maskedAccount: maskedAccount,
+            fallbackAmount: fallbackAmount,
+            paymentId: paymentId,
+          );
           context.go(
-            RouteConstants.educationPaymentThankYou,
+            RouteConstants.paymentThankYou,
             extra: <String, dynamic>{
-              'amount': result.amount,
-              'payableAmount': result.payableAmount,
-              'transactionTime': result.updatedAt,
-              'bannerImage': result.bannerImage,
-              'paymentType': result.paymentType.trim().isNotEmpty
-                  ? result.paymentType
-                  : paymentType,
+              'title': 'Thank You',
+              'subtitle': 'for your ${_formatAmount(result.amount.isNotEmpty ? result.amount : fallbackAmount)} payment',
+              'highlightedSubtitleText': _formatAmount(result.amount.isNotEmpty ? result.amount : fallbackAmount),
+              'paymentName': result.paymentType.trim().isNotEmpty
+                  ? result.paymentType.trim()
+                  : paymentType.trim().isNotEmpty
+                      ? paymentType.trim()
+                      : null,
+              'entry': entry,
+              'playSound': true,
+              'autoNavigateAfter': const Duration(seconds: 2),
+              'onAutoNavigate': (screenContext) {
+                Navigator.of(screenContext).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => TransactionDetailScreen(
+                      entry: entry,
+                      doneLabel: 'View Transaction History',
+                      onBack: () => screenContext.go(RouteConstants.home),
+                      onDone: () => screenContext.go(RouteConstants.transactions),
+                    ),
+                  ),
+                );
+              },
             },
           );
         });

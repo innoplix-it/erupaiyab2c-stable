@@ -115,14 +115,14 @@ class CreditCardMyCardsView extends HookConsumerWidget {
                                               .notifier)
                                           .selectBiller(
                                             biller,
-                                            categoryName: 'Credit card',
+                                            categoryName: billerName,
                                           );
                                       await context.push(
                                         RouteConstants.billerDetail,
                                         extra: BillerDetailArgs(
                                           biller: biller,
                                           isCreditCard: true,
-                                          paymentType: 'Credit card',
+                                          paymentType: billerName,
                                           mobileNumber: item.registerMobNo,
                                           cardLast4: item.last4Digit,
                                         ),
@@ -145,14 +145,14 @@ class CreditCardMyCardsView extends HookConsumerWidget {
                                               .notifier)
                                           .selectBiller(
                                             biller,
-                                            categoryName: 'Credit card',
+                                            categoryName: billerName,
                                           );
                                       await context.push(
                                         RouteConstants.billerDetail,
                                         extra: BillerDetailArgs(
                                           biller: biller,
                                           isCreditCard: true,
-                                          paymentType: 'Credit card',
+                                          paymentType: billerName,
                                           mobileNumber: item.registerMobNo,
                                           cardLast4: item.last4Digit,
                                         ),

@@ -280,11 +280,11 @@ class _EducationPaymentThankYouViewState
 
 String _thankYouTitle(String paymentType) {
   final raw = paymentType.trim();
-  if (raw.isEmpty) return 'Thank You for\nEducation Payment';
+  if (raw.isEmpty) return 'Thank You';
   final lower = raw.toLowerCase();
   if (lower.contains('thank you')) return raw;
-  if (lower.endsWith(' payment')) return 'Thank You for\n$raw';
-  return 'Thank You for\n$raw Payment';
+  if (lower.endsWith(' payment')) return 'Thank you for\n$raw';
+  return 'Thank you for\n$raw Payment';
 }
 
 String _displayApiAmount(String raw) {

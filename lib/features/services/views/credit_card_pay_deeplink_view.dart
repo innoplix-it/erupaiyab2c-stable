@@ -113,14 +113,14 @@ class _CreditCardPayDeeplinkViewState
 
     ref.read(billerDetailControllerProvider.notifier).selectBiller(
           biller,
-          categoryName: 'Credit card',
+          categoryName: resolvedBillerName,
         );
     context.pushReplacement(
       RouteConstants.billerDetail,
       extra: BillerDetailArgs(
         biller: biller,
         isCreditCard: true,
-        paymentType: 'Credit card',
+        paymentType: resolvedBillerName,
         mobileNumber: match.registerMobNo ?? widget.customerMobile,
         cardLast4: (match.last4Digit ?? '').trim().isNotEmpty
             ? match.last4Digit

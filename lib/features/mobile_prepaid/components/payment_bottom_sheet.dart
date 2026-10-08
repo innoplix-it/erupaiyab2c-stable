@@ -42,6 +42,7 @@ void _openPaymentResultFlow(
   PrepaidTransactionStatus? prepaidStatus,
   RechargeStatusResult? rechargeStatus,
   String? paymentTypeOverride,
+  bool isMobileRecharge = false,
 }) {
   final fallbackStatus = switch (outcome) {
     _PaymentOutcome.success => 'SUCCESS',
@@ -96,23 +97,28 @@ void _openPaymentResultFlow(
   if (outcome == _PaymentOutcome.success) {
     final amountText =
         '\u20B9${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}';
+    final subtitleText = isMobileRecharge
+        ? 'for your $amountText payment for mobile recharge'
+        : 'for your $amountText payment';
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PaymentThankYouScreen(
           title: 'Thank You',
-          subtitle: 'for your $amountText payment for mobile recharge',
+          subtitle: subtitleText,
           highlightedSubtitleText: amountText,
           playSound: true,
           autoNavigateAfter: const Duration(seconds: 2),
+          paymentName: paymentTypeOverride?.trim().isNotEmpty == true
+              ? paymentTypeOverride!.trim()
+              : null,
           onAutoNavigate: (screenContext) {
             Navigator.of(screenContext).pushReplacement(
               MaterialPageRoute(
                 builder: (_) => TransactionDetailScreen(
                   entry: entry,
-                  doneLabel: isFailure ? 'Retry Payment' : 'Continue to Home',
-                  onDone: isFailure ? () => onContinue(screenContext) : null,
-                  onBack: isFailure ? () => goHome(screenContext) : null,
-                  navigateHomeOnExit: !isFailure,
+                  doneLabel: 'View Transaction History',
+                  onBack: () => screenContext.go(RouteConstants.home),
+                  onDone: () => screenContext.go(RouteConstants.transactions),
                 ),
               ),
             );
@@ -258,6 +264,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
       transactionDateTime: status?.updatedAt,
       rechargeStatus: status,
       paymentTypeOverride: _resolvePaymentType(latestState),
+      isMobileRecharge: false,
     );
 
     if (outcome == _PaymentOutcome.failure &&
@@ -591,6 +598,11 @@ class _PrepaidPaymentBottomSheetState
     required String transactionRef,
     Map<String, String>? prefill,
   }) async {
+    final state = ref.read(mobilePrepaidControllerProvider);
+    final paymentName = state.operatorInfo?.operatorName.trim().isNotEmpty == true
+        ? '${state.operatorInfo!.operatorName.trim()} Recharge'
+        : null;
+
     if (!await RazorpayGuard.ensureProfileReadyAndNotPaused(ref)) return;
     await RazorpayService.instance.openCheckout(
       amount: amount,
@@ -626,6 +638,8 @@ class _PrepaidPaymentBottomSheetState
           txId: resolvedTxId,
           transactionDateTime: latestState.rechargeDateTime,
           prepaidStatus: verified,
+          paymentTypeOverride: paymentName,
+          isMobileRecharge: true,
         );
         final message = latestState.errorMessage?.trim().toLowerCase();
         if (!wait.timedOut &&
@@ -665,6 +679,8 @@ class _PrepaidPaymentBottomSheetState
           txId: resolvedTxId,
           transactionDateTime: latestState.rechargeDateTime,
           prepaidStatus: verified,
+          paymentTypeOverride: paymentName,
+          isMobileRecharge: true,
         );
         final fallbackMessage = message.trim().isEmpty
             ? 'Payment failed. Please try again.'
@@ -705,6 +721,8 @@ class _PrepaidPaymentBottomSheetState
           txId: resolvedTxId,
           transactionDateTime: latestState.rechargeDateTime,
           prepaidStatus: verified,
+          paymentTypeOverride: paymentName,
+          isMobileRecharge: true,
         );
       },
     );
@@ -867,6 +885,7 @@ class _PrepaidPaymentBottomSheetState
                                   transactionDateTime:
                                       latestState.rechargeDateTime,
                                   prepaidStatus: verified,
+                                  isMobileRecharge: true,
                                 );
                                 if (!wait.timedOut &&
                                     latestState.errorMessage != null) {

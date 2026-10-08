@@ -930,9 +930,9 @@ List<TransactionCustomerParam> _resolveHeaderParams(
       recipientName = maskedIdentifier;
     }
 
+    // Use fee_type directly from API - dynamic value only
     final rawFeeType = (tx.feeType ?? '').trim();
-    final rentFeeTypeDisplay =
-        rawFeeType.isNotEmpty ? rawFeeType : tx.paymentType.trim();
+    final rentFeeTypeDisplay = rawFeeType.isNotEmpty ? rawFeeType : '';
 
     return [
       TransactionCustomerParam(

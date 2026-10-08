@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,6 +13,8 @@ import 'package:e_rupaiya/features/profile/models/transaction_history_page.dart'
 import 'package:e_rupaiya/features/profile/repositories/transaction_history_repository.dart';
 import 'package:e_rupaiya/features/profile/views/transaction_detail_screen.dart';
 import 'package:e_rupaiya/features/profile/views/transaction_history_screen.dart';
+import 'package:e_rupaiya/features/educationFees/services/education_fees_service.dart';
+import 'package:dio/dio.dart';
 
 /// Builds a [TransactionHistoryEntry] for a rent / education transaction.
 ///
@@ -140,6 +144,38 @@ Future<void> _pumpHistory(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// Captures the create-order request body so the test can assert the dynamic
+/// `fee_type` actually reaches the Education create-order endpoint.
+class _CapturingAdapter implements HttpClientAdapter {
+  Map<String, dynamic>? capturedBody;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    final data = options.data;
+    if (data is String) {
+      capturedBody = jsonDecode(data) as Map<String, dynamic>;
+    } else if (data is List<int>) {
+      capturedBody = jsonDecode(utf8.decode(data)) as Map<String, dynamic>;
+    } else if (data is Map) {
+      capturedBody = Map<String, dynamic>.from(data);
+    }
+    return ResponseBody.fromString(
+      '{"status":true,"message":"ok","order_id":"order_123","key":"rzp_test_1","transaction_ref_id":"EDU_REF_1"}',
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }
 
 void main() {
@@ -394,6 +430,32 @@ void main() {
         expect(content, isNot(contains("'Shop Rent'")), reason: filePath);
         expect(content, isNot(contains('"Shop Rent"')), reason: filePath);
       }
+    });
+  });
+
+  group('Create-order request — dynamic fee_type (House + Shop Rent)', () {
+    Future<Map<String, dynamic>?> captureCreateOrderBody(String feeType) async {
+      final adapter = _CapturingAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = EducationFeesService(dio: dio);
+      await service.createOrder(
+        recipientName: 'Darshan Rajendra Nikam',
+        accountNo: 'XXXXXX4455',
+        ifsc: 'HDFC0001234',
+        amount: 12000,
+        feeType: feeType,
+      );
+      return adapter.capturedBody;
+    }
+
+    test('House Rent create-order sends fee_type: "House Rent"', () async {
+      final body = await captureCreateOrderBody('House Rent');
+      expect(body?['fee_type'], 'House Rent');
+    });
+
+    test('Shop Rent create-order sends fee_type: "Shop Rent"', () async {
+      final body = await captureCreateOrderBody('Shop Rent');
+      expect(body?['fee_type'], 'Shop Rent');
     });
   });
 }
