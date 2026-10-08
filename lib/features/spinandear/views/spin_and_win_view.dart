@@ -261,7 +261,7 @@ class SpinAndWinView extends HookConsumerWidget {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {},
-                    child: const ColoredBox(color: Color(0xDB000000)),
+                    child: const ColoredBox(color: Color(0xD3000000)),
                   ),
                 ),
                 // Decorative sunburst glow over the dark scrim, behind content.
@@ -496,9 +496,10 @@ class SpinAndWinView extends HookConsumerWidget {
                           ),
                         ),
                         SizedBox(height: 2.h),
-                        SizedBox(
-                          width: math.min(constraints.maxWidth * 0.62, 220.w),
-                          height: 46.h,
+                        Center(
+                          child: SizedBox(
+                          width: math.min(constraints.maxWidth * 0.56, 200.w),
+                          height: 42.h,
                           child: ElevatedButton(
                             onPressed: (isSpinning.value) ? null : handleSpin,
                             style: ElevatedButton.styleFrom(
@@ -515,12 +516,13 @@ class SpinAndWinView extends HookConsumerWidget {
                                   : 'Spin The Wheel',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16.sp,
+                                fontSize: 14.sp,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
                             ),
                           ),
+                        ),
                         ),
                         SizedBox(height: 10.h),
                         Text(

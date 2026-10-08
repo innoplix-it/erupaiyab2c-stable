@@ -61,11 +61,45 @@ class SpinResultPopup extends StatefulWidget {
   State<SpinResultPopup> createState() => _SpinResultPopupState();
 }
 
-class _SpinResultPopupState extends State<SpinResultPopup> {
+class _SpinResultPopupState extends State<SpinResultPopup>
+    with SingleTickerProviderStateMixin {
   bool _isSubmitting = false;
 
   // assets/images/png/spinpopup.png is 784x536.
   static const double _cardAspect = 784 / 536;
+
+  // Entrance animation: the popup grows out of the wheel/button area and
+  // rises from the bottom (slide up + scale up + fade in). Self-contained so
+  // it does not touch the shared KDialog route or any other popup.
+  late final AnimationController _entryController;
+  late final Animation<double> _entryFade;
+  late final Animation<double> _entryScale;
+  late final Animation<Offset> _entrySlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _entryFade = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOutCubic,
+    );
+    _entryScale = Tween<double>(begin: 0.7, end: 1.0).animate(_entryFade);
+    _entrySlide = Tween<Offset>(
+      begin: const Offset(0, 0.28),
+      end: Offset.zero,
+    ).animate(_entryFade);
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
+  }
 
   void _close() => Navigator.of(context, rootNavigator: true).pop();
 
@@ -84,7 +118,14 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
       surfaceTintColor: Colors.transparent,
       insetPadding: EdgeInsets.zero,
       alignment: Alignment.center,
-      child: Stack(
+      child: FadeTransition(
+        opacity: _entryFade,
+        child: ScaleTransition(
+          scale: _entryScale,
+          alignment: Alignment.bottomCenter,
+          child: SlideTransition(
+            position: _entrySlide,
+            child: Stack(
         alignment: Alignment.topCenter,
         children: [
           // Sunburst glow behind the whole popup (card + CTA).
@@ -125,6 +166,9 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
             ),
           ),
         ],
+      ),
+          ),
+        ),
       ),
     );
   }
@@ -349,9 +393,12 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
   }
 
   Widget _buildClaimButton(double width) {
-    return SizedBox(
-      width: width,
-      height: 42.h,
+    return Center(
+      child: SizedBox(
+      // Slightly smaller than the card (was full width) + shorter height; the
+      // surrounding Column centres it horizontally.
+      width: width * 0.9,
+      height: 38.h,
       child: ElevatedButton(
         onPressed: _isSubmitting
             ? null
@@ -380,10 +427,11 @@ class _SpinResultPopupState extends State<SpinResultPopup> {
           _primaryLabel,
           textAlign: TextAlign.center,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 16.sp,
+            fontSize: 14.sp,
             fontWeight: FontWeight.w700,
             height: 1.0,
             color: Colors.white,
+          ),
           ),
         ),
       ),

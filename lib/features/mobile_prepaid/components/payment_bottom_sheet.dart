@@ -10,11 +10,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+
+
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/payment_success_flow.dart';
 import '../../../widgets/processing_overlay.dart';
+import '../../educationFees/views/education_payment_thank_you_view.dart';
 import '../../paymentgateway/razorpay_guard.dart';
 import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
@@ -95,34 +98,16 @@ void _openPaymentResultFlow(
       : goHome;
 
   if (outcome == _PaymentOutcome.success) {
-    final amountText =
-        '\u20B9${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}';
-    final subtitleText = isMobileRecharge
-        ? 'for your $amountText payment for mobile recharge'
-        : 'for your $amountText payment';
-    Navigator.of(context).push(
+    final paymentName = paymentTypeOverride?.trim().isNotEmpty == true
+        ? paymentTypeOverride!.trim()
+        : 'Payment';
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => PaymentThankYouScreen(
-          title: 'Thank You',
-          subtitle: subtitleText,
-          highlightedSubtitleText: amountText,
-          playSound: true,
-          autoNavigateAfter: const Duration(seconds: 2),
-          paymentName: paymentTypeOverride?.trim().isNotEmpty == true
-              ? paymentTypeOverride!.trim()
-              : null,
-          onAutoNavigate: (screenContext) {
-            Navigator.of(screenContext).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => TransactionDetailScreen(
-                  entry: entry,
-                  doneLabel: 'View Transaction History',
-                  onBack: () => screenContext.go(RouteConstants.home),
-                  onDone: () => screenContext.go(RouteConstants.transactions),
-                ),
-              ),
-            );
-          },
+        builder: (_) => EducationPaymentThankYouView(
+          amount: amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2),
+          payableAmount: amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2),
+          transactionTime: (transactionDateTime?.isNotEmpty == true) ? transactionDateTime! : DateTime.now().toIso8601String(),
+          paymentType: paymentName,
         ),
       ),
     );

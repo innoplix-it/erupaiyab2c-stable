@@ -21,7 +21,6 @@ import '../../../config/app_env.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
-import '../../../constants/routes_constant.dart';
 import '../../../services/permission_service.dart';
 import '../../../utils/date_format_helper.dart';
 import '../../../widgets/app_snackbar.dart';
@@ -33,6 +32,7 @@ import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/param_dropdown_field.dart';
 import '../../../widgets/payment_success_flow.dart';
 import '../../../widgets/processing_overlay.dart';
+import '../../educationFees/views/education_payment_thank_you_view.dart';
 import '../../../widgets/search_textfield.dart';
 import '../../mobile_prepaid/components/payment_bottom_sheet.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
@@ -1243,43 +1243,18 @@ class BillerDetailView extends HookConsumerWidget {
 
                                               final isSuccess = normalized == 'SUCCESS';
                                               if (isSuccess) {
-                                                final amountText =
-                                                    '\u20B9${amountToPay.toStringAsFixed(amountToPay.truncateToDouble() == amountToPay ? 0 : 2)}';
                                                 final paymentName = (args?.paymentType?.trim().isNotEmpty == true
                                                         ? args!.paymentType!.trim()
                                                         : detail.billerCategoryName.trim())
                                                     .trim();
-                                                Navigator.of(context).push(
+                                                Navigator.of(context).pushReplacement(
                                                   MaterialPageRoute(
                                                     builder: (_) =>
-                                                        PaymentThankYouScreen(
-                                                      title: 'Thank You',
-                                                      subtitle:
-                                                          'for your $amountText payment',
-                                                      highlightedSubtitleText:
-                                                          amountText,
-                                                      playSound: true,
-                                                      autoNavigateAfter:
-                                                          const Duration(
-                                                              seconds: 2),
-                                                      paymentName: paymentName.isNotEmpty ? paymentName : null,
-                                                      onAutoNavigate:
-                                                          (screenContext) {
-                                                            Navigator.of(
-                                                                screenContext)
-                                                                .pushReplacement(
-                                                              MaterialPageRoute(
-                                                                builder: (_) =>
-                                                                    TransactionDetailScreen(
-                                                                  entry: entry,
-                                                                  doneLabel:
-                                                                      'View Transaction History',
-                                                                  onBack: () => screenContext.go(RouteConstants.home),
-                                                                  onDone: () => screenContext.go(RouteConstants.transactions),
-                                                                ),
-                                                              ),
-                                                            );
-                                                          },
+                                                        EducationPaymentThankYouView(
+                                                      amount: amountToPay.toStringAsFixed(amountToPay.truncateToDouble() == amountToPay ? 0 : 2),
+                                                      payableAmount: amountToPay.toStringAsFixed(amountToPay.truncateToDouble() == amountToPay ? 0 : 2),
+                                                      transactionTime: DateTime.now().toIso8601String(),
+                                                      paymentType: paymentName,
                                                     ),
                                                   ),
                                                 );

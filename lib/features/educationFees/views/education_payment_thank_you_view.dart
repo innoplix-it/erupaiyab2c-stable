@@ -242,7 +242,7 @@ class _EducationPaymentThankYouViewState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CustomElevatedButton(
-                    onPressed: () => context.go(RouteConstants.home),
+                    onPressed: () => context.go(RouteConstants.transactions),
                     label: 'Done',
                     uppercaseLabel: false,
                     showArrow: false,
