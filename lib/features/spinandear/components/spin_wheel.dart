@@ -11,6 +11,16 @@ import '../models/spin_reward.dart';
 /// Reward-segment colour for the wheel centre circle (Figma).
 const Color kSpinRewardSegmentColor = Color(0xFFDD5428);
 
+/// Gradient for the wheel centre circle.
+const LinearGradient kSpinCenterGradient = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFF33394E), Color(0xFF121320)],
+);
+
+/// Border color for the wheel centre circle.
+const Color kSpinCenterBorderColor = Color(0xFF292C4F);
+
 /// Figma: linear-gradient(169.27deg, #FD8818 7.96%, #FED06A 47.53%,
 /// #F68811 87.09%). Applied per orange slice.
 const List<Color> kSpinSliceGradientColors = [
@@ -159,16 +169,16 @@ class SpinWheel extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Figma centre: reward-segment (#DD5428) disc, white inner
+                  // Figma centre: gradient disc with border, white inner
                   // circle, rupee mark (kept white / unchanged).
                   Container(
                     width: inner * 0.30,
                     height: inner * 0.30,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: kSpinRewardSegmentColor,
+                      gradient: kSpinCenterGradient,
                       border: Border.all(
-                        color: kSpinRewardSegmentColor,
+                        color: kSpinCenterBorderColor,
                         width: 2.r,
                       ),
                     ),

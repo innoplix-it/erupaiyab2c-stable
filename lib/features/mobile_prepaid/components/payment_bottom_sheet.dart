@@ -100,7 +100,7 @@ void _openPaymentResultFlow(
   if (outcome == _PaymentOutcome.success) {
     final paymentName = paymentTypeOverride?.trim().isNotEmpty == true
         ? paymentTypeOverride!.trim()
-        : 'Payment';
+        : billerName.trim().isNotEmpty ? billerName.trim() : 'Mobile Recharge';
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => EducationPaymentThankYouView(
