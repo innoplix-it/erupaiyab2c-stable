@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -55,8 +57,11 @@ class _EducationPaymentThankYouViewState
     final formattedDate = _formatHeaderDate(widget.transactionTime);
     final imageUrl = widget.bannerImage.trim();
     final title = _thankYouTitle(widget.paymentType);
+
+    // Figma frame width = 441. Single scaling only (no .w/.h/.sp mixing).
     final sx = 1.sw / 441.0;
     double x(double value) => value * sx;
+
     // Local fallback shown in the ad slot when the API returns no banner image
     // or the remote image fails to load.
     final fallbackBanner = Image.asset(
@@ -65,15 +70,8 @@ class _EducationPaymentThankYouViewState
       height: x(450),
       fit: BoxFit.cover,
     );
-    final headerTop = MediaQuery.paddingOf(context).top + 40.h;
-    final dateStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 10.5.sp,
-            ) ??
-        TextStyle(
-          color: Colors.white.withOpacity(0.9),
-          fontSize: 10.5.sp,
-        );
+
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return PopScope(
       canPop: false,
@@ -85,6 +83,7 @@ class _EducationPaymentThankYouViewState
         body: Stack(
           clipBehavior: Clip.none,
           children: [
+            // ---------- Green arc (Ellipse 838 x 756) ----------
             Positioned(
               top: x(-409),
               left: x(-199),
@@ -109,75 +108,67 @@ class _EducationPaymentThankYouViewState
                 ),
               ),
             ),
+
+            // ---------- Header ----------
             Positioned(
-              top: headerTop,
-              left: 24.w,
-              right: 24.w,
+              top: x(99),
+              left: x(24),
+              right: x(24),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Image.asset(
                     FileConstants.successIcon,
-                    width: 52.w,
-                    height: 52.w,
+                    width: x(52),
+                    height: x(52),
                     fit: BoxFit.contain,
                   ),
                   SizedBox(height: x(16)),
+
+                  // Title (two lines with spacing between them)
                   SizedBox(
                     width: x(287),
-                    height: x(116),
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: x(287),
-                          height: x(50),
-                          child: Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFFFFFFFF),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 20.sp * sx,
-                              height: 1,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: x(16)),
-                        Container(
-                          width: 106.w,
-                          height: 34.h,
-                          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: const Color(0x1AFFFFFF),
-                            borderRadius: BorderRadius.circular(50.r),
-                          ),
-                          child: Text(
-                            formattedAmount,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFFFFFFFF),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14.sp,
-                              height: 1,
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFFFFFFFF),
+                        fontWeight: FontWeight.w600,
+                        fontSize: x(20),
+                        height: 1.3, // gap between the two lines
+                      ),
                     ),
                   ),
                   SizedBox(height: x(16)),
+
+                  // Amount badge (glass morphism, min 106x34 / r17 as per Figma)
+                  _GlassBadge(
+                    text: formattedAmount,
+                    x: x,
+                  ),
+                  SizedBox(height: x(16)),
+
+                  // Date / time
                   Text(
                     formattedDate,
                     textAlign: TextAlign.center,
-                    style: dateStyle,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xE6FFFFFF),
+                      fontWeight: FontWeight.w400,
+                      fontSize: x(10.5),
+                      height: 1.2,
+                    ),
                   ),
-                  SizedBox(height: 40.h),
+                  // Gap below the date (towards the arc edge)
+                  SizedBox(height: x(48)),
                 ],
               ),
             ),
+
+            // ---------- Ad banner ----------
             Positioned(
               top: x(376),
               left: x(24),
@@ -188,20 +179,20 @@ class _EducationPaymentThankYouViewState
                   clipBehavior: Clip.none,
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(12.r),
+                      borderRadius: BorderRadius.circular(x(12)),
                       child: SizedBox(
                         width: x(392),
                         height: x(450),
                         child: imageUrl.isEmpty
                             ? fallbackBanner
                             : AppNetworkImage(
-                                url: imageUrl,
-                                width: x(392),
-                                height: x(450),
-                                fit: BoxFit.cover,
-                                borderRadius: BorderRadius.circular(12.r),
-                                errorWidget: fallbackBanner,
-                              ),
+                          url: imageUrl,
+                          width: x(392),
+                          height: x(450),
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(x(12)),
+                          errorWidget: fallbackBanner,
+                        ),
                       ),
                     ),
                     Positioned(
@@ -212,10 +203,10 @@ class _EducationPaymentThankYouViewState
                         height: x(28),
                         padding: EdgeInsets.fromLTRB(x(12), x(5), x(12), x(5)),
                         decoration: BoxDecoration(
-                          color: Color(0x4D000000),
+                          color: const Color(0x4D000000),
                           borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(50.r),
-                            bottomLeft: Radius.circular(50.r),
+                            topLeft: Radius.circular(x(50)),
+                            bottomLeft: Radius.circular(x(50)),
                           ),
                         ),
                         alignment: Alignment.center,
@@ -224,7 +215,7 @@ class _EducationPaymentThankYouViewState
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFFFFFFFF),
                             fontWeight: FontWeight.w600,
-                            fontSize: 11.sp * sx,
+                            fontSize: x(11),
                             height: 1,
                           ),
                         ),
@@ -234,10 +225,12 @@ class _EducationPaymentThankYouViewState
                 ),
               ),
             ),
+
+            // ---------- Done + powered by ----------
             Positioned(
               left: x(24),
               right: x(24),
-              bottom: 16.h + MediaQuery.paddingOf(context).bottom,
+              bottom: x(32) + bottomInset,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -247,7 +240,7 @@ class _EducationPaymentThankYouViewState
                     uppercaseLabel: false,
                     showArrow: false,
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: x(16)),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -255,15 +248,15 @@ class _EducationPaymentThankYouViewState
                         'powered by',
                         style: GoogleFonts.plusJakartaSans(
                           color: Colors.black,
-                          fontSize: 10.sp,
+                          fontSize: x(10),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(width: 4.w),
+                      SizedBox(width: x(4)),
                       Image.asset(
                         FileConstants.bharatConnectColor,
-                        width: 52.w,
-                        height: 24.h,
+                        width: x(52),
+                        height: x(24),
                         fit: BoxFit.contain,
                       ),
                     ],
@@ -278,13 +271,124 @@ class _EducationPaymentThankYouViewState
   }
 }
 
+/// Amount pill with glass morphism (Figma: height 34, radius 17, white @ 10%).
+/// Width = content width (min 106 as per Figma), never stretches to parent.
+class _GlassBadge extends StatelessWidget {
+  const _GlassBadge({required this.text, required this.x});
+
+  final String text;
+  final double Function(double) x;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(x(17));
+    return UnconstrainedBox(
+      // Stops the parent Column's full width from reaching the badge.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: x(106)),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: x(8), sigmaY: x(8)),
+            child: Container(
+              height: x(34),
+              padding: EdgeInsets.symmetric(horizontal: x(16)),
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                color: const Color(0x1AFFFFFF), // white @ 10%
+              ),
+              foregroundDecoration: _GradientBorderDecoration(
+                radius: x(17),
+                strokeWidth: x(1),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0x66FFFFFF),
+                    Color(0x0DFFFFFF),
+                    Color(0x33FFFFFF),
+                  ],
+                ),
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFFFFFFFF),
+                    fontWeight: FontWeight.w800,
+                    fontSize: x(14),
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Draws a gradient stroke around a rounded rectangle.
+class _GradientBorderDecoration extends Decoration {
+  const _GradientBorderDecoration({
+    required this.radius,
+    required this.strokeWidth,
+    required this.gradient,
+  });
+
+  final double radius;
+  final double strokeWidth;
+  final Gradient gradient;
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) =>
+      _GradientBorderPainter(
+        radius: radius,
+        strokeWidth: strokeWidth,
+        gradient: gradient,
+      );
+}
+
+class _GradientBorderPainter extends BoxPainter {
+  _GradientBorderPainter({
+    required this.radius,
+    required this.strokeWidth,
+    required this.gradient,
+  });
+
+  final double radius;
+  final double strokeWidth;
+  final Gradient gradient;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final size = configuration.size;
+    if (size == null) return;
+    final rect = offset & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(strokeWidth / 2),
+      Radius.circular(radius),
+    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..shader = gradient.createShader(rect);
+    canvas.drawRRect(rrect, paint);
+  }
+}
+
 String _thankYouTitle(String paymentType) {
   final raw = paymentType.trim();
   if (raw.isEmpty) return 'Thank You';
   final lower = raw.toLowerCase();
   if (lower.contains('thank you')) return raw;
-  if (lower.endsWith(' payment')) return 'Thank you for\n$raw';
-  return 'Thank you for\n$raw Payment';
+  if (lower.endsWith(' payment')) return 'Thank You for\n$raw';
+  return 'Thank You for\n$raw Payment';
 }
 
 String _displayApiAmount(String raw) {

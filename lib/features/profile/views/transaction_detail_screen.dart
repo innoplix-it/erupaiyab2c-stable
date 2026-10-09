@@ -906,7 +906,7 @@ List<TransactionCustomerParam> _resolveHeaderParams(
   // Rent transaction flow:
   // LEFT  -> "Recipient Name" = recipient name (customer_params "Recipient
   //           Name", else biller_name, else masked_identifier — all API-sourced)
-  // RIGHT -> "Fee Type"       = fee_type (API key: fee_type)
+  // RIGHT -> "Type"            = fee_type (API key: fee_type)
   // The value comes straight from the API `fee_type`; nothing is hardcoded. It
   // falls back to `payment_type` only when `fee_type` is absent, so a missing
   // fee_type never fabricates a fake value.
@@ -940,7 +940,7 @@ List<TransactionCustomerParam> _resolveHeaderParams(
         value: recipientName.isNotEmpty ? recipientName : '-',
       ),
       TransactionCustomerParam(
-        label: 'Fee Type',
+        label: 'Type',
         value: rentFeeTypeDisplay.isNotEmpty ? rentFeeTypeDisplay : '-',
       ),
     ];
