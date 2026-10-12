@@ -30,12 +30,17 @@ class ReferralShareActions extends HookWidget {
                         fit: BoxFit.contain),
                   ),
                   SizedBox(width: 8.w),
-                  Text(
-                    'Refer On Whatsapp',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  Flexible(
+                    child: Text(
+                      'Refer On Whatsapp',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                   ),
                 ],
               ),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -19,6 +20,30 @@ import '../components/refer_and_earn_app_bar.dart';
 import '../components/referral_share_actions.dart';
 import 'referral_works_view.dart';
 import 'track_referrals_view.dart';
+
+// The Figma frame for this screen is 440 x 956 while ScreenUtil's design size
+// is 360 x 690. Figma pixel values are converted once here and then scaled
+// exactly once by ScreenUtil (never both), so a 440-wide phone renders the
+// Figma pixel size and every other width scales proportionally.
+double _figmaW(double px) => (px * 360 / 440).w;
+double _figmaH(double px) => (px * 690 / 956).h;
+double _figmaR(double px) => (px * 360 / 440).r;
+
+/// Horizontal padding of the white content panel; the divider behind the
+/// "My Referral Earnings" pill bleeds by exactly this amount.
+double get _panelPadH => _figmaW(21);
+
+/// Height the white panel pulls up over the hero; matches the white strip
+/// drawn by [ReferAndEarnAppBar] (36.h + 1) so no background peeks through.
+double get _heroOverlap => 37.h;
+
+/// Diagonal arrow used by both blue feature cards (verbatim Figma export).
+const String _cardArrowSvg = '''
+<svg width="57" height="57" viewBox="0 0 57 57" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M27.2322 17.0934L41.6464 21.4612L37.2786 35.8754" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M15.3454 35.5309L41.3834 21.6034" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+''';
 
 class ReferAndEarnView extends HookConsumerWidget {
   const ReferAndEarnView({super.key});
@@ -50,13 +75,28 @@ class ReferAndEarnView extends HookConsumerWidget {
       return null;
     }, const []);
 
+    // Figma: the white panel starts 356 design-px below the status bar.
+    final heroHeight =
+        MediaQuery.paddingOf(context).top + _figmaH(356) + _heroOverlap;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
-          child: const ReferralShareActions(),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFFBF3EE),
+          border: Border(top: BorderSide(color: Color(0x14000000))),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              _panelPadH,
+              _figmaH(12),
+              _panelPadH,
+              _figmaH(14),
+            ),
+            child: const ReferralShareActions(),
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -64,40 +104,52 @@ class ReferAndEarnView extends HookConsumerWidget {
           children: [
             ReferAndEarnAppBar(
               title: 'Refer Friends & Earn Coins',
+              height: heroHeight,
               body: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(height: 46.h),
                   Text(
                     'Earn E-Coins Lifetime',
+                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
+                          fontSize: 20.sp,
                         ),
                   ),
-                  SizedBox(height: 10.h),
-                  Image.asset(
-                    FileConstants.referAndEarn,
-                    height: 100.h,
-                    fit: BoxFit.contain,
+                  SizedBox(height: _figmaH(26)),
+                  // Width-driven so the illustration keeps its native
+                  // aspect ratio; Flexible lets it shrink on short screens.
+                  Flexible(
+                    child: Image.asset(
+                      FileConstants.referAndEarn,
+                      width: _figmaW(300),
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ],
               ),
             ),
             Transform.translate(
-              offset: Offset(0, -100.h),
+              offset: Offset(0, -_heroOverlap),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(26.r),
+                    top: Radius.circular(_figmaR(26)),
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+                  padding: EdgeInsets.fromLTRB(
+                    _panelPadH,
+                    _figmaH(20),
+                    _panelPadH,
+                    _figmaH(28),
+                  ),
                   child: Column(
                     children: [
                       _ReferSummarySection(),
-                      SizedBox(height: 14.h),
+                      SizedBox(height: _figmaH(26)),
                       Row(
                         children: [
                           Expanded(
@@ -112,7 +164,7 @@ class ReferAndEarnView extends HookConsumerWidget {
                               },
                             ),
                           ),
-                          SizedBox(width: 12.w),
+                          SizedBox(width: _figmaW(14)),
                           Expanded(
                             child: _ActionMiniCard(
                               title: 'How It\nWorks ?',
@@ -128,76 +180,51 @@ class ReferAndEarnView extends HookConsumerWidget {
                         ],
                       ),
                       if (showInviteContacts) ...[
-                        SizedBox(height: 18.h),
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: _SectionTitle('Invite Contacts'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                showModalBottomSheet<void>(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(20.r),
-                                    ),
-                                  ),
-                                  builder: (sheetContext) => Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: MediaQuery.viewInsetsOf(
-                                        sheetContext,
-                                      ).bottom,
-                                    ),
-                                    child: FractionallySizedBox(
-                                      heightFactor: 0.9,
-                                      child: EducationContactSheet(
-                                        onSelect: (phone) {
-                                          ReferralShareService.shareSMS(
-                                            context,
-                                            phone: phone,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                minimumSize: const Size(0, 0),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                'View all',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10.h),
-                        _ContactsStrip(
+                        SizedBox(height: _figmaH(30)),
+                        const _SectionTitle('Invite Contacts'),
+                        SizedBox(height: _figmaH(16)),
+                        _ContactsRow(
                           contacts: contactsState.contacts,
+                          onInviteTap: () => _openContactSheet(context),
                         ),
                       ],
-                      SizedBox(height: 16.h),
+                      SizedBox(height: _figmaH(24)),
                       _ReferForeverCard(),
-                      SizedBox(height: 2.h),
                     ],
                   ),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openContactSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20.r),
+        ),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+        ),
+        child: FractionallySizedBox(
+          heightFactor: 0.9,
+          child: EducationContactSheet(
+            onSelect: (phone) {
+              ReferralShareService.shareSMS(
+                context,
+                phone: phone,
+              );
+            },
+          ),
         ),
       ),
     );
@@ -211,77 +238,51 @@ class _ReferSummarySection extends HookWidget {
       children: [
         Text(
           'Refer & Earn Lifetime',
+          textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
+                fontSize: 16.sp,
               ),
         ),
-        SizedBox(height: 6.h),
+        SizedBox(height: _figmaH(8)),
         Text(
           'Refer Once, Earn Rewards For A Lifetime.',
+          textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.textPrimary.withOpacity(0.6),
+                fontSize: 14.sp,
               ),
         ),
-        SizedBox(height: 12.h),
-        Container(
-          height: 1,
-          width: double.infinity,
-          color: AppColors.lightBorder.withOpacity(0.6),
-        ),
-        SizedBox(height: 12.h),
-        _PrimaryPillButton(
-          label: 'My Referral Earnings',
-          onTap: () {
-            context.push(RouteConstants.referAndEarnWallet);
-          },
+        SizedBox(height: _figmaH(22)),
+        // Figma: a hairline runs edge to edge behind the pill, crossing it
+        // through its vertical centre.
+        Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: -_panelPadH,
+              right: -_panelPadH,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Container(
+                  height: 1,
+                  width: double.infinity,
+                  color: AppColors.lightBorder.withOpacity(0.6),
+                ),
+              ),
+            ),
+            _PrimaryPillButton(
+              label: 'My Referral Earnings',
+              onTap: () {
+                context.push(RouteConstants.referAndEarnWallet);
+              },
+            ),
+          ],
         ),
       ],
-    );
-  }
-}
-
-class _ContactsStrip extends HookWidget {
-  const _ContactsStrip({
-    required this.contacts,
-  });
-
-  final List<Contact> contacts;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = contacts.take(6).toList();
-    return SizedBox(height: 84.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        separatorBuilder: (_, __) => SizedBox(width: 14.w),
-        itemBuilder: (context, index) {
-          final item = items[index];
-
-          if (item is Contact) {
-            return GestureDetector(
-              onTap: () {
-                if (item.phones.isEmpty) {
-                  AppSnackbar.show('No phone number found');
-                  return;
-                }
-
-                final phone = item.phones.first.number;
-
-                ReferralShareService.shareSMS(
-                  context,
-                  phone: phone,
-                );
-              },
-              child: _ContactAvatar(
-                item: _ContactItem(name: item.displayName),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
     );
   }
 }
@@ -297,35 +298,45 @@ class _PrimaryPillButton extends HookWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: _figmaW(26),
+          vertical: _figmaH(16),
+        ),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFF0C5AA6), Color(0xFF154A8C)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          borderRadius: BorderRadius.circular(24.r),
+          borderRadius: BorderRadius.circular(_figmaR(30)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Center(
-              child: Image.asset(
-                FileConstants.coin_3d,
-                width: 20.w,
-                height: 20.w,
+            Image.asset(
+              FileConstants.coin_3d,
+              width: _figmaW(24),
+              height: _figmaW(24),
+            ),
+            SizedBox(width: _figmaW(10)),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15.sp,
+                    ),
               ),
             ),
-            SizedBox(width: 8.w),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+            SizedBox(width: _figmaW(12)),
+            Icon(
+              Icons.arrow_outward,
+              color: Colors.white,
+              size: _figmaR(18),
             ),
-            SizedBox(width: 8.w),
-            Icon(Icons.arrow_forward, color: Colors.white, size: 16.r),
           ],
         ),
       ),
@@ -343,30 +354,42 @@ class _ActionMiniCard extends HookWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14.r),
+      borderRadius: BorderRadius.circular(_figmaR(16)),
       child: Container(
-        height: 74.h,
-        padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 12.h),
+        height: _figmaH(110),
+        padding: EdgeInsets.symmetric(horizontal: _figmaW(18)),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFF2C64A5), Color(0xFF154A8C)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(14.r),
+          borderRadius: BorderRadius.circular(_figmaR(16)),
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Expanded(
+            Align(
+              alignment: Alignment.centerLeft,
               child: Text(
                 title,
+                maxLines: 2,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
+                      fontSize: 15.sp,
                     ),
               ),
             ),
-            Icon(Icons.arrow_forward, color: Colors.white, size: 18.r),
+            // Figma: the thin diagonal arrow sits in the bottom-right corner.
+            Positioned(
+              right: _figmaW(12),
+              bottom: _figmaH(14),
+              child: SvgPicture.string(
+                _cardArrowSvg,
+                width: _figmaW(40),
+                height: _figmaW(40),
+              ),
+            ),
           ],
         ),
       ),
@@ -385,60 +408,128 @@ class _SectionTitle extends HookWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Colors.black,
               fontWeight: FontWeight.w700,
+              fontSize: 17.sp,
             ),
       ),
     );
   }
 }
 
-class _ContactItem {
-  const _ContactItem({required this.name});
+/// Figma row: up to three real contacts plus an "Invite Contact" tile that
+/// opens the full contact sheet (replaces the old "View all" link).
+class _ContactsRow extends HookWidget {
+  const _ContactsRow({required this.contacts, required this.onInviteTap});
 
-  final String name;
-}
-
-class _ContactAvatar extends HookWidget {
-  const _ContactAvatar({required this.item});
-
-  final _ContactItem item;
+  final List<Contact> contacts;
+  final VoidCallback onInviteTap;
 
   @override
   Widget build(BuildContext context) {
-    final initials = item.name
-        .split(' ')
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .map((e) => e[0])
-        .join();
-    return Column(
+    final visible = contacts.take(3).toList();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 26.r,
-          backgroundColor: AppColors.primary.withOpacity(0.1),
-          child: Text(
-            initials.toUpperCase(),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
+        for (final contact in visible)
+          Expanded(
+            child: _ContactTile(
+              name: contact.displayName,
+              onTap: () {
+                if (contact.phones.isEmpty) {
+                  AppSnackbar.show('No phone number found');
+                  return;
+                }
+                ReferralShareService.shareSMS(
+                  context,
+                  phone: contact.phones.first.number,
+                );
+              },
+            ),
           ),
-        ),
-        SizedBox(height: 6.h),
-        SizedBox(width: 70.w,
-          child: Text(
-            item.name,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+        Expanded(
+          child: _ContactTile(
+            name: 'Invite Contact',
+            isInvite: true,
+            onTap: onInviteTap,
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ContactTile extends HookWidget {
+  const _ContactTile({
+    required this.name,
+    required this.onTap,
+    this.isInvite = false,
+  });
+
+  final String name;
+  final VoidCallback onTap;
+  final bool isInvite;
+
+  String get _initials => name
+      .split(' ')
+      .where((part) => part.isNotEmpty)
+      .take(2)
+      .map((e) => e[0])
+      .join();
+
+  @override
+  Widget build(BuildContext context) {
+    final circleSize = _figmaW(50);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: circleSize,
+            height: circleSize,
+            decoration: const BoxDecoration(
+              color: Color(0xFFD9D9D9),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: isInvite
+                  ? Icon(
+                      Icons.person_add_alt,
+                      color: Colors.white,
+                      size: _figmaR(24),
+                    )
+                  : Text(
+                      _initials.toUpperCase(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.sp,
+                            color: AppColors.textPrimary.withOpacity(0.55),
+                          ),
+                    ),
+            ),
+          ),
+          SizedBox(height: _figmaH(10)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: _figmaW(3)),
+            child: Text(
+              name,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12.sp,
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -448,29 +539,40 @@ class _ReferForeverCard extends HookWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: _figmaW(16),
+        vertical: _figmaH(14),
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFFDEFE8),
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(_figmaR(16)),
       ),
       child: Column(
         children: [
           Text(
+            // Figma typography: Bold 700, 14px, 28px line-height (200%),
+            // 0% letter-spacing, centred, capitalised.
             'Refer Once, Earn Forever',
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
+                  fontSize: 14.sp,
+                  height: 28 / 14,
                 ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: _figmaH(4)),
           Text(
-            'Refer Once And Earn Coins Every Time Your Friend Spends In\n'
-            'The App. Use Your Coins Like Real Money For Payments\n'
-            'Anytime.',
+            // Figma typography: Regular 400, 12px, 25px line-height,
+            // 0% letter-spacing, centred, capitalised.
+            'Refer Once And Earn Coins Every Time Your Friend Spends In '
+            'The App. Use Your Coins Like Real Money For Payments Anytime.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textPrimary.withOpacity(0.7),
-                  height: 1.4,
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12.sp,
+                  height: 25 / 12,
                 ),
           ),
         ],

@@ -97,6 +97,18 @@ class NotificationsController extends StateNotifier<NotificationsState> {
     }
   }
 
+  /// Clears the already-read notifications server-side via the repository.
+  /// On success the feed is refreshed through the existing pattern, so the
+  /// list and unread count always reflect the server state. On failure the
+  /// current state is left untouched. Returns whether the clear succeeded.
+  Future<bool> clearReadNotifications() async {
+    final ok = await _repository.clearReadNotifications();
+    if (ok) {
+      await fetchNotifications(force: true);
+    }
+    return ok;
+  }
+
   Future<void> fetchNextPage() async {
     if (state.isLoading || state.isFetchingMore || !state.hasMore) return;
     state = state.copyWith(isFetchingMore: true, errorMessage: null);

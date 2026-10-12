@@ -216,7 +216,7 @@ void main() {
   });
 
   group('House Rent — transaction detail header', () {
-    testWidgets('LEFT = Recipient Name, RIGHT = Fee Type (from fee_type)',
+    testWidgets('LEFT = Recipient Name, RIGHT = Type (from fee_type)',
         (tester) async {
       final entry = TransactionHistoryEntry.fromJson(
         _rentJson(paymentType: 'House Rent', feeType: 'House Rent'),
@@ -226,7 +226,7 @@ void main() {
       // "Recipient Name" must appear exactly once (LEFT). Before the fix the
       // RIGHT side duplicated it, producing two occurrences.
       expect(find.text('Recipient Name'), findsOneWidget);
-      expect(find.text('Fee Type'), findsOneWidget);
+      expect(find.text('Type'), findsOneWidget);
       // The dynamic fee_type value is shown, and the recipient value is shown
       // once (not repeated on the right).
       expect(find.text('Darshan Rajendra Nikam'), findsOneWidget);
@@ -242,13 +242,13 @@ void main() {
       await _pumpDetail(tester, entry);
 
       expect(find.text('Recipient Name'), findsOneWidget);
-      expect(find.text('Fee Type'), findsOneWidget);
+      expect(find.text('Type'), findsOneWidget);
       // Value still comes from an API field (payment_type), never a fake.
       expect(find.text('House Rent'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('nested-only fee_type (empty payment_type) shows Fee Type',
+    testWidgets('nested-only fee_type (empty payment_type) shows Type',
         (tester) async {
       // Reproduces the reported screenshot: fee_type arrives nested under
       // `data`, payment_type is empty, and customer_params carries the
@@ -271,7 +271,7 @@ void main() {
       await _pumpDetail(tester, entry);
 
       expect(find.text('Recipient Name'), findsOneWidget);
-      expect(find.text('Fee Type'), findsOneWidget);
+      expect(find.text('Type'), findsOneWidget);
       expect(find.text('Darshan Rajendra Nikam'), findsOneWidget);
       expect(find.text('House Rent'), findsWidgets);
       expect(tester.takeException(), isNull);
@@ -279,7 +279,7 @@ void main() {
   });
 
   group('Shop Rent — transaction detail header', () {
-    testWidgets('LEFT = Recipient Name, RIGHT = Fee Type (from fee_type)',
+    testWidgets('LEFT = Recipient Name, RIGHT = Type (from fee_type)',
         (tester) async {
       final entry = TransactionHistoryEntry.fromJson(
         _rentJson(paymentType: 'Shop Rent', feeType: 'Shop Rent'),
@@ -287,7 +287,7 @@ void main() {
       await _pumpDetail(tester, entry);
 
       expect(find.text('Recipient Name'), findsOneWidget);
-      expect(find.text('Fee Type'), findsOneWidget);
+      expect(find.text('Type'), findsOneWidget);
       expect(find.text('Darshan Rajendra Nikam'), findsOneWidget);
       expect(find.text('Shop Rent'), findsWidgets);
       expect(tester.takeException(), isNull);

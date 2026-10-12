@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -149,250 +150,299 @@ class _PaymentProcessingLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double x(double value) => (value * 360 / 440).w;
-    double y(double value) => (value * 360 / 440).h;
-    double r(double value) => (value * 360 / 440).r;
-    double s(double value) => (value * 360 / 440).sp;
-    final sheetTop = x(314);
-    final imageHeight = x(343);
-    final contentWidth = x(353);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        final availableWidth = constraints.maxWidth;
+        final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    return ColoredBox(
-      color: Colors.white,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: imageHeight,
-            child: ClipRRect(
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(r(12)),
-                bottomRight: Radius.circular(r(12)),
-              ),
-              child: Image.asset(
-                FileConstants.processingStatic,
-                width: 1.sw,
+        // Top banner / white sheet split driven by the banner image's
+        // intrinsic aspect ratio (processingbanner.png is 440x343): at the
+        // full available width the banner is laid out at its natural height,
+        // so it is never stretched or distorted. The natural height is
+        // bounded proportionally to the measured viewport (raw runtime
+        // values only - ScreenUtil is not re-applied on top of the
+        // constraints, so no double scaling, no hardcoded pixel clamps) so
+        // the white sheet keeps enough breathing room on short/compact
+        // screens. When the cap engages, BoxFit.cover with top alignment
+        // only trims the bottom edge, which stays hidden behind the sheet.
+        const bannerAspect = 440 / 343;
+        final naturalBannerHeight = availableWidth / bannerAspect;
+        final imageHeight = naturalBannerHeight.clamp(
+          availableHeight * 0.24,
+          availableHeight * 0.42,
+        );
+        // The sheet overlaps the banner's bottom edge by the design gap.
+        final sheetOverlap = math.min(24.r, imageHeight * 0.12);
+        final sheetTop = imageHeight - sheetOverlap;
+        final sheetHeight = availableHeight - sheetTop;
+
+        // Effective inner height for content inside the sheet
+        final contentHeight = math.max(0.0, sheetHeight - bottomInset);
+
+        // Circular loader diameter: derived from the available screen WIDTH
+        // (a single isotropic scale applied to both axes since it is square),
+        // bounded in raw logical pixels so ScreenUtil is not re-applied on top
+        // of the measured constraint (no double scaling). 0.25 keeps the
+        // design-size (360w) appearance identical while stopping the loader
+        // from growing on larger-width phones.
+        final loaderSize = (availableWidth * 0.25).clamp(64.0, 120.0);
+
+        // Content horizontal constraint matching Image 1's ~75-80% width with margins.
+        final contentMaxWidth = math.min(availableWidth - 44.w, 340.w);
+
+        // Dynamic spacing proportional to inner sheet height. Per the Figma
+        // reference the loader floats slightly below the white panel's top
+        // edge (~5.5% of the panel height), with the leftover space staying
+        // below the trust row (FittedBox anchored to topCenter).
+        // The four content gaps below were measured directly from the
+        // Figma 440x956 frame: loader->title ~30px, title->description
+        // ~20px, description->card ~50px, trust row->panel bottom ~50px
+        // (above the ~34px home-indicator safe area). Measured
+        // contentHeight on that frame is ~608px, so each ratio reproduces
+        // the Figma gap exactly there; the raw logical-pixel upper bounds
+        // pin the gaps at the design values so taller screens never
+        // enlarge them beyond the Figma proportions, while shorter screens
+        // scale them down adaptively. Bounds are raw logical pixels (same
+        // convention as loaderSize) - ScreenUtil is not re-applied on top
+        // of the measured constraint, so no double scaling.
+        final gapTop = (contentHeight * 0.055).clamp(14.0, 44.h);
+        final gapAfterLoader = (contentHeight * 0.0493).clamp(10.0, 30.0);
+        final gapAfterTitle = (contentHeight * 0.0329).clamp(6.0, 20.0);
+        final gapAfterDesc = (contentHeight * 0.0822).clamp(12.0, 50.0);
+        final gapAfterCard = (contentHeight * 0.04).clamp(6.0, 26.h);
+        final gapBottom = (contentHeight * 0.0822).clamp(12.0, 50.0);
+
+        return ColoredBox(
+          color: Colors.white,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
                 height: imageHeight,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned(
-            top: sheetTop,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(r(20)),
-                  topRight: Radius.circular(r(20)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(12.r),
+                    bottomRight: Radius.circular(12.r),
+                  ),
+                  child: Image.asset(
+                    FileConstants.processingBanner,
+                    width: availableWidth,
+                    height: imageHeight,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0x1AC2C2C2),
-                    offset: Offset(0, -x(7)),
-                    blurRadius: x(16),
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: const Color(0x17C2C2C2),
-                    offset: Offset(0, -x(30)),
-                    blurRadius: x(30),
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: const Color(0x0DC2C2C2),
-                    offset: Offset(0, -x(67)),
-                    blurRadius: x(40),
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: const Color(0x03C2C2C2),
-                    offset: Offset(0, -x(120)),
-                    blurRadius: x(48),
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: const Color(0x00C2C2C2),
-                    offset: Offset(0, -x(187)),
-                    blurRadius: x(52),
-                    spreadRadius: 0,
-                  ),
-                ],
               ),
-              child: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(x(44), y(51), x(44), y(24)),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: contentWidth,
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              width: x(158),
-                              height: x(158),
-                              child: DecoratedBox(
-                                decoration: const BoxDecoration(
-                                  color: Color(0x1ADD5428),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: PaymentProcessingLoader(
-                                  key: const ValueKey(
-                                    'payment-processing-lottie',
-                                  ),
-                                  size: x(158),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: y(24)),
-                            SizedBox(
-                              width: contentWidth,
-                              child: Text(
-                                message,
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.black,
-                                  fontSize: s(20),
-                                  fontWeight: FontWeight.w700,
-                                  height: 1,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: y(24)),
-                            SizedBox(
-                              width: contentWidth,
-                              child: Text(
-                                'Your payment is currently being processed. Please wait a moment and keep the app open. Do not close the app or use the back button until the payment is completed.',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: const Color(0xFF7C7C7C),
-                                  fontSize: s(12),
-                                  fontWeight: FontWeight.w400,
-                                  height: 22.h / 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+              // Clean banner presentation: no overlay badge or extra text is
+              // rendered on top of the processing banner.
+              Positioned(
+                top: sheetTop,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20.r),
+                      topRight: Radius.circular(20.r),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0x1AC2C2C2),
+                        offset: Offset(0, -7.h),
+                        blurRadius: 16.r,
+                        spreadRadius: 0,
                       ),
-                      SizedBox(height: y(47)),
-                      SizedBox(
-                        width: contentWidth,
-                        child: Column(
-                          children: [
-                            Container(
-                              width: contentWidth,
-                              padding: EdgeInsets.fromLTRB(
-                                x(16),
-                                y(14),
-                                x(16),
-                                y(14),
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF7F7F7),
-                                borderRadius: BorderRadius.circular(r(12)),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                      BoxShadow(
+                        color: const Color(0x17C2C2C2),
+                        offset: Offset(0, -30.h),
+                        blurRadius: 30.r,
+                        spreadRadius: 0,
+                      ),
+                      BoxShadow(
+                        color: const Color(0x0DC2C2C2),
+                        offset: Offset(0, -67.h),
+                        blurRadius: 40.r,
+                        spreadRadius: 0,
+                      ),
+                      BoxShadow(
+                        color: const Color(0x03C2C2C2),
+                        offset: Offset(0, -120.h),
+                        blurRadius: 48.r,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: contentHeight,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            // Anchor to the top so the loader keeps only
+                            // `gapTop` below the panel edge; leftover space
+                            // stays below the trust row.
+                            alignment: Alignment.topCenter,
+                            child: SizedBox(
+                              width: availableWidth - 40.w,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.verified_user,
-                                    color: const Color(0xFF2BB673),
-                                    size: x(22),
+                                  SizedBox(height: gapTop),
+                                  // 1. Processing indicator
+                                  SizedBox(
+                                    width: loaderSize,
+                                    height: loaderSize,
+                                    child: DecoratedBox(
+                                      decoration: const BoxDecoration(
+                                        color: Color(0x1ADD5428),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: PaymentProcessingLoader(
+                                        key: const ValueKey(
+                                          'payment-processing-lottie',
+                                        ),
+                                        size: loaderSize,
+                                      ),
+                                    ),
                                   ),
-                                  SizedBox(width: x(10)),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                  SizedBox(height: gapAfterLoader),
+                                  // 2. Title
+                                  Text(
+                                    message,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.black,
+                                      fontSize: 18.sp,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.2,
+                                    ),
+                                  ),
+                                  SizedBox(height: gapAfterTitle),
+                                  // 3. Description
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                                    child: Text(
+                                      'Your payment is currently being processed. Please wait a moment and keep the app open. Do not close the app or use the back button until the payment is completed.',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: const Color(0xFF7C7C7C),
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w400,
+                                        height: 1.45,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: gapAfterDesc),
+                                  // 4. Security information card
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 14.w,
+                                        vertical: 11.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF7F7F7),
+                                        borderRadius: BorderRadius.circular(12.r),
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Icon(
+                                            Icons.verified_user,
+                                            color: const Color(0xFF2BB673),
+                                            size: 22.r,
+                                          ),
+                                          SizedBox(width: 10.w),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Your Security Matters',
+                                                  style: GoogleFonts.plusJakartaSans(
+                                                    color: Colors.black,
+                                                    fontSize: 12.sp,
+                                                    fontWeight: FontWeight.w700,
+                                                    height: 1.2,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 5.h),
+                                                Text(
+                                                  'Your transaction is being processed securely through our trusted payment partners.',
+                                                  style: GoogleFonts.plusJakartaSans(
+                                                    color: Colors.black,
+                                                    fontSize: 10.sp,
+                                                    fontWeight: FontWeight.w400,
+                                                    height: 1.35,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: gapAfterCard),
+                                  // 5. Bottom trust indicators
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          'Your Security Matters',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            color: Colors.black,
-                                            fontSize: s(12),
-                                            fontWeight: FontWeight.w700,
-                                            height: 1,
+                                        Expanded(
+                                          child: _TrustItem(
+                                            asset: FileConstants.securePayments,
+                                            label: 'Secure\nPayments',
+                                            iconSize: 22.r,
+                                            fontSize: 11.sp,
                                           ),
                                         ),
-                                        SizedBox(height: y(6)),
-                                        Text(
-                                          'Your transaction is being processed securely through our trusted payment partners.',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            color: Colors.black,
-                                            fontSize: s(10),
-                                            fontWeight: FontWeight.w400,
-                                            height: 19.h / 10,
+                                        _TrustDivider(height: 34.h),
+                                        Expanded(
+                                          child: _TrustItem(
+                                            asset: FileConstants.rbiCompliant,
+                                            label: 'RBI Compliant\nPlatform',
+                                            iconSize: 22.r,
+                                            fontSize: 11.sp,
+                                          ),
+                                        ),
+                                        _TrustDivider(height: 34.h),
+                                        Expanded(
+                                          child: _TrustItem(
+                                            asset: FileConstants.trustedBy,
+                                            label: 'Trusted By\nMillions',
+                                            iconSize: 22.r,
+                                            fontSize: 11.sp,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
+                                  SizedBox(height: gapBottom),
                                 ],
                               ),
                             ),
-                            SizedBox(height: y(40)),
-                            SizedBox(
-                              width: contentWidth,
-                              height: y(64),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: _TrustItem(
-                                        asset: FileConstants.securePayments,
-                                        label: 'Secure\nPayments',
-                                        size: x(107),
-                                        iconSize: x(24),
-                                        fontSize: s(12),
-                                      ),
-                                    ),
-                                  ),
-                                  _TrustDivider(height: y(40)),
-                                  Expanded(
-                                    child: Center(
-                                      child: _TrustItem(
-                                        asset: FileConstants.rbiCompliant,
-                                        label: 'RBI Compliant\nPlatform',
-                                        size: x(107),
-                                        iconSize: x(24),
-                                        fontSize: s(12),
-                                      ),
-                                    ),
-                                  ),
-                                  _TrustDivider(height: y(40)),
-                                  Expanded(
-                                    child: Center(
-                                      child: _TrustItem(
-                                        asset: FileConstants.trustedBy,
-                                        label: 'Trusted By\nMillions',
-                                        size: x(107),
-                                        iconSize: x(24),
-                                        fontSize: s(12),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                        SizedBox(height: bottomInset),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -401,43 +451,39 @@ class _TrustItem extends StatelessWidget {
   const _TrustItem({
     required this.asset,
     required this.label,
-    required this.size,
     required this.iconSize,
     required this.fontSize,
   });
 
   final String asset;
   final String label;
-  final double size;
   final double iconSize;
   final double fontSize;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            asset,
-            width: iconSize,
-            height: iconSize,
-            fit: BoxFit.contain,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image.asset(
+          asset,
+          width: iconSize,
+          height: iconSize,
+          fit: BoxFit.contain,
+        ),
+        SizedBox(height: 7.h),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.black,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w600,
+            height: 1.15,
           ),
-          SizedBox(height: fontSize * 10 / 12),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              color: Colors.black,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              height: 1,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

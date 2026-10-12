@@ -930,9 +930,13 @@ List<TransactionCustomerParam> _resolveHeaderParams(
       recipientName = maskedIdentifier;
     }
 
-    // Use fee_type directly from API - dynamic value only
+    // Prefer fee_type from the API; fall back to the response payment_type when
+    // fee_type is absent, so the row always reflects the real payment type
+    // instead of showing '-'. Values stay API-sourced and are never hardcoded.
     final rawFeeType = (tx.feeType ?? '').trim();
-    final rentFeeTypeDisplay = rawFeeType.isNotEmpty ? rawFeeType : '';
+    final rentFeeTypeDisplay = rawFeeType.isNotEmpty
+        ? rawFeeType
+        : tx.paymentType.trim();
 
     return [
       TransactionCustomerParam(

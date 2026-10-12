@@ -20,6 +20,10 @@ class ReferAndEarnAppBar extends HookWidget {
 
   /// Already ScreenUtil-scaled. Omitted height uses the 320 design-unit default once.
   final double? height;
+
+  /// Optional hero content laid out below the nav row and centred in the
+  /// remaining space, with a bottom reserve so a panel translated up over
+  /// the bar never covers it. Only used by the Refer & Earn home view.
   final Widget? body;
 
   @override
@@ -55,41 +59,50 @@ class ReferAndEarnAppBar extends HookWidget {
           ),
           SafeArea(
             bottom: false,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+            child: Column(
+              children: [
+                Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed:
+                            onBack ?? () => Navigator.of(context).maybePop(),
+                      ),
+                      SizedBox(width: 4.w),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.help_outline, color: Colors.white),
+                        onPressed: onHelp,
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 4.w),
+                ),
+                if (body != null)
                   Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                    child: Padding(
+                      // Reserve space for the white strip plus the panel that
+                      // is translated up over the bar by the owning view.
+                      padding: EdgeInsets.only(bottom: 52.h),
+                      child: body!,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.help_outline, color: Colors.white),
-                    onPressed: onHelp,
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
-          if (body != null)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 90.h,
-              child: body!,
-            ),
         ],
       ),
     );

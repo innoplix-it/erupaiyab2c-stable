@@ -177,6 +177,16 @@ class EducationFeesService {
       final trimmedFeeType = feeType?.trim();
       if (trimmedFeeType != null && trimmedFeeType.isNotEmpty) {
         data['fee_type'] = trimmedFeeType;
+        // House/Shop Rent must carry an explicit payment_type ("House Rent" /
+        // "Shop Rent") so the backend records the correct service type instead
+        // of defaulting to biller_name (e.g. "Education Fee Payment"). Real
+        // education fee types are intentionally left untouched to preserve
+        // their existing flow.
+        final lowerFeeType = trimmedFeeType.toLowerCase();
+        if (lowerFeeType.contains('house rent') ||
+            lowerFeeType.contains('shop rent')) {
+          data['payment_type'] = trimmedFeeType;
+        }
       }
       final response = await _dio.post(
         ApiConstants.educationCreateOrderEndpoint,

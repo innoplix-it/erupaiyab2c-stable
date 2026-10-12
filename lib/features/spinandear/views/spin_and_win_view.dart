@@ -12,6 +12,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
+import '../../../constants/routes_constant.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
@@ -73,9 +74,12 @@ class SpinAndWinView extends HookConsumerWidget {
     final profile = profileState.profile;
 
     final totalSpins = profile?.normalSpinRemaining ?? 0;
+    final hasZeroSpins = profile != null && profile.normalSpinRemaining <= 0;
 
     final isSpinning = useState(false);
     final isExitDialogOpen = useState(false);
+    // Subtle press feedback for the "Try Tomorrow" (no spins left) button.
+    final tryTomorrowScale = useState(1.0);
 
     final spinOptionsState = ref.watch(spinOptionsControllerProvider);
 
@@ -90,6 +94,17 @@ class SpinAndWinView extends HookConsumerWidget {
     );
     final animValue = useAnimation(animation);
     final spinRepository = useMemoized(() => SpinRepository());
+
+    // "Try Tomorrow" (zero spins left): navigate to Home via the existing
+    // GoRouter pattern with a quick scale-down; navigation is not delayed.
+    void handleTryTomorrow() {
+      tryTomorrowScale.value = 0.96;
+      context.go(RouteConstants.home);
+      // Restore so the button looks normal if the user returns here.
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (context.mounted) tryTomorrowScale.value = 1.0;
+      });
+    }
 
     // Fetch profile on mount
     useEffect(() {
@@ -255,6 +270,9 @@ class SpinAndWinView extends HookConsumerWidget {
               constraints.maxWidth * 0.72,
               math.min(constraints.maxHeight * 0.42, 340.0),
             );
+            final outerHorizontalPadding = 12.w;
+            final badgeSpacing = 6.w;
+            final badgeHorizontalPadding = totalSpins >= 1000 ? 4.w : 5.w;
             return Stack(
               children: [
                 Positioned.fill(
@@ -359,8 +377,8 @@ class SpinAndWinView extends HookConsumerWidget {
                         SizedBox(height: 16.h),
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: 20.w,
-                            vertical: 10.h,
+                            horizontal: outerHorizontalPadding,
+                            vertical: 8.h,
                           ),
                           decoration: BoxDecoration(
                             // Figma pill background: #4E2512 @ 60% (99 alpha).
@@ -369,6 +387,7 @@ class SpinAndWinView extends HookConsumerWidget {
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 'Daily Spin Remaining',
@@ -380,22 +399,28 @@ class SpinAndWinView extends HookConsumerWidget {
                                   color: Colors.white,
                                 ),
                               ),
-                              SizedBox(width: 8.w),
-                              // Figma badge: dark circle (#2D0B00) with the
-                              // API value in gold (#D3A30E). The supplied SVG
-                              // bakes a literal "1" into its path, so the
-                              // count is rendered as live text in that same
-                              // badge style to stay dynamic.
+                              SizedBox(width: badgeSpacing),
+                              // Figma badge: dark pill/circle (#2D0B00) with the
+                              // API value in gold (#D3A30E). Dynamically sizes
+                              // horizontally for 1, 2, 3, or 4 digit counts without wrapping.
                               Container(
-                                width: 18.r,
-                                height: 18.r,
+                                constraints: BoxConstraints(
+                                  minWidth: 18.r,
+                                  minHeight: 18.r,
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: badgeHorizontalPadding,
+                                  vertical: 1.h,
+                                ),
                                 alignment: Alignment.center,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF2D0B00),
-                                  shape: BoxShape.circle,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2D0B00),
+                                  borderRadius: BorderRadius.circular(90.r),
                                 ),
                                 child: Text(
                                   '$totalSpins',
+                                  maxLines: 1,
+                                  softWrap: false,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11.sp,
@@ -497,32 +522,45 @@ class SpinAndWinView extends HookConsumerWidget {
                         ),
                         SizedBox(height: 2.h),
                         Center(
-                          child: SizedBox(
-                          width: math.min(constraints.maxWidth * 0.56, 200.w),
-                          height: 42.h,
-                          child: ElevatedButton(
-                            onPressed: (isSpinning.value) ? null : handleSpin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFDD5428),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(90.r),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              isSpinning.value
-                                  ? 'Spinning...'
-                                  : 'Spin The Wheel',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                          child: AnimatedScale(
+                            scale: tryTomorrowScale.value,
+                            duration: const Duration(milliseconds: 110),
+                            curve: Curves.easeOut,
+                            child: SizedBox(
+                              width:
+                                  math.min(constraints.maxWidth * 0.56, 200.w),
+                              height: 42.h,
+                              child: ElevatedButton(
+                                onPressed: hasZeroSpins
+                                    ? handleTryTomorrow
+                                    : (isSpinning.value ? null : handleSpin),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFDD5428),
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor:
+                                      const Color(0xFFDD5428),
+                                  disabledForegroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(90.r),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  hasZeroSpins
+                                      ? 'Try Tomorrow'
+                                      : isSpinning.value
+                                          ? 'Spinning...'
+                                          : 'Spin The Wheel',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
                         ),
                         SizedBox(height: 10.h),
                         Text(

@@ -127,6 +127,28 @@ class NotificationsRepository {
     }
   }
 
+  /// Deletes the already-read notifications server-side
+  /// (`POST api/notification/clear-read`). No request body: the endpoint
+  /// takes no parameters. Response `success` is parsed with the same
+  /// pattern as the sibling notification mutations above.
+  Future<bool> clearReadNotifications() async {
+    try {
+      final response =
+          await _dio.post(ApiConstants.notificationClearReadEndpoint);
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      final success = payload['success'];
+      if (success is bool) return success;
+      return success?.toString().toLowerCase() == 'true';
+    } catch (e, stackTrace) {
+      logger.error(
+        'Failed to clear read notifications',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
   Future<bool> remindMeLater(String notificationId) async {
     final trimmed = notificationId.trim();
     if (trimmed.isEmpty) return false;

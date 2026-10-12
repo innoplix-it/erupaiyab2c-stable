@@ -1070,10 +1070,9 @@ DateTime? _parseTxnDate(String raw) {
 }
 
 String _getDisplayPaymentType(TransactionHistoryEntry item) {
-  final feeType = item.feeType?.trim();
-  if (feeType != null && feeType.isNotEmpty) {
-    return _formatFeeType(feeType);
-  }
+  // Primary label is the API payment_type. The specific fee_type (when present)
+  // is rendered separately below via _shouldShowFeeType / _getFeeTypeDisplay, so
+  // returning it here as well would duplicate the same value in the tile.
   return item.paymentType;
 }
 

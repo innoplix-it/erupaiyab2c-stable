@@ -159,7 +159,34 @@ class FileConstants {
   static String pendingIcon = 'assets/images/svg/pendingIcon.svg';
   static String successIcon = 'assets/images/png/successIcon.png';
   static String processingIcon = 'assets/images/png/Vector.png';
-  static String processingStatic = 'assets/images/png/processingstatic.png';
+  static String processingStatic = 'assets/images/png/processingbanner.png';
+
+  // Full-bleed PNG banner used by the payment processing overlay.
+  // Intrinsic ratio: processingbanner.png 440x343. Bundled via the
+  // assets/images/png/ folder entry in pubspec.yaml.
+  static String processingBanner = 'assets/images/png/processingbanner.png';
+
+  // Full-bleed banner SVG (raster embedded in SVG) used by the education
+  // payment thank-you screen. Intrinsic ratio: educationthanks.svg 392x450.
+  static String educationThankYouBannerSvg =
+      'assets/images/svg/educationthanks.svg';
+
+  // Local ad banner for the education payment thank-you screen.
+  static String thankYouBanner = 'assets/images/png/thankyoubanner.png';
+
+  // Full-bleed PNG banner used by the education payment thank-you screen.
+  // Intrinsic ratio: thankyou.png 392x450. Bundled via the
+  // assets/images/png/ folder entry in pubspec.yaml.
+  static String educationThankYouBannerPng = 'assets/images/png/thankyou.png';
+
+  // Exact Figma "Ad" badge SVG (48x33) shared by the payment processing
+  // overlay banner and the education payment thank-you banner.
+  static const String adBadgeSvg = '''
+<svg width="48" height="33" viewBox="0 0 48 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 16.3891C0 7.33764 7.33764 0 16.3891 0H48V32.7782H16.3891C7.33764 32.7782 0 25.4405 0 16.3891Z" fill="black" fill-opacity="0.3"/>
+<path d="M14.8946 22.3892L18.5626 11.9592H20.6066L24.2746 22.3892H22.5106L21.7126 20.0512H17.4706L16.6586 22.3892H14.8946ZM17.9466 18.5812H21.2086L19.3606 13.1212H19.8226L17.9466 18.5812ZM28.3045 22.5572C27.5765 22.5572 26.9232 22.3845 26.3445 22.0392C25.7752 21.6845 25.3225 21.2085 24.9865 20.6112C24.6598 20.0138 24.4965 19.3418 24.4965 18.5952C24.4965 17.8485 24.6645 17.1765 25.0005 16.5792C25.3365 15.9818 25.7892 15.5105 26.3585 15.1652C26.9278 14.8198 27.5718 14.6472 28.2905 14.6472C28.8972 14.6472 29.4338 14.7685 29.9005 15.0112C30.3672 15.2538 30.7358 15.5898 31.0065 16.0192L30.7685 16.3832V11.7912H32.3365V22.3892H30.8385V20.8492L31.0205 21.1432C30.7592 21.6005 30.3858 21.9505 29.9005 22.1932C29.4152 22.4358 28.8832 22.5572 28.3045 22.5572ZM28.4585 21.0872C28.8972 21.0872 29.2892 20.9798 29.6345 20.7652C29.9892 20.5505 30.2645 20.2565 30.4605 19.8832C30.6658 19.5005 30.7685 19.0712 30.7685 18.5952C30.7685 18.1192 30.6658 17.6945 30.4605 17.3212C30.2645 16.9478 29.9892 16.6538 29.6345 16.4392C29.2892 16.2245 28.8972 16.1172 28.4585 16.1172C28.0198 16.1172 27.6232 16.2245 27.2685 16.4392C26.9138 16.6538 26.6385 16.9478 26.4425 17.3212C26.2465 17.6945 26.1485 18.1192 26.1485 18.5952C26.1485 19.0712 26.2465 19.5005 26.4425 19.8832C26.6385 20.2565 26.9092 20.5505 27.2545 20.7652C27.6092 20.9798 28.0105 21.0872 28.4585 21.0872Z" fill="white"/>
+</svg>
+''';
   static String securePayments = 'assets/images/png/securepayments.png';
   static String rbiCompliant = 'assets/images/png/rbicomplient.png';
   static String trustedBy = 'assets/images/png/trustedby.png';
