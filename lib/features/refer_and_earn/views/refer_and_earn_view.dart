@@ -10,7 +10,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../services/permission_service.dart';
@@ -28,16 +27,76 @@ import 'track_referrals_view.dart';
 double _figmaW(double px) => (px * 360 / 440).w;
 double _figmaH(double px) => (px * 690 / 956).h;
 double _figmaR(double px) => (px * 360 / 440).r;
+double _figmaSp(double px) => (px * 360 / 440).sp;
 
-/// Horizontal padding of the white content panel; the divider behind the
-/// "My Referral Earnings" pill bleeds by exactly this amount.
-double get _panelPadH => _figmaW(21);
+/// Brand orange shared with the bottom share bar.
+const Color _kOrange = Color(0xFFE85A2C);
+
+/// Figma `text-transform: capitalize`: upper-cases the first letter of every
+/// word and leaves the rest untouched.
+String _capitalizeWords(String text) => text
+    .split(' ')
+    .map((word) =>
+word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+    .join(' ');
+
+/// Dynamic avatar initials from a real contact name: the first character of
+/// the first and last word ("Aakanksha Patil" -> "AP", "Surpiya Ithappully
+/// Kerala" -> "SK"); a single-word name uses its first character ("Aannnya"
+/// -> "A"). Leading/trailing whitespace and repeated spaces are collapsed;
+/// empty or blank names safely return an empty string.
+String _initialsFor(String name) {
+  final words =
+      name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.isEmpty) return '';
+  if (words.length == 1) return words.first[0].toUpperCase();
+  return '${words.first[0]}${words.last[0]}'.toUpperCase();
+}
+
+/// Horizontal padding of the white content panel (Figma: 16); the divider
+/// behind the "My Referral Earnings" pill bleeds by exactly this amount.
+double get _panelPadH => _figmaW(16);
 
 /// Height the white panel pulls up over the hero; matches the white strip
 /// drawn by [ReferAndEarnAppBar] (36.h + 1) so no background peeks through.
 double get _heroOverlap => 37.h;
 
-/// Diagonal arrow used by both blue feature cards (verbatim Figma export).
+/// Figma: the characters' feet tuck slightly behind the top edge of the
+/// white panel so the artwork reads as attached to the card, not floating.
+double get _illustrationOverlap => _figmaH(10);
+
+/// Figma bottom bar shadows (CSS box-shadow, all pointing upwards).
+/// CSS blur radius == Flutter blurRadius, so values map 1:1.
+List<BoxShadow> get _bottomBarShadows => [
+  BoxShadow(
+    color: const Color(0x1ACFCFCF),
+    offset: Offset(0, -_figmaH(3)),
+    blurRadius: _figmaR(7),
+  ),
+  BoxShadow(
+    color: const Color(0x17CFCFCF),
+    offset: Offset(0, -_figmaH(13)),
+    blurRadius: _figmaR(13),
+  ),
+  BoxShadow(
+    color: const Color(0x0DCFCFCF),
+    offset: Offset(0, -_figmaH(29)),
+    blurRadius: _figmaR(17),
+  ),
+  BoxShadow(
+    color: const Color(0x03CFCFCF),
+    offset: Offset(0, -_figmaH(51)),
+    blurRadius: _figmaR(21),
+  ),
+  BoxShadow(
+    color: const Color(0x00CFCFCF),
+    offset: Offset(0, -_figmaH(80)),
+    blurRadius: _figmaR(22),
+  ),
+];
+
+/// Diagonal arrow used by both blue feature cards and the earnings pill
+/// (verbatim Figma export).
 const String _cardArrowSvg = '''
 <svg width="57" height="57" viewBox="0 0 57 57" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M27.2322 17.0934L41.6464 21.4612L37.2786 35.8754" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -52,7 +111,7 @@ class ReferAndEarnView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final contactsState = ref.watch(contactsCacheControllerProvider);
     final contactsController =
-        ref.read(contactsCacheControllerProvider.notifier);
+    ref.read(contactsCacheControllerProvider.notifier);
     final permissionService = useMemoized(() => const PermissionService());
     final hasPermission = useState<bool?>(null);
     final showInviteContacts =
@@ -75,127 +134,159 @@ class ReferAndEarnView extends HookConsumerWidget {
       return null;
     }, const []);
 
-    // Figma: the white panel starts 356 design-px below the status bar.
     final heroHeight =
-        MediaQuery.paddingOf(context).top + _figmaH(356) + _heroOverlap;
+        MediaQuery.paddingOf(context).top + _figmaH(260) + _heroOverlap;
 
     return Scaffold(
       backgroundColor: Colors.white,
+
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFFBF3EE),
-          border: Border(top: BorderSide(color: Color(0x14000000))),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: _bottomBarShadows,
         ),
         child: SafeArea(
           top: false,
           child: Padding(
             padding: EdgeInsets.fromLTRB(
-              _panelPadH,
-              _figmaH(12),
-              _panelPadH,
-              _figmaH(14),
+              _figmaW(16),
+              _figmaH(20),
+              _figmaW(16),
+              _figmaH(20),
             ),
-            child: const ReferralShareActions(),
+            child: SizedBox(
+              height: _figmaH(56),
+              child: const ReferralShareActions(),
+            ),
           ),
         ),
       ),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            ReferAndEarnAppBar(
-              title: 'Refer Friends & Earn Coins',
-              height: heroHeight,
-              body: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Earn E-Coins Lifetime',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20.sp,
+        child: SizedBox(
+          width: double.infinity,
+          // The panel overlaps the hero by [_heroOverlap]. A Stack (instead
+          // of Transform.translate) keeps the scroll extent exact, so the
+          // gap below the forever card is the Figma 30 and nothing more.
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ReferAndEarnAppBar(
+                title: 'Refer Friends & Earn Coins',
+                height: heroHeight,
+                // The body may extend [_illustrationOverlap] past the panel
+                // top so the characters sit slightly behind the card edge.
+                bottomReserve: _heroOverlap - _illustrationOverlap,
+                titleStyle: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: _figmaSp(19),
+                  letterSpacing: 0,
+                ),
+                body: Column(
+                  children: [
+                    // Small gap under the navigation row; the artwork is
+                    // anchored to the bottom of this space, so trimming the
+                    // old empty-heading placeholders lifts it towards the
+                    // AppBar without moving the card.
+                    SizedBox(height: _figmaH(12)),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: _figmaW(317)),
+                          child: AspectRatio(
+                            aspectRatio: 317 / 164,
+                            child: SvgPicture.asset(
+                              key: const ValueKey('refer-earn-hero'),
+                              FileConstants.referEarnHeroSvg,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
-                  ),
-                  SizedBox(height: _figmaH(26)),
-                  // Width-driven so the illustration keeps its native
-                  // aspect ratio; Flexible lets it shrink on short screens.
-                  Flexible(
-                    child: Image.asset(
-                      FileConstants.referAndEarn,
-                      width: _figmaW(300),
-                      fit: BoxFit.contain,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: heroHeight - _heroOverlap),
+                child: Container(
+                  key: const ValueKey('refer-earn-panel'),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(_figmaR(26)),
                     ),
                   ),
-                ],
-              ),
-            ),
-            Transform.translate(
-              offset: Offset(0, -_heroOverlap),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(_figmaR(26)),
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    _panelPadH,
-                    _figmaH(20),
-                    _panelPadH,
-                    _figmaH(28),
-                  ),
-                  child: Column(
-                    children: [
-                      _ReferSummarySection(),
-                      SizedBox(height: _figmaH(26)),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ActionMiniCard(
-                              title: 'Track Your\nReferrals',
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const TrackReferralsView(),
-                                  ),
-                                );
-                              },
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: _figmaH(28),
+                      bottom: _figmaH(30),
+                    ),
+                    child: Column(
+                      children: [
+                        _PanelPadding(child: _ReferSummarySection()),
+                        SizedBox(height: _figmaH(27)),
+                        _PanelPadding(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _ActionMiniCard(
+                                  title: 'Track Your\nReferrals',
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                        const TrackReferralsView(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: _figmaW(15)),
+                              Expanded(
+                                child: _ActionMiniCard(
+                                  title: 'How It\nWorks ?',
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                        const ReferralWorksView(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (showInviteContacts) ...[
+                          SizedBox(height: _figmaH(28)),
+                          _PanelPadding(
+                            child: _InviteContactsHeader(
+                              onViewAll: () => _openContactSheet(context),
                             ),
                           ),
-                          SizedBox(width: _figmaW(14)),
-                          Expanded(
-                            child: _ActionMiniCard(
-                              title: 'How It\nWorks ?',
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const ReferralWorksView(),
-                                  ),
-                                );
-                              },
-                            ),
+                          // Figma: title centre to circle top is ~37.
+                          SizedBox(height: _figmaH(27)),
+                          // Figma: four equal columns that span the whole
+                          // 440 frame (circle centres ~55/165/275/385).
+                          _ContactsRow(
+                            contacts: contactsState.contacts,
+                            onInviteTap: () => _openContactSheet(context),
                           ),
                         ],
-                      ),
-                      if (showInviteContacts) ...[
-                        SizedBox(height: _figmaH(30)),
-                        const _SectionTitle('Invite Contacts'),
-                        SizedBox(height: _figmaH(16)),
-                        _ContactsRow(
-                          contacts: contactsState.contacts,
-                          onInviteTap: () => _openContactSheet(context),
-                        ),
+                        // Figma: 29 between the contact names and the card.
+                        SizedBox(height: _figmaH(29)),
+                        // Figma: full-bleed block, no side margin, no radius.
+                        _ReferForeverCard(),
                       ],
-                      SizedBox(height: _figmaH(24)),
-                      _ReferForeverCard(),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -231,6 +322,22 @@ class ReferAndEarnView extends HookConsumerWidget {
   }
 }
 
+/// Applies the panel's horizontal padding to a single section so the
+/// contacts row and the forever card can use their own side margins.
+class _PanelPadding extends HookWidget {
+  const _PanelPadding({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _panelPadH),
+      child: child,
+    );
+  }
+}
+
 class _ReferSummarySection extends HookWidget {
   @override
   Widget build(BuildContext context) {
@@ -240,23 +347,28 @@ class _ReferSummarySection extends HookWidget {
           'Refer & Earn Lifetime',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 16.sp,
-              ),
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: _figmaSp(21),
+            letterSpacing: 0,
+          ),
         ),
-        SizedBox(height: _figmaH(8)),
+        SizedBox(height: _figmaH(10)),
         Text(
           'Refer Once, Earn Rewards For A Lifetime.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textPrimary.withOpacity(0.6),
-                fontSize: 14.sp,
-              ),
+            color: Colors.black.withOpacity(0.55),
+            fontWeight: FontWeight.w400,
+            fontSize: _figmaSp(14),
+            letterSpacing: 0,
+          ),
         ),
-        SizedBox(height: _figmaH(22)),
+        SizedBox(height: _figmaH(26)),
         // Figma: a hairline runs edge to edge behind the pill, crossing it
-        // through its vertical centre.
+        // through its vertical centre. The full-width SizedBox makes the
+        // Stack as wide as the panel content, so the Positioned line can
+        // bleed by exactly the panel padding on both sides.
         Stack(
           alignment: Alignment.center,
           clipBehavior: Clip.none,
@@ -270,15 +382,20 @@ class _ReferSummarySection extends HookWidget {
                 child: Container(
                   height: 1,
                   width: double.infinity,
-                  color: AppColors.lightBorder.withOpacity(0.6),
+                  color: const Color(0xFFE6E6E6),
                 ),
               ),
             ),
-            _PrimaryPillButton(
-              label: 'My Referral Earnings',
-              onTap: () {
-                context.push(RouteConstants.referAndEarnWallet);
-              },
+            SizedBox(
+              width: double.infinity,
+              child: Center(
+                child: _PrimaryPillButton(
+                  label: 'My Referral Earnings',
+                  onTap: () {
+                    context.push(RouteConstants.referAndEarnWallet);
+                  },
+                ),
+              ),
             ),
           ],
         ),
@@ -298,25 +415,27 @@ class _PrimaryPillButton extends HookWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: _figmaW(26),
-          vertical: _figmaH(16),
+        padding: EdgeInsets.fromLTRB(
+          _figmaW(24),
+          _figmaH(12),
+          _figmaW(22),
+          _figmaH(12),
         ),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF0C5AA6), Color(0xFF154A8C)],
+            colors: [Color(0xFF06458F), Color(0xFF053C80)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          borderRadius: BorderRadius.circular(_figmaR(30)),
+          borderRadius: BorderRadius.circular(_figmaR(40)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
               FileConstants.coin_3d,
-              width: _figmaW(24),
-              height: _figmaW(24),
+              width: _figmaW(25),
+              height: _figmaW(25),
             ),
             SizedBox(width: _figmaW(10)),
             Flexible(
@@ -325,17 +444,18 @@ class _PrimaryPillButton extends HookWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15.sp,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: _figmaSp(15.5),
+                  letterSpacing: 0,
+                ),
               ),
             ),
-            SizedBox(width: _figmaW(12)),
-            Icon(
-              Icons.arrow_outward,
-              color: Colors.white,
-              size: _figmaR(18),
+            SizedBox(width: _figmaW(3)),
+            SvgPicture.string(
+              _cardArrowSvg,
+              width: _figmaW(30),
+              height: _figmaW(30),
             ),
           ],
         ),
@@ -356,38 +476,41 @@ class _ActionMiniCard extends HookWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(_figmaR(16)),
       child: Container(
-        height: _figmaH(110),
-        padding: EdgeInsets.symmetric(horizontal: _figmaW(18)),
+        height: _figmaH(114),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF2C64A5), Color(0xFF154A8C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [Color(0xFF2F68B0), Color(0xFF1B3A66)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
           borderRadius: BorderRadius.circular(_figmaR(16)),
         ),
         child: Stack(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
+            // Figma: the title sits in the lower-left of the card.
+            Positioned(
+              left: _figmaW(22),
+              bottom: _figmaH(18),
               child: Text(
                 title,
                 maxLines: 2,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15.sp,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: _figmaSp(16),
+                  height: 1.3,
+                  letterSpacing: 0,
+                ),
               ),
             ),
             // Figma: the thin diagonal arrow sits in the bottom-right corner.
             Positioned(
               right: _figmaW(12),
-              bottom: _figmaH(14),
+              bottom: _figmaH(4),
               child: SvgPicture.string(
                 _cardArrowSvg,
-                width: _figmaW(40),
-                height: _figmaW(40),
+                width: _figmaW(57),
+                height: _figmaW(57),
               ),
             ),
           ],
@@ -397,31 +520,59 @@ class _ActionMiniCard extends HookWidget {
   }
 }
 
-class _SectionTitle extends HookWidget {
-  const _SectionTitle(this.text);
+/// "Invite Contacts" title on the left and the "View all" link on the right.
+/// "View all" opens the full contact sheet.
+class _InviteContactsHeader extends HookWidget {
+  const _InviteContactsHeader({required this.onViewAll});
 
-  final String text;
+  final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            'Invite Contacts',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Colors.black,
-              fontWeight: FontWeight.w700,
-              fontSize: 17.sp,
+              fontWeight: FontWeight.w600,
+              fontSize: _figmaSp(16),
+              letterSpacing: 0,
             ),
-      ),
+          ),
+        ),
+        GestureDetector(
+          onTap: onViewAll,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            // Larger tap area without changing the visual position.
+            padding: EdgeInsets.symmetric(
+              vertical: _figmaH(6),
+              horizontal: _figmaW(4),
+            ),
+            child: Text(
+              'View all',
+              maxLines: 1,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: _kOrange,
+                fontWeight: FontWeight.w600,
+                fontSize: _figmaSp(14),
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 /// Figma row: up to three real contacts plus an "Invite Contact" tile that
-/// opens the full contact sheet (replaces the old "View all" link).
+/// opens the full contact sheet.
 class _ContactsRow extends HookWidget {
   const _ContactsRow({required this.contacts, required this.onInviteTap});
 
@@ -462,6 +613,10 @@ class _ContactsRow extends HookWidget {
   }
 }
 
+/// Grey circle (Figma 50) with the contact's dynamic initials centred in
+/// it, and the name below. Name typography from Figma: SemiBold 600, 10px,
+/// line-height 100%, 0% letter-spacing, centred, capitalised, #000000.
+/// The invite tile keeps the plain circle (it is not a real contact).
 class _ContactTile extends HookWidget {
   const _ContactTile({
     required this.name,
@@ -473,16 +628,11 @@ class _ContactTile extends HookWidget {
   final VoidCallback onTap;
   final bool isInvite;
 
-  String get _initials => name
-      .split(' ')
-      .where((part) => part.isNotEmpty)
-      .take(2)
-      .map((e) => e[0])
-      .join();
-
   @override
   Widget build(BuildContext context) {
     final circleSize = _figmaW(50);
+    final initials = isInvite ? '' : _initialsFor(name);
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -492,40 +642,41 @@ class _ContactTile extends HookWidget {
           Container(
             width: circleSize,
             height: circleSize,
+            alignment: Alignment.center,
             decoration: const BoxDecoration(
-              color: Color(0xFFD9D9D9),
+              color: Color(0x26DD5428),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: isInvite
-                  ? Icon(
-                      Icons.person_add_alt,
-                      color: Colors.white,
-                      size: _figmaR(24),
-                    )
-                  : Text(
-                      _initials.toUpperCase(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12.sp,
-                            color: AppColors.textPrimary.withOpacity(0.55),
-                          ),
-                    ),
+            child: initials.isEmpty
+                ? null
+                : Text(
+              initials,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFDD5428),
+                fontWeight: FontWeight.w600,
+                fontSize: _figmaSp(15),
+                height: 1.0,
+                letterSpacing: 0,
+              ),
             ),
           ),
-          SizedBox(height: _figmaH(10)),
+          SizedBox(height: _figmaH(11)),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: _figmaW(3)),
+            padding: EdgeInsets.symmetric(horizontal: _figmaW(18)),
             child: Text(
-              name,
+              _capitalizeWords(name),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12.sp,
-                  ),
+                color: const Color(0xFF000000),
+                fontWeight: FontWeight.w600,
+                fontSize: _figmaSp(10),
+                height: 1.0,
+                letterSpacing: 0,
+              ),
             ),
           ),
         ],
@@ -534,46 +685,49 @@ class _ContactTile extends HookWidget {
   }
 }
 
+/// Figma: full bleed, ~173 high. Padding top 31 / bottom 29 / sides 16, with
+/// 9 between the 28px-line title and the 25px-line body (three lines).
 class _ReferForeverCard extends HookWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: _figmaW(16),
-        vertical: _figmaH(14),
+      padding: EdgeInsets.fromLTRB(
+        _figmaW(16),
+        _figmaH(31),
+        _figmaW(16),
+        _figmaH(29),
       ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFDEFE8),
-        borderRadius: BorderRadius.circular(_figmaR(16)),
-      ),
+      color: const Color(0xFFFDF3EF),
       child: Column(
         children: [
           Text(
-            // Figma typography: Bold 700, 14px, 28px line-height (200%),
-            // 0% letter-spacing, centred, capitalised.
+            // Figma: 600 weight, 28px line-height, 0% letter-spacing,
+            // centred, capitalised.
             'Refer Once, Earn Forever',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14.sp,
-                  height: 28 / 14,
-                ),
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+              fontSize: _figmaSp(16),
+              height: 28 / 16,
+              letterSpacing: 0,
+            ),
           ),
-          SizedBox(height: _figmaH(4)),
+          SizedBox(height: _figmaH(9)),
           Text(
-            // Figma typography: Regular 400, 12px, 25px line-height,
-            // 0% letter-spacing, centred, capitalised.
+            // Figma: Regular 400, 25px line-height, 0% letter-spacing,
+            // centred, capitalised.
             'Refer Once And Earn Coins Every Time Your Friend Spends In '
-            'The App. Use Your Coins Like Real Money For Payments Anytime.',
+                'The App. Use Your Coins Like Real Money For Payments Anytime.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary.withOpacity(0.7),
-                  fontWeight: FontWeight.w400,
-                  fontSize: 12.sp,
-                  height: 25 / 12,
-                ),
+              color: Colors.black,
+              fontWeight: FontWeight.w400,
+              fontSize: _figmaSp(14),
+              height: 25 / 14,
+              letterSpacing: 0,
+            ),
           ),
         ],
       ),

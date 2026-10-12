@@ -12,6 +12,8 @@ class ReferAndEarnAppBar extends HookWidget {
     this.onHelp,
     this.height,
     this.body,
+    this.titleStyle,
+    this.bottomReserve,
   });
 
   final String title;
@@ -26,6 +28,13 @@ class ReferAndEarnAppBar extends HookWidget {
   /// the bar never covers it. Only used by the Refer & Earn home view.
   final Widget? body;
 
+  /// Optional override merged over the default title style.
+  final TextStyle? titleStyle;
+
+  /// Already ScreenUtil-scaled space kept free at the bottom of [body].
+  /// Omitted uses the 52 design-unit default once.
+  final double? bottomReserve;
+
   @override
   Widget build(BuildContext context) {
     final barHeight = height ?? 320.h;
@@ -38,7 +47,7 @@ class ReferAndEarnAppBar extends HookWidget {
               FileConstants.bluebg,
               fit: BoxFit.cover,
               cacheWidth: (MediaQuery.sizeOf(context).width *
-                      MediaQuery.devicePixelRatioOf(context))
+                  MediaQuery.devicePixelRatioOf(context))
                   .round()
                   .clamp(1, 4096),
             ),
@@ -63,13 +72,13 @@ class ReferAndEarnAppBar extends HookWidget {
               children: [
                 Padding(
                   padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                  EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                   child: Row(
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed:
-                            onBack ?? () => Navigator.of(context).maybePop(),
+                        onBack ?? () => Navigator.of(context).maybePop(),
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
@@ -77,11 +86,14 @@ class ReferAndEarnAppBar extends HookWidget {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          )
+                              .merge(titleStyle),
                         ),
                       ),
                       IconButton(
@@ -96,7 +108,7 @@ class ReferAndEarnAppBar extends HookWidget {
                     child: Padding(
                       // Reserve space for the white strip plus the panel that
                       // is translated up over the bar by the owning view.
-                      padding: EdgeInsets.only(bottom: 52.h),
+                      padding: EdgeInsets.only(bottom: bottomReserve ?? 52.h),
                       child: body!,
                     ),
                   ),

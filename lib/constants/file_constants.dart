@@ -259,6 +259,9 @@ class FileConstants {
   static String bluebg = 'assets/images/png/bluebg.png';
   static String arrow = 'assets/images/png/arrow.png';
   static String referAndEarn = 'assets/images/png/referearn.png';
+  // Refer & Earn hero artwork (girl + boy with coins), intrinsic 317 x 164.
+  static String referEarnHeroSvg =
+      'assets/images/svg/refer_and_earn_hero.svg';
   static String coin_3d = 'assets/images/png/3dcoin.png';
   static String coin_100_svg = 'assets/images/svg/coin_100.svg';
   static String myTeam = 'assets/images/png/my_team.png';
