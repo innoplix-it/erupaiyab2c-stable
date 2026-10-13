@@ -4,18 +4,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
+import '../../../constants/routes_constant.dart';
 import '../../../helpers/kyc_helpers.dart';
 import '../../../services/device_id_service.dart';
 import '../../../utils/utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
+import '../../../widgets/my_app_bar.dart';
 import '../../auth/components/pin_input_row.dart';
 import '../../profile/controllers/profile_controller.dart';
+import '../../refer_and_earn/components/referral_share_actions.dart';
 import '../../refer_and_earn/views/add_bank_account_view.dart';
 import '../repositories/kyc_repository.dart';
 
@@ -228,62 +232,51 @@ class KycVerificationView extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).maybePop(),
+      appBar: MyAppBar(
+        // Hide the built-in Bharat Connect + help row and supply only the
+        // help icon via [trailing], so this screen shows no Bharat Connect
+        // logo while keeping the ? route to Help & Support.
+        showHelp: false,
+        trailing: IconButton(
+          onPressed: () => context.push(RouteConstants.helpSupport),
+          icon: const Icon(Icons.help_outline, color: AppColors.textPrimary),
         ),
-        title: Text(
-          step.value == _KycStep.complete
-              ? 'KYC Completed'
-              : 'Identity Verification',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.help_outline, color: AppColors.textPrimary),
-          ),
-        ],
+        title: step.value == _KycStep.complete
+            ? 'KYC Completed'
+            : 'Identity Verification',
       ),
-      bottomNavigationBar: step.value == _KycStep.complete
-          ? SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
-                child: CustomElevatedButton(
-                  label: 'Back To Home',
-                  uppercaseLabel: false,
-                  height: 42.h,
-                  onPressed: () async {
-                    await ref
-                        .read(profileControllerProvider.notifier)
-                        .fetchProfile();
-                    navigatorKey.currentState
-                        ?.popUntil((route) => route.isFirst);
-                  },
-                ),
-              ),
-            )
-          : SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
-                child: CustomElevatedButton(
-                  label: step.value == _KycStep.pan
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Consent row is pinned to the bottom (just above the shared
+          // footer) instead of scrolling with the step content.
+          if (step.value != _KycStep.complete)
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+              child: _ConsentRow(),
+            ),
+          // Reuse the Refer & Earn bottom bar; on this screen it holds only
+          // the single verify/back button (no WhatsApp + share actions).
+          ReferralShareFooter(
+            child: CustomElevatedButton(
+              label: step.value == _KycStep.complete
+                  ? 'Back To Home'
+                  : step.value == _KycStep.pan
                       ? 'Verify PAN'
                       : otpSent.value
                           ? 'Verify OTP'
                           : 'Verify Aadhaar',
-                  uppercaseLabel: false,
-                  height: 42.h,
-                  onPressed: (isVerifyingPan.value ||
+              uppercaseLabel: false,
+              height: double.infinity,
+              onPressed: step.value == _KycStep.complete
+                  ? () async {
+                      await ref
+                          .read(profileControllerProvider.notifier)
+                          .fetchProfile();
+                      navigatorKey.currentState
+                          ?.popUntil((route) => route.isFirst);
+                    }
+                  : (isVerifyingPan.value ||
                           isSendingOtp.value ||
                           isVerifyingOtp.value)
                       ? null
@@ -292,12 +285,13 @@ class KycVerificationView extends HookConsumerWidget {
                           : otpSent.value
                               ? verifyOtp
                               : sendAadhaarOtp,
-                ),
-              ),
             ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -307,7 +301,7 @@ class KycVerificationView extends HookConsumerWidget {
                   panDone: panDone.value,
                   aadhaarDone: aadhaarDone.value,
                 ),
-                SizedBox(height: 18.h),
+                SizedBox(height: 22.h),
               ],
               if (step.value == _KycStep.pan)
                 _PanStep(
@@ -341,10 +335,6 @@ class KycVerificationView extends HookConsumerWidget {
                       ? maskedAadhaar.value
                       : aadhaarController.text,
                 ),
-              if (step.value != _KycStep.complete) ...[
-                SizedBox(height: 12.h),
-                _ConsentRow(),
-              ],
             ],
           ),
         ),
@@ -370,27 +360,32 @@ class _KycStepHeader extends HookWidget {
   Widget build(BuildContext context) {
     final stepIndex = _stepIndex(currentStep);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _StepIndicator(
           label: 'PAN',
           active: stepIndex >= 0,
           completed: panDone,
           index: 1,
+          showRight: true,
+          rightActive: stepIndex >= 1,
         ),
-        _StepLine(active: stepIndex >= 1),
         _StepIndicator(
           label: 'Aadhaar',
           active: stepIndex >= 1,
           completed: aadhaarDone,
           index: 2,
+          showLeft: true,
+          showRight: true,
+          leftActive: stepIndex >= 1,
+          rightActive: stepIndex >= 2,
         ),
-        _StepLine(active: stepIndex >= 2),
         _StepIndicator(
           label: 'Complete',
           active: stepIndex >= 2,
           completed: currentStep == _KycStep.complete,
           index: 3,
+          showLeft: true,
+          leftActive: stepIndex >= 2,
         ),
       ],
     );
@@ -408,71 +403,97 @@ int _stepIndex(_KycStep step) {
   }
 }
 
+/// One step in the KYC progress row. Each step is an equal-width slot: the
+/// circle sits centred at the top and the connector lines are drawn as the
+/// half-segments to its left/right, vertically centred on the circle so they
+/// meet the circle edge-to-edge. A segment's two halves share the same active
+/// flag, so adjacent steps always agree on its colour.
 class _StepIndicator extends HookWidget {
   const _StepIndicator({
     required this.label,
     required this.active,
     required this.completed,
     required this.index,
+    this.showLeft = false,
+    this.showRight = false,
+    this.leftActive = false,
+    this.rightActive = false,
   });
 
   final String label;
   final bool active;
   final bool completed;
   final int index;
+  final bool showLeft;
+  final bool showRight;
+  final bool leftActive;
+  final bool rightActive;
 
   @override
   Widget build(BuildContext context) {
     const activeColor = Color(0xFFE85A2C);
+    final circleSize = 26.w;
     final borderColor = completed || active ? activeColor : Colors.black12;
     final textColor = completed || active
         ? AppColors.textPrimary
         : AppColors.textPrimary.withOpacity(0.45);
-    return Column(
-      children: [
-        Container(
-          width: 26.w,
-          height: 26.w,
-          decoration: BoxDecoration(
-            color: completed ? activeColor : Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: borderColor),
-          ),
-          alignment: Alignment.center,
-          child: completed
-              ? Icon(Icons.check, size: 14.r, color: Colors.white)
-              : Text(
-                  index.toString(),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: active ? activeColor : textColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-        ),
-        SizedBox(height: 6.h),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StepLine extends HookWidget {
-  const _StepLine({required this.active});
-
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        height: 2.h,
-        color: active ? const Color(0xFFE85A2C) : Colors.black12,
+      child: Column(
+        children: [
+          SizedBox(
+            height: circleSize,
+            child: Row(
+              children: [
+                Expanded(
+                  child: showLeft
+                      ? Container(
+                          height: 2.h,
+                          color: leftActive ? activeColor : Colors.black12,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                Container(
+                  width: circleSize,
+                  height: circleSize,
+                  decoration: BoxDecoration(
+                    color: completed ? activeColor : Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: borderColor),
+                  ),
+                  alignment: Alignment.center,
+                  child: completed
+                      ? Icon(Icons.check, size: 14.r, color: Colors.white)
+                      : Text(
+                          index.toString(),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: active ? activeColor : textColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                ),
+                Expanded(
+                  child: showRight
+                      ? Container(
+                          height: 2.h,
+                          color: rightActive ? activeColor : Colors.black12,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            label,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
       ),
     );
   }
@@ -891,7 +912,7 @@ class _PanLogoRow extends HookWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFE6F1FF),
+        color: const Color(0xFFDAEEFF),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
@@ -905,11 +926,11 @@ class _PanLogoRow extends HookWidget {
               Image.asset(FileConstants.govtindia, height: 22.h),
             ],
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 20.h),
           Text(
             'PAN Card Number',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary.withOpacity(0.7),
+                  color: const Color(0xFF000000),
                   fontWeight: FontWeight.w600,
                 ),
           ),
@@ -1052,8 +1073,10 @@ InputDecoration _inputDecoration(String hint) {
   return InputDecoration(
     hintText: hint,
     hintStyle: TextStyle(
+      fontFamily: 'Plus Jakarta Sans',
+      fontSize: 12.sp,
       color: AppColors.textPrimary.withOpacity(0.4),
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w500,
     ),
     filled: true,
     fillColor: Colors.white,

@@ -61,6 +61,23 @@ const String _surpriseSvg = '''
 </svg>
 ''';
 
+/// Spin & Win timing contract, measured from the actual cue asset rather than
+/// assumed. `assets/sounds/spinand2winsound.mp3.mpeg` is 239 MPEG-1 Layer III
+/// frames x 1152 samples at 48kHz = 5736ms (confirmed by `afinfo`). Re-measure
+/// with `afinfo` whenever the cue is replaced, otherwise the popup lands on the
+/// wrong part of the sound.
+const int kSpinCueDurationMs = 5736;
+
+/// How much of the cue must still be audible after the wheel stops, so the
+/// result popup arrives together with the sound's tail.
+const int kSpinPopupTailMs = 2000;
+
+/// Wheel rotation length, derived from the cue: 5736ms - 2000ms = 3736ms. The
+/// cue is started once at the tap and never restarted, so the wheel stops while
+/// the final 2 seconds are still playing. See `SpinSoundController`.
+const Duration kSpinWheelDuration =
+    Duration(milliseconds: kSpinCueDurationMs - kSpinPopupTailMs);
+
 class SpinWheel extends StatelessWidget {
   const SpinWheel({
     super.key,

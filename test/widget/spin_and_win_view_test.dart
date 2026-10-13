@@ -3,6 +3,7 @@ import 'package:e_rupaiya/features/profile/models/profile_model.dart';
 import 'package:e_rupaiya/features/profile/models/profile_state.dart';
 import 'package:e_rupaiya/features/profile/repositories/profile_repository.dart';
 import 'package:e_rupaiya/features/spinandear/controllers/spin_options_controller.dart';
+import 'package:e_rupaiya/features/spinandear/helpers/spin_sound_controller.dart';
 import 'package:e_rupaiya/features/spinandear/models/spin_options_state.dart';
 import 'package:e_rupaiya/features/spinandear/repositories/spin_repository.dart';
 import 'package:e_rupaiya/features/spinandear/views/spin_and_win_view.dart';
@@ -70,6 +71,25 @@ ProfileModel _makeProfile({required int spins}) {
     mobile: '9876543210',
     normalSpinRemaining: spins,
   );
+}
+
+/// Captures the cues the screen triggers so spin audio can be asserted without
+/// a real audio platform.
+class _RecordingSpinAudio implements SpinAudioPlayer {
+  final List<String> plays = [];
+  int stopCount = 0;
+
+  @override
+  Future<void> disableLooping() async {}
+
+  @override
+  Future<void> stop() async => stopCount++;
+
+  @override
+  Future<void> play(String asset) async => plays.add(asset);
+
+  @override
+  Future<void> dispose() async {}
 }
 
 Widget _buildTestApp({
@@ -505,6 +525,70 @@ void main() {
       expect(find.text('199'), findsNothing);
       expect(find.text('1999'), findsOneWidget);
 
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Spin sound trigger', () {
+    late _RecordingSpinAudio audio;
+
+    setUp(() {
+      SpinSoundController.reset();
+      audio = _RecordingSpinAudio();
+      SpinSoundController.playerFactory = () => audio;
+    });
+
+    tearDown(() {
+      SpinSoundController.reset();
+    });
+
+    testWidgets(
+        'tapping Spin The Wheel starts the cue exactly once, from the beginning',
+        (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Spin The Wheel'));
+      await tester.pump();
+
+      // handleSpin reached the cue call (button flips to "Spinning...") and
+      // started the full clip once, with no seek/replay. The stop happens
+      // before the play, which is what keeps two cues from overlapping.
+      expect(find.text('Spinning...'), findsOneWidget);
+      expect(audio.plays, [SpinSoundController.asset]);
+      expect(audio.stopCount, 1);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'a single spin does not duplicate the cue across rebuilds',
+        (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Spin The Wheel'));
+      // Spin several frames well past the point the cue would have been
+      // re-issued; the button is also disabled while spinning.
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      expect(audio.plays, hasLength(1));
+      expect(find.text('Spinning...'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

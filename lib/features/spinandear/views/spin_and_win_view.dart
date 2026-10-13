@@ -21,6 +21,7 @@ import '../../profile/controllers/profile_controller.dart';
 import '../components/spin_result_popup.dart';
 import '../components/spin_wheel.dart';
 import '../controllers/spin_options_controller.dart';
+import '../helpers/spin_sound_controller.dart';
 import '../models/spin_reward.dart';
 import '../repositories/spin_repository.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -86,7 +87,7 @@ class SpinAndWinView extends HookConsumerWidget {
     final rng = useMemoized(() => math.Random());
     final targetRotation = useState(0.0);
     final controller = useAnimationController(
-      duration: const Duration(milliseconds: 2800),
+      duration: kSpinWheelDuration,
     );
     final animation = useMemoized(
       () => CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
@@ -113,7 +114,8 @@ class SpinAndWinView extends HookConsumerWidget {
           profileController.fetchProfile();
         }
       });
-      return null;
+      // Release the spin cue's player with the screen.
+      return SpinSoundController.dispose;
     }, const []);
 
     Future<void> handleSpin() async {
@@ -136,6 +138,12 @@ class SpinAndWinView extends HookConsumerWidget {
       }
       if (rewards.isEmpty) return;
       isSpinning.value = true;
+
+      // Start the 5736ms cue exactly once, right here at the tap. Its first
+      // 3736ms run under the wheel (kSpinWheelDuration) and its final 2000ms
+      // are still playing when the wheel stops and the result popup appears,
+      // so the popup never gets a second, overlapping or replayed sound.
+      SpinSoundController.playOnSpin();
 
       final currentRewards = rewards;
       final targetIndex = rng.nextInt(currentRewards.length);
@@ -258,14 +266,7 @@ class SpinAndWinView extends HookConsumerWidget {
         backgroundColor: Colors.transparent,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            // Figma: the wheel is 320px inside a 440px-wide frame (~0.727 of
-            // the viewport). Derive it from the available width so the same
-            // proportion is preserved on every device. Clamp by height for
-            // short screens and cap so it never grows past the ~320 reference
-            // on large/tablet widths. This is a pure structural width ratio
-            // (MediaQuery/LayoutBuilder) — deliberately NOT `320.w`, because
-            // the 360 design width makes `.w` scale UP past Figma on >=412
-            // devices.
+
             final wheelSize = math.min(
               constraints.maxWidth * 0.72,
               math.min(constraints.maxHeight * 0.42, 340.0),
