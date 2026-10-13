@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
@@ -15,14 +16,29 @@ import '../../kyc/views/kyc_verification_view.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../../profile/repositories/bank_accounts_repository.dart';
 import '../components/refer_and_earn_app_bar.dart';
+import '../components/referral_share_actions.dart';
 import '../repositories/referral_wallet_repository.dart';
 import 'add_bank_account_view.dart';
 
 class WithdrawECoinsView extends HookConsumerWidget {
-  const WithdrawECoinsView({super.key, required this.walletBalance});
+  const WithdrawECoinsView({
+    super.key,
+    required this.walletBalance,
+  });
 
   final String walletBalance;
+
   static const int minimumWithdrawCoins = 100;
+
+  static const Color _orange = Color(0xFFE85A2C);
+  static const Color _grey = Color(0xFF7C7C7C);
+
+  static const double _headerHeight = 256;
+
+  /// Gap between "Current Balance" and the glass pill.
+  static const double _badgeTopGap = 22;
+
+  static const double _badgeBottomGap = 16;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -93,72 +109,46 @@ class WithdrawECoinsView extends HookConsumerWidget {
       selectedPercent.value = _matchPercent(clamped, totalBalance);
     }
 
+    Future<void> handleWithdrawTap() async {
+      final isKycVerified = profileState.profile?.isKycVerified == true;
+      if (!isKycVerified) {
+        AppSnackbar.show('Complete your KYC before withdrawing E-Coins.');
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const KycVerificationView()),
+        );
+        if (!context.mounted) return;
+        await ref
+            .read(profileControllerProvider.notifier)
+            .fetchProfileIfNeeded(force: true);
+        return;
+      }
+      if (isFetchingBanks.value) return;
+      await loadBanks();
+      if (bankAccounts.value.isEmpty) {
+        if (!context.mounted) return;
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AddBankAccountView()),
+        );
+        if (!context.mounted) return;
+        await loadBanks();
+        return;
+      }
+      KDialog.instance.openSheet(
+        dialog: _WithdrawConfirmSheet(
+          amount: amount.value,
+          accounts: bankAccounts.value,
+        ),
+      );
+    }
+
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
-        child: SafeArea(
-          top: false,
-          child: InkWell(
-            onTap: !canWithdraw
-                ? null
-                : () async {
-                    final isKycVerified =
-                        profileState.profile?.isKycVerified == true;
-                    if (!isKycVerified) {
-                      AppSnackbar.show(
-                        'Complete your KYC before withdrawing E-Coins.',
-                      );
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const KycVerificationView(),
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      await ref
-                          .read(profileControllerProvider.notifier)
-                          .fetchProfileIfNeeded(force: true);
-                      return;
-                    }
-                    if (isFetchingBanks.value) return;
-                    await loadBanks();
-                    if (bankAccounts.value.isEmpty) {
-                      if (!context.mounted) return;
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AddBankAccountView(),
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      await loadBanks();
-                      return;
-                    }
-                    KDialog.instance.openSheet(
-                      dialog: _WithdrawConfirmSheet(
-                        amount: amount.value,
-                        accounts: bankAccounts.value,
-                      ),
-                    );
-                  },
-            borderRadius: BorderRadius.circular(28.r),
-            child: Container(
-              height: 42.h,
-              decoration: BoxDecoration(
-                color: !canWithdraw
-                    ? const Color(0xFFE85A2C).withOpacity(0.5)
-                    : const Color(0xFFE85A2C),
-                borderRadius: BorderRadius.circular(28.r),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Withdraw Now',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ),
-          ),
+      bottomNavigationBar: ReferralShareFooter(
+        child: _WithdrawButton(
+          enabled: canWithdraw,
+          onTap: handleWithdrawTap,
         ),
       ),
       body: SingleChildScrollView(
@@ -166,55 +156,46 @@ class WithdrawECoinsView extends HookConsumerWidget {
           children: [
             ReferAndEarnAppBar(
               title: 'Withdraw E-Coins',
-              height: 300.h,
+              centerTitle: true,
+              height: _headerHeight.h,
               body: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Center(
-                        child: Image.asset(
-                          FileConstants.coin_3d,
-                          width: 30.w,
-                          height: 30.w,
-                        ),
+                      Image.asset(
+                        FileConstants.coin_3d,
+                        width: 32.w,
+                        height: 32.w,
                       ),
                       SizedBox(width: 8.w),
                       Text(
                         _formatAmount(totalBalanceDouble),
-                        style:
-                            Theme.of(context).textTheme.headlineLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                        style: textTheme.bodySmall?.copyWith(
+                          fontSize: 34.sp,
+                          color: Colors.white,
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: FontWeight.w800,
+                          height: 1.0,
+                          letterSpacing: 0,
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 8.h),
                   Text(
                     'Current Balance',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  SizedBox(height: 12.h),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(18.r),
-                      border: Border.all(color: Colors.white.withOpacity(0.4)),
-                    ),
-                    child: Text(
-                      '1 = ₹1 | Get Real Cash Instant',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12.sp,
+                      height: 1.3,
+                      letterSpacing: 0.24,
                     ),
                   ),
+                  SizedBox(height: _badgeTopGap.h),
+                  const _CoinRateBadge(),
+                  SizedBox(height: _badgeBottomGap.h),
                 ],
               ),
             ),
@@ -228,28 +209,38 @@ class WithdrawECoinsView extends HookConsumerWidget {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 12.h),
+                  padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 4.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Enter Coins',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: textTheme.titleSmall?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       SizedBox(height: 12.h),
                       TextField(
                         controller: controller,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
                         onChanged: handleAmountChange,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF000000),
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          height: 1.0,
+                          letterSpacing: 0,
+                        ),
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.symmetric(
-                              horizontal: 14.w, vertical: 12.h),
+                            horizontal: 14.w,
+                            vertical: 14.h,
+                          ),
                           prefixIcon: Padding(
                             padding: EdgeInsets.only(left: 12.w, right: 8.w),
                             child: Image.asset(
@@ -263,11 +254,13 @@ class WithdrawECoinsView extends HookConsumerWidget {
                             minHeight: 32.w,
                           ),
                           suffixText: 'Coins',
-                          suffixStyle:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          suffixStyle: textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF000000),
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            height: 1.0,
+                            letterSpacing: 0,
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14.r),
                             borderSide:
@@ -284,57 +277,46 @@ class WithdrawECoinsView extends HookConsumerWidget {
                         SizedBox(height: 8.h),
                         Text(
                           'Enter at least 100 E-Coins to withdraw.',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: Colors.red,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                       SizedBox(height: 8.h),
                       Text(
                         'Min: $minimumWithdrawCoins Coins | Max: ${_formatAmount(totalBalanceDouble)} Coins',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textPrimary.withOpacity(0.6),
-                            ),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: _grey,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w400,
+                          height: 1.0,
+                          letterSpacing: 0,
+                        ),
                       ),
                       SizedBox(height: 14.h),
                       Row(
                         children: [
-                          _PercentChip(
-                            label: '25%',
-                            active: selectedPercent.value == 25,
-                            onTap: () => handlePercentTap(25),
-                          ),
-                          SizedBox(width: 10.w),
-                          _PercentChip(
-                            label: '50%',
-                            active: selectedPercent.value == 50,
-                            onTap: () => handlePercentTap(50),
-                          ),
-                          SizedBox(width: 10.w),
-                          _PercentChip(
-                            label: '75%',
-                            active: selectedPercent.value == 75,
-                            onTap: () => handlePercentTap(75),
-                          ),
-                          SizedBox(width: 10.w),
-                          _PercentChip(
-                            label: '100%',
-                            active: selectedPercent.value == 100,
-                            onTap: () => handlePercentTap(100),
-                          ),
+                          for (final p in const [25, 50, 75, 100]) ...[
+                            if (p != 25) SizedBox(width: 13.w),
+                            _PercentChip(
+                              label: '$p%',
+                              active: selectedPercent.value == p,
+                              onTap: () => handlePercentTap(p),
+                            ),
+                          ],
                         ],
                       ),
                       SizedBox(height: 18.h),
                       Center(
                         child: Text(
                           'You Will Receive',
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          style: textTheme.titleSmall?.copyWith(
+                            color: AppColors.textPrimary,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       SizedBox(height: 12.h),
@@ -351,13 +333,12 @@ class WithdrawECoinsView extends HookConsumerWidget {
                             ),
                             Text(
                               '₹${amount.value}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineLarge
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              style: textTheme.headlineLarge?.copyWith(
+                                color: Colors.white,
+                                fontSize: 43.sp,
+                                fontWeight: FontWeight.w700,
+                                height: 1.0,
+                              ),
                             ),
                           ],
                         ),
@@ -365,14 +346,15 @@ class WithdrawECoinsView extends HookConsumerWidget {
                       SizedBox(height: 18.h),
                       Text(
                         'Note',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       SizedBox(height: 6.h),
                       const _NoteItem(
-                        text: 'Minimum 100 E-Coins are required to withdraw.',
+                        text: 'Minimum 100 E-Coins Required To Withdraw.',
                       ),
                       const _NoteItem(
                         text:
@@ -380,7 +362,7 @@ class WithdrawECoinsView extends HookConsumerWidget {
                       ),
                       const _NoteItem(
                         text:
-                            'Withdrawals Are Processed Within 24-48 Hours After Confirmation.',
+                            'Withdrawals Are Processed Within 24–48 Hours After Confirmation.',
                       ),
                       const _NoteItem(
                         text:
@@ -395,7 +377,6 @@ class WithdrawECoinsView extends HookConsumerWidget {
                   ),
                 ),
               ),
-              // SizedBox(height: 8.h),
             ),
           ],
         ),
@@ -404,7 +385,28 @@ class WithdrawECoinsView extends HookConsumerWidget {
   }
 }
 
-class _PercentChip extends HookWidget {
+/// Conversion badge under "Current Balance": the full Figma pill (glass
+/// rect + coin glyph + "1 = ₹1 | Get Real Cash Instant" text) rendered as
+/// one static SVG asset, exactly as designed.
+class _CoinRateBadge extends StatelessWidget {
+  const _CoinRateBadge();
+
+  @override
+  Widget build(BuildContext context) {
+
+    return SizedBox(
+      height: 38.h,
+      child: SvgPicture.asset(
+        FileConstants.withdrawGlassBadgeSvg,
+        height: 38.h,
+      ),
+    );
+  }
+}
+
+/// Filter chip. Selected: fill #E7E5E5. Unselected: white.
+/// Figma: height 30, radius 8, 1px #CCCCCC border, SemiBold 14 label.
+class _PercentChip extends StatelessWidget {
   const _PercentChip({
     required this.label,
     required this.active,
@@ -417,24 +419,36 @@ class _PercentChip extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(8.r);
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10.r),
-        child: Container(
-          height: 38.h,
-          decoration: BoxDecoration(
-            color: active ? const Color(0xFFE6E6E6) : Colors.white,
-            borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(color: AppColors.lightBorder),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
+      child: Material(
+        // The fill lives on Material so the selected colour always shows.
+        color: active ? const Color(0xFFE7E5E5) : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: SizedBox(
+            height: 30.h,
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      height: 1.0,
+                      letterSpacing: 0,
+                    ),
+              ),
+            ),
           ),
         ),
       ),
@@ -442,33 +456,66 @@ class _PercentChip extends HookWidget {
   }
 }
 
-class _NoteItem extends HookWidget {
+/// Full-width primary action shown inside the shared [ReferralShareFooter]
+/// on this screen. Matches the Refer & Earn WhatsApp button styling.
+class _WithdrawButton extends StatelessWidget {
+  const _WithdrawButton({required this.enabled, required this.onTap});
+
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: enabled
+              ? WithdrawECoinsView._orange
+              : WithdrawECoinsView._orange.withOpacity(0.5),
+          borderRadius: BorderRadius.circular((40 * 360 / 440).r),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'Withdraw Now',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontSize: (16 * 360 / 440).sp,
+                letterSpacing: 0,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoteItem extends StatelessWidget {
   const _NoteItem({required this.text});
 
   final String text;
 
   @override
   Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF7C7C7C),
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w400,
+          height: 1.3,
+        );
     return Padding(
       padding: EdgeInsets.only(bottom: 4.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '•',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary.withOpacity(0.7),
-                ),
-          ),
+          Text('•', style: style),
           SizedBox(width: 6.w),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withOpacity(0.7),
-                  ),
-            ),
-          ),
+          Expanded(child: Text(text, style: style)),
         ],
       ),
     );
@@ -476,7 +523,7 @@ class _NoteItem extends HookWidget {
 }
 
 double _parseAmount(String raw) {
-  final cleaned = raw.replaceAll(RegExp(r'[^0-9\\.]'), '');
+  final cleaned = raw.replaceAll(RegExp(r'[^0-9.]'), '');
   if (cleaned.isEmpty) return 0;
   final firstDot = cleaned.indexOf('.');
   if (firstDot == -1) {
@@ -502,17 +549,20 @@ int? _matchPercent(int amount, int total) {
   return null;
 }
 
+/// Indian digit grouping (Figma): 600 -> 600, 300000 -> 3,00,000,
+/// 1234567 -> 12,34,567.
 String _formatCoins(int value) {
-  final raw = value.toString();
+  final sign = value < 0 ? '-' : '';
+  final raw = value.abs().toString();
+  if (raw.length <= 3) return '$sign$raw';
+  final last3 = raw.substring(raw.length - 3);
+  final rest = raw.substring(0, raw.length - 3);
   final buffer = StringBuffer();
-  for (var i = 0; i < raw.length; i++) {
-    final reverseIndex = raw.length - i;
-    buffer.write(raw[i]);
-    if (reverseIndex > 1 && reverseIndex % 3 == 1) {
-      buffer.write(',');
-    }
+  for (var i = 0; i < rest.length; i++) {
+    if (i > 0 && (rest.length - i) % 2 == 0) buffer.write(',');
+    buffer.write(rest[i]);
   }
-  return buffer.toString();
+  return '$sign$buffer,$last3';
 }
 
 String _formatAmount(double value) {
@@ -537,6 +587,7 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
     final selectedIndex = useState(0);
     final isSubmitting = useState(false);
     final repository = useMemoized(() => ReferralWalletRepository());
+    final textTheme = Theme.of(context).textTheme;
 
     Future<void> handleConfirm() async {
       if (amount <= 0) {
@@ -574,10 +625,7 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
           } catch (_) {}
         }
         _closeTopRoute();
-        await _openWithdrawStatusDialog(
-          status: status,
-          amount: amount,
-        );
+        await _openWithdrawStatusDialog(status: status, amount: amount);
       } catch (_) {
         _closeTopRoute();
         await _openWithdrawStatusDialog(
@@ -597,17 +645,19 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
         children: [
           Text(
             'Confirm Withdrawal',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
+            style: textTheme.titleSmall?.copyWith(
+              color: AppColors.textPrimary,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           SizedBox(height: 6.h),
           Text(
             'The amount will be credited to your registered bank account\nwithin 24-48 hours.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary.withOpacity(0.6),
-                ),
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.textPrimary.withOpacity(0.6),
+              fontSize: 12.sp,
+            ),
           ),
           SizedBox(height: 14.h),
           Container(
@@ -640,10 +690,11 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                     '${_formatCoins(amount)} Coins = ₹${_formatCoins(amount)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -653,6 +704,7 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
           ...accounts.asMap().entries.map((entry) {
             final index = entry.key;
             final account = entry.value;
+            final selected = selectedIndex.value == index;
             return GestureDetector(
               onTap: () => selectedIndex.value = index,
               child: Container(
@@ -666,7 +718,7 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
                       blurRadius: 8.r,
-                      offset: Offset(0.w, 4.h),
+                      offset: Offset(0, 4.h),
                     ),
                   ],
                 ),
@@ -697,38 +749,32 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                                   account.bankName.isNotEmpty
                                       ? account.bankName
                                       : 'Bank Account',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                               if (account.verified)
                                 Text(
                                   'Verified',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: const Color(0xFF1B8E36),
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: const Color(0xFF1B8E36),
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                             ],
                           ),
                           SizedBox(height: 4.h),
                           Text(
                             account.accountNumber,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: AppColors.textPrimary.withOpacity(0.6),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.textPrimary.withOpacity(0.6),
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -740,13 +786,13 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: selectedIndex.value == index
+                          color: selected
                               ? const Color(0xFFE85A2C)
                               : AppColors.lightBorder,
                           width: 1.5,
                         ),
                       ),
-                      child: selectedIndex.value == index
+                      child: selected
                           ? Center(
                               child: Container(
                                 width: 8.w,
@@ -777,21 +823,14 @@ class _WithdrawConfirmSheet extends HookConsumerWidget {
                 ),
               ),
               child: isSubmitting.value
-                  ? SizedBox(width: 20.w,
-                      height: 20.w,
-                      child: const Center(
-                        child: SpinKitCircle(
-                          color: AppColors.primary,
-                          size: 48,
-                        ),
-                      ),
-                    )
+                  ? SpinKitCircle(color: Colors.white, size: 24.r)
                   : Text(
                       'Confirm Withdrawal',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
             ),
           ),
@@ -856,12 +895,8 @@ void _closeTopRoute() {
 void _popToWallet() {
   final nav = navigatorKey.currentState;
   if (nav == null) return;
-  if (nav.canPop()) {
-    nav.pop();
-  }
-  if (nav.canPop()) {
-    nav.pop();
-  }
+  if (nav.canPop()) nav.pop();
+  if (nav.canPop()) nav.pop();
 }
 
 void _popToHome() {
@@ -886,6 +921,7 @@ class _WithdrawStatusDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = _WithdrawStatusConfig.from(status);
+    final textTheme = Theme.of(context).textTheme;
     return Dialog(
       insetPadding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 24.h),
       backgroundColor: Colors.transparent,
@@ -921,21 +957,21 @@ class _WithdrawStatusDialog extends StatelessWidget {
             Text(
               config.title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16.sp,
-                  ),
+              style: textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 16.sp,
+              ),
             ),
             SizedBox(height: 10.h),
             Text(
               config.message(amount),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                    height: 1.4,
-                    fontSize: 12.sp,
-                  ),
+              style: textTheme.bodySmall?.copyWith(
+                color: Colors.white.withOpacity(0.9),
+                height: 1.4,
+                fontSize: 12.sp,
+              ),
             ),
             SizedBox(height: 18.h),
             Row(
@@ -954,10 +990,11 @@ class _WithdrawStatusDialog extends StatelessWidget {
                     ),
                     child: Text(
                       config.primaryLabel,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: config.primaryText,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: config.primaryText,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -974,10 +1011,11 @@ class _WithdrawStatusDialog extends StatelessWidget {
                     ),
                     child: Text(
                       config.secondaryLabel,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),

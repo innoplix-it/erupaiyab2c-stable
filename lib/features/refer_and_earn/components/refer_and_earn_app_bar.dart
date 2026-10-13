@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../constants/file_constants.dart';
+import '../../../constants/routes_constant.dart';
 
 class ReferAndEarnAppBar extends HookWidget {
   const ReferAndEarnAppBar({
@@ -14,6 +16,7 @@ class ReferAndEarnAppBar extends HookWidget {
     this.body,
     this.titleStyle,
     this.bottomReserve,
+    this.centerTitle = false,
   });
 
   final String title;
@@ -34,6 +37,11 @@ class ReferAndEarnAppBar extends HookWidget {
   /// Already ScreenUtil-scaled space kept free at the bottom of [body].
   /// Omitted uses the 52 design-unit default once.
   final double? bottomReserve;
+
+  /// Centres the title between the two actions (Figma Wallet header). The
+  /// icon buttons are equal width, so the expanded middle slot is the
+  /// screen centre. Defaults to the original leading-aligned title.
+  final bool centerTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -80,12 +88,24 @@ class ReferAndEarnAppBar extends HookWidget {
                         onPressed:
                         onBack ?? () => Navigator.of(context).maybePop(),
                       ),
-                      SizedBox(width: 4.w),
+                      // No asymmetric leading spacer: the back and help
+                      // IconButtons are equal width, so the centred title
+                      // (textAlign: center) sits exactly on the screen axis
+                      // at every width. A leading-only gap here shifted the
+                      // centre by half the gap, which only crossed the
+                      // alignment tolerance on wide tablets.
                       Expanded(
                         child: Text(
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          textAlign:
+                              centerTitle ? TextAlign.center : TextAlign.start,
+                          // Same common title styling as MyAppBar (used by
+                          // Transaction History, Mobile Recharge, ...): the
+                          // theme's titleMedium - which already carries Plus
+                          // Jakarta Sans via the app-wide textTheme - plus a
+                          // w700 override. No locally hardcoded font family.
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -98,7 +118,10 @@ class ReferAndEarnAppBar extends HookWidget {
                       ),
                       IconButton(
                         icon: const Icon(Icons.help_outline, color: Colors.white),
-                        onPressed: onHelp,
+                        // Default help action across all Refer & Earn screens:
+                        // the Help & Support screen.
+                        onPressed:
+                            onHelp ?? () => context.push(RouteConstants.helpSupport),
                       ),
                     ],
                   ),

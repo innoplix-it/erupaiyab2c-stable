@@ -12,30 +12,48 @@ import '../components/referral_share_actions.dart';
 import '../repositories/referral_milestones_repository.dart';
 
 class ReferralMilestonesView extends HookWidget {
-  const ReferralMilestonesView({super.key});
+  const ReferralMilestonesView({super.key, this.repository});
+
+  /// Injectable for widget tests; production keeps the real repository.
+  @visibleForTesting
+  final ReferralMilestonesRepository? repository;
 
   @override
   Widget build(BuildContext context) {
     final future = useMemoized(
-      () => ReferralMilestonesRepository().fetchMilestones(),
+      () => (repository ?? ReferralMilestonesRepository()).fetchMilestones(),
     );
     final snapshot = useFuture(future);
 
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
-          child: const ReferralShareActions(),
-        ),
-      ),
+      // Same fixed WhatsApp/Share footer container as Refer & Earn.
+      bottomNavigationBar: const ReferralShareFooter(),
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // Figma: nav row (back + help) with the title centred on its own
+            // line below it, matching the Track Referrals header.
             ReferAndEarnAppBar(
-              title: 'Referral Milestones',
-              height: 200.h,
+              title: '',
+              height: MediaQuery.paddingOf(context).top + 124.h,
+              bottomReserve: 40.h,
+              body: Center(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+                  child: Text(
+                    'Referral Milestones',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20.sp,
+                        ),
+                  ),
+                ),
+              ),
             ),
             Transform.translate(
               offset: Offset(0, -26.h),
@@ -47,17 +65,17 @@ class ReferralMilestonesView extends HookWidget {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 18.h),
+                  // Tighter top padding: the intro paragraph sits close to
+                  // the sheet's curved edge, as in Figma.
+                  padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 18.h),
                   child: Column(
                     children: [
                       _buildContent(context, snapshot),
-                      SizedBox(height: 70.h),
                     ],
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 8.h),
           ],
         ),
       ),
@@ -71,6 +89,7 @@ class _MilestoneItem {
     required this.reward,
     required this.progress,
     required this.completedText,
+    required this.completed,
     this.remainingText,
   });
 
@@ -78,7 +97,28 @@ class _MilestoneItem {
   final String reward;
   final double progress;
   final String completedText;
+  final bool completed;
   final String? remainingText;
+}
+
+/// Figma intro line: Plus Jakarta Sans Medium 16px, 27px line height,
+/// black, wrapping naturally (no hard break).
+class _IntroText extends StatelessWidget {
+  const _IntroText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'Complete Referral Milestones And Unlock Bonus E-Coins.',
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF000000),
+            fontWeight: FontWeight.w500,
+            fontSize: 16.sp,
+            height: 27 / 16,
+            letterSpacing: 0,
+          ),
+    );
+  }
 }
 
 Widget _buildContent(
@@ -97,14 +137,7 @@ Widget _buildContent(
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Complete Referral Milestones And Unlock\nBonus E-Coins.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-              ),
-        ),
+        const _IntroText(),
         SizedBox(height: 10.h),
         Text(
           'Failed to load milestones. Please try again.',
@@ -123,15 +156,8 @@ Widget _buildContent(
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        'Complete Referral Milestones And Unlock\nBonus E-Coins.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-              height: 1.4,
-            ),
-      ),
-      SizedBox(height: 14.h),
+      const _IntroText(),
+      SizedBox(height: 20.h),
       if (items.isEmpty)
         Text(
           'No milestones available yet.',
@@ -163,6 +189,7 @@ _MilestoneItem _mapMilestone(ReferralMilestoneItem item) {
     reward: rewardText.isEmpty ? '' : 'Reward $rewardText',
     progress: progress,
     completedText: completedText,
+    completed: item.completed,
     remainingText: remainingText,
   );
 }
@@ -183,12 +210,27 @@ class _MilestonesTimeline extends HookWidget {
             children: [
               Column(
                 children: [
-                  const _TimelineNode(),
+                  _TimelineNode(
+                    completed: items[index].completed,
+                    ringKey: ValueKey('milestone-ring-$index'),
+                  ),
                   if (!isLast)
+                    // Segment between this marker and the next. Segments
+                    // touch exactly (no padding gaps), so the track reads
+                    // as one continuous line; only the very first top and
+                    // very last bottom get rounded caps.
                     Expanded(
                       child: Container(
-                        width: 3.w,
-                        color: const Color(0xFFD0D0D0),
+                        width: 6.w,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFB9B9B9),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(index == 0 ? 999 : 0),
+                            bottom: Radius.circular(
+                              index == items.length - 2 ? 999 : 0,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -196,7 +238,7 @@ class _MilestonesTimeline extends HookWidget {
               SizedBox(width: 12.w),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 14.h),
+                  padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
                   child: _MilestoneCard(item: items[index]),
                 ),
               ),
@@ -209,29 +251,41 @@ class _MilestonesTimeline extends HookWidget {
 }
 
 class _TimelineNode extends HookWidget {
-  const _TimelineNode();
+  const _TimelineNode({required this.completed, this.ringKey});
+
+  /// Completed/active milestones get the Figma orange ring; the rest use
+  /// the neutral grey ring. Key forwarded to the painted circle for tests.
+  final bool completed;
+  final Key? ringKey;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 24.w,
-          height: 24.w,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFE85A2C)),
-          ),
-          child: Center(
-            child: Image.asset(
-              FileConstants.coin_3d,
-              width: 12.w,
-              height: 12.w,
-            ),
-          ),
+    return Container(
+      key: ringKey,
+      width: 30.w,
+      height: 30.w,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: completed ? const Color(0xFFDD5428) : const Color(0xFFE1E1E1),
+          width: 1,
         ),
-      ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6.r,
+            offset: Offset(0, 2.h),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Image.asset(
+          FileConstants.coin_3d,
+          width: 15.w,
+          height: 15.w,
+        ),
+      ),
     );
   }
 }
@@ -248,14 +302,8 @@ class _MilestoneCard extends HookWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.lightBorder.withOpacity(0.8)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10.r,
-            offset: Offset(0.w, 6.h),
-          ),
-        ],
+        // Figma: thin light-grey outline, no heavy shadow.
+        border: Border.all(color: const Color(0xFFE1E1E1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,54 +312,69 @@ class _MilestoneCard extends HookWidget {
             children: [
               const Text('🏆'),
               SizedBox(width: 6.w),
-              Text(
-                item.title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+              Flexible(
+                child: Text(
+                  item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF000000),
+                        fontWeight: FontWeight.w600,
+                        height: 1.0,
+                        letterSpacing: 0,
+                      ),
+                ),
               ),
             ],
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 8.h),
           Text(
             item.reward,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary.withOpacity(0.6),
-                  fontWeight: FontWeight.w600,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF000000),
+                  fontWeight: FontWeight.w500,
+                  height: 1.0,
+                  letterSpacing: 0,
                 ),
           ),
           SizedBox(height: 10.h),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
+            borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
               value: item.progress,
-              minHeight: 6.h,
-              backgroundColor: const Color(0xFFD9D9D9),
-              valueColor: const AlwaysStoppedAnimation(Color(0xFFE85A2C)),
+              minHeight: 8.h,
+              backgroundColor: const Color(0xFFD0D0D0),
+              valueColor: const AlwaysStoppedAnimation(Color(0xFFDD5428)),
             ),
           ),
           SizedBox(height: 8.h),
           Text(
             item.completedText,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: item.progress >= 1
-                      ? const Color(0xFF1B8E36)
-                      : AppColors.textPrimary.withOpacity(0.6),
-                  fontWeight: FontWeight.w600,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  // Green only when the model says the milestone is truly
+                  // complete; everything else keeps the Figma grey.
+                  color: item.completed
+                      ? const Color(0xFF058337)
+                      : const Color(0xFF7C7C7C),
+                  fontWeight: FontWeight.w500,
+                  height: 1.0,
+                  letterSpacing: 0,
                 ),
           ),
           if (item.remainingText != null) ...[
-            SizedBox(height: 6.h),
+            SizedBox(height: 12.h),
             Container(
               height: 1,
-              color: AppColors.lightBorder.withOpacity(0.6),
+              color: const Color(0xFFE1E1E1),
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: 12.h),
             Text(
               item.remainingText!,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withOpacity(0.7),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF000000),
+                    fontWeight: FontWeight.w500,
+                    height: 1.0,
+                    letterSpacing: 0,
                   ),
             ),
           ],

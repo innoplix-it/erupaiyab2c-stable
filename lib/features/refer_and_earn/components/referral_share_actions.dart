@@ -1,7 +1,6 @@
 import 'package:e_rupaiya/core/barrel_file.dart';
 
 import '../services/referral_share_service.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // The Figma frame is 440 x 956 while ScreenUtil's design size is 360 x 690.
 // Figma pixel values are converted once here and then scaled exactly once by
@@ -52,11 +51,11 @@ class ReferralShareActions extends HookWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        fontSize: _figmaSp(16),
-                        letterSpacing: 0,
-                      ),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: _figmaSp(16),
+                            letterSpacing: 0,
+                          ),
                     ),
                   ),
                 ],
@@ -82,6 +81,73 @@ class ReferralShareActions extends HookWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The fixed bottom action container shared by the Refer & Earn screens:
+/// white bar with the soft upward shadow, safe-area handling and the
+/// WhatsApp + share buttons at Figma size. Kept visually identical to the
+/// original inline bar on the Refer & Earn home.
+///
+/// [child] lets a screen reuse the exact same footer container/styling with
+/// different actions (e.g. Withdraw E-Coins shows a single full-width
+/// button). When omitted the standard WhatsApp + share row is rendered.
+class ReferralShareFooter extends StatelessWidget {
+  const ReferralShareFooter({super.key, this.child});
+
+  final Widget? child;
+
+  static List<BoxShadow> get _shadows => [
+        BoxShadow(
+          color: const Color(0x1ACFCFCF),
+          offset: Offset(0, -_figmaH(3)),
+          blurRadius: _figmaR(7),
+        ),
+        BoxShadow(
+          color: const Color(0x17CFCFCF),
+          offset: Offset(0, -_figmaH(13)),
+          blurRadius: _figmaR(13),
+        ),
+        BoxShadow(
+          color: const Color(0x0DCFCFCF),
+          offset: Offset(0, -_figmaH(29)),
+          blurRadius: _figmaR(17),
+        ),
+        BoxShadow(
+          color: const Color(0x03CFCFCF),
+          offset: Offset(0, -_figmaH(51)),
+          blurRadius: _figmaR(21),
+        ),
+        BoxShadow(
+          color: const Color(0x00CFCFCF),
+          offset: Offset(0, -_figmaH(80)),
+          blurRadius: _figmaR(22),
+        ),
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: _shadows,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            _figmaW(16),
+            _figmaH(20),
+            _figmaW(16),
+            _figmaH(20),
+          ),
+          child: SizedBox(
+            height: _figmaH(56),
+            child: child ?? const ReferralShareActions(),
+          ),
+        ),
+      ),
     );
   }
 }

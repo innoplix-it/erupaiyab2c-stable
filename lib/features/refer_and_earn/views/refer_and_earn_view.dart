@@ -20,31 +20,20 @@ import '../components/referral_share_actions.dart';
 import 'referral_works_view.dart';
 import 'track_referrals_view.dart';
 
-// The Figma frame for this screen is 440 x 956 while ScreenUtil's design size
-// is 360 x 690. Figma pixel values are converted once here and then scaled
-// exactly once by ScreenUtil (never both), so a 440-wide phone renders the
-// Figma pixel size and every other width scales proportionally.
 double _figmaW(double px) => (px * 360 / 440).w;
 double _figmaH(double px) => (px * 690 / 956).h;
 double _figmaR(double px) => (px * 360 / 440).r;
 double _figmaSp(double px) => (px * 360 / 440).sp;
 
-/// Brand orange shared with the bottom share bar.
+
 const Color _kOrange = Color(0xFFE85A2C);
 
-/// Figma `text-transform: capitalize`: upper-cases the first letter of every
-/// word and leaves the rest untouched.
 String _capitalizeWords(String text) => text
     .split(' ')
     .map((word) =>
 word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
     .join(' ');
 
-/// Dynamic avatar initials from a real contact name: the first character of
-/// the first and last word ("Aakanksha Patil" -> "AP", "Surpiya Ithappully
-/// Kerala" -> "SK"); a single-word name uses its first character ("Aannnya"
-/// -> "A"). Leading/trailing whitespace and repeated spaces are collapsed;
-/// empty or blank names safely return an empty string.
 String _initialsFor(String name) {
   final words =
       name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
@@ -53,50 +42,12 @@ String _initialsFor(String name) {
   return '${words.first[0]}${words.last[0]}'.toUpperCase();
 }
 
-/// Horizontal padding of the white content panel (Figma: 16); the divider
-/// behind the "My Referral Earnings" pill bleeds by exactly this amount.
 double get _panelPadH => _figmaW(16);
 
-/// Height the white panel pulls up over the hero; matches the white strip
-/// drawn by [ReferAndEarnAppBar] (36.h + 1) so no background peeks through.
 double get _heroOverlap => 37.h;
 
-/// Figma: the characters' feet tuck slightly behind the top edge of the
-/// white panel so the artwork reads as attached to the card, not floating.
 double get _illustrationOverlap => _figmaH(10);
 
-/// Figma bottom bar shadows (CSS box-shadow, all pointing upwards).
-/// CSS blur radius == Flutter blurRadius, so values map 1:1.
-List<BoxShadow> get _bottomBarShadows => [
-  BoxShadow(
-    color: const Color(0x1ACFCFCF),
-    offset: Offset(0, -_figmaH(3)),
-    blurRadius: _figmaR(7),
-  ),
-  BoxShadow(
-    color: const Color(0x17CFCFCF),
-    offset: Offset(0, -_figmaH(13)),
-    blurRadius: _figmaR(13),
-  ),
-  BoxShadow(
-    color: const Color(0x0DCFCFCF),
-    offset: Offset(0, -_figmaH(29)),
-    blurRadius: _figmaR(17),
-  ),
-  BoxShadow(
-    color: const Color(0x03CFCFCF),
-    offset: Offset(0, -_figmaH(51)),
-    blurRadius: _figmaR(21),
-  ),
-  BoxShadow(
-    color: const Color(0x00CFCFCF),
-    offset: Offset(0, -_figmaH(80)),
-    blurRadius: _figmaR(22),
-  ),
-];
-
-/// Diagonal arrow used by both blue feature cards and the earnings pill
-/// (verbatim Figma export).
 const String _cardArrowSvg = '''
 <svg width="57" height="57" viewBox="0 0 57 57" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M27.2322 17.0934L41.6464 21.4612L37.2786 35.8754" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -140,41 +91,16 @@ class ReferAndEarnView extends HookConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: _bottomBarShadows,
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              _figmaW(16),
-              _figmaH(20),
-              _figmaW(16),
-              _figmaH(20),
-            ),
-            child: SizedBox(
-              height: _figmaH(56),
-              child: const ReferralShareActions(),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: const ReferralShareFooter(),
       body: SingleChildScrollView(
         child: SizedBox(
           width: double.infinity,
-          // The panel overlaps the hero by [_heroOverlap]. A Stack (instead
-          // of Transform.translate) keeps the scroll extent exact, so the
-          // gap below the forever card is the Figma 30 and nothing more.
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               ReferAndEarnAppBar(
                 title: 'Refer Friends & Earn Coins',
                 height: heroHeight,
-                // The body may extend [_illustrationOverlap] past the panel
-                // top so the characters sit slightly behind the card edge.
                 bottomReserve: _heroOverlap - _illustrationOverlap,
                 titleStyle: TextStyle(
                   fontWeight: FontWeight.w500,
@@ -183,10 +109,6 @@ class ReferAndEarnView extends HookConsumerWidget {
                 ),
                 body: Column(
                   children: [
-                    // Small gap under the navigation row; the artwork is
-                    // anchored to the bottom of this space, so trimming the
-                    // old empty-heading placeholders lifts it towards the
-                    // AppBar without moving the card.
                     SizedBox(height: _figmaH(12)),
                     Expanded(
                       child: Align(
@@ -267,18 +189,14 @@ class ReferAndEarnView extends HookConsumerWidget {
                               onViewAll: () => _openContactSheet(context),
                             ),
                           ),
-                          // Figma: title centre to circle top is ~37.
                           SizedBox(height: _figmaH(27)),
-                          // Figma: four equal columns that span the whole
-                          // 440 frame (circle centres ~55/165/275/385).
+
                           _ContactsRow(
                             contacts: contactsState.contacts,
                             onInviteTap: () => _openContactSheet(context),
                           ),
                         ],
-                        // Figma: 29 between the contact names and the card.
                         SizedBox(height: _figmaH(29)),
-                        // Figma: full-bleed block, no side margin, no radius.
                         _ReferForeverCard(),
                       ],
                     ),
@@ -321,9 +239,6 @@ class ReferAndEarnView extends HookConsumerWidget {
     );
   }
 }
-
-/// Applies the panel's horizontal padding to a single section so the
-/// contacts row and the forever card can use their own side margins.
 class _PanelPadding extends HookWidget {
   const _PanelPadding({required this.child});
 
