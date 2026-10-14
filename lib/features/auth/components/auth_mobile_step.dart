@@ -31,15 +31,13 @@ class AuthMobileStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AuthStepLayout(
-      // Footer first, so the required `children` list stays in last position.
+
       footer: ValueListenableBuilder<TextEditingValue>(
         valueListenable: controller,
         builder: (context, value, _) {
           final phoneValid =
               value.text.trim().length == AuthMobileField.mobileLength;
-          // The exact gate PhoneNumberInputCard has always applied: a valid
-          // number, the consent checkbox and a live callback are all still
-          // required before Continue does anything.
+
           final canContinue = !isLoading &&
               phoneValid &&
               isConsentAllowed &&

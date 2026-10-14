@@ -368,6 +368,8 @@ class _TransactionHistoryScreenState
                                     title: section.title,
                                     count:
                                         apiMonthTotal ?? section.items.length,
+                                    isFirst: identical(
+                                        section, visibleSections.first),
                                   ),
                                 ),
                                 SliverList(
@@ -1002,21 +1004,27 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({required this.title, required this.count});
+  const _MonthHeader({
+    required this.title,
+    required this.count,
+    this.isFirst = false,
+  });
 
   final String title;
   final int count;
+  final bool isFirst;
 
   @override
   Widget build(BuildContext context) {
     final countLabel = '$count Transaction${count == 1 ? '' : 's'}';
     return Padding(
-      // Figma (440 frame): 24px side margins. Header ink sits ~17px below
-      // the search bottom and ~25px below the previous card bottom (both
-      // incl. the 6px card margin), and ~22px above the next card top.
+      // Figma (440 frame): 24px side margins. Header ink sits ~25px below
+      // the previous card bottom (incl. the 6px card margin) and ~22px above
+      // the next card top. The first header already has the search row's
+      // 16px bottom gap above it, so it only adds a little more.
       padding: EdgeInsets.fromLTRB(
         _figmaW(24),
-        _figmaW(15),
+        isFirst ? _figmaW(4) : _figmaW(15),
         _figmaW(24),
         _figmaW(12),
       ),

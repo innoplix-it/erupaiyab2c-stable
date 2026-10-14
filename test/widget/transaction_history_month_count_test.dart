@@ -668,6 +668,30 @@ void main() {
     expect(tester.getRect(_list()).top, moreOrLessEquals(listTop));
   });
 
+  testWidgets('first month header sits closer to the search bar than others',
+      (tester) async {
+    final repo = _PagedRepository()
+      ..pages = {
+        1: [..._month('oct', 2026, 10, 1), ..._month('sep', 2026, 9, 1)],
+      };
+    await _pump(tester, repo);
+
+    double figma(double px) => (px * 360 / 440).w;
+    final searchBottom = tester.getRect(find.byType(AppSearchBar)).bottom;
+    final october = tester.getRect(find.textContaining('October').first);
+    expect(october.top - searchBottom, moreOrLessEquals(figma(16) + figma(4)));
+
+    final septemberTitle = find.textContaining('September').first;
+    final octoberCard = find
+        .ancestor(
+            of: find.text('₹ 100.00').first, matching: find.byType(InkWell))
+        .first;
+    expect(
+      tester.getRect(septemberTitle).top - tester.getRect(octoberCard).bottom,
+      moreOrLessEquals(figma(15)),
+    );
+  });
+
   testWidgets('the filter icon sits outside the search field and opens filters',
       (tester) async {
     final repo = _PagedRepository()..pages = {1: _month('oct', 2026, 10, 1)};

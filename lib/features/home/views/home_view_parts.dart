@@ -1947,7 +1947,7 @@ class _TrustedByIndians extends StatelessWidget {
                           ),
                         ),
                         TextSpan(
-                          text: '1 Million',
+                          text: '1 Lakh',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w700,
@@ -3881,7 +3881,7 @@ class _HomeMainSections extends StatelessWidget {
                           ],
                         ),
                       ),
-                      SizedBox(height: frame(100)),
+                      SizedBox(height: frame(70)),
                     ],
                   ),
                 ),
