@@ -150,9 +150,7 @@ Finder _list() => find
     .first;
 
 Finder _anyCount() => find.byWidgetPredicate(
-      (w) =>
-          w is Text &&
-          RegExp(r'^\d+ Transactions?$').hasMatch(w.data ?? ''),
+      (w) => w is Text && RegExp(r'^\d+ Transactions?$').hasMatch(w.data ?? ''),
     );
 
 void main() {
@@ -162,8 +160,7 @@ void main() {
   testWidgets(
       'a one-month request uses the API total_records, not the loaded rows',
       (tester) async {
-    final repo = _PagedRepository()
-      ..pages = {1: _month('oct', 2026, 10, 20)};
+    final repo = _PagedRepository()..pages = {1: _month('oct', 2026, 10, 20)};
     final container = await _pump(tester, repo);
 
     repo
@@ -191,8 +188,14 @@ void main() {
     final repo = _PagedRepository()
       ..pages = {
         1: _month('oct', 2026, 10, 20),
-        2: [..._month('oct', 2026, 10, 5, start: 20), ..._month('sep', 2026, 9, 15)],
-        3: [..._month('sep', 2026, 9, 3, start: 15), ..._month('aug', 2026, 8, 2)],
+        2: [
+          ..._month('oct', 2026, 10, 5, start: 20),
+          ..._month('sep', 2026, 9, 15)
+        ],
+        3: [
+          ..._month('sep', 2026, 9, 3, start: 15),
+          ..._month('aug', 2026, 8, 2)
+        ],
       };
     final container = await _pump(tester, repo);
 
@@ -205,8 +208,8 @@ void main() {
 
     await _controller(container).fetchNextPage();
     await _settle(tester);
-    expect(container.read(transactionHistoryControllerProvider).hasMore,
-        isFalse);
+    expect(
+        container.read(transactionHistoryControllerProvider).hasMore, isFalse);
     final list = _list();
     await tester.scrollUntilVisible(find.text('18 Transactions'), 300,
         scrollable: list);
@@ -299,7 +302,10 @@ void main() {
     final repo = _PagedRepository()
       ..pages = {
         1: _month('oct', 2026, 10, 20),
-        2: [..._month('oct', 2026, 10, 6, start: 20), ..._month('sep', 2026, 9, 1)],
+        2: [
+          ..._month('oct', 2026, 10, 6, start: 20),
+          ..._month('sep', 2026, 9, 1)
+        ],
       }
       ..failingPages = {2};
     await _pump(tester, repo);
@@ -342,8 +348,7 @@ void main() {
   testWidgets(
       'a device-side service filter counts records, never the API total',
       (tester) async {
-    final repo = _PagedRepository()
-      ..pages = {1: _month('oct', 2026, 10, 1)};
+    final repo = _PagedRepository()..pages = {1: _month('oct', 2026, 10, 1)};
     final container = await _pump(tester, repo);
 
     repo
@@ -361,32 +366,69 @@ void main() {
     expect(find.text('57 Transactions'), findsNothing);
   });
 
-  testWidgets('payment type and amount are Bold 700, the date stays 400',
+  testWidgets('every payment type uses the School Fee card typography',
       (tester) async {
+    const types = [
+      'School Fee',
+      'House Rent',
+      'Shop Rent',
+      'Education Fee',
+      'Electricity Bill',
+    ];
     final repo = _PagedRepository()
       ..pages = {
-        1: [_txn('t-1', '2026-10-12 15:32:00')],
+        1: [
+          for (var i = 0; i < types.length; i++)
+            TransactionHistoryEntry.fromJson({
+              'payment_status': 'SUCCESS',
+              'payment_type': types[i],
+              'amount': '${i + 1}00.00',
+              'total_amount_charged': '${i + 1}00.00',
+              'pg_transaction_id': 'card-$i',
+              'recipient_name': 'Recipient $i',
+              'transaction_time': '2026-10-${20 - i} 15:32:00',
+            }),
+        ],
       };
-    await _pump(tester, repo);
+    await _pump(tester, repo, size: const Size(390, 1400));
 
-    final amount = find.text('₹ 100.00');
-    expect(amount, findsOneWidget);
-    final tile = find.ancestor(of: amount, matching: find.byType(InkWell)).first;
-    final texts = tester
-        .widgetList<Text>(find.descendant(of: tile, matching: find.byType(Text)))
-        .toList();
-    final paymentType = texts.first;
-    final date = texts.firstWhere((t) => (t.data ?? '').contains('3:32PM'));
-    final amountText = tester.widget<Text>(amount);
+    final tiles = find.ancestor(
+      of: find.byKey(const ValueKey('transaction-recipient-name')),
+      matching: find.byType(InkWell),
+    );
+    expect(tiles, findsNWidgets(types.length));
 
-    for (final text in [paymentType, amountText]) {
-      expect(text.style!.fontWeight, FontWeight.w700, reason: text.data);
-      expect(text.style!.fontFamily, contains('PlusJakartaSans'));
+    TextStyle styleOf(Finder tile, bool Function(Text) test) => tester
+        .widgetList<Text>(
+            find.descendant(of: tile, matching: find.byType(Text)))
+        .firstWhere(test)
+        .style!;
+
+    List<TextStyle> stylesFor(int i) {
+      final tile = tiles.at(i);
+      return [
+        // Payment type is the first line; display names may be normalised.
+        styleOf(tile, (_) => true),
+        styleOf(
+            tile, (t) => t.key == const ValueKey('transaction-recipient-name')),
+        styleOf(tile, (t) => RegExp(r'\d:\d\d ?[AP]M').hasMatch(t.data ?? '')),
+        styleOf(tile, (t) => (t.data ?? '').startsWith('₹')),
+      ];
     }
-    expect(paymentType.style!.fontSize, moreOrLessEquals(12.sp));
-    expect(amountText.style!.fontSize, moreOrLessEquals(15.sp));
-    expect(date.style!.fontWeight, FontWeight.w400);
-    expect(date.style!.fontSize, moreOrLessEquals(9.sp));
+
+    final reference = stylesFor(0);
+    for (final style in reference) {
+      expect(style.fontFamily, contains('PlusJakartaSans'));
+    }
+    for (var i = 1; i < types.length; i++) {
+      final styles = stylesFor(i);
+      for (var s = 0; s < styles.length; s++) {
+        expect(styles[s].fontFamily, reference[s].fontFamily, reason: types[i]);
+        expect(styles[s].fontSize, reference[s].fontSize, reason: types[i]);
+        expect(styles[s].fontWeight, reference[s].fontWeight, reason: types[i]);
+        expect(styles[s].color, reference[s].color, reason: types[i]);
+      }
+    }
   });
 
   group('larger payment type and amount fit at shared sizes', () {
@@ -500,6 +542,56 @@ void main() {
     });
   });
 
+  testWidgets(
+      'Electricity and Mobile number lines match the School Fee recipient',
+      (tester) async {
+    Map<String, dynamic> row(
+            String type, String id, String day, Map<String, dynamic> extra) =>
+        {
+          'payment_status': 'SUCCESS',
+          'payment_type': type,
+          'amount': '100.00',
+          'total_amount_charged': '100.00',
+          'pg_transaction_id': id,
+          'transaction_time': '2026-10-$day 10:00:00',
+          ...extra,
+        };
+    final repo = _PagedRepository()
+      ..pages = {
+        1: [
+          TransactionHistoryEntry.fromJson(
+            row('School Fee', 'school-1', '20', {'recipient_name': 'Asha'}),
+          ),
+          TransactionHistoryEntry.fromJson(
+            row('Electricity Bill', 'elec-1', '19',
+                {'service_no_full': '170019239876'}),
+          ),
+          TransactionHistoryEntry.fromJson(
+            row('Mobile Prepaid', 'mob-1', '18',
+                {'service_no_full': '9876543210'}),
+          ),
+        ],
+      };
+    await _pump(tester, repo, size: const Size(390, 1200));
+
+    final reference = tester
+        .widget<Text>(find.byKey(const ValueKey('transaction-recipient-name')))
+        .style!;
+    final numbers = tester
+        .widgetList<Text>(
+            find.byKey(const ValueKey('transaction-consumer-number')))
+        .toList();
+    expect(numbers.map((t) => t.data),
+        containsAll(['170019239876', '9876543210']));
+    for (final text in numbers) {
+      final style = text.style!;
+      expect(style.fontFamily, reference.fontFamily, reason: text.data);
+      expect(style.fontSize, reference.fontSize, reason: text.data);
+      expect(style.fontWeight, reference.fontWeight, reason: text.data);
+      expect(style.color, reference.color, reason: text.data);
+    }
+  });
+
   testWidgets('the card shows the recipient only when the API sends one',
       (tester) async {
     final repo = _PagedRepository()
@@ -524,8 +616,8 @@ void main() {
     final text = tester.widget<Text>(recipient);
     expect(text.data, 'Asha Patil');
     expect(text.style!.fontFamily, contains('PlusJakartaSans'));
-    expect(text.style!.fontWeight, FontWeight.w700);
-    expect(text.style!.fontSize, moreOrLessEquals(9.sp));
+    expect(text.style!.fontWeight, FontWeight.w600);
+    expect(text.style!.fontSize, moreOrLessEquals(12.sp));
 
     final rentTile =
         find.ancestor(of: recipient, matching: find.byType(InkWell)).first;
@@ -535,23 +627,45 @@ void main() {
     );
   });
 
-  testWidgets('month title and count label are 14.sp w600', (tester) async {
+  testWidgets('month title and count label are 12.sp w600', (tester) async {
     final repo = _PagedRepository()..pages = {1: _month('oct', 2026, 10, 2)};
     await _pump(tester, repo);
 
     final count = tester.widget<Text>(find.text('2 Transactions'));
-    final row =
-        find.ancestor(of: find.text('2 Transactions'), matching: find.byType(Row));
+    final row = find.ancestor(
+        of: find.text('2 Transactions'), matching: find.byType(Row));
     final title = tester.widget<Text>(
       find
           .descendant(of: row.first, matching: find.textContaining('October'))
           .first,
     );
     for (final text in [title, count]) {
-      expect(text.style!.fontSize, moreOrLessEquals(14.sp), reason: text.data);
+      expect(text.style!.fontSize, moreOrLessEquals(12.sp), reason: text.data);
       expect(text.style!.fontWeight, FontWeight.w600, reason: text.data);
       expect(text.style!.fontFamily, contains('PlusJakartaSans'));
     }
+  });
+
+  testWidgets('scrolled cards stop the same gap below the search bar as above',
+      (tester) async {
+    final repo = _PagedRepository()..pages = {1: _month('oct', 2026, 10, 12)};
+    await _pump(tester, repo);
+
+    final gap = (16 * 360 / 440).w;
+    final searchRow = find
+        .ancestor(of: find.byType(AppSearchBar), matching: find.byType(Padding))
+        .first;
+    final row = tester.getRect(find.byType(AppSearchBar));
+    final padded = tester.getRect(searchRow);
+    expect(row.top - padded.top, moreOrLessEquals(gap));
+    expect(padded.bottom - row.bottom, moreOrLessEquals(gap));
+
+    final listTop = tester.getRect(_list()).top;
+    expect(listTop - row.bottom, moreOrLessEquals(gap));
+
+    await tester.drag(_list(), const Offset(0, -300));
+    await _settle(tester);
+    expect(tester.getRect(_list()).top, moreOrLessEquals(listTop));
   });
 
   testWidgets('the filter icon sits outside the search field and opens filters',

@@ -262,14 +262,13 @@ class _TransactionHistoryScreenState
               helpIconSize: 20,
             ),
             Padding(
-              // Figma (440 frame): 16px above the search field; the field
-              // bottom sits only ~17px above the month-header ink, and the
-              // header's own top padding covers that — no extra padding here.
+              // Same 16px (440 frame) above and below the search row, so
+              // scrolled cards stop that far under the field.
               padding: EdgeInsets.fromLTRB(
                 AppSearchBar.sideInset,
                 _figmaW(16),
                 AppSearchBar.sideInset,
-                0,
+                _figmaW(16),
               ),
               // Reference: the field, then the filter icon outside it on the
               // right with no background. Icon and gap scale with the screen
@@ -631,10 +630,10 @@ class _TransactionHistoryScreenState
     final scoped = controller.activeFilter?.electricityCardScoped == true ||
         widget.initialElectricityCardScoped;
     if (scoped) {
-      final scopeId = controller.activeFilter?.consumerId?.trim().isNotEmpty ==
-              true
-          ? controller.activeFilter!.consumerId!.trim()
-          : widget.initialConsumerIdFilter?.trim() ?? '';
+      final scopeId =
+          controller.activeFilter?.consumerId?.trim().isNotEmpty == true
+              ? controller.activeFilter!.consumerId!.trim()
+              : widget.initialConsumerIdFilter?.trim() ?? '';
       if (scopeId.isEmpty) {
         if (result.isEmpty) {
           await controller.fetchHistory();
@@ -734,6 +733,43 @@ class _TransactionFilterRow extends StatelessWidget {
   }
 }
 
+/// Card typography shared by every payment type (taken from the School Fee
+/// card), so House Rent, Shop Rent, Education Fee and the rest stay identical.
+abstract final class _TxnCardText {
+  static TextStyle paymentType() => GoogleFonts.plusJakartaSans(
+        fontSize: 10.sp,
+        fontWeight: FontWeight.w400,
+        height: 1,
+        letterSpacing: 0,
+        color: const Color(0xFF000000),
+      );
+
+  /// Also used for the consumer/mobile number line so Electricity, Mobile and
+  /// other cards match the School Fee recipient line.
+  static TextStyle recipientName() => GoogleFonts.plusJakartaSans(
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w600,
+        height: 1.4,
+        color: const Color(0xFF000000),
+      );
+
+  static TextStyle dateTime() => GoogleFonts.plusJakartaSans(
+        fontSize: 10.sp,
+        fontWeight: FontWeight.w400,
+        height: 1.1,
+        color: const Color(0xFF7C7C7C),
+      );
+
+  /// Colour follows the payment status, not the service.
+  static TextStyle amount(Color color) => GoogleFonts.plusJakartaSans(
+        fontSize: 15.sp,
+        fontWeight: FontWeight.w700,
+        height: 1.4,
+        letterSpacing: 0,
+        color: color,
+      );
+}
+
 class _TransactionTile extends StatelessWidget {
   const _TransactionTile({required this.item, required this.onTap});
 
@@ -815,18 +851,10 @@ class _TransactionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    // Bold 700, 12.sp, 100% line-height, 0% letter-spacing,
-                    // capitalize each word.
                     _capitalizeWords(displayPaymentType),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w400,
-                      height: 1,
-                      letterSpacing: 0,
-                      color: const Color(0xFF000000),
-                    ),
+                    style: _TxnCardText.paymentType(),
                   ),
                   if (recipientDisplay.isNotEmpty) ...[
                     SizedBox(height: _figmaW(6)),
@@ -835,27 +863,17 @@ class _TransactionTile extends StatelessWidget {
                       key: const ValueKey('transaction-recipient-name'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
-                        color: const Color(0xFF000000),
-                      ),
+                      style: _TxnCardText.recipientName(),
                     ),
                   ],
                   if (consumerDisplay.isNotEmpty) ...[
-
                     SizedBox(height: _figmaW(6)),
                     Text(
                       consumerDisplay,
+                      key: const ValueKey('transaction-consumer-number'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                        color: const Color(0xFF000000),
-                      ),
+                      style: _TxnCardText.recipientName(),
                     ),
                   ],
                   // Show fee_type above date/time for House Rent and Shop Rent
@@ -866,7 +884,7 @@ class _TransactionTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9.sp,
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.w600,
                         height: 1.1,
                         color: const Color(0xFF7C7C7C),
@@ -878,12 +896,7 @@ class _TransactionTile extends StatelessWidget {
                     _formatTxnTime(item.transactionTime),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 9.sp,
-                      fontWeight: FontWeight.w400,
-                      height: 1.1,
-                      color: const Color(0xFF7C7C7C),
-                    ),
+                    style: _TxnCardText.dateTime(),
                   ),
                 ],
               ),
@@ -902,14 +915,7 @@ class _TransactionTile extends StatelessWidget {
                     displayAmount,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(
-                      // Bold 700, 100% line-height, 0% letter-spacing.
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                      height: 1.4,
-                      letterSpacing: 0,
-                      color: amountColor,
-                    ),
+                    style: _TxnCardText.amount(amountColor),
                   ),
                 ),
                 SizedBox(height: _figmaW(4)),
@@ -1036,7 +1042,7 @@ class _MonthHeader extends StatelessWidget {
           Text(
             countLabel,
             maxLines: 1,
-            // Same size as the month/year title (14.sp); Plus Jakarta Sans
+            // Same size as the month/year title (12.sp); Plus Jakarta Sans
             // w600, 100% line-height, 0% letter-spacing, capitalize (the
             // label is built as "3 Transactions", already capitalized).
             style: GoogleFonts.plusJakartaSans(
@@ -1684,7 +1690,7 @@ class _TransactionTileSkeleton extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 9.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w700,
                     height: 1.1,
                     color: const Color(0xFF000000),
@@ -1696,7 +1702,7 @@ class _TransactionTileSkeleton extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 9.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w400,
                     height: 1.1,
                     color: const Color(0xFF7C7C7C),
