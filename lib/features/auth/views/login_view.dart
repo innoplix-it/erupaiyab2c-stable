@@ -11,7 +11,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:pinput/pinput.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
 import '../../../config/app_env.dart';
@@ -24,11 +23,13 @@ import '../../../services/logger_service.dart';
 import '../../../services/phone_hint_service.dart';
 import '../../../services/secure_storage_service.dart';
 import '../../../widgets/app_snackbar.dart';
-import '../../../widgets/grey_text_form_field.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/auth_brand_header.dart';
+import '../components/auth_mobile_step.dart';
+import '../components/auth_feedback.dart';
+import '../components/auth_step_parts.dart';
+import '../components/auth_pin_step.dart';
 import '../components/otp_verification_card.dart';
-import '../components/phone_number_input_card.dart';
 import '../controllers/auth_controller.dart';
 import '../models/auth_flow.dart';
 import '../utils/temporary_block_flow_launcher.dart';
@@ -56,12 +57,15 @@ class LoginView extends HookConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     final step = useState(_LoginStep.mobile);
     final phoneController = useTextEditingController();
+    final mobileFocusNode = useFocusNode();
     final allowConsent = useState(false);
     final referralCode = useState<String?>(null);
     final storage = useMemoized(() => SecureStorageService.instance);
 
     final pinController = useTextEditingController();
     final pinFocusNode = useFocusNode();
+    final pinShake = useAuthShakeController();
+    final pinError = useState<String?>(null);
 
     final otpControllers = useMemoized(
       () => List.generate(_otpLength, (_) => TextEditingController()),
@@ -113,8 +117,6 @@ class LoginView extends HookConsumerWidget {
           );
       return () {
         sub.cancel();
-        pinController.dispose();
-        pinFocusNode.dispose();
         for (final controller in otpControllers) {
           controller.dispose();
         }
@@ -125,18 +127,31 @@ class LoginView extends HookConsumerWidget {
       };
     }, const []);
 
+    // The Android phone-number hint sheet hides the keyboard, and the field
+    // keeps focus while it is open, so autofocus alone never reopens it.
+    void showMobileKeyboard() {
+      if (!context.mounted || step.value != _LoginStep.mobile) return;
+      mobileFocusNode.requestFocus();
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    }
+
     useEffect(() {
       Future.microtask(() async {
-        if (phoneController.text.trim().isNotEmpty) return;
-        final hint = await PhoneHintService.getPhoneNumberHint();
-        if (hint == null) return;
-        final digits = hint.replaceAll(RegExp(r'\D'), '');
-        if (digits.isEmpty) return;
-        final normalized =
-            digits.length > 10 ? digits.substring(digits.length - 10) : digits;
-        if (normalized.length != 10) return;
-        if (phoneController.text.trim().isNotEmpty) return;
-        phoneController.text = normalized;
+        try {
+          if (phoneController.text.trim().isNotEmpty) return;
+          final hint = await PhoneHintService.getPhoneNumberHint();
+          if (hint == null) return;
+          final digits = hint.replaceAll(RegExp(r'\D'), '');
+          if (digits.isEmpty) return;
+          final normalized = digits.length > 10
+              ? digits.substring(digits.length - 10)
+              : digits;
+          if (normalized.length != 10) return;
+          if (phoneController.text.trim().isNotEmpty) return;
+          phoneController.text = normalized;
+        } finally {
+          showMobileKeyboard();
+        }
       });
       return null;
     }, const []);
@@ -179,6 +194,7 @@ class LoginView extends HookConsumerWidget {
     void resetToMobile() {
       step.value = _LoginStep.mobile;
       otpErrorText.value = null;
+      pinError.value = null;
       pinController.clear();
       for (final controller in otpControllers) {
         controller.clear();
@@ -266,12 +282,17 @@ class LoginView extends HookConsumerWidget {
           isKycVerified: result.isKycVerified == true,
         );
       } else {
-        AppSnackbar.show(
-          result.message ?? _genericErrorMessage,
-          type: AppSnackbarType.error,
-        );
+        if (isAuthConnectivityError(result.message)) {
+          AppSnackbar.show(
+            result.message ?? _genericErrorMessage,
+            type: AppSnackbarType.error,
+          );
+        } else {
+          pinShake.shake();
+          pinError.value = authInvalidPinMessage;
+        }
         pinController.clear();
-        pinFocusNode.requestFocus();
+        showAuthKeyboard(pinFocusNode);
       }
     }
 
@@ -362,162 +383,6 @@ class LoginView extends HookConsumerWidget {
       }
     }
 
-    Widget buildCard({required Widget child}) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 30.r,
-              offset: Offset(0.w, 14.h),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: child,
-        ),
-      );
-    }
-
-    Widget buildPinCard() {
-      final pinTheme = PinTheme(
-        width: 58.w,
-        height: 54.h,
-        textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.lightBorder),
-        ),
-      );
-      final pinCursor = Container(
-        width: 2.w,
-        height: 22.h,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(2.r),
-        ),
-      );
-
-      return buildCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Welcome Back',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20.sp,
-                    color: AppColors.textPrimary,
-                  ),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              'Log in to continue earning rewards.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withOpacity(0.6),
-                  ),
-            ),
-            SizedBox(height: 14.h),
-            Text(
-              'Enter Mobile Number',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-            ),
-            SizedBox(height: 6.h),
-            Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                GreyTextFormField(
-                  controller: phoneController,
-                  enabled: false,
-                  isNumber: true,
-                ),
-                Positioned(
-                  right: 8.w,
-                  child: IconButton(
-                    onPressed: authState.isSubmitting ? null : resetToMobile,
-                    icon: Icon(
-                      Icons.edit,
-                      size: 18.sp,
-                      color: AppColors.textPrimary.withOpacity(0.7),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 14.h),
-            Text(
-              'Enter PIN',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-            ),
-            SizedBox(height: 6.h),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final totalWidth = constraints.maxWidth;
-                const gap = 10.0;
-                final fieldWidth = (totalWidth - (gap * 3)) / 4;
-                final stretchedTheme = pinTheme.copyWith(width: fieldWidth);
-                return Pinput(
-                  controller: pinController,
-                  focusNode: pinFocusNode,
-                  length: _otpLength,
-                  enabled: !authState.isSubmitting,
-                  obscureText: true,
-                  obscuringCharacter: '●',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  defaultPinTheme: stretchedTheme,
-                  focusedPinTheme: stretchedTheme.copyWith(
-                    decoration: stretchedTheme.decoration?.copyWith(
-                      border: Border.all(color: AppColors.primary, width: 1.5),
-                    ),
-                  ),
-                  cursor: pinCursor,
-                  separatorBuilder: (_) => const SizedBox(width: gap),
-                  onCompleted: (_) => handlePinLogin(),
-                );
-              },
-            ),
-            SizedBox(height: 8.h),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: authState.isSubmitting
-                    ? null
-                    : () {
-                        final mobile = phoneController.text.trim();
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => ResetMpinView(mobile: mobile),
-                          ),
-                        );
-                      },
-                child: Text(
-                  'Forgot PIN ?',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     Widget buildOtpCard() {
       final timerText =
           '${(remainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(remainingSeconds.value % 60).toString().padLeft(2, '0')}';
@@ -582,36 +447,124 @@ class LoginView extends HookConsumerWidget {
       );
     }
 
-    Widget buildContentCard() {
-      final Widget content;
-      switch (step.value) {
-        case _LoginStep.mobile:
-          content = PhoneNumberInputCard(
-            controller: phoneController,
-            onContinue: authState.isSubmitting ? null : handleMobileContinue,
-            isConsentAllowed: allowConsent.value,
-            onConsentChanged: (value) => allowConsent.value = value,
-            isLoading: authState.isSubmitting,
-            helperText: null,
-            showHelper: false,
-            enabled: !authState.isSubmitting,
+    Widget buildMobileStep() {
+      return AuthMobileStep(
+        controller: phoneController,
+        isLoading: authState.isSubmitting,
+        isConsentAllowed: allowConsent.value,
+        onConsentChanged: (value) => allowConsent.value = value,
+        // Same wiring and same guard as the previous PhoneNumberInputCard call:
+        // handleMobileContinue still re-checks the number and the consent.
+        onContinue: authState.isSubmitting ? null : handleMobileContinue,
+        referralBanner: (referralCode.value?.isNotEmpty ?? false)
+            ? buildReferralBanner()
+            : null,
+        focusNode: mobileFocusNode,
+      );
+    }
+
+    Widget buildPinStep() {
+      return AuthPinStep(
+        mobileController: phoneController,
+        pinController: pinController,
+        pinFocusNode: pinFocusNode,
+        shakeController: pinShake,
+        errorText: pinError.value,
+        onPinChanged: (value) {
+          if (value.isNotEmpty) pinError.value = null;
+        },
+        pinLength: _otpLength,
+        isLoading: authState.isSubmitting,
+        onContinue: handlePinLogin,
+        onEditMobile: resetToMobile,
+        onForgotPin: () {
+          final mobile = phoneController.text.trim();
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ResetMpinView(mobile: mobile),
+            ),
           );
-          break;
-        case _LoginStep.pin:
-          content = buildPinCard();
-          break;
-        case _LoginStep.otp:
-          content = buildOtpCard();
-          break;
-      }
+        },
+        referralBanner: (referralCode.value?.isNotEmpty ?? false)
+            ? buildReferralBanner()
+            : null,
+      );
+    }
+
+    Widget buildContentCard() {
+      // The mobile and PIN steps are laid out full-bleed on the auth artwork;
+      // OTP keeps the white card treatment.
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           buildReferralBanner(),
           if (referralCode.value != null && referralCode.value!.isNotEmpty)
             SizedBox(height: 10.h),
-          content,
+          buildOtpCard(),
         ],
+      );
+    }
+
+    Widget buildLoggingInOverlay() {
+      return Positioned.fill(
+        child: Stack(
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(
+                color: Colors.black.withOpacity(0.15),
+              ),
+            ),
+            Center(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 24.w,
+                  vertical: 20.h,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 18.r,
+                      offset: Offset(0.w, 10.h),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      FileConstants.erupaiyaLogo,
+                      height: 48.r,
+                      width: 48.r,
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      'Logging In...',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: AppColors.textPrimary.withOpacity(0.8),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // The mobile step is laid out full-bleed on the auth artwork, so it takes
+    // over the whole body. PopScope is intentionally skipped here: it already
+    // resolved to `canPop: true` for this step, so it changed nothing.
+    if (step.value == _LoginStep.mobile) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        resizeToAvoidBottomInset: true,
+        body: buildMobileStep(),
       );
     }
 
@@ -626,108 +579,54 @@ class LoginView extends HookConsumerWidget {
       child: Scaffold(
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset: true,
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            final headerHeight = constraints.maxHeight * 0.62;
+        body: step.value == _LoginStep.pin
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  buildPinStep(),
+                  if (authState.isSubmitting) buildLoggingInOverlay(),
+                ],
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final headerHeight = constraints.maxHeight * 0.62;
 
-            return Stack(
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      height: headerHeight,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.authBackgroundGradient,
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(20.r),
-                          bottomRight: Radius.circular(20.r),
-                        ),
-                      ),
-                    ),
-                    const Expanded(
-                      child: ColoredBox(color: Colors.white),
-                    ),
-                  ],
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: headerHeight,
-                  child: const AuthBrandHeader(),
-                ),
-                Positioned(
-                  left: 12,
-                  right: 12,
-                  bottom: 126,
-                  child: buildContentCard(),
-                ),
-                if (authState.isSubmitting && step.value == _LoginStep.pin)
-                  Positioned.fill(
-                    child: Stack(
-                      children: [
-                        BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                          child: Container(
-                            color: Colors.black.withOpacity(0.15),
-                          ),
-                        ),
-                        Center(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 24.w,
-                              vertical: 20.h,
-                            ),
+                  return Stack(
+                    children: [
+                      Column(
+                        children: [
+                          Container(
+                            height: headerHeight,
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.12),
-                                  blurRadius: 18.r,
-                                  offset: Offset(0.w, 10.h),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Image.asset(
-                                  FileConstants.erupaiyaLogo,
-                                  height: 48.h,
-                                  width: 48.h,
-                                ),
-                                SizedBox(height: 12.h),
-                                Text(
-                                  'Logging In...',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        color: AppColors.textPrimary
-                                            .withOpacity(0.8),
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                                // SizedBox(height: 10.h),
-                                // SizedBox(
-                                //   height: 20.h,
-                                //   width: 20.h,
-                                //   child: const CircularProgressIndicator(
-                                //     strokeWidth: 2.4,
-                                //   ),
-                                // ),
-                              ],
+                              gradient: AppColors.authBackgroundGradient,
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(20.r),
+                                bottomRight: Radius.circular(20.r),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
+                          const Expanded(
+                            child: ColoredBox(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: headerHeight,
+                        child: const AuthBrandHeader(),
+                      ),
+                      Positioned(
+                        left: 12,
+                        right: 12,
+                        bottom: 126,
+                        child: buildContentCard(),
+                      ),
+                    ],
+                  );
+                },
+              ),
       ),
     );
   }

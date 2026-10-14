@@ -2,11 +2,14 @@ import 'package:e_rupaiya/features/profile/controllers/profile_controller.dart';
 import 'package:e_rupaiya/features/profile/models/profile_model.dart';
 import 'package:e_rupaiya/features/profile/models/profile_state.dart';
 import 'package:e_rupaiya/features/profile/repositories/profile_repository.dart';
+import 'package:e_rupaiya/features/spinandear/components/spin_result_popup.dart';
+import 'package:e_rupaiya/features/spinandear/components/spin_wheel.dart';
 import 'package:e_rupaiya/features/spinandear/controllers/spin_options_controller.dart';
 import 'package:e_rupaiya/features/spinandear/helpers/spin_sound_controller.dart';
 import 'package:e_rupaiya/features/spinandear/models/spin_options_state.dart';
 import 'package:e_rupaiya/features/spinandear/repositories/spin_repository.dart';
 import 'package:e_rupaiya/features/spinandear/views/spin_and_win_view.dart';
+import 'package:e_rupaiya/widgets/k_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,7 +50,10 @@ class _TestProfileController extends ProfileController {
 
 class _FakeSpinRepository implements SpinRepository {
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<Map<String, List<int>>> fetchSpinOptions() async => const {};
+
+  @override
+  Future<void> recordSpin({required String spinType}) async {}
 }
 
 class _TestSpinOptionsController extends SpinOptionsController {
@@ -77,6 +83,7 @@ ProfileModel _makeProfile({required int spins}) {
 /// a real audio platform.
 class _RecordingSpinAudio implements SpinAudioPlayer {
   final List<String> plays = [];
+  final List<String> preloads = [];
   int stopCount = 0;
 
   @override
@@ -87,6 +94,9 @@ class _RecordingSpinAudio implements SpinAudioPlayer {
 
   @override
   Future<void> play(String asset) async => plays.add(asset);
+
+  @override
+  Future<void> preload(String asset) async => preloads.add(asset);
 
   @override
   Future<void> dispose() async {}
@@ -102,6 +112,9 @@ Widget _buildTestApp({
       spinOptionsControllerProvider.overrideWith(
         (ref) => _TestSpinOptionsController(),
       ),
+      // Inject the fake so handleSpin's recordSpin() completes without a real
+      // network call, allowing the popup display (and popup sound) to be reached.
+      spinRepositoryProvider.overrideWithValue(_FakeSpinRepository()),
     ],
     child: ScreenUtilInit(
       designSize: const Size(360, 690),
@@ -109,6 +122,8 @@ Widget _buildTestApp({
       splitScreenMode: true,
       fontSizeResolver: FontSizeResolvers.radius,
       builder: (context, _) => MaterialApp(
+        // Wire navigatorKey so KDialog.openDialog() can find a context.
+        navigatorKey: navigatorKey,
         home: MediaQuery(
           data: MediaQueryData(size: screenSize),
           child: const SpinAndWinView(),
@@ -562,7 +577,7 @@ void main() {
       // started the full clip once, with no seek/replay. The stop happens
       // before the play, which is what keeps two cues from overlapping.
       expect(find.text('Spinning...'), findsOneWidget);
-      expect(audio.plays, [SpinSoundController.asset]);
+      expect(audio.plays, [SpinSoundController.spinAsset]);
       expect(audio.stopCount, 1);
       expect(tester.takeException(), isNull);
     });
@@ -591,5 +606,212 @@ void main() {
       expect(find.text('Spinning...'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+        'popup cue fires exactly once at the moment the result popup becomes '
+        'visible - not before, not on subsequent rebuilds',
+        (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+
+      // No popup cue before the spin completes.
+      expect(
+        audio.plays.where((p) => p == SpinSoundController.popupAsset),
+        isEmpty,
+        reason: 'popup cue must not fire before the result popup is shown',
+      );
+
+      // Tap to spin, then advance clock far enough for the full wheel animation
+      // (kSpinWheelDuration = 5100ms) and all post-animation async work to
+      // drain (recordSpin, fetchProfile). The extra 1s covers the latter.
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Spin The Wheel'));
+      await tester.pump();
+      await tester.pump(kSpinWheelDuration + const Duration(seconds: 1));
+      // Drain any remaining microtasks that may still be in the queue.
+      await tester.pump();
+
+      // The popup cue is the last play call and was issued exactly once.
+      final popupPlays =
+          audio.plays.where((p) => p == SpinSoundController.popupAsset).toList();
+      expect(
+        popupPlays,
+        hasLength(1),
+        reason: 'spinandwinpopup.mp3 must play exactly once per spin result',
+      );
+      expect(
+        audio.plays.last,
+        SpinSoundController.popupAsset,
+        reason: 'popup cue must be the last play event, not an earlier one',
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'popup cue does not fire a second time on subsequent frame pumps',
+        (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Spin The Wheel'));
+      await tester.pump();
+      await tester.pump(kSpinWheelDuration + const Duration(seconds: 1));
+      await tester.pump();
+
+      final countAfterFirstPump = audio.plays
+          .where((p) => p == SpinSoundController.popupAsset)
+          .length;
+
+      // Additional frames must not re-trigger the popup cue.
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      final countAfterMorePumps = audio.plays
+          .where((p) => p == SpinSoundController.popupAsset)
+          .length;
+
+      expect(
+        countAfterMorePumps,
+        equals(countAfterFirstPump),
+        reason: 'popup cue must not replay on subsequent rebuilds',
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'the wheel turns for 5100ms and the popup and its cue arrive '
+        'together on the frame it stops', (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Spin The Wheel'));
+      await tester.pump();
+      expect(audio.plays, [SpinSoundController.spinAsset]);
+      // The cue has started; the wheel starts turning on this frame. Neither
+      // pump advances the clock, so 5100ms are measured from here.
+      await tester.pump();
+
+      await tester.pump(
+        kSpinWheelDuration - const Duration(milliseconds: 1),
+      );
+      expect(find.text('Spinning...'), findsOneWidget,
+          reason: 'the wheel must still be turning 1ms before 5100ms');
+      expect(audio.plays, [SpinSoundController.spinAsset]);
+      expect(find.byType(SpinResultPopup), findsNothing);
+
+      // The wheel completes on the first frame at or after 5100ms.
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump();
+      expect(audio.plays, [
+        SpinSoundController.spinAsset,
+        SpinSoundController.popupAsset,
+      ]);
+      expect(find.byType(SpinResultPopup), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('repeated taps start one cue and one spin', (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+
+      final button = find.byType(ElevatedButton).first;
+      await tester.tap(button);
+      await tester.tap(button, warnIfMissed: false);
+      await tester.pump();
+      await tester.tap(button, warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 2000));
+      await tester.tap(button, warnIfMissed: false);
+      await tester.pump(kSpinWheelDuration + const Duration(seconds: 1));
+      await tester.pump();
+
+      expect(
+        audio.plays.where((p) => p == SpinSoundController.spinAsset),
+        hasLength(1),
+      );
+      expect(
+        audio.plays.where((p) => p == SpinSoundController.popupAsset),
+        hasLength(1),
+      );
+      expect(find.byType(SpinResultPopup), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('both cues are preloaded on screen mount', (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+      await tester.pump();
+
+      expect(audio.preloads, [
+        SpinSoundController.spinAsset,
+        SpinSoundController.popupAsset,
+      ]);
+      expect(audio.plays, isEmpty);
+    });
+
+    testWidgets(
+        'popup asset is preloaded on screen mount before any spin tap',
+        (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      // Allow the microtask that calls preloadPopup() to run.
+      await tester.pump();
+      await tester.pump();
+
+      // The preload call must have been issued (best-effort) by the time the
+      // user would interact. No play must have occurred yet.
+      expect(
+        audio.preloads.contains(SpinSoundController.popupAsset),
+        isTrue,
+        reason: 'spinandwinpopup.mp3 must be preloaded on screen mount',
+      );
+      expect(
+        audio.plays,
+        isEmpty,
+        reason: 'preloading must not start audio playback',
+      );
+      expect(tester.takeException(), isNull);
+    });
   });
 }
+

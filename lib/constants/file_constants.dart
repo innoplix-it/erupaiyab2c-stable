@@ -1,5 +1,10 @@
 class FileConstants {
   static String loginLogo = 'assets/images/svg/erupaiya_logo.svg';
+  static String authBackground = 'assets/images/png/bgauthentication.png';
+  static String otpTimerIcon = 'assets/images/svg/otp_timer.svg';
+  static String otpResendIcon = 'assets/images/svg/otp_resend.svg';
+  static String mpinSuccessBadge = 'assets/images/svg/mpin_success_badge.svg';
+  static String fingerprintButton = 'assets/images/svg/fingerprint_button.svg';
   static String successVectorIcon = 'assets/images/svg/Vector.svg';
   static String amountContainer = 'assets/images/svg/frame_19840.svg';
   static String indiaFlag = 'assets/images/png/indiaFlag.png';

@@ -3,24 +3,23 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:pinput/pinput.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
 import '../../../config/temporary_block_debug_config.dart';
 import '../../../constants/app_colors.dart';
-import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
-import '../components/pin_input_row.dart';
+import '../components/auth_step_parts.dart';
+import '../components/otp_verify_step.dart';
+import '../components/auth_feedback.dart';
+import '../components/auth_identity_otp_step.dart';
 import '../controllers/auth_controller.dart';
 import '../models/otp_verification_args.dart';
 
@@ -36,6 +35,7 @@ class OtpVerificationView extends HookConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     final otpController = useTextEditingController();
     final otpFocusNode = useFocusNode();
+    final otpShake = useAuthShakeController();
     final autoFilledCode = useState<String?>(null);
     final showIdentityVariant = args.temporaryBlockFlowType != null;
     final isDeviceVerificationFlow = args.temporaryBlockFlowType ==
@@ -56,12 +56,25 @@ class OtpVerificationView extends HookConsumerWidget {
       () => List.generate(_otpLength, (_) => FocusNode()),
       const [],
     );
+    final mobileOtpInput = useTextEditingController();
+    final emailOtpInput = useTextEditingController();
+    final mobileOtpInputFocus = useFocusNode();
+    final emailOtpInputFocus = useFocusNode();
+
+    /// The boxes edit a single string; verification still reads the per-digit
+    /// controllers.
+    void syncOtpDigits(String value, List<TextEditingController> digits) {
+      for (var i = 0; i < digits.length; i++) {
+        digits[i].text = i < value.length ? value[i] : '';
+      }
+    }
 
     useListenable(otpController);
 
     final remainingSeconds = useState(0);
     final emailRemainingSeconds = useState(59);
     final errorText = useState<String?>(null);
+    final codeError = useState<String?>(null);
     final timerRef = useRef<Timer?>(null);
     final emailTimerRef = useRef<Timer?>(null);
 
@@ -103,6 +116,7 @@ class OtpVerificationView extends HookConsumerWidget {
         remainingSeconds.value = 60;
         emailRemainingSeconds.value = 60;
         errorText.value = null;
+        codeError.value = null;
         startTimer();
         startEmailTimer();
         if (showToast) {
@@ -129,12 +143,10 @@ class OtpVerificationView extends HookConsumerWidget {
       };
     }, [showIdentityVariant]);
 
-    final timerText = showIdentityVariant
-        ? remainingSeconds.value.toString()
-        : '${(remainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(remainingSeconds.value % 60).toString().padLeft(2, '0')}';
-    final emailTimerText = showIdentityVariant
-        ? emailRemainingSeconds.value.toString()
-        : '${(emailRemainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(emailRemainingSeconds.value % 60).toString().padLeft(2, '0')}';
+    final timerText =
+        '${(remainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(remainingSeconds.value % 60).toString().padLeft(2, '0')}';
+    final emailTimerText =
+        '${(emailRemainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(emailRemainingSeconds.value % 60).toString().padLeft(2, '0')}';
 
     Future<void> handleVerify() async {
       if (showIdentityVariant) {
@@ -145,6 +157,7 @@ class OtpVerificationView extends HookConsumerWidget {
           return;
         }
         errorText.value = null;
+        codeError.value = null;
         final message = isDeviceVerificationFlow
             ? await ref.read(authControllerProvider.notifier).verifyDeviceOtp(
                   verificationId: args.deviceVerificationId ?? '',
@@ -215,8 +228,12 @@ class OtpVerificationView extends HookConsumerWidget {
               context.go(RouteConstants.login);
             }
           } else {
-            errorText.value = latestState.errorMessage ??
-                "Oops! That OTP doesn't seem right. Please check and re-enter.";
+            if (isAuthConnectivityError(latestState.errorMessage)) {
+              errorText.value = latestState.errorMessage;
+            } else {
+              otpShake.shake();
+              codeError.value = authInvalidOtpMessage;
+            }
           }
         }
         return;
@@ -229,6 +246,7 @@ class OtpVerificationView extends HookConsumerWidget {
       }
 
       errorText.value = null;
+      codeError.value = null;
       final success = await ref
           .read(authControllerProvider.notifier)
           .verifyOtp(otp: otp, mobile: args.phoneNumber);
@@ -269,8 +287,12 @@ class OtpVerificationView extends HookConsumerWidget {
         }
       } else {
         final latestState = ref.read(authControllerProvider);
-        errorText.value = latestState.errorMessage ??
-            "Oops! That OTP doesn't seem right. Please check and re-enter.";
+        if (isAuthConnectivityError(latestState.errorMessage)) {
+          errorText.value = latestState.errorMessage;
+        } else {
+          otpShake.shake();
+          codeError.value = authInvalidOtpMessage;
+        }
       }
     }
 
@@ -292,6 +314,7 @@ class OtpVerificationView extends HookConsumerWidget {
       if (flow != null) {
         remainingSeconds.value = 60;
         errorText.value = null;
+        codeError.value = null;
         startTimer();
         AppSnackbar.show(
           args.resendSuccessMessage ?? 'OTP resent to $resolvedMobile',
@@ -327,6 +350,7 @@ class OtpVerificationView extends HookConsumerWidget {
       otpFocusNode.unfocus();
       autoFilledCode.value = trimmed;
       errorText.value = null;
+      codeError.value = null;
     }
 
     useEffect(() {
@@ -388,241 +412,75 @@ class OtpVerificationView extends HookConsumerWidget {
       };
     }, const []);
 
+    if (!showIdentityVariant) {
+      final otpComplete = otpController.text.length == _otpLength;
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: OtpVerifyStep(
+          otpLength: _otpLength,
+          otpController: otpController,
+          otpFocusNode: otpFocusNode,
+          phoneNumber: args.phoneNumber ?? authState.pendingMobile ?? '',
+          label: args.heading,
+          description: args.description,
+          timerText: timerText,
+          canResend: remainingSeconds.value == 0,
+          onResend: handleResend,
+          onVerify: otpComplete ? handleVerify : null,
+          isSubmitting: authState.isSubmitting,
+          buttonLabel: args.primaryButtonLabel ?? 'Verify',
+          errorText: errorText.value,
+          codeErrorText: codeError.value,
+          onBack: () => context.canPop()
+              ? context.pop()
+              : context.go(RouteConstants.login),
+          onChangeNumber: () => context.go(RouteConstants.login),
+          onOtpChanged: (_) {
+            errorText.value = null;
+            codeError.value = null;
+          },
+          onOtpCompleted: (_) => handleVerify(),
+          shakeController: otpShake,
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: 24.h),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(8.w, 6.h, 16.w, 0.h),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back),
-                            color: AppColors.textPrimary,
-                            onPressed: () => context.pop(),
-                          ),
-
-                          // Expanded(
-                          //   child: Text(
-                          //     "",
-                          //     style: Theme.of(context)
-                          //         .textTheme
-                          //         .titleMedium
-                          //         ?.copyWith(
-                          //           fontWeight: FontWeight.w600,
-                          //           color: AppColors.textPrimary,
-                          //         ),
-                          //   ),
-                          // ),
-                          // Image.asset(
-                          //   FileConstants.bharatConnectColor,
-                          //   height: 22.h,
-                          //   fit: BoxFit.contain,
-                          // ),
-                        ],
-                      ),
-                    ),
-                    Divider(
-                      color: AppColors.textPrimary.withOpacity(0.1),
-                      thickness: 1,
-                    ),
-                    SizedBox(height: 16.h),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20.w),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (showIdentityVariant) ...[
-                            Image.asset(
-                              FileConstants.resetPinIcon,
-                              height: 65.h,
-                              fit: BoxFit.contain,
-                            ),
-                            SizedBox(height: 18.h),
-                          ],
-                          Text(
-                            args.heading,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: showIdentityVariant
-                                      ? AppColors.primary
-                                      : AppColors.textPrimary,
-                                ),
-                          ),
-                          SizedBox(height: 8.h),
-                          if (showIdentityVariant)
-                            Text(
-                              args.description ??
-                                  'Enter the OTPs sent to your registered mobile number and email address to verify your identity.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    fontSize: 12.sp,
-                                    color:
-                                        AppColors.textPrimary.withOpacity(0.7),
-                                    height: 1.45,
-                                  ),
-                            )
-                          else
-                            RichText(
-                              text: TextSpan(
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: AppColors.textPrimary
-                                          .withOpacity(0.7),
-                                    ),
-                                children: [
-                                  TextSpan(
-                                    text: args.description ??
-                                        'Sent to ${args.phoneNumber ?? authState.pendingMobile ?? ''} ',
-                                  ),
-                                  TextSpan(
-                                    text: 'Change',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: AppColors.textPrimary,
-                                          decoration: TextDecoration.underline,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () =>
-                                          context.go(RouteConstants.login),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          SizedBox(height: 18.h),
-                          if (showIdentityVariant) ...[
-                            _IdentityOtpSection(
-                              title: 'Mobile OTP',
-                              subtitle:
-                                  'Enter the 6 digit OTP sent to your registered mobile number.',
-                              controllers: mobileOtpControllers,
-                              focusNodes: mobileOtpFocusNodes,
-                              timerText: timerText,
-                              canResend: remainingSeconds.value == 0,
-                              onResend: handleResend,
-                              onChanged: (_) => errorText.value = null,
-                            ),
-                            SizedBox(height: 20.h),
-                            _IdentityOtpSection(
-                              title: 'Email OTP',
-                              subtitle:
-                                  'Enter the 6 digit OTP sent to your registered email address.',
-                              controllers: emailOtpControllers,
-                              focusNodes: emailOtpFocusNodes,
-                              timerText: emailTimerText,
-                              canResend: emailRemainingSeconds.value == 0,
-                              onResend: handleEmailResend,
-                              onChanged: (_) => errorText.value = null,
-                            ),
-                          ] else
-                            Pinput(
-                              length: _otpLength,
-                              controller: otpController,
-                              focusNode: otpFocusNode,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              autofocus: true,
-                              onChanged: (_) => errorText.value = null,
-                              onCompleted: (_) => handleVerify(),
-                              defaultPinTheme: PinTheme(
-                                width: 44.w,
-                                height: 44.w,
-                                textStyle: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14.r),
-                                  border: Border.all(
-                                    color: const Color(0xFFD6D6D6),
-                                  ),
-                                ),
-                              ),
-                              errorPinTheme: PinTheme(
-                                width: 44.w,
-                                height: 44.w,
-                                textStyle: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14.r),
-                                  border: Border.all(color: Colors.red),
-                                ),
-                              ),
-                              errorTextStyle: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          if (errorText.value != null &&
-                              errorText.value!.isNotEmpty) ...[
-                            SizedBox(height: 12.h),
-                            Text(
-                              errorText.value!,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ],
-                          SizedBox(height: showIdentityVariant ? 28.h : 20.h),
-                          CustomElevatedButton(
-                            onPressed:
-                                authState.isSubmitting ? null : handleVerify,
-                            label: authState.isSubmitting
-                                ? 'Verifying...'
-                                : (args.primaryButtonLabel ??
-                                    (showIdentityVariant
-                                        ? 'Verify & Continue'
-                                        : 'Verify')),
-                            uppercaseLabel: false,
-                            showArrow: false,
-                            height: 42.h,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+      body: AuthIdentityOtpStep(
+        title: args.heading,
+        description: args.description ??
+            'Enter the OTPs sent to your registered mobile number and email address to verify your identity.',
+        otpLength: _otpLength,
+        mobileOtpController: mobileOtpInput,
+        emailOtpController: emailOtpInput,
+        mobileOtpFocusNode: mobileOtpInputFocus,
+        emailOtpFocusNode: emailOtpInputFocus,
+        mobileTimerText: timerText,
+        emailTimerText: emailTimerText,
+        canResendMobile: remainingSeconds.value == 0,
+        canResendEmail: emailRemainingSeconds.value == 0,
+        onResendMobile: handleResend,
+        onResendEmail: handleEmailResend,
+        onVerify: handleVerify,
+        onBack: () => context.pop(),
+        buttonLabel: authState.isSubmitting
+            ? 'Verifying...'
+            : (args.primaryButtonLabel ?? 'Verify & Continue'),
+        errorText: errorText.value,
+        codeErrorText: codeError.value,
+        isSubmitting: authState.isSubmitting,
+        shakeController: otpShake,
+        onMobileOtpChanged: (value) {
+          syncOtpDigits(value, mobileOtpControllers);
+          errorText.value = null;
+          codeError.value = null;
+        },
+        onEmailOtpChanged: (value) {
+          syncOtpDigits(value, emailOtpControllers);
+          errorText.value = null;
+          codeError.value = null;
+        },
       ),
     );
   }
@@ -685,109 +543,17 @@ class _OtpCustomSuccessDialog extends StatelessWidget {
               ),
             ],
             SizedBox(height: 22.h),
-            CustomElevatedButton(
-              onPressed: onContinue,
-              label: buttonLabel,
-              showArrow: false,
-              height: 42.h,
+            AuthButtonTheme(
+              child: CustomElevatedButton(
+                onPressed: onContinue,
+                label: buttonLabel,
+                showArrow: false,
+                height: authButtonHeight(context, fraction: 42 / 360),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _IdentityOtpSection extends StatelessWidget {
-  const _IdentityOtpSection({
-    required this.title,
-    required this.subtitle,
-    required this.controllers,
-    required this.focusNodes,
-    required this.timerText,
-    required this.canResend,
-    required this.onResend,
-    required this.onChanged,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<TextEditingController> controllers;
-  final List<FocusNode> focusNodes;
-  final String timerText;
-  final bool canResend;
-  final VoidCallback onResend;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textPrimary.withOpacity(0.7),
-              ),
-        ),
-        SizedBox(height: 10.h),
-        PinInputRow(
-          controllers: controllers,
-          focusNodes: focusNodes,
-          onPinChanged: onChanged,
-        ),
-        SizedBox(height: 10.h),
-        Row(
-          children: [
-            Icon(
-              Icons.access_time,
-              size: 14.r,
-              color: AppColors.textPrimary,
-            ),
-            SizedBox(width: 4.w),
-            Text(
-              timerText,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-            ),
-            const Spacer(),
-            InkWell(
-              onTap: canResend ? onResend : null,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.refresh,
-                    size: 14.r,
-                    color: canResend
-                        ? AppColors.textPrimary
-                        : AppColors.textPrimary.withOpacity(0.35),
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    'Resend OTP',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: canResend
-                              ? AppColors.textPrimary
-                              : AppColors.textPrimary.withOpacity(0.35),
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

@@ -1,0 +1,513 @@
+// ignore_for_file: deprecated_member_use
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
+import '../../../widgets/custom_elevated_button.dart';
+
+/// Plus Jakarta Sans is the app-wide theme font, but every raw [TextStyle] in
+/// the auth steps pins the family explicitly so they stay correct when
+/// rendered outside the app theme (widget tests, previews).
+const String authFontFamily = 'Plus Jakarta Sans';
+
+/// Focuses [node] and opens the keyboard. System sheets (biometric prompt,
+/// phone-number hint) hide the keyboard without removing focus, and
+/// requestFocus on an already focused field does not reopen it.
+void showAuthKeyboard(FocusNode node) {
+  node.requestFocus();
+  SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+}
+
+/// Keeps the keyboard up for a code field ([child] owns [focusNode]).
+///
+/// With [autofocus] the keyboard opens when the screen appears. Disabling
+/// the field (while an OTP is sent, resent or verified) drops its focus and
+/// closes the keyboard, so on re-enable the field takes focus back if it had
+/// it, or if it is the autofocus field and nothing else is focused.
+class AuthKeyboardOnOpen extends StatefulWidget {
+  const AuthKeyboardOnOpen({
+    super.key,
+    required this.child,
+    this.focusNode,
+    this.autofocus = true,
+    this.enabled = true,
+  });
+
+  final Widget child;
+  final FocusNode? focusNode;
+  final bool autofocus;
+  final bool enabled;
+
+  @override
+  State<AuthKeyboardOnOpen> createState() => _AuthKeyboardOnOpenState();
+}
+
+class _AuthKeyboardOnOpenState extends State<AuthKeyboardOnOpen> {
+  /// Fields that were focused when disabled; they win over the autofocus
+  /// field when everything is re-enabled together.
+  static final Set<_AuthKeyboardOnOpenState> _focusedWhenDisabled = {};
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autofocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openKeyboard());
+    }
+  }
+
+  @override
+  void didUpdateWidget(AuthKeyboardOnOpen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled && !widget.enabled) {
+      if (widget.focusNode?.hasFocus ?? false) _focusedWhenDisabled.add(this);
+    } else if (!oldWidget.enabled && widget.enabled) {
+      final hadFocus = _focusedWhenDisabled.contains(this);
+      if (hadFocus || widget.autofocus) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _focusedWhenDisabled.remove(this);
+          if (hadFocus || _focusedWhenDisabled.isEmpty) _openKeyboard();
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusedWhenDisabled.remove(this);
+    super.dispose();
+  }
+
+  void _openKeyboard() {
+    if (!mounted || !widget.enabled) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    final primary = FocusManager.instance.primaryFocus;
+    final focused = primary?.context;
+    final ownsFocus = focused != null &&
+        focused.findAncestorStateOfType<_AuthKeyboardOnOpenState>() == this;
+    if (ownsFocus) {
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+      return;
+    }
+    final node = widget.focusNode;
+    final nothingFocused = primary == null || primary is FocusScopeNode;
+    if (node != null && nothingFocused) showAuthKeyboard(node);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Zinc-400 disabled fill from the Figma spec. Deliberately local to the auth
+/// steps: it must not leak into the global palette.
+const Color authDisabledFill = Color(0xFFA1A1AA);
+const Color _hintColor = Color(0xFFA1A1AA);
+const Color _fieldDivider = Color(0xFFE4E4E7);
+
+/// Side gutter measured off the 360-wide Figma auth frames; every auth step
+/// shares it so labels, fields and the CTA line up on one edge.
+double get authHorizontalPadding => 14.w;
+
+/// MediaQuery sizing for auth layout boxes: [fraction] of the screen width
+/// (Figma px / 360), bounded so controls stay usable on 280dp phones and do
+/// not balloon on tablets. The result is already in logical pixels and must
+/// not be passed through ScreenUtil again.
+double authWidthFraction(
+  BuildContext context,
+  double fraction, {
+  required double min,
+  required double max,
+}) {
+  return (MediaQuery.sizeOf(context).width * fraction)
+      .clamp(min, max)
+      .toDouble();
+}
+
+/// Fixed-height auth CTA; [fraction] defaults to the 48px Figma button.
+double authButtonHeight(BuildContext context, {double fraction = 48 / 360}) =>
+    authWidthFraction(context, fraction, min: 40, max: 56);
+
+/// Full width on phones; on tablets the form column takes 60% of the screen
+/// so fields and CTAs stay readable.
+double authContentMaxWidth(BuildContext context) {
+  final screenWidth = MediaQuery.sizeOf(context).width;
+  return screenWidth > 600 ? screenWidth * 0.6 : double.infinity;
+}
+
+const double authBackgroundOpacity = 0.4;
+
+/// Auth artwork, faded so it stays behind the form content.
+class AuthBackgroundImage extends StatelessWidget {
+  const AuthBackgroundImage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      FileConstants.authBackground,
+      fit: BoxFit.cover,
+      alignment: Alignment.topCenter,
+      opacity: const AlwaysStoppedAnimation(authBackgroundOpacity),
+    );
+  }
+}
+
+class AuthStepLayout extends StatelessWidget {
+  const AuthStepLayout({
+    super.key,
+    required this.children,
+    required this.footer,
+  });
+
+  final List<Widget> children;
+  final Widget footer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const ColoredBox(color: Colors.white),
+        const AuthBackgroundImage(),
+        SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final topGap =
+                        (constraints.maxHeight * 0.07).clamp(12.h, 56.h);
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        authHorizontalPadding,
+                        topGap,
+                        authHorizontalPadding,
+                        0,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: authContentMaxWidth(context),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ...children,
+                              // Keeps the last control clear of the pinned
+                              // footer button.
+                              SizedBox(height: 24.h),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  authHorizontalPadding,
+                  8.h,
+                  authHorizontalPadding,
+                  16.h,
+                ),
+                child: footer,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Brand mark + wordmark, using the client's eRupaiya monogram.
+class AuthBrandRow extends StatelessWidget {
+  const AuthBrandRow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Image.asset(
+          FileConstants.erupaiyaLogo,
+          width: 24.r,
+          height: 24.r,
+        ),
+        SizedBox(width: 6.w),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            // TM is its own widget beside the wordmark, so it can never
+            // overlap the final 'a'.
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'eRupaiya',
+                  style: TextStyle(
+                    fontFamily: authFontFamily,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                    height: 1.2,
+                    letterSpacing: 0,
+                  ),
+                ),
+                SizedBox(width: 1.w),
+                Text(
+                  'TM',
+                  style: TextStyle(
+                    fontFamily: authFontFamily,
+                    fontSize: 6.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                    height: 1,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class AuthWelcomeHeading extends StatelessWidget {
+  const AuthWelcomeHeading({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Welcome to eRupaiya',
+          style: TextStyle(
+            fontFamily: authFontFamily,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+            height: 1.3,
+            letterSpacing: 0,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          'Enter your mobile number to continue.',
+          style: TextStyle(
+            fontFamily: authFontFamily,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w400,
+            fontStyle: FontStyle.italic,
+            color: AppColors.textPrimary.withOpacity(0.6),
+            height: 1.4,
+            letterSpacing: 0,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class AuthFieldLabel extends StatelessWidget {
+  const AuthFieldLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontFamily: authFontFamily,
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textPrimary,
+        height: 1.2,
+        letterSpacing: 0,
+      ),
+    );
+  }
+}
+
+/// +91 mobile number field. With [enabled] false it shows the number
+/// read-only, and [onTap] lets the caller offer a way back to editing it.
+class AuthMobileField extends StatelessWidget {
+  const AuthMobileField({
+    super.key,
+    required this.controller,
+    this.enabled = true,
+    this.autofocus = false,
+    this.focusNode,
+    this.onTap,
+  });
+
+  static const int mobileLength = 10;
+
+  final TextEditingController controller;
+  final bool enabled;
+  final bool autofocus;
+  final FocusNode? focusNode;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final field = Container(
+      height: authWidthFraction(context, 46 / 360, min: 40, max: 64),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 18.r,
+            offset: Offset(0.w, 8.h),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Image.asset(
+            FileConstants.indiaFlag,
+            width: 22.r,
+            height: 15.r,
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            '+91',
+            style: TextStyle(
+              fontFamily: authFontFamily,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              height: 1.2,
+              letterSpacing: 0,
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Container(width: 1.w, height: 18.r, color: _fieldDivider),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              enabled: enabled,
+              autofocus: autofocus,
+              focusNode: focusNode,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              // Digits only, hard-capped at 10 after the +91 prefix.
+              maxLength: mobileLength,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(mobileLength),
+              ],
+              style: TextStyle(
+                fontFamily: authFontFamily,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+                height: 1.2,
+                letterSpacing: 0,
+              ),
+              decoration: InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                hintText: 'enter 10 digit mobile number',
+                hintStyle: TextStyle(
+                  fontFamily: authFontFamily,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w400,
+                  color: _hintColor,
+                  height: 1.2,
+                  letterSpacing: 0,
+                ),
+                counterText: '',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) return field;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: field,
+    );
+  }
+}
+
+/// Makes the [CustomElevatedButton]s under it paint edge to edge with no
+/// rim. By default Material draws the button 7px shorter than its 48px tap
+/// area and tints it grey when disabled or loading, leaving a light band
+/// around the pill that reads as a border.
+class AuthButtonTheme extends StatelessWidget {
+  const AuthButtonTheme({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = ElevatedButton.styleFrom(
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      minimumSize: const Size(64, kMinInteractiveDimension),
+      disabledBackgroundColor: Colors.transparent,
+      disabledForegroundColor: Colors.white,
+      side: BorderSide.none,
+    ).merge(theme.elevatedButtonTheme.style);
+    return Theme(
+      data: theme.copyWith(
+        elevatedButtonTheme: ElevatedButtonThemeData(style: style),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Full-pill primary CTA shared by the auth steps.
+class AuthPrimaryButton extends StatelessWidget {
+  const AuthPrimaryButton({
+    super.key,
+    required this.label,
+    required this.enabled,
+    required this.onPressed,
+    this.isLoading = false,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback? onPressed;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return AuthButtonTheme(
+      child: CustomElevatedButton(
+        onPressed: enabled ? onPressed : null,
+        label: label,
+        uppercaseLabel: false,
+        isLoading: isLoading,
+        // No fixed height, so the label never clips at large text scales; the
+        // 28.r radius still rounds the 48dp Material height into a full pill.
+        backgroundColor: enabled ? AppColors.primary : authDisabledFill,
+        labelColor: Colors.white,
+        labelStyle: TextStyle(
+          fontFamily: authFontFamily,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+          height: 1,
+          letterSpacing: 0,
+        ),
+      ),
+    );
+  }
+}

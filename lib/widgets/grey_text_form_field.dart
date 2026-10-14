@@ -21,6 +21,7 @@ class GreyTextFormField extends StatelessWidget {
     this.centerText = true,
     this.maxLength,
     this.inputFormatters,
+    this.autofocus = false,
   });
 
   final TextEditingController controller;
@@ -35,6 +36,7 @@ class GreyTextFormField extends StatelessWidget {
   final bool centerText;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +72,7 @@ class GreyTextFormField extends StatelessWidget {
       ),
       child: TextFormField(
         enabled: enabled,
+        autofocus: autofocus,
         controller: controller,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         maxLength: maxLength ?? (isNumber ? 10 : null),

@@ -95,13 +95,21 @@ class CustomElevatedButton extends StatelessWidget {
                 ),
                 SizedBox(width: 10.w),
               ],
-              Text(
-                uppercaseLabel ? label.toUpperCase() : label,
-                style: (labelStyle ?? Theme.of(context).textTheme.labelLarge)
-                    ?.copyWith(
-                  color: labelColor ?? Colors.white,
-                  letterSpacing: labelStyle == null ? 1.1 : null,
-                  fontWeight: labelStyle?.fontWeight ?? FontWeight.w700,
+              // Shrinks only a label that would otherwise overflow a narrow
+              // button; labels that fit render exactly as before.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    uppercaseLabel ? label.toUpperCase() : label,
+                    style: (labelStyle ??
+                            Theme.of(context).textTheme.labelLarge)
+                        ?.copyWith(
+                      color: labelColor ?? Colors.white,
+                      letterSpacing: labelStyle == null ? 1.1 : null,
+                      fontWeight: labelStyle?.fontWeight ?? FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
               if (showArrow) ...[

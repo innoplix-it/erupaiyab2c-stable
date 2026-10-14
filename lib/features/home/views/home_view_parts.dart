@@ -2792,56 +2792,13 @@ class _HomeContent extends HookConsumerWidget {
             return;
           }
           final reminder = response.items.first;
-          final biller = Biller(
-            billerId: reminder.billerId,
-            billerName: reminder.billerName,
-            icon: reminder.billerIcon,
-          );
-          final paymentType = reminder.paymentType.trim();
-          final normalizedPaymentType = paymentType.toLowerCase();
-          final maskedDigits =
-              reminder.maskedIdentifier.replaceAll(RegExp(r'\D'), '');
-          final cardLast4 = maskedDigits.length >= 4
-              ? maskedDigits.substring(maskedDigits.length - 4)
-              : null;
-          final reminderIdentifier = _resolveReminderPrefillValue(reminder);
-          final reminderMobile = reminder.customerMobile.trim();
-          final canAutoFetchReminder = normalizedPaymentType.contains('credit')
-              ? reminderMobile.isNotEmpty && cardLast4 != null
-              : reminderIdentifier.isNotEmpty;
           await KDialog.instance.openDialog(
             dialog: _HomeReminderDialog(
               data: reminder,
               onPrimaryTap: reminder.canPayNow
                   ? () {
                       Navigator.of(context, rootNavigator: true).pop();
-                      ref
-                          .read(billerDetailControllerProvider.notifier)
-                          .selectBiller(
-                            biller,
-                            categoryName:
-                                paymentType.isNotEmpty ? paymentType : null,
-                          );
-                      context.push(
-                        RouteConstants.billerDetail,
-                        extra: BillerDetailArgs(
-                          biller: biller,
-                          isCreditCard:
-                              normalizedPaymentType.contains('credit'),
-                          paymentType:
-                              paymentType.isNotEmpty ? paymentType : null,
-                          mobileNumber: normalizedPaymentType.contains('credit')
-                              ? (reminderMobile.isNotEmpty
-                                  ? reminderMobile
-                                  : null)
-                              : (reminderIdentifier.isNotEmpty
-                                  ? reminderIdentifier
-                                  : null),
-                          cardLast4: cardLast4,
-                          autoFetchBill: canAutoFetchReminder,
-                          autoOpenPaymentSheet: false,
-                        ),
-                      );
+                      openBillReminderPayment(context, ref, reminder);
                     }
                   : null,
             ),
@@ -4377,21 +4334,6 @@ String _billReminderIdentifier(BillReminderItem data) {
   if (masked.isNotEmpty) return masked;
   if (mobile.isNotEmpty) return mobile;
   return data.billerId.trim();
-}
-
-String _resolveReminderPrefillValue(BillReminderItem data) {
-  final paymentType = data.paymentType.trim().toLowerCase();
-  final masked = data.maskedIdentifier.trim();
-  final mobile = data.customerMobile.trim();
-  if (paymentType.contains('credit')) {
-    return mobile;
-  }
-  if (paymentType.contains('mobile') || paymentType.contains('recharge')) {
-    if (mobile.isNotEmpty) return mobile;
-    return masked;
-  }
-  if (masked.isNotEmpty) return masked;
-  return mobile;
 }
 
 String _formatReminderAmount(double amount) {

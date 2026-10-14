@@ -22,12 +22,30 @@ import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../../profile/controllers/transaction_history_controller.dart';
+import '../../services/controllers/credit_card_transactions_controller.dart';
 import '../controllers/notifications_controller.dart';
+import '../controllers/home_controller.dart';
 import '../controllers/home_tab_controller.dart';
+import '../helpers/bill_reminder_payment.dart';
+import '../helpers/notification_transaction_resolver.dart';
 import '../models/notification_item.dart';
 
 final notificationReadIdsProvider =
     StateProvider.autoDispose<Set<String>>((ref) => <String>{});
+
+final notificationTransactionResolverProvider =
+    Provider<NotificationTransactionResolver>(
+  (ref) => NotificationTransactionResolver(
+    ref.watch(transactionHistoryRepositoryProvider),
+    creditCards: ref.watch(creditCardTransactionsRepositoryProvider),
+  ),
+);
+
+final notificationBillPaymentResolverProvider =
+    Provider<NotificationBillPaymentResolver>(
+  (ref) => NotificationBillPaymentResolver(ref.watch(homeRepositoryProvider)),
+);
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -42,6 +60,109 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   // Guards against double-tap while the clear operation runs.
   bool _isClearing = false;
+
+  // Held from the lookup until the opened screen is popped, so a second tap
+  // cannot call the API again or push the screen twice.
+  bool _isOpening = false;
+
+  // True only while an API lookup runs; shows the loading overlay.
+  bool _isLookingUp = false;
+
+  Future<void> _onNotificationTap(NotificationItem item) async {
+    if (_isOpening) return;
+    _markNotificationRead(ref, item);
+    final isPayNow = _primaryLabelFor(item) == 'Pay Now';
+    final isTransaction = item.isTransactionNotification;
+    if (!isPayNow && !isTransaction && !item.mayReferToTransaction) {
+      _handleNotificationRedirect(context, item);
+      return;
+    }
+
+    _isOpening = true;
+    try {
+      if (isPayNow) {
+        await _openBillPayment(item);
+      } else {
+        await _openTransaction(item, isTransaction: isTransaction);
+      }
+    } finally {
+      _isOpening = false;
+      if (mounted && _isLookingUp) setState(() => _isLookingUp = false);
+    }
+  }
+
+  Future<T> _lookUp<T>(Future<T> Function() lookup) async {
+    setState(() => _isLookingUp = true);
+    try {
+      return await lookup();
+    } finally {
+      if (mounted) setState(() => _isLookingUp = false);
+    }
+  }
+
+  Future<void> _openBillPayment(NotificationItem item) async {
+    final lookup = await _lookUp(
+      () => ref.read(notificationBillPaymentResolverProvider).resolve(item),
+    );
+    if (!mounted) return;
+    final reminder = lookup.value;
+    if (lookup.status == NotificationLookupStatus.failed) {
+      AppSnackbar.show(
+        'Could not load bill details. Please try again.',
+        type: AppSnackbarType.error,
+      );
+      return;
+    }
+    if (reminder == null) {
+      if (!_handleNotificationRedirect(context, item)) {
+        AppSnackbar.show(
+          'Bill details are not available for this notification.',
+          type: AppSnackbarType.error,
+        );
+      }
+      return;
+    }
+    if (!reminder.canPayNow) {
+      AppSnackbar.show(
+        'This bill cannot be paid right now.',
+        type: AppSnackbarType.error,
+      );
+      return;
+    }
+    await openBillReminderPayment(context, ref, reminder);
+  }
+
+  Future<void> _openTransaction(
+    NotificationItem item, {
+    required bool isTransaction,
+  }) async {
+    final lookup = await _lookUp(
+      () =>
+          ref.read(notificationTransactionResolverProvider).lookupTarget(item),
+    );
+    if (!mounted) return;
+    final target = lookup.value;
+    if (target != null) {
+      await context.push(target.route, extra: target.extra);
+      return;
+    }
+    if (!isTransaction) {
+      _handleNotificationRedirect(context, item);
+      return;
+    }
+    if (lookup.status == NotificationLookupStatus.failed) {
+      AppSnackbar.show(
+        'Could not load transaction details. Please try again.',
+        type: AppSnackbarType.error,
+      );
+      return;
+    }
+    AppSnackbar.show(
+      'Transaction details are not available for this notification.',
+      type: AppSnackbarType.error,
+    );
+    await context.push(RouteConstants.transactions);
+  }
 
   @override
   void initState() {
@@ -133,7 +254,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
+      body: _LookupOverlay(
+        isLoading: _isLookingUp,
+        child: Column(
         children: [
           MyAppBar(
             title: 'Notifications',
@@ -286,11 +409,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                           _dismissedIds
                                                               .add(item.id));
                                                     },
-                                                    onPrimary: () =>
-                                                        _handleNotificationTap(
-                                                      context,
-                                                      ref,
-                                                      item,
+                                                    onPrimary: () => unawaited(
+                                                      _onNotificationTap(item),
                                                     ),
                                                     primaryLabel:
                                                         _primaryLabelFor(item),
@@ -330,6 +450,35 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         ],
       ),
+      ),
+    );
+  }
+}
+
+/// Blocks the list with a loader while a notification's target is looked up.
+class _LookupOverlay extends StatelessWidget {
+  const _LookupOverlay({required this.isLoading, required this.child});
+
+  final bool isLoading;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        child,
+        if (isLoading)
+          const Positioned.fill(
+            child: AbsorbPointer(
+              child: ColoredBox(
+                color: Color(0x33000000),
+                child: Center(
+                  child: SpinKitCircle(color: AppColors.primary, size: 48),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -375,11 +524,7 @@ void _handleNotificationClose(WidgetRef ref, NotificationItem item) {
   }
 }
 
-void _handleNotificationTap(
-  BuildContext context,
-  WidgetRef ref,
-  NotificationItem item,
-) {
+void _markNotificationRead(WidgetRef ref, NotificationItem item) {
   final readIds = ref.read(notificationReadIdsProvider);
   final isAlreadyRead = item.isRead || readIds.contains(item.id);
   if (!isAlreadyRead) {
@@ -392,15 +537,18 @@ void _handleNotificationTap(
       ref.read(notificationsRepositoryProvider).markNotificationRead(item.id),
     );
   }
+}
 
+/// Returns false when [item] has no destination of its own.
+bool _handleNotificationRedirect(BuildContext context, NotificationItem item) {
   final redirect = (item.redirectScreen ?? '').trim().toLowerCase();
   if (redirect == 'app_update_screen') {
     unawaited(_openPlayStore());
-    return;
+    return true;
   }
   if (redirect == 'spin_screen') {
     context.push(RouteConstants.spinAndWin);
-    return;
+    return true;
   }
   if (redirect == 'wallet_history') {
     PersistentNavBarNavigator.pushNewScreen(
@@ -408,17 +556,17 @@ void _handleNotificationTap(
       screen: const ReferAndEarnWalletView(),
       withNavBar: false,
     );
-    return;
+    return true;
   }
   if (redirect == 'bill_history') {
     context.push(RouteConstants.transactions);
-    return;
+    return true;
   }
 
   final combined = '${item.title} ${item.subtitle}'.toLowerCase();
   if (combined.contains('spin')) {
     context.push(RouteConstants.spinAndWin);
-    return;
+    return true;
   }
   if (combined.contains('wallet')) {
     PersistentNavBarNavigator.pushNewScreen(
@@ -426,8 +574,9 @@ void _handleNotificationTap(
       screen: const ReferAndEarnWalletView(),
       withNavBar: false,
     );
-    return;
+    return true;
   }
+  return false;
 }
 
 Future<void> _openPlayStore() async {
@@ -486,7 +635,8 @@ class _NotificationCard extends StatelessWidget {
   final String primaryLabel;
   final VoidCallback? onClose;
 
-  static final RegExp _amountRegExp = RegExp(r'(\u20B9\s?[\d][\d,]*(?:\.\d+)?)');
+  static final RegExp _amountRegExp =
+      RegExp(r'(\u20B9\s?[\d][\d,]*(?:\.\d+)?)');
 
   List<TextSpan> _titleSpans(String text, TextStyle base) {
     if (text.isEmpty) return <TextSpan>[TextSpan(text: text, style: base)];
@@ -521,11 +671,11 @@ class _NotificationCard extends StatelessWidget {
       height: 1.25,
     );
 
+    final radius = BorderRadius.circular(16.r);
     return Container(
-      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: radius,
         border: Border.all(color: AppColors.textPrimary.withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
@@ -535,102 +685,126 @@ class _NotificationCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48.r,
-            height: 48.r,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppColors.lightBorder2),
-            ),
-            child: Center(
-              child: AppNetworkImage(
-                url: iconUrl,
+      // The whole card opens the notification; the close button keeps its
+      // own tap.
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: radius,
+        child: InkWell(
+          key: ValueKey('notification-card-${item.id}'),
+          onTap: onPrimary,
+          borderRadius: radius,
+          child: Padding(
+            padding: EdgeInsets.all(14.w),
+            child: _buildContent(context, ageText, iconUrl, titleStyle),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    String ageText,
+    String iconUrl,
+    TextStyle titleStyle,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 48.r,
+          height: 48.r,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: AppColors.lightBorder2),
+          ),
+          child: Center(
+            child: AppNetworkImage(
+              url: iconUrl,
+              width: 28.r,
+              height: 28.r,
+              fit: BoxFit.contain,
+              showShimmer: true,
+              errorWidget: Image.asset(
+                item.iconAsset,
                 width: 28.r,
                 height: 28.r,
                 fit: BoxFit.contain,
-                showShimmer: true,
-                errorWidget: Image.asset(
-                  item.iconAsset,
-                  width: 28.r,
-                  height: 28.r,
-                  fit: BoxFit.contain,
-                ),
               ),
             ),
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text.rich(TextSpan(children: _titleSpans(item.title, titleStyle))),
-                SizedBox(height: 4.h),
-                Text(
-                  item.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textPrimary.withOpacity(0.72),
-                        height: 1.25,
-                      ),
-                ),
-                SizedBox(height: 8.h),
-                InkWell(
-                  onTap: onPrimary,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.h),
-                    child: Text(
-                      primaryLabel,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 8.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text.rich(
+                  TextSpan(children: _titleSpans(item.title, titleStyle))),
+              SizedBox(height: 4.h),
+              Text(
+                item.subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textPrimary.withOpacity(0.72),
+                      height: 1.25,
+                    ),
+              ),
+              SizedBox(height: 8.h),
               InkWell(
-                onTap: onClose,
-                borderRadius: BorderRadius.circular(999.r),
+                onTap: onPrimary,
                 child: Padding(
-                  padding: EdgeInsets.all(4.r),
-                  child: SvgPicture.string(
-                    _notificationCloseSvg,
-                    width: 18.r,
-                    height: 18.r,
+                  padding: EdgeInsets.symmetric(vertical: 2.h),
+                  child: Text(
+                    primaryLabel,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                 ),
               ),
-              if (ageText.isNotEmpty) ...[
-                SizedBox(height: 10.h),
-                SvgPicture.string(
-                  _notificationTimerSvg,
-                  width: 12.r,
-                  height: 12.r,
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  ageText,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textPrimary.withOpacity(0.45),
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-              ],
             ],
           ),
-        ],
-      ),
+        ),
+        SizedBox(width: 8.w),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            InkWell(
+              onTap: onClose,
+              borderRadius: BorderRadius.circular(999.r),
+              child: Padding(
+                padding: EdgeInsets.all(4.r),
+                child: SvgPicture.string(
+                  _notificationCloseSvg,
+                  width: 18.r,
+                  height: 18.r,
+                ),
+              ),
+            ),
+            if (ageText.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              SvgPicture.string(
+                _notificationTimerSvg,
+                width: 12.r,
+                height: 12.r,
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                ageText,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textPrimary.withOpacity(0.45),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
@@ -811,7 +985,8 @@ class _NotificationCardSkeleton extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: SizedBox(height: 30.h,
+                child: SizedBox(
+                  height: 30.h,
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.textPrimary.withOpacity(0.04),
@@ -822,7 +997,8 @@ class _NotificationCardSkeleton extends StatelessWidget {
               ),
               SizedBox(width: 12.w),
               Expanded(
-                child: SizedBox(height: 30.h,
+                child: SizedBox(
+                  height: 30.h,
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.textPrimary.withOpacity(0.04),

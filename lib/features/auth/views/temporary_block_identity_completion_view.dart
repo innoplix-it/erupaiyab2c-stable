@@ -13,6 +13,7 @@ import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/grey_text_form_field.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../profile/controllers/profile_controller.dart';
+import '../components/auth_step_parts.dart';
 import '../controllers/auth_controller.dart';
 
 class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
@@ -69,6 +70,10 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
       );
     }
 
+    // GreyTextFormField defaults to 48.h, which shrinks to ~33px on short
+    // phones; size it from the screen width instead.
+    final fieldHeight = authWidthFraction(context, 48 / 360, min: 44, max: 64);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -87,16 +92,25 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
         ),
         centerTitle: true,
       ),
+      // Scaffold leaves bottomNavigationBar behind the keyboard, so the CTA is
+      // lifted by the keyboard height like the other auth screens.
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
-          child: CustomElevatedButton(
-            onPressed: authState.isSubmitting ? null : handleContinue,
-            label:
-                authState.isSubmitting ? 'Verifying...' : 'Verify & Continue',
-            uppercaseLabel: false,
-            height: 42.h,
+          padding: EdgeInsets.fromLTRB(
+            16.w,
+            0.h,
+            16.w,
+            18.h + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: AuthButtonTheme(
+            child: CustomElevatedButton(
+              onPressed: authState.isSubmitting ? null : handleContinue,
+              label:
+                  authState.isSubmitting ? 'Verifying...' : 'Verify & Continue',
+              uppercaseLabel: false,
+              height: authButtonHeight(context, fraction: 42 / 360),
+            ),
           ),
         ),
       ),
@@ -107,7 +121,7 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
           children: [
             Image.asset(
               FileConstants.resetPinIcon,
-              height: 72.h,
+              height: authWidthFraction(context, 72 / 360, min: 52, max: 104),
               fit: BoxFit.contain,
             ),
             SizedBox(height: 18.h),
@@ -138,6 +152,8 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
             GreyTextFormField(
               controller: panController,
               enabled: true,
+              autofocus: true,
+              height: fieldHeight,
               hintText: 'ABCDE1234F',
               centerText: false,
             ),
@@ -153,6 +169,7 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
             GreyTextFormField(
               controller: aadhaarController,
               enabled: true,
+              height: fieldHeight,
               hintText: '1234 5678 9012',
               isNumber: true,
               centerText: false,
@@ -270,11 +287,13 @@ class _TemporaryBlockSuccessDialog extends StatelessWidget {
                   ),
             ),
             SizedBox(height: 18.h),
-            CustomElevatedButton(
-              onPressed: onContinue,
-              label: 'Continue to Login',
-              showArrow: false,
-              height: 40.h,
+            AuthButtonTheme(
+              child: CustomElevatedButton(
+                onPressed: onContinue,
+                label: 'Continue to Login',
+                showArrow: false,
+                height: authButtonHeight(context, fraction: 40 / 360),
+              ),
             ),
           ],
         ),

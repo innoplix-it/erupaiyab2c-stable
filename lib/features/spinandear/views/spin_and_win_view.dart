@@ -83,8 +83,9 @@ class SpinAndWinView extends HookConsumerWidget {
     final tryTomorrowScale = useState(1.0);
 
     final spinOptionsState = ref.watch(spinOptionsControllerProvider);
+    // Use the provider so tests can inject a fake via ProviderScope.overrides.
+    final spinRepository = ref.read(spinRepositoryProvider);
 
-    final rng = useMemoized(() => math.Random());
     final targetRotation = useState(0.0);
     final controller = useAnimationController(
       duration: kSpinWheelDuration,
@@ -94,7 +95,8 @@ class SpinAndWinView extends HookConsumerWidget {
       [controller],
     );
     final animValue = useAnimation(animation);
-    final spinRepository = useMemoized(() => SpinRepository());
+
+    final rng = useMemoized(() => math.Random());
 
     // "Try Tomorrow" (zero spins left): navigate to Home via the existing
     // GoRouter pattern with a quick scale-down; navigation is not delayed.
@@ -107,12 +109,17 @@ class SpinAndWinView extends HookConsumerWidget {
       });
     }
 
-    // Fetch profile on mount
+    // Fetch profile on mount and preload the popup cue so the OS audio engine
+    // has it buffered before the wheel stops. The preload is fire-and-forget;
+    // any platform error is swallowed inside SpinSoundController.preloadPopup.
     useEffect(() {
       Future.microtask(() async {
         if (profile == null) {
           profileController.fetchProfile();
         }
+        // Warm both cues so neither waits on loading when it is played.
+        await SpinSoundController.preloadSpin();
+        await SpinSoundController.preloadPopup();
       });
       // Release the spin cue's player with the screen.
       return SpinSoundController.dispose;
@@ -139,11 +146,14 @@ class SpinAndWinView extends HookConsumerWidget {
       if (rewards.isEmpty) return;
       isSpinning.value = true;
 
-      // Start the 5736ms cue exactly once, right here at the tap. Its first
-      // 3736ms run under the wheel (kSpinWheelDuration) and its final 2000ms
-      // are still playing when the wheel stops and the result popup appears,
-      // so the popup never gets a second, overlapping or replayed sound.
-      SpinSoundController.playOnSpin();
+      // Start the 5100ms wheel cue exactly once, and turn the wheel as soon as
+      // it is playing; the wheel runs for precisely that long
+      // (kSpinWheelDuration), so the sound and the spin end together.
+      await SpinSoundController.playOnSpin().timeout(
+        SpinSoundController.cueStartTimeout,
+        onTimeout: () {},
+      );
+      if (!context.mounted) return;
 
       final currentRewards = rewards;
       final targetIndex = rng.nextInt(currentRewards.length);
@@ -189,6 +199,10 @@ class SpinAndWinView extends HookConsumerWidget {
         Navigator.of(context, rootNavigator: true).pop(false);
         isExitDialogOpen.value = false;
       }
+
+      // Fired in the same statement as the dialog so the result cue starts on
+      // the popup's first frame rather than after its animation settles.
+      SpinSoundController.playOnPopup();
 
       KDialog.instance.openDialog(
         barrierColor: const Color(0xDB000000),
@@ -401,9 +415,6 @@ class SpinAndWinView extends HookConsumerWidget {
                                 ),
                               ),
                               SizedBox(width: badgeSpacing),
-                              // Figma badge: dark pill/circle (#2D0B00) with the
-                              // API value in gold (#D3A30E). Dynamically sizes
-                              // horizontally for 1, 2, 3, or 4 digit counts without wrapping.
                               Container(
                                 constraints: BoxConstraints(
                                   minWidth: 18.r,
