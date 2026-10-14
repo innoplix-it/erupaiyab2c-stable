@@ -1,3 +1,4 @@
+import 'package:e_rupaiya/config/temporary_block_debug_config.dart';
 import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/constants/app_error_messages.dart';
 import 'package:e_rupaiya/constants/routes_constant.dart';
@@ -100,6 +101,22 @@ class _FakeAuth extends AuthController {
   }
 
   @override
+  Future<String?> sendDeviceOtp({required String verificationId}) async =>
+      'OTP sent';
+
+  @override
+  Future<String?> verifyDeviceOtp({
+    required String verificationId,
+    required String mobileOtp,
+    required String emailOtp,
+  }) async {
+    attempts.add('$mobileOtp/$emailOtp');
+    if (accept) return 'Device verified';
+    _fail();
+    return null;
+  }
+
+  @override
   Future<String?> requestForgotPinOtp({String? mobile}) async => 'OTP sent';
 
   @override
@@ -162,10 +179,31 @@ enum _Screen { loginPin, verifyOtp, resetMpin, appLock }
 const _start = '/start';
 const _target = '/target';
 
+late GoRouter _router;
+
+/// Top of the stack; `uri` stays on the base location after a push.
+String _location() =>
+    _router.routerDelegate.currentConfiguration.last.matchedLocation;
+
+const _deviceOtpArgs = OtpVerificationArgs(
+  phoneNumber: '9876543210',
+  title: 'Verify Your Identity',
+  heading: 'Verify Your Identity',
+  primaryButtonLabel: 'Verify & Continue',
+  successDialogTitle: 'Device Verified',
+  successDialogMessage: 'This device has been verified.',
+  successButtonLabel: 'Continue to Login',
+  successRoute: RouteConstants.login,
+  successRouteUseGo: true,
+  deviceVerificationId: 'device-test',
+  temporaryBlockFlowType: TemporaryBlockFlowType.deviceVerification,
+);
+
 Future<_FakeAuth> _pump(
   WidgetTester tester,
   _Screen screen, {
   Size size = const Size(390, 844),
+  Widget? viewOverride,
 }) async {
   tester.view.devicePixelRatio = 2;
   tester.view.physicalSize = size * 2;
@@ -173,7 +211,8 @@ Future<_FakeAuth> _pump(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   final auth = _FakeAuth();
-  final Widget view = switch (screen) {
+  final Widget view = viewOverride ??
+      switch (screen) {
     _Screen.loginPin => const LoginView(),
     _Screen.verifyOtp => const OtpVerificationView(
         args: OtpVerificationArgs(phoneNumber: '9876543210'),
@@ -183,7 +222,7 @@ Future<_FakeAuth> _pump(
   };
   // Views that pop on success are pushed over a start page.
   final pushed = screen == _Screen.resetMpin || screen == _Screen.appLock;
-  final router = GoRouter(
+  final router = _router = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: pushed ? _start : _target,
     routes: [
@@ -199,6 +238,10 @@ Future<_FakeAuth> _pump(
       GoRoute(
         path: RouteConstants.otpSuccess,
         builder: (_, __) => const Scaffold(body: Text('otp success page')),
+      ),
+      GoRoute(
+        path: RouteConstants.login,
+        builder: (_, __) => const Scaffold(body: Text('login page')),
       ),
     ],
   );
@@ -368,6 +411,51 @@ void main() {
         await _finish(tester);
       });
 
+      testWidgets('wrong code keeps the same screen open', (tester) async {
+        final auth = await _pump(tester, screen);
+        final view = find.byType(switch (screen) {
+          _Screen.loginPin => LoginView,
+          _Screen.verifyOtp => OtpVerificationView,
+          _Screen.resetMpin => ResetMpinView,
+          _Screen.appLock => AppLockView,
+        });
+
+        for (var attempt = 0; attempt < 2; attempt++) {
+          await _submit(tester, screen, attempt: attempt);
+          await _settle(tester);
+          await tester.pump(const Duration(seconds: 1));
+          expect(_location(), _target);
+          expect(view, findsOneWidget);
+          for (final page in [
+            'start page',
+            'home page',
+            'otp success page',
+            'login page',
+          ]) {
+            expect(find.text(page), findsNothing);
+          }
+          expect(find.text(_messageFor(screen)), findsOneWidget);
+        }
+        expect(auth.attempts, hasLength(2));
+        await _finish(tester);
+      });
+
+      // App lock has its own isUnlocking guard.
+      if (screen != _Screen.appLock) {
+        testWidgets('a code submitted while a check is running is ignored',
+            (tester) async {
+          final auth = await _pump(tester, screen);
+          auth.state = auth.state.copyWith(isSubmitting: true);
+          await _submit(tester, screen);
+          await tester.pump(const Duration(milliseconds: 600));
+          expect(auth.attempts, isEmpty);
+          expect(_shake(tester).playCount, 0);
+          expect(_location(), _target);
+          auth.state = auth.state.copyWith(isSubmitting: false);
+          await _finish(tester);
+        });
+      }
+
       testWidgets('typing never triggers the feedback', (tester) async {
         await _pump(tester, screen);
         await tester.enterText(_codeField(0), '12');
@@ -441,6 +529,79 @@ void main() {
       });
     });
   }
+
+  group('new-device verification OTP', () {
+    Future<_FakeAuth> pumpDevice(WidgetTester tester) => _pump(
+          tester,
+          _Screen.verifyOtp,
+          viewOverride: const OtpVerificationView(args: _deviceOtpArgs),
+        );
+
+    Future<void> submitBoth(WidgetTester tester, {int attempt = 0}) async {
+      await tester.enterText(_codeField(0), '11122$attempt');
+      await tester.enterText(_codeField(1), '33344$attempt');
+      await tester.pump();
+      await tester.tap(find.byType(CustomElevatedButton));
+      await _settle(tester);
+    }
+
+    testWidgets('wrong OTP stays on the screen with shake and inline error',
+        (tester) async {
+      final auth = await pumpDevice(tester);
+      await submitBoth(tester);
+      await tester.pump(const Duration(seconds: 1));
+
+      // One shake() jiggles both the mobile and the email boxes, and each
+      // box's AuthShake counts its own run.
+      final boxes = find.byType(AuthShake).evaluate().length;
+      expect(boxes, 2);
+      expect(auth.attempts, ['111220/333440']);
+      expect(_shake(tester).playCount, boxes);
+      expect(_location(), _target);
+      expect(find.byType(OtpVerificationView), findsOneWidget);
+      expect(find.text('login page'), findsNothing);
+      expect(find.text(authInvalidOtpMessage), findsWidgets);
+      expect(find.text('Verification failed. Please login again.'),
+          findsNothing);
+
+      await submitBoth(tester, attempt: 1);
+      await tester.pump(const Duration(seconds: 1));
+      expect(auth.attempts, hasLength(2));
+      expect(_shake(tester).playCount, boxes * 2);
+      expect(_location(), _target);
+      await _finish(tester);
+    });
+
+    testWidgets('connection error keeps its message without shaking',
+        (tester) async {
+      final auth = await pumpDevice(tester)
+        ..failureMessage = AppErrorMessages.network;
+      await submitBoth(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(auth.attempts, hasLength(1));
+      expect(_shake(tester).playCount, 0);
+      expect(find.text(AppErrorMessages.network), findsWidgets);
+      expect(_location(), _target);
+      await _finish(tester);
+    });
+
+    testWidgets('correct OTP still shows the success dialog and goes to login',
+        (tester) async {
+      final auth = await pumpDevice(tester)..accept = true;
+      await submitBoth(tester);
+      expect(auth.attempts, hasLength(1));
+      expect(_shake(tester).playCount, 0);
+      expect(find.text('Device Verified'), findsOneWidget);
+
+      // The dialog sits above the screen, so its button is the last one.
+      await tester.tap(find.byType(CustomElevatedButton).last);
+      await _settle(tester);
+      await _settle(tester);
+      expect(_location(), RouteConstants.login);
+      expect(find.text('login page'), findsOneWidget);
+      await _finish(tester);
+    });
+  });
 
   for (final screen in const [_Screen.loginPin, _Screen.verifyOtp]) {
     group('${screen.name} wrong-code feedback across shared sizes', () {

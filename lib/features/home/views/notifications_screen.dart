@@ -56,8 +56,6 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  final Set<String> _dismissedIds = <String>{};
-
   // Guards against double-tap while the clear operation runs.
   bool _isClearing = false;
 
@@ -191,6 +189,23 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
+  /// X icon: deletes through `POST api/notification/delete`. The card stays
+  /// until the server confirms; the controller ignores repeat taps while the
+  /// request for that notification is in flight.
+  Future<void> _deleteNotification(NotificationItem item) async {
+    final controller = ref.read(notificationsControllerProvider.notifier);
+    if (controller.isDeleting(item.id)) return;
+    final readIds = ref.read(notificationReadIdsProvider);
+    final wasUnread = !item.isRead && !readIds.contains(item.id);
+    final ok =
+        await controller.deleteNotification(item.id, wasUnread: wasUnread);
+    if (!mounted || ok) return;
+    AppSnackbar.show(
+      'Failed to delete notification. Please try again.',
+      type: AppSnackbarType.error,
+    );
+  }
+
   Future<void> _clearReadNotifications() async {
     // Prevent duplicate requests while the clear + refresh is in flight.
     if (_isClearing) return;
@@ -241,9 +256,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget build(BuildContext context) {
     final notificationsState = ref.watch(notificationsControllerProvider);
     final localReadIds = ref.watch(notificationReadIdsProvider);
-    final items = notificationsState.notifications
-        .where((n) => !_dismissedIds.contains(n.id))
-        .toList(growable: false);
+    final items = notificationsState.notifications;
     final unreadCountToSync = notificationsState.unreadCount > 0
         ? notificationsState.unreadCount
         : items.where((n) => !n.isRead && !localReadIds.contains(n.id)).length;
@@ -402,13 +415,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                 child: RepaintBoundary(
                                                   child: _NotificationCard(
                                                     item: item,
-                                                    onClose: () {
-                                                      _handleNotificationClose(
-                                                          ref, item);
-                                                      setState(() =>
-                                                          _dismissedIds
-                                                              .add(item.id));
-                                                    },
+                                                    onClose: () => unawaited(
+                                                      _deleteNotification(item),
+                                                    ),
                                                     onPrimary: () => unawaited(
                                                       _onNotificationTap(item),
                                                     ),
@@ -507,21 +516,6 @@ class _NotificationsListEntry {
   final _NotificationsListEntryKind kind;
   final String? headerText;
   final NotificationItem? item;
-}
-
-void _handleNotificationClose(WidgetRef ref, NotificationItem item) {
-  final readIds = ref.read(notificationReadIdsProvider);
-  final isAlreadyRead = item.isRead || readIds.contains(item.id);
-  if (!isAlreadyRead) {
-    NotificationBadgeService.decrement();
-    ref.read(notificationReadIdsProvider.notifier).state = {
-      ...readIds,
-      item.id,
-    };
-    unawaited(
-      ref.read(notificationsRepositoryProvider).markNotificationRead(item.id),
-    );
-  }
 }
 
 void _markNotificationRead(WidgetRef ref, NotificationItem item) {

@@ -149,6 +149,30 @@ class NotificationsRepository {
     }
   }
 
+  /// `POST api/notification/delete` with `{"notification_id": "<id>"}`.
+  Future<bool> deleteNotification(String notificationId) async {
+    final trimmed = notificationId.trim();
+    if (trimmed.isEmpty) return false;
+    try {
+      final response = await _dio.post(
+        ApiConstants.notificationDeleteEndpoint,
+        data: {'notification_id': trimmed},
+        options: Options(contentType: Headers.jsonContentType),
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      final success = payload['success'];
+      if (success is bool) return success;
+      return success?.toString().toLowerCase() == 'true';
+    } catch (e, stackTrace) {
+      logger.error(
+        'Failed to delete notification',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
   Future<bool> remindMeLater(String notificationId) async {
     final trimmed = notificationId.trim();
     if (trimmed.isEmpty) return false;

@@ -128,6 +128,7 @@ class ResetMpinView extends HookConsumerWidget {
     }
 
     Future<void> handleVerifyAndContinue() async {
+      if (ref.read(authControllerProvider).isSubmitting) return;
       final otp = otpController.text.trim();
       final pin = newPinController.text.trim();
       final confirmPin = confirmPinController.text.trim();

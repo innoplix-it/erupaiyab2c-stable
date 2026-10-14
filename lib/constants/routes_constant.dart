@@ -19,6 +19,7 @@ class RouteConstants {
   static const String kycVerification = '/kyc/verification';
   static const String billerListing = '/billers';
   static const String billerDetail = '/billers/detail';
+  static const String savedBillers = '/billers/saved';
   static const String educationFeesAmount = '/education-fees';
   static const String educationFeesRecipient = '/education-fees/recipient';
   static const String educationFeesPayment = '/education-fees/payment';

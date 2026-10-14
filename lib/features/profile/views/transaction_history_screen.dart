@@ -19,6 +19,7 @@ import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../../../widgets/screen_wrapper.dart';
 import '../controllers/transaction_history_controller.dart';
 import '../models/electricity_card_history_scope.dart';
 import '../models/transaction_history_entry.dart';
@@ -100,6 +101,8 @@ class TransactionHistoryScreen extends ConsumerStatefulWidget {
 class _TransactionHistoryScreenState
     extends ConsumerState<TransactionHistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _monthCompletionScheduled = false;
   List<TransactionHistoryEntry>? _cachedItems;
   String _cachedQuery = '';
   List<_TxnSection> _cachedSections = const [];
@@ -136,6 +139,7 @@ class _TransactionHistoryScreenState
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -196,11 +200,42 @@ class _TransactionHistoryScreenState
     final hasMore = ref.watch(
       transactionHistoryControllerProvider.select((s) => s.hasMore),
     );
+    final totalRecords = ref.watch(
+      transactionHistoryControllerProvider.select((s) => s.totalRecords),
+    );
+    final selectedRange = ref.watch(
+      transactionHistoryControllerProvider.select((s) => s.selectedRange),
+    );
+    final errorMessage = ref.watch(
+      transactionHistoryControllerProvider.select((s) => s.errorMessage),
+    );
 
     final controller = ref.read(transactionHistoryControllerProvider.notifier);
     final query = _searchController.text.trim().toLowerCase();
     final filteredItems = _filterItems(items, query, controller.activeFilter);
     final sections = _sectionsFor(items, query, filteredItems);
+    final apiMonthTotal = _apiMonthTotal(
+      items: items,
+      filteredItems: filteredItems,
+      query: query,
+      filter: controller.activeFilter,
+      range: selectedRange,
+      totalRecords: totalRecords,
+    );
+    // Pages arrive newest first, so only the oldest loaded month can still
+    // have rows on later pages. It stays hidden until a later page (or the
+    // last page) proves it complete, so no month shows a partial count.
+    final incompleteMonth =
+        hasMore && apiMonthTotal == null ? _trailingMonthKey(items) : null;
+    final visibleSections = incompleteMonth == null
+        ? sections
+        : sections
+            .where((section) => section.title != incompleteMonth)
+            .toList(growable: false);
+    final isCompletingMonth = visibleSections.length != sections.length;
+    if (isCompletingMonth && errorMessage == null) {
+      _scheduleMonthCompletion();
+    }
 
     return PopScope(
       canPop: false,
@@ -236,24 +271,53 @@ class _TransactionHistoryScreenState
                 AppSearchBar.sideInset,
                 0,
               ),
-              // The field spans the full content width like the reference;
-              // the filter entry lives inside it as a trailing action.
-              child: AppSearchBar(
-                hintText: 'Search by Transactions',
-                controller: _searchController,
-                onChanged: (_) => setState(() {}),
-                trailing: GestureDetector(
-                  onTap: () => _openFilterScreen(controller),
-                  child: Padding(
-                    padding: EdgeInsets.only(right: _figmaW(14)),
-                    child: SvgPicture.string(
-                      _transactionFilterSvg,
-                      width: _figmaR(24),
-                      height: _figmaR(24),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+              // Reference: the field, then the filter icon outside it on the
+              // right with no background. Icon and gap scale with the screen
+              // width from the 440 frame.
+              child: Builder(
+                builder: (context) {
+                  final scale = MediaQuery.sizeOf(context).width / 440;
+                  final iconSize = (24 * scale).clamp(20.0, 28.0);
+                  final tapWidth = (44 * scale).clamp(40.0, 52.0);
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: AppSearchBar(
+                          hintText: 'Search by Transactions',
+                          controller: _searchController,
+                          textStyle: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14.sp,
+                            color: Colors.black,
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      SizedBox(width: 6 * scale),
+                      Semantics(
+                        button: true,
+                        label: 'Filter transactions',
+                        child: GestureDetector(
+                          key: const ValueKey('transaction-filter-button'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _openFilterScreen(controller),
+                          child: SizedBox(
+                            width: tapWidth,
+                            height: AppSearchBar.height,
+                            child: Center(
+                              child: SvgPicture.string(
+                                _transactionFilterSvg,
+                                width: iconSize,
+                                height: iconSize,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             Expanded(
@@ -267,19 +331,44 @@ class _TransactionHistoryScreenState
                         hasMore: hasMore,
                         onEndReached: () => controller.fetchNextPage(),
                         child: CustomScrollView(
+                          controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
                           slivers: [
-                            if (filteredItems.isEmpty)
-                              const SliverFillRemaining(
+                            if (visibleSections.isEmpty)
+                              SliverFillRemaining(
                                 hasScrollBody: false,
-                                child: _TransactionEmptyState(),
+                                child: errorMessage != null
+                                    ? ScreenWrapper(
+                                        isFetching: false,
+                                        isEmpty: false,
+                                        emptyMessage: '',
+                                        errorMessage: errorMessage,
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => items.isEmpty
+                                                ? _handleRefresh(controller)
+                                                : controller.fetchNextPage(),
+                                            child: const Text('Retry'),
+                                          ),
+                                        ],
+                                        child: const SizedBox.shrink(),
+                                      )
+                                    : isCompletingMonth
+                                        ? const Center(
+                                            child: SpinKitCircle(
+                                              color: AppColors.primary,
+                                              size: 48,
+                                            ),
+                                          )
+                                        : const _TransactionEmptyState(),
                               )
                             else ...[
-                              for (final section in sections) ...[
+                              for (final section in visibleSections) ...[
                                 SliverToBoxAdapter(
                                   child: _MonthHeader(
                                     title: section.title,
-                                    count: section.items.length,
+                                    count:
+                                        apiMonthTotal ?? section.items.length,
                                   ),
                                 ),
                                 SliverList(
@@ -319,7 +408,12 @@ class _TransactionHistoryScreenState
                                               size: 48,
                                             ),
                                           ))
-                                      : SizedBox(height: 24.h),
+                                      : errorMessage != null && hasMore
+                                          ? _LoadMoreError(
+                                              message: errorMessage,
+                                              onRetry: controller.fetchNextPage,
+                                            )
+                                          : SizedBox(height: 24.h),
                                 ),
                               ),
                             ],
@@ -421,6 +515,72 @@ class _TransactionHistoryScreenState
     final sections = _buildSections(filteredItems);
     _cachedSections = sections;
     return sections;
+  }
+
+  /// `total_records` is a month's count only when the request itself covered
+  /// that calendar month and nothing narrows the rows on the device (search,
+  /// consumer/service safety filters, card scope); otherwise counts come
+  /// from the loaded records.
+  int? _apiMonthTotal({
+    required List<TransactionHistoryEntry> items,
+    required List<TransactionHistoryEntry> filteredItems,
+    required String query,
+    required TransactionHistoryFilter? filter,
+    required DateTimeRange? range,
+    required int totalRecords,
+  }) {
+    if (widget.initialElectricityCardScoped ||
+        filter?.electricityCardScoped == true) {
+      return null;
+    }
+    // Consumer/service filters also run on the device and could drop rows
+    // on pages not loaded yet, which the API total would still include.
+    final narrowsOnDevice = (filter?.consumerId?.trim().isNotEmpty ?? false) ||
+        (filter?.service?.trim().isNotEmpty ?? false);
+    if (query.isNotEmpty ||
+        narrowsOnDevice ||
+        items.isEmpty ||
+        filteredItems.length != items.length) {
+      return null;
+    }
+    final month = _requestedMonth(filter, range);
+    if (month == null) return null;
+    for (final item in items) {
+      final date = _parseTxnDate(item.transactionTime);
+      if (date == null ||
+          date.year != month.year ||
+          date.month != month.month) {
+        return null;
+      }
+    }
+    return totalRecords >= items.length ? totalRecords : null;
+  }
+
+  /// Loads the next page through the existing pagination while the oldest
+  /// month is still incomplete and the end of the list is in view (the same
+  /// threshold [InfiniteScrollListener] uses).
+  void _scheduleMonthCompletion() {
+    if (_monthCompletionScheduled) return;
+    _monthCompletionScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _monthCompletionScheduled = false;
+      if (!mounted) return;
+      final state = ref.read(transactionHistoryControllerProvider);
+      if (state.isLoading ||
+          state.isFetchingMore ||
+          !state.hasMore ||
+          state.errorMessage != null) {
+        return;
+      }
+      final position =
+          _scrollController.hasClients ? _scrollController.position : null;
+      final endInView = position == null ||
+          !position.hasContentDimensions ||
+          position.maxScrollExtent - position.pixels <= _loadMoreEndOffset;
+      if (endInView) {
+        ref.read(transactionHistoryControllerProvider.notifier).fetchNextPage();
+      }
+    });
   }
 
   Future<void> _handleRefresh(TransactionHistoryController controller) async {
@@ -590,7 +750,10 @@ class _TransactionTile extends StatelessWidget {
     final amountColor = _amountColor(status);
 
     final displayPaymentType = _getDisplayPaymentType(item);
-    final consumerDisplay = _getConsumerDisplay(item);
+    final recipientDisplay = _getRecipientDisplay(item);
+    final consumerNumber = _getConsumerDisplay(item);
+    final consumerDisplay =
+        consumerNumber == recipientDisplay ? '' : consumerNumber;
 
     return InkWell(
       onTap: onTap,
@@ -652,31 +815,43 @@ class _TransactionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    // Figma typography: SemiBold 600, 10.sp, 100%
-                    // line-height, 0% letter-spacing, capitalize each word.
+                    // Bold 700, 12.sp, 100% line-height, 0% letter-spacing,
+                    // capitalize each word.
                     _capitalizeWords(displayPaymentType),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10.sp,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       height: 1,
                       letterSpacing: 0,
                       color: const Color(0xFF000000),
                     ),
                   ),
+                  if (recipientDisplay.isNotEmpty) ...[
+                    SizedBox(height: _figmaW(6)),
+                    Text(
+                      recipientDisplay,
+                      key: const ValueKey('transaction-recipient-name'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ],
                   if (consumerDisplay.isNotEmpty) ...[
-                    // Figma rhythm: operator->number gap == number->date gap
-                    // (equal visual spacing, measured off the reference).
-                    // 6+6 keeps the 48.4px text block inside the 50px circle
-                    // so the card height stays icon-driven at exactly 76px.
+
                     SizedBox(height: _figmaW(6)),
                     Text(
                       consumerDisplay,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9.sp,
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.w700,
                         height: 1.1,
                         color: const Color(0xFF000000),
@@ -728,12 +903,10 @@ class _TransactionTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
-                      // Figma: measured digit ink ~11px on the 440 frame
-                      // (was 16.sp, unnecessarily large). SemiBold 600,
-                      // 100% line-height, 0% letter-spacing.
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w600,
-                      height: 1,
+                      // Bold 700, 100% line-height, 0% letter-spacing.
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
                       letterSpacing: 0,
                       color: amountColor,
                     ),
@@ -846,13 +1019,12 @@ class _MonthHeader extends StatelessWidget {
           // Long month names ellipsize instead of pushing the count out.
           Expanded(
             child: Text(
-              // Capitalize per spec (month names already are); size kept
-              // exactly at the current 15.sp as required.
+              // Capitalize per spec (month names already are).
               _capitalizeWords(title),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 14.sp,
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w600,
                 height: 1,
                 letterSpacing: 0,
@@ -864,11 +1036,11 @@ class _MonthHeader extends StatelessWidget {
           Text(
             countLabel,
             maxLines: 1,
-            // Same size as the month/year title (15.sp); Plus Jakarta Sans
+            // Same size as the month/year title (14.sp); Plus Jakarta Sans
             // w600, 100% line-height, 0% letter-spacing, capitalize (the
             // label is built as "3 Transactions", already capitalized).
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 14.sp,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w600,
               height: 1,
               letterSpacing: 0,
@@ -953,6 +1125,66 @@ String _formatTxnTime(String raw) {
   final label = '$day $month, $hour:$minute$ampm';
   _putBounded(_txnTimeLabelCache, key, label);
   return label;
+}
+
+const double _loadMoreEndOffset = 240;
+
+/// Month the request was limited to, using the same precedence as the
+/// repository: from/to dates first, then the `YYYY-MM` month filter.
+DateTime? _requestedMonth(
+  TransactionHistoryFilter? filter,
+  DateTimeRange? range,
+) {
+  final from = filter?.fromDate ?? range?.start;
+  final to = filter?.toDate ?? range?.end;
+  if (from != null && to != null) {
+    return from.year == to.year && from.month == to.month
+        ? DateTime(from.year, from.month)
+        : null;
+  }
+  final match =
+      RegExp(r'^(\d{4})-(\d{1,2})$').firstMatch(filter?.month?.trim() ?? '');
+  if (match == null) return null;
+  return DateTime(int.parse(match[1]!), int.parse(match[2]!));
+}
+
+/// Month of the oldest dated row loaded so far.
+String? _trailingMonthKey(List<TransactionHistoryEntry> items) {
+  for (final item in items.reversed) {
+    if (_parseTxnDate(item.transactionTime) != null) {
+      return _monthKey(item.transactionTime);
+    }
+  }
+  return null;
+}
+
+class _LoadMoreError extends StatelessWidget {
+  const _LoadMoreError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(_figmaW(24), 0, _figmaW(24), 24.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF7C7C7C),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
 }
 
 class _TxnSection {
@@ -1074,6 +1306,18 @@ String _getDisplayPaymentType(TransactionHistoryEntry item) {
   // is rendered separately below via _shouldShowFeeType / _getFeeTypeDisplay, so
   // returning it here as well would duplicate the same value in the tile.
   return item.paymentType;
+}
+
+/// API `recipient_name` (see [TransactionHistoryEntry.recipientName]); empty
+/// when the API sent none, so nothing is shown rather than a guess.
+String _getRecipientDisplay(TransactionHistoryEntry item) {
+  final name = item.recipientName?.trim() ?? '';
+  if (name.isEmpty ||
+      name.toLowerCase() == 'null' ||
+      name.toLowerCase() == item.paymentType.trim().toLowerCase()) {
+    return '';
+  }
+  return name;
 }
 
 String _getConsumerDisplay(TransactionHistoryEntry item) {
@@ -1470,7 +1714,7 @@ class _TransactionTileSkeleton extends StatelessWidget {
                 '₹ 0.00',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   height: 1,
                   letterSpacing: 0,
                   color: Colors.green,

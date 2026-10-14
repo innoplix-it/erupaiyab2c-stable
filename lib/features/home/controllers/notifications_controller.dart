@@ -109,6 +109,35 @@ class NotificationsController extends StateNotifier<NotificationsState> {
     return ok;
   }
 
+  final Set<String> _deletingIds = <String>{};
+
+  bool isDeleting(String id) => _deletingIds.contains(id);
+
+  /// Deletes one notification server-side. The item leaves the list only
+  /// after the server confirms; on failure the list is untouched. A repeat
+  /// call for an id already in flight is ignored and returns false.
+  Future<bool> deleteNotification(String id, {bool wasUnread = false}) async {
+    if (!_deletingIds.add(id)) return false;
+    try {
+      final ok = await _repository.deleteNotification(id);
+      if (ok && mounted) {
+        state = state.copyWith(
+          notifications: [
+            for (final n in state.notifications)
+              if (n.id != id) n,
+          ],
+          unreadCount: wasUnread && state.unreadCount > 0
+              ? state.unreadCount - 1
+              : state.unreadCount,
+          errorMessage: state.errorMessage,
+        );
+      }
+      return ok;
+    } finally {
+      _deletingIds.remove(id);
+    }
+  }
+
   Future<void> fetchNextPage() async {
     if (state.isLoading || state.isFetchingMore || !state.hasMore) return;
     state = state.copyWith(isFetchingMore: true, errorMessage: null);

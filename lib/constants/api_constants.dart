@@ -103,6 +103,8 @@ class ApiConstants {
       '$baseUrl/api/notification/remind-me-later';
   static const String notificationClearReadEndpoint =
       '$baseUrl/api/notification/clear-read';
+  static const String notificationDeleteEndpoint =
+      '$baseUrl/api/notification/delete';
   static const String pushNotificationToggleEndpoint =
       '$baseUrl/api/user/push-notification-enable-disable';
   static const String sendDeleteAccountOtpEndpoint =

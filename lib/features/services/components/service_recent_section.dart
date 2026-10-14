@@ -11,7 +11,10 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
+import '../../../constants/app_error_messages.dart';
+import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
+import '../../../widgets/screen_wrapper.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 import '../../profile/models/electricity_card_history_scope.dart';
@@ -307,8 +310,78 @@ class _RecentRow extends StatelessWidget {
   }
 }
 
+/// Every saved biller of a service, stacked vertically with the same card as
+/// the Saved Billers row, for the "View all" screen.
+class SavedBillersList extends StatelessWidget {
+  const SavedBillersList({
+    super.key,
+    required this.savedBillers,
+    required this.onPayNow,
+    required this.onRetry,
+    this.serviceCategory,
+  });
+
+  final AsyncValue<List<LatestTransaction>> savedBillers;
+  final ValueChanged<LatestTransaction> onPayNow;
+  final VoidCallback onRetry;
+  final String? serviceCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final side = FetchProviderMetrics.w(24);
+    final bottom = 16.h + MediaQuery.paddingOf(context).bottom;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth - 2 * side;
+        Widget list(int count, Widget Function(int index) item) =>
+            ListView.separated(
+              padding: EdgeInsets.fromLTRB(side, 16.h, side, bottom),
+              itemCount: count,
+              separatorBuilder: (_, __) => SizedBox(height: 12.h),
+              itemBuilder: (_, index) => item(index),
+            );
+        return savedBillers.when(
+          loading: () => list(
+            3,
+            (_) => _SavedBillerCardShimmer(width: cardWidth),
+          ),
+          error: (error, _) => ScreenWrapper(
+            isFetching: false,
+            isEmpty: false,
+            emptyMessage: '',
+            errorMessage: ErrorMessageUtils.from(
+              error,
+              fallback: AppErrorMessages.generic,
+            ),
+            actions: [
+              TextButton(onPressed: onRetry, child: const Text('Retry')),
+            ],
+            child: const SizedBox.shrink(),
+          ),
+          data: (items) => ScreenWrapper(
+            isFetching: false,
+            isEmpty: items.isEmpty,
+            emptyMessage: 'No saved billers yet',
+            child: list(
+              items.length,
+              (index) => _SavedBillerCard(
+                txn: items[index],
+                onPayNow: () => onPayNow(items[index]),
+                serviceCategory: serviceCategory,
+                width: cardWidth,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _SavedBillerCardShimmer extends StatelessWidget {
-  const _SavedBillerCardShimmer();
+  const _SavedBillerCardShimmer({this.width});
+
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +397,7 @@ class _SavedBillerCardShimmer extends StatelessWidget {
         );
     return _Shimmer(
       child: Container(
-        width: _SavedBillerCard.cardWidth(screenWidth),
+        width: width ?? _SavedBillerCard.cardWidth(screenWidth),
         height: FetchProviderMetrics.h(131),
         padding: EdgeInsets.symmetric(horizontal: FetchProviderMetrics.w(16)),
         decoration: BoxDecoration(
@@ -494,11 +567,15 @@ class _SavedBillerCard extends StatelessWidget {
     required this.txn,
     required this.onPayNow,
     this.serviceCategory,
+    this.width,
   });
 
   final LatestTransaction txn;
   final VoidCallback onPayNow;
   final String? serviceCategory;
+
+  /// Overrides [cardWidth], e.g. to fill a vertical list.
+  final double? width;
 
   /// Narrow phones get a wider share of the screen so the title isn't cut
   /// too early; elsewhere the card keeps Figma's 325/440 width ratio.
@@ -509,9 +586,8 @@ class _SavedBillerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final billerTitle = txn.billerName.trim();
 
-    final cardWidth = _SavedBillerCard.cardWidth(
-      MediaQuery.sizeOf(context).width,
-    );
+    final cardWidth = width ??
+        _SavedBillerCard.cardWidth(MediaQuery.sizeOf(context).width);
     final titleSize = FetchProviderMetrics.font(13, min: 10.5);
     final bodySize = FetchProviderMetrics.font(11, min: 9.5);
     final subtitleSize = FetchProviderMetrics.font(11, min: 9.5);

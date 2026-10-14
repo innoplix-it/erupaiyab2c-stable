@@ -142,6 +142,62 @@ Biller? _findRecentBillerMatch({
   return null;
 }
 
+/// Opens the biller payment for a saved biller card: the Electricity Saved
+/// Billers row and its "View all" screen share this flow.
+void openSavedBillerPayment(
+  BuildContext context,
+  WidgetRef ref, {
+  required LatestTransaction txn,
+  required List<Biller> billers,
+  required String categoryName,
+}) {
+  final biller = _findRecentBillerMatch(
+    txn: txn,
+    billers: billers,
+  );
+  if (biller == null) {
+    AppSnackbar.show(
+      'Provider not found. Please select from the list.',
+    );
+    return;
+  }
+  final identifier = txn.primaryConsumerNumber;
+  final isMaskedIdentifier = identifier.contains('*') ||
+      identifier.toLowerCase().contains('x');
+
+  final effectiveBiller = txn.billerName.trim().isNotEmpty
+      ? Biller(
+          billerId: biller.billerId,
+          billerName: txn.billerName.trim(),
+          icon: biller.icon ??
+              (txn.icon.trim().isNotEmpty
+                  ? txn.icon.trim()
+                  : null),
+        )
+      : biller;
+
+  ref.read(billerDetailControllerProvider.notifier).selectBiller(
+        effectiveBiller,
+        categoryName: categoryName,
+      );
+  context.push(
+    RouteConstants.billerDetail,
+    extra: BillerDetailArgs(
+      biller: effectiveBiller,
+      paymentType: categoryName,
+      mobileNumber: identifier,
+      autoFetchBill: !isMaskedIdentifier,
+      autoOpenPaymentSheet: false,
+    ),
+  );
+
+  if (isMaskedIdentifier) {
+    AppSnackbar.show(
+      'Enter full consumer number to fetch bill again.',
+    );
+  }
+}
+
 class BillerListingView extends HookConsumerWidget {
   const BillerListingView({super.key, required this.categoryName});
 
@@ -376,53 +432,17 @@ class _ElectricityFlow extends HookConsumerWidget {
               actionText: 'View all',
               savedBillersStyle: true,
               serviceCategory: categoryName,
-              onPayNow: (txn) {
-                final biller = _findRecentBillerMatch(
-                  txn: txn,
-                  billers: billers,
-                );
-                if (biller == null) {
-                  AppSnackbar.show(
-                    'Provider not found. Please select from the list.',
-                  );
-                  return;
-                }
-                final identifier = txn.primaryConsumerNumber;
-                final isMaskedIdentifier = identifier.contains('*') ||
-                    identifier.toLowerCase().contains('x');
-
-                final effectiveBiller = txn.billerName.trim().isNotEmpty
-                    ? Biller(
-                        billerId: biller.billerId,
-                        billerName: txn.billerName.trim(),
-                        icon: biller.icon ??
-                            (txn.icon.trim().isNotEmpty
-                                ? txn.icon.trim()
-                                : null),
-                      )
-                    : biller;
-
-                ref.read(billerDetailControllerProvider.notifier).selectBiller(
-                      effectiveBiller,
-                      categoryName: categoryName,
-                    );
-                context.push(
-                  RouteConstants.billerDetail,
-                  extra: BillerDetailArgs(
-                    biller: effectiveBiller,
-                    paymentType: categoryName,
-                    mobileNumber: identifier,
-                    autoFetchBill: !isMaskedIdentifier,
-                    autoOpenPaymentSheet: false,
-                  ),
-                );
-
-                if (isMaskedIdentifier) {
-                  AppSnackbar.show(
-                    'Enter full consumer number to fetch bill again.',
-                  );
-                }
-              },
+              onAction: () => context.push(
+                RouteConstants.savedBillers,
+                extra: categoryName,
+              ),
+              onPayNow: (txn) => openSavedBillerPayment(
+                context,
+                ref,
+                txn: txn,
+                billers: billers,
+                categoryName: categoryName,
+              ),
             ),
           ),
           SliverToBoxAdapter(

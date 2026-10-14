@@ -17,6 +17,7 @@ class TransactionHistoryState {
     this.selectedRange,
     this.currentPage = 1,
     this.totalPages = 1,
+    this.totalRecords = 0,
     this.limit = 20,
   });
 
@@ -29,6 +30,10 @@ class TransactionHistoryState {
   final DateTimeRange? selectedRange;
   final int currentPage;
   final int totalPages;
+
+  /// `pagination.total_records` of the last page: the API's total for the
+  /// whole requested scope (not per month).
+  final int totalRecords;
   final int limit;
 
   bool get hasMore => currentPage < totalPages;
@@ -45,6 +50,7 @@ class TransactionHistoryState {
     Object? selectedRange = _sentinel,
     int? currentPage,
     int? totalPages,
+    int? totalRecords,
     int? limit,
   }) {
     return TransactionHistoryState(
@@ -61,6 +67,7 @@ class TransactionHistoryState {
           : selectedRange as DateTimeRange?,
       currentPage: currentPage ?? this.currentPage,
       totalPages: totalPages ?? this.totalPages,
+      totalRecords: totalRecords ?? this.totalRecords,
       limit: limit ?? this.limit,
     );
   }
@@ -107,6 +114,7 @@ class TransactionHistoryController
       errorMessage: null,
       currentPage: 1,
       totalPages: 1,
+      totalRecords: 0,
       items: const [],
     );
     try {
@@ -135,6 +143,7 @@ class TransactionHistoryController
         selectedRange: range,
         currentPage: page.currentPage,
         totalPages: page.totalPages,
+        totalRecords: page.totalRecords,
         limit: page.limit,
       );
     } catch (e) {
@@ -175,6 +184,7 @@ class TransactionHistoryController
         items: [...state.items, ..._withoutDuplicates(state.items, page.items)],
         currentPage: page.currentPage,
         totalPages: page.totalPages,
+        totalRecords: page.totalRecords,
         limit: page.limit,
       );
     } catch (_) {
@@ -233,6 +243,7 @@ class TransactionHistoryController
       errorMessage: null,
       currentPage: 1,
       totalPages: 1,
+      totalRecords: 0,
       items: const [],
     );
     try {

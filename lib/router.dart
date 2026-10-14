@@ -74,6 +74,7 @@ import 'features/services/models/biller_model.dart';
 import 'features/services/models/credit_card_transaction.dart';
 import 'features/services/views/biller_detail_view.dart';
 import 'features/services/views/biller_listing_view.dart';
+import 'features/services/views/saved_billers_view.dart';
 import 'features/services/views/credit_card_intro_view.dart';
 import 'features/services/views/credit_card_listing_view.dart';
 import 'features/services/views/credit_card_my_cards_view.dart';
@@ -316,6 +317,12 @@ final routerProvider = Provider<GoRouter>(
         GoRoute(
           path: RouteConstants.billerListing,
           builder: (context, state) => BillerListingView(
+            categoryName: state.extra as String? ?? '',
+          ),
+        ),
+        GoRoute(
+          path: RouteConstants.savedBillers,
+          builder: (context, state) => SavedBillersView(
             categoryName: state.extra as String? ?? '',
           ),
         ),

@@ -149,6 +149,7 @@ class OtpVerificationView extends HookConsumerWidget {
         '${(emailRemainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(emailRemainingSeconds.value % 60).toString().padLeft(2, '0')}';
 
     Future<void> handleVerify() async {
+      if (ref.read(authControllerProvider).isSubmitting) return;
       if (showIdentityVariant) {
         final mobileOtp = mobileOtpControllers.map((c) => c.text).join();
         final emailOtp = emailOtpControllers.map((c) => c.text).join();
@@ -219,21 +220,11 @@ class OtpVerificationView extends HookConsumerWidget {
           }
         } else {
           final latestState = ref.read(authControllerProvider);
-          if (isDeviceVerificationFlow) {
-            AppSnackbar.show(
-              latestState.errorMessage ??
-                  'Verification failed. Please login again.',
-            );
-            if (context.mounted) {
-              context.go(RouteConstants.login);
-            }
+          if (isAuthConnectivityError(latestState.errorMessage)) {
+            errorText.value = latestState.errorMessage;
           } else {
-            if (isAuthConnectivityError(latestState.errorMessage)) {
-              errorText.value = latestState.errorMessage;
-            } else {
-              otpShake.shake();
-              codeError.value = authInvalidOtpMessage;
-            }
+            otpShake.shake();
+            codeError.value = authInvalidOtpMessage;
           }
         }
         return;

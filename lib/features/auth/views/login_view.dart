@@ -243,6 +243,7 @@ class LoginView extends HookConsumerWidget {
     }
 
     Future<void> handlePinLogin() async {
+      if (ref.read(authControllerProvider).isSubmitting) return;
       final phone = phoneController.text.trim();
       if (phone.isEmpty || phone.length != 10) {
         AppSnackbar.show('Enter a valid 10-digit mobile number');

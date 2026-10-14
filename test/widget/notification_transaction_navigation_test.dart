@@ -167,6 +167,17 @@ class _FakeNotificationsRepository extends NotificationsRepository {
     markReadIds.add(id);
     return true;
   }
+
+  final deleteIds = <String>[];
+  bool deleteSucceeds = true;
+  Completer<void>? deleteGate;
+
+  @override
+  Future<bool> deleteNotification(String notificationId) async {
+    deleteIds.add(notificationId);
+    await deleteGate?.future;
+    return deleteSucceeds;
+  }
 }
 
 /// Serves [pages] in order and records each history request.
@@ -521,6 +532,10 @@ Finder _viewOf(String id) =>
 
 String _detailText(String path, String ref) => 'detail $path txn-$ref';
 
+/// Card InkWell, View InkWell, close InkWell.
+Finder _closeOf(String id) =>
+    find.descendant(of: _card(id), matching: find.byType(InkWell)).last;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -564,16 +579,127 @@ void main() {
 
   testWidgets('the close button dismisses without navigating', (tester) async {
     final harness = await _pump(tester);
-    final close = find.descendant(
-      of: _card('n-s'),
-      matching: find.byType(InkWell),
-    );
-    // Card InkWell, View InkWell, close InkWell.
-    await tester.tap(close.last);
+    await tester.tap(_closeOf('n-s'));
     await _settleNavigation(tester);
     expect(_card('n-s'), findsNothing);
     expect(find.textContaining('detail '), findsNothing);
     expect(harness.history.requests, isEmpty);
+  });
+
+  group('X deletes through api/notification/delete', () {
+    testWidgets('sends the notification id and removes only that card',
+        (tester) async {
+      final harness = await _pump(tester);
+      await tester.tap(_closeOf('n-f'));
+      await _settleNavigation(tester);
+
+      expect(harness.notifications.deleteIds, ['n-f']);
+      expect(_card('n-f'), findsNothing);
+      expect(_card('n-s'), findsOneWidget);
+      expect(_card('n-p'), findsOneWidget);
+      expect(harness.notifications.markReadIds, isEmpty);
+    });
+
+    testWidgets('a rejected delete keeps the card and shows the error',
+        (tester) async {
+      final harness = await _pump(tester);
+      harness.notifications.deleteSucceeds = false;
+      await tester.tap(_closeOf('n-s'));
+      await _settleNavigation(tester);
+
+      expect(harness.notifications.deleteIds, ['n-s']);
+      expect(_card('n-s'), findsOneWidget);
+      expect(
+        find.text('Failed to delete notification. Please try again.'),
+        findsOneWidget,
+      );
+      await _drainSnackbar(tester);
+
+      harness.notifications.deleteSucceeds = true;
+      await tester.tap(_closeOf('n-s'));
+      await _settleNavigation(tester);
+      expect(harness.notifications.deleteIds, ['n-s', 'n-s']);
+      expect(_card('n-s'), findsNothing);
+    });
+
+    testWidgets('repeat taps while deleting send one request', (tester) async {
+      final harness = await _pump(tester);
+      final gate = harness.notifications.deleteGate = Completer<void>();
+      final close = _closeOf('n-s');
+      await tester.tap(close);
+      await tester.pump();
+      await tester.tap(close);
+      await tester.tap(close);
+      await tester.pump();
+
+      expect(harness.notifications.deleteIds, ['n-s']);
+      expect(_card('n-s'), findsOneWidget);
+
+      gate.complete();
+      await _settleNavigation(tester);
+      expect(harness.notifications.deleteIds, ['n-s']);
+      expect(_card('n-s'), findsNothing);
+    });
+  });
+
+  group('NotificationsRepository.deleteNotification request', () {
+    Future<(bool, RequestOptions?)> run(
+      String id, {
+      Object? response,
+      bool fail = false,
+    }) async {
+      RequestOptions? captured;
+      final dio = Dio()
+        ..interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              captured = options;
+              if (fail) {
+                handler.reject(DioException(requestOptions: options));
+                return;
+              }
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: response,
+                ),
+              );
+            },
+          ),
+        );
+      final ok = await NotificationsRepository(dio: dio).deleteNotification(id);
+      return (ok, captured);
+    }
+
+    test('POSTs {"notification_id": id} as JSON to the delete endpoint',
+        () async {
+      final (ok, request) = await run(
+        ' n-42 ',
+        response: <String, dynamic>{'success': true},
+      );
+      expect(ok, isTrue);
+      expect(request!.method, 'POST');
+      expect(request.uri.path, endsWith('/api/notification/delete'));
+      expect(request.data, <String, dynamic>{'notification_id': 'n-42'});
+      expect(request.contentType, Headers.jsonContentType);
+    });
+
+    test('success false or a failed request reports failure', () async {
+      final (rejected, _) = await run(
+        'n-1',
+        response: <String, dynamic>{'success': false},
+      );
+      expect(rejected, isFalse);
+      final (errored, _) = await run('n-1', fail: true);
+      expect(errored, isFalse);
+    });
+
+    test('an empty id sends nothing', () async {
+      final (ok, request) = await run('  ');
+      expect(ok, isFalse);
+      expect(request, isNull);
+    });
   });
 
   testWidgets('a reference that matches transactionId also resolves',

@@ -28,6 +28,7 @@ class TransactionHistoryEntry {
     this.feeType,
     this.serviceNo,
     this.serviceNoFull,
+    this.recipientName,
   });
 
   final String? serviceNo;
@@ -194,6 +195,11 @@ class TransactionHistoryEntry {
   final List<TransactionRoute> routes;
   final String? feeType;
 
+  /// API `recipient_name` (top level or under `data`), else the
+  /// "Recipient Name" customer param Transaction Details shows. Null when
+  /// the API provides neither.
+  final String? recipientName;
+
   factory TransactionHistoryEntry.fromJson(Map<String, dynamic> json) {
     final rawCustomerParams = json['customer_params'];
     final customerParams = parseTransactionCustomerParams(rawCustomerParams);
@@ -298,6 +304,21 @@ class TransactionHistoryEntry {
             data?['service_number_full'];
         final val = _stringOrEmpty(raw);
         return val.isEmpty ? null : val;
+      }(),
+      recipientName: () {
+        final data = json['data'] is Map ? json['data'] as Map : null;
+        final candidates = [
+          _stringOrEmpty(json['recipient_name']),
+          _stringOrEmpty(data?['recipient_name']),
+          for (final param in customerParams)
+            if (param.label.trim().toLowerCase() == 'recipient name' ||
+                param.label.trim().toLowerCase() == 'recipient_name')
+              param.value.trim(),
+        ];
+        for (final value in candidates) {
+          if (value.isNotEmpty && value.toLowerCase() != 'null') return value;
+        }
+        return null;
       }(),
     );
   }
