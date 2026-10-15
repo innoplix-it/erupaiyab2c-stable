@@ -31,7 +31,6 @@ class AuthMobileStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AuthStepLayout(
-
       footer: ValueListenableBuilder<TextEditingValue>(
         valueListenable: controller,
         builder: (context, value, _) {
@@ -67,59 +66,57 @@ class AuthMobileStep extends StatelessWidget {
           autofocus: true,
           focusNode: focusNode,
         ),
-        SizedBox(height: 14.h),
+        SizedBox(
+          height:
+              (MediaQuery.sizeOf(context).height * 22 / 690).clamp(18.0, 30.0),
+        ),
         _buildConsent(context),
       ],
     );
   }
 
   Widget _buildConsent(BuildContext context) {
+    final wordGap = authWidthFraction(context, 3 / 360, min: 2, max: 5);
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      key: const ValueKey('auth-consent-row'),
       children: [
-        Padding(
-          padding: EdgeInsets.only(top: 2.h),
-          child: SizedBox.square(
-            dimension: authWidthFraction(context, 28 / 360, min: 24, max: 36),
-            child: Checkbox(
-              value: isConsentAllowed,
-              onChanged: isLoading
-                  ? null
-                  : (value) => onConsentChanged(value ?? false),
-              activeColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
+        SizedBox.square(
+          dimension: authWidthFraction(context, 28 / 360, min: 24, max: 36),
+          child: Checkbox(
+            value: isConsentAllowed,
+            onChanged:
+                isLoading ? null : (value) => onConsentChanged(value ?? false),
+            activeColor: AppColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4.r),
             ),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
           ),
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: authWidthFraction(context, 8 / 360, min: 6, max: 12)),
         Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(top: 9.h),
-            child: Wrap(
-              // The Figma consent line. Only the copy changed - the checkbox
-              // still gates Continue through the same canContinue rule below.
-              children: [
-                Text('by continuing, I agree to', style: _consentStyle),
-                SizedBox(width: 3.w),
-                _policyLink(
-                  context,
-                  label: 'terms of use policy',
-                  route: RouteConstants.termsPrivacy,
-                ),
-                SizedBox(width: 3.w),
-                Text('&', style: _consentStyle),
-                SizedBox(width: 3.w),
-                _policyLink(
-                  context,
-                  label: 'privacy policy',
-                  route: RouteConstants.privacyPolicy,
-                ),
-              ],
-            ),
+          child: Wrap(
+            // The Figma consent line. Only the copy changed - the checkbox
+            // still gates Continue through the same canContinue rule below.
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('by continuing, I agree to', style: _consentStyle),
+              SizedBox(width: wordGap),
+              _policyLink(
+                context,
+                label: 'terms of use policy',
+                route: RouteConstants.termsPrivacy,
+              ),
+              SizedBox(width: wordGap),
+              Text('&', style: _consentStyle),
+              SizedBox(width: wordGap),
+              _policyLink(
+                context,
+                label: 'privacy policy',
+                route: RouteConstants.privacyPolicy,
+              ),
+            ],
           ),
         ),
       ],

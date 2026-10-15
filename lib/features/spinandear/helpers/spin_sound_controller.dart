@@ -82,44 +82,25 @@ class _AudioplayersSpinAudio implements SpinAudioPlayer {
 class SpinSoundController {
   SpinSoundController._();
 
-  /// The 5100ms wheel cue, started on the spin tap. Swapping this file needs no
-  /// manifest change (`assets/sounds/` is already registered in `pubspec.yaml`)
-  /// plus a full rebuild/restart to re-bundle it - but its duration must be
-  /// re-measured with `afinfo` and `kSpinCueDurationMs` updated to match, or the
-  /// wheel will stop out of time with its own sound.
   static const String spinAsset = 'sounds/spinandwinfile.mp3';
 
-  /// The 1560ms result cue, started when the popup appears. Same re-measurement
-  /// rule applies via `kSpinPopupCueDurationMs`.
   static const String popupAsset = 'sounds/spinandwinpopup.mp3';
 
   static SpinAudioPlayer? _player;
 
-  /// Bumped per request so a superseded cue can never start after a newer one
-  /// has already claimed the shared player.
   static int _generation = 0;
 
   @visibleForTesting
   static SpinAudioPlayer Function()? playerFactory;
 
-  /// Longest wait for a cue to actually start before the animation it
-  /// accompanies goes ahead without it, so a stalled audio platform never
-  /// freezes the wheel or the popup.
   static const Duration cueStartTimeout = Duration(milliseconds: 300);
 
-  /// Plays the wheel cue from 0ms. Completes once playback has started.
   static Future<void> playOnSpin() => _play(spinAsset);
 
-  /// Warms the wheel cue so the first spin starts without load latency.
   static Future<void> preloadSpin() => _preload(spinAsset);
 
-  /// Plays the result cue from 0ms. Called the instant the popup is shown.
   static Future<void> playOnPopup() => _play(popupAsset);
 
-  /// Warms the audio engine for the popup cue. Should be called once on
-  /// screen mount so the OS audio buffer is ready before the spin finishes.
-  /// Fire-and-forget: errors are silently discarded so the spin flow is never
-  /// affected by a failed preload.
   static Future<void> preloadPopup() => _preload(popupAsset);
 
   static Future<void> _preload(String asset) async {

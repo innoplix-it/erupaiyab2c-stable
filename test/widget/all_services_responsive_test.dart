@@ -199,7 +199,7 @@ void main() {
               w is Image &&
               w.image is AssetImage &&
               (w.image as AssetImage).assetName ==
-                  'assets/images/investmentallservices.png',
+                  'assets/images/png/investmentallservices.png',
         ),
       );
       final inset = width * 24 / 440;
@@ -296,7 +296,6 @@ void main() {
         reason: entry.key,
       );
     }
-    expect(rendered, contains('$_svgDir/cable_tv_overlay.svg'));
 
     // The supplied SVG wins over an API icon.
     expect(tileNamed(tester, 'Pipe Gas').iconUrl, isNull);

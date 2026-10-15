@@ -1143,8 +1143,6 @@ String _formatTxnTime(String raw) {
 
 const double _loadMoreEndOffset = 240;
 
-/// Month the request was limited to, using the same precedence as the
-/// repository: from/to dates first, then the `YYYY-MM` month filter.
 DateTime? _requestedMonth(
   TransactionHistoryFilter? filter,
   DateTimeRange? range,

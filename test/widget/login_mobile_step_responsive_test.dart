@@ -7,6 +7,7 @@
 import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/constants/file_constants.dart';
 import 'package:e_rupaiya/features/auth/components/auth_mobile_step.dart';
+import 'package:e_rupaiya/features/auth/components/auth_step_parts.dart';
 import 'package:e_rupaiya/widgets/custom_elevated_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -66,9 +67,9 @@ Future<void> _pumpMobileStep(
   await tester.pump(const Duration(milliseconds: 120));
 }
 
-Color? _continueFill(WidgetTester tester) =>
-    tester.widget<CustomElevatedButton>(find.byType(CustomElevatedButton))
-        .backgroundColor;
+Color? _continueFill(WidgetTester tester) => tester
+    .widget<CustomElevatedButton>(find.byType(CustomElevatedButton))
+    .backgroundColor;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -94,6 +95,54 @@ void main() {
         expect(find.byType(TextField), findsOneWidget);
         expect(find.byType(Checkbox), findsOneWidget);
         expect(find.text('Continue'), findsOneWidget);
+      });
+    }
+  });
+
+  group('consent row: space above and checkbox aligned with the text', () {
+    for (final size in responsiveTestScreenSizes) {
+      testWidgets('${size.width}x${size.height}', (tester) async {
+        await _pumpMobileStep(tester, size: size);
+        expect(tester.takeException(), isNull);
+
+        final field = tester.getRect(find.byType(AuthMobileField));
+        final row =
+            tester.getRect(find.byKey(const ValueKey('auth-consent-row')));
+        final expectedGap = (size.height * 22 / 690).clamp(18.0, 30.0);
+        expect(row.top - field.bottom, moreOrLessEquals(expectedGap));
+
+        final box = tester.getRect(find.byType(Checkbox));
+        final text = tester.getRect(find.byType(Wrap));
+        expect(box.center.dy, moreOrLessEquals(text.center.dy, epsilon: 0.5));
+        expect(box.right, lessThan(text.left));
+        expect(text.right, lessThanOrEqualTo(size.width));
+        expect(find.text('by continuing, I agree to'), findsOneWidget);
+        expect(find.text('terms of use policy'), findsOneWidget);
+        expect(find.text('privacy policy'), findsOneWidget);
+      });
+    }
+  });
+
+  group('consent row: space above and checkbox aligned with the text', () {
+    for (final size in responsiveTestScreenSizes) {
+      testWidgets('${size.width}x${size.height}', (tester) async {
+        await _pumpMobileStep(tester, size: size);
+        expect(tester.takeException(), isNull);
+
+        final field = tester.getRect(find.byType(AuthMobileField));
+        final row =
+            tester.getRect(find.byKey(const ValueKey('auth-consent-row')));
+        final expectedGap = (size.height * 22 / 690).clamp(18.0, 30.0);
+        expect(row.top - field.bottom, moreOrLessEquals(expectedGap));
+
+        final box = tester.getRect(find.byType(Checkbox));
+        final text = tester.getRect(find.byType(Wrap));
+        expect(box.center.dy, moreOrLessEquals(text.center.dy, epsilon: 0.5));
+        expect(box.right, lessThan(text.left));
+        expect(text.right, lessThanOrEqualTo(size.width));
+        expect(find.text('by continuing, I agree to'), findsOneWidget);
+        expect(find.text('terms of use policy'), findsOneWidget);
+        expect(find.text('privacy policy'), findsOneWidget);
       });
     }
   });
@@ -289,8 +338,8 @@ void main() {
   group('mobile number input contract', () {
     testWidgets('digits only', (tester) async {
       final controller = TextEditingController(text: '');
-      await _pumpMobileStep(
-          tester, size: const Size(360, 690), controller: controller);
+      await _pumpMobileStep(tester,
+          size: const Size(360, 690), controller: controller);
 
       await tester.enterText(find.byType(TextField), 'abc12def34');
       await tester.pump();
@@ -300,8 +349,8 @@ void main() {
     testWidgets('paste behaviour is unchanged from GreyTextFormField',
         (tester) async {
       final controller = TextEditingController(text: '');
-      await _pumpMobileStep(
-          tester, size: const Size(360, 690), controller: controller);
+      await _pumpMobileStep(tester,
+          size: const Size(360, 690), controller: controller);
 
       // digitsOnly + LengthLimiting(10) - the same pair GreyTextFormField
       // applies - so a country-code prefixed paste keeps its leading 91. This
@@ -314,8 +363,8 @@ void main() {
 
     testWidgets('over-long paste is truncated to 10 digits', (tester) async {
       final controller = TextEditingController(text: '');
-      await _pumpMobileStep(
-          tester, size: const Size(360, 690), controller: controller);
+      await _pumpMobileStep(tester,
+          size: const Size(360, 690), controller: controller);
 
       await tester.enterText(find.byType(TextField), '9876543210999');
       await tester.pump();
@@ -325,8 +374,8 @@ void main() {
 
     testWidgets('editing in the middle keeps the cap', (tester) async {
       final controller = TextEditingController(text: '9876543210');
-      await _pumpMobileStep(
-          tester, size: const Size(360, 690), controller: controller);
+      await _pumpMobileStep(tester,
+          size: const Size(360, 690), controller: controller);
 
       await tester.enterText(find.byType(TextField), '98765043210');
       await tester.pump();

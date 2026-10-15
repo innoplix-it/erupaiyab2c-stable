@@ -58,7 +58,6 @@ class FileConstants {
   static String digitalSilver = 'assets/gif/gasGif.gif';
   static String homeBannerGif = 'assets/gif/homeBanner.gif';
   static String creditCardGif = 'assets/gif/creditcard.gif';
-  static String splashGif = 'assets/gif/splash_gif.gif';
   static String splashLottie = 'assets/lottie/logo-verticle.json';
   static String electricityBulbLottie = 'assets/lottie/electricitybulb.json';
   static String bankLoopLottie = 'assets/animations/Bank-loop-fintech.json';
@@ -235,7 +234,6 @@ class FileConstants {
   static String coinsDeck =
       'assets/images/png/digital_gold_silver/coinDeck.png';
   static String digitalGoldGif = 'assets/gif/gold.gif';
-  static String spinRewardGif = 'assets/gif/spinrewardGif.gif';
   static String spincoin = 'assets/images/png/home_icon/spincoin.png';
   static String digitalsGold = 'assets/images/png/home_icon/digital_gold.png';
   static String homeBanner2 = 'assets/images/png/home_icon/home_banner2.png';
