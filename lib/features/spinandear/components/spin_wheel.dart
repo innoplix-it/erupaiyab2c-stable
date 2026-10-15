@@ -72,11 +72,132 @@ const int kSpinCueDurationMs = 5100;
 /// Length of the result-popup cue.
 const int kSpinPopupCueDurationMs = 1560;
 
-/// Wheel rotation length, equal to the spin cue: the wheel comes to rest
-/// exactly as `spinandwinfile.mp3` ends. The popup then gets its own separate
-/// cue. See `SpinSoundController`.
-const Duration kSpinWheelDuration =
-    Duration(milliseconds: kSpinCueDurationMs);
+/// Pointer-click onsets of `spinandwinfile.mp3` in ms, from the decoded PCM
+/// (1ms peak envelope). The cue is a ratchet: it opens at full rattle (first
+/// click 31ms, ~19 clicks/s), spaces out from ~2.36s, and its final eight
+/// clicks are 175-399ms apart (not 500ms). 4922-5100ms is only the last
+/// click decaying. Re-measure whenever the cue is replaced.
+const List<int> kSpinCueClickMs = [
+  31, 79, 145, 212, 275, 341, 402, 467, 526, 593, 645, 706, 762, 799, 827, //
+  878, 935, 985, 1055, 1093, 1166, 1220, 1253, 1278, 1322, 1375, 1427, 1481,
+  1537, 1598, 1634, 1710, 1765, 1816, 1856, 1881, 1928, 1987, 2029, 2054,
+  2103, 2164, 2226, 2290, 2357, 2446, 2539, 2700, 2875, 3151, 3480, 3837,
+  4236, 4565, 4922,
+];
+
+/// Clicks in the final sequence: one per slice of the 8-slice wheel.
+const int kSpinFinalClickCount = 8;
+
+/// Time of the cue's last click: the reward slice reaches the pointer here.
+const int kSpinCueLastClickMs = 4922;
+
+/// Wheel rotation length: after the last click brings the reward slice to
+/// the pointer, the wheel settles half a slice onto its centre while that
+/// click rings out, resting as the cue ends. The popup then gets its own
+/// separate cue. See `SpinSoundController`.
+const Duration kSpinWheelDuration = Duration(milliseconds: kSpinCueDurationMs);
+
+/// The wheel's rotation over [kSpinWheelDuration], keyframed on the spin
+/// cue's clicks so its speed follows the sound from the first click.
+///
+/// Each of the final [kSpinFinalClickCount] clicks is a slice boundary
+/// passing the pointer, i.e. the moment the next slice arrives, so N clicks
+/// show N slice changes and the last click brings in the reward slice.
+/// Before that, the wheel passes about one slice per click of the fast
+/// rattle (keyframed every 5 clicks so it reads as smooth speed, not
+/// jitter). A monotone cubic (Fritsch-Carlson) joins the keyframes, so the
+/// rotation never runs backwards or snaps, and it stops with zero speed on
+/// the reward slice's centre.
+class SpinCuePath {
+  SpinCuePath._(this.start, this.end, this._times, this._slices, this._slice)
+      : _slopes = _monotoneSlopes(_times, _slices);
+
+  /// Plans a spin from the wheel's current [start] angle to [targetAngle]
+  /// (the selected slice's centre, unchanged), picking the number of whole
+  /// extra turns that makes the rattle closest to one slice per click.
+  factory SpinCuePath.plan({
+    required double start,
+    required double targetAngle,
+    required int sliceCount,
+  }) {
+    final slice = 2 * math.pi / sliceCount;
+    const turn = 2 * math.pi;
+    final offset = (targetAngle - start) % turn;
+    final turns = ((_idealSlices * slice - offset) / turn).round();
+    final end = start + offset + math.max(1, turns) * turn;
+    final total = (end - start) / slice;
+
+    final rattle = kSpinCueClickMs.length - kSpinFinalClickCount;
+    final perClick = (total - kSpinFinalClickCount + 0.5) / (rattle + _leadIn);
+    final times = <double>[0];
+    final slices = <double>[0];
+    for (var i = 0; i < rattle; i++) {
+      if (i % 5 != 0 && i < rattle - 3) continue;
+      times.add(kSpinCueClickMs[i].toDouble());
+      slices.add(perClick * (_leadIn + i));
+    }
+    for (var k = 0; k < kSpinFinalClickCount; k++) {
+      times.add(kSpinCueClickMs[rattle + k].toDouble());
+      slices.add(total - (kSpinFinalClickCount - k) + 0.5);
+    }
+    times.add(kSpinCueDurationMs.toDouble());
+    slices.add(total);
+    return SpinCuePath._(start, end, times, slices, slice);
+  }
+
+  /// Opening gap before the first click, in clicks (31ms of a ~48ms gap).
+  static final double _leadIn =
+      kSpinCueClickMs.first / (kSpinCueClickMs[1] - kSpinCueClickMs.first);
+
+  /// Slices that make the whole cue exactly one slice per click, plus the
+  /// half slice the wheel settles after the last click.
+  static final double _idealSlices = _leadIn + kSpinCueClickMs.length - 0.5;
+
+  final double start;
+  final double end;
+  final List<double> _times;
+  final List<double> _slices;
+  final List<double> _slopes;
+  final double _slice;
+
+  /// Rotation (radians) at [elapsedMs] since the spin started.
+  double rotationAt(double elapsedMs) {
+    if (elapsedMs <= 0) return start;
+    if (elapsedMs >= _times.last) return end;
+    var k = 0;
+    while (_times[k + 1] < elapsedMs) {
+      k++;
+    }
+    final h = _times[k + 1] - _times[k];
+    final s = (elapsedMs - _times[k]) / h;
+    final s2 = s * s;
+    final s3 = s2 * s;
+    final y = (2 * s3 - 3 * s2 + 1) * _slices[k] +
+        (s3 - 2 * s2 + s) * h * _slopes[k] +
+        (-2 * s3 + 3 * s2) * _slices[k + 1] +
+        (s3 - s2) * h * _slopes[k + 1];
+    return start + y * _slice;
+  }
+
+  static List<double> _monotoneSlopes(List<double> t, List<double> y) {
+    final n = t.length;
+    final h = [for (var i = 0; i < n - 1; i++) t[i + 1] - t[i]];
+    final d = [for (var i = 0; i < n - 1; i++) (y[i + 1] - y[i]) / h[i]];
+    final m = List<double>.filled(n, 0);
+    for (var i = 1; i < n - 1; i++) {
+      if (d[i - 1] <= 0 || d[i] <= 0) continue;
+      final w1 = 2 * h[i] + h[i - 1];
+      final w2 = h[i] + 2 * h[i - 1];
+      m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i]);
+    }
+    var m0 = ((2 * h[0] + h[1]) * d[0] - h[0] * d[1]) / (h[0] + h[1]);
+    if (m0 <= 0) m0 = 0;
+    if (m0 > 3 * d[0]) m0 = 3 * d[0];
+    m[0] = m0;
+    // m[n - 1] stays 0: the wheel stops on the last click.
+    return m;
+  }
+}
 
 class SpinWheel extends StatelessWidget {
   const SpinWheel({
@@ -235,7 +356,7 @@ class SpinWheel extends StatelessWidget {
               height: 33.r,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) =>
-              const SizedBox.shrink(),
+                  const SizedBox.shrink(),
             ),
           ),
         ),
@@ -311,9 +432,9 @@ class _SliceLabel extends StatelessWidget {
   }
 
   Widget _emoji(String e) => Text(
-    e,
-    style: const TextStyle(fontSize: 14, height: 1.0),
-  );
+        e,
+        style: const TextStyle(fontSize: 14, height: 1.0),
+      );
 }
 
 class _WheelPainter extends CustomPainter {

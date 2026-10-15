@@ -9,9 +9,13 @@ abstract interface class SpinAudioPlayer {
   Future<void> disableLooping();
   Future<void> stop();
   Future<void> play(String asset);
+
   /// Warms the audio engine for [asset] so the first [play] call has minimal
   /// latency. Must never throw: preloading is best-effort.
   Future<void> preload(String asset);
+
+  /// Current playback position of [asset]'s cue, or null if unknown.
+  Future<Duration?> position(String asset);
   Future<void> dispose();
 }
 
@@ -59,6 +63,10 @@ class _AudioplayersSpinAudio implements SpinAudioPlayer {
   }
 
   @override
+  Future<Duration?> position(String asset) async =>
+      _players[asset]?.getCurrentPosition();
+
+  @override
   Future<void> dispose() async {
     final players = _players.values.toList();
     _players.clear();
@@ -75,10 +83,12 @@ class _AudioplayersSpinAudio implements SpinAudioPlayer {
 /// already playing before starting, so a cue can never start on top of
 /// another and repeated taps never overlap.
 ///
-/// Timing contract: the wheel cue measures 5100ms and [kSpinWheelDuration] is
-/// set to exactly that; the wheel starts once the cue has started (see
-/// [cueStartTimeout]) and comes to rest as its sound ends. The popup cue
-/// (1560ms) is a separate clip started together with the popup.
+/// Timing contract: the wheel cue measures 5100ms; its last click is at
+/// [kSpinCueLastClickMs] (4922ms), when the reward slice reaches the pointer,
+/// and [kSpinWheelDuration] ends with the cue as that click rings out. The
+/// wheel starts once the cue has started (see [cueStartTimeout]) and is
+/// keyframed on the cue's clicks ([SpinCuePath]).
+/// The popup cue (1560ms) is a separate clip started together with the popup.
 class SpinSoundController {
   SpinSoundController._();
 
@@ -95,7 +105,42 @@ class SpinSoundController {
 
   static const Duration cueStartTimeout = Duration(milliseconds: 300);
 
+  /// How long [spinCuePlayhead] waits for the spin cue to start advancing.
+  static const Duration cueSyncTimeout = Duration(milliseconds: 1000);
+
+  static const Duration _playheadPoll = Duration(milliseconds: 8);
+
   static Future<void> playOnSpin() => _play(spinAsset);
+
+  /// Where the spin cue's playhead is once it has actually started advancing,
+  /// so the wheel can start at the same point of the cue. `play()` returning
+  /// (or [cueStartTimeout]) does not mean the clicks are being heard yet:
+  /// seeking, starting and audio output all add delay, and a 300ms delay is
+  /// one whole slice of the final slowdown.
+  ///
+  /// Returns null when the position is unavailable or the cue has not
+  /// started within [cueSyncTimeout]; the wheel then starts immediately.
+  static Future<Duration?> spinCuePlayhead() async {
+    final player = _player;
+    if (player == null) return null;
+    final polls = cueSyncTimeout.inMicroseconds ~/ _playheadPoll.inMicroseconds;
+    for (var i = 0; i < polls; i++) {
+      Duration? position;
+      try {
+        position = await player.position(spinAsset);
+      } catch (_) {
+        return null;
+      }
+      if (position == null) return null;
+      // Zero: not started yet. Beyond the sync window: a stale position from
+      // the previous spin that has not been rewound yet.
+      if (position > Duration.zero && position <= cueSyncTimeout) {
+        return position;
+      }
+      await Future<void>.delayed(_playheadPoll);
+    }
+    return null;
+  }
 
   static Future<void> preloadSpin() => _preload(spinAsset);
 

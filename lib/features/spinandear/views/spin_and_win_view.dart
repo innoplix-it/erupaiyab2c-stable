@@ -14,6 +14,7 @@ import '../../../constants/app_error_messages.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../utils/error_message_utils.dart';
+import '../../../widgets/app_confirm_popup.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../home/controllers/home_tab_controller.dart';
@@ -86,15 +87,11 @@ class SpinAndWinView extends HookConsumerWidget {
     // Use the provider so tests can inject a fake via ProviderScope.overrides.
     final spinRepository = ref.read(spinRepositoryProvider);
 
-    final targetRotation = useState(0.0);
+    final spinPath = useState<SpinCuePath?>(null);
     final controller = useAnimationController(
       duration: kSpinWheelDuration,
     );
-    final animation = useMemoized(
-      () => CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
-      [controller],
-    );
-    final animValue = useAnimation(animation);
+    final animValue = useAnimation(controller);
 
     final rng = useMemoized(() => math.Random());
 
@@ -146,13 +143,16 @@ class SpinAndWinView extends HookConsumerWidget {
       if (rewards.isEmpty) return;
       isSpinning.value = true;
 
-      // Start the 5100ms wheel cue exactly once, and turn the wheel as soon as
-      // it is playing; the wheel runs for precisely that long
-      // (kSpinWheelDuration), so the sound and the spin end together.
+      // Start the wheel cue exactly once, and turn the wheel as soon as it is
+      // playing; the wheel is keyframed on the cue's clicks (SpinCuePath) and
+      // settles on the reward as the last click rings out (kSpinWheelDuration).
       await SpinSoundController.playOnSpin().timeout(
         SpinSoundController.cueStartTimeout,
         onTimeout: () {},
       );
+      // Start the wheel at the cue's real playhead, not at 0, so each click
+      // is heard on its slice change rather than up to a slice late.
+      final cuePlayhead = await SpinSoundController.spinCuePlayhead();
       if (!context.mounted) return;
 
       final currentRewards = rewards;
@@ -161,9 +161,17 @@ class SpinAndWinView extends HookConsumerWidget {
       final targetAngle =
           (currentRewards.length - targetIndex) * anglePerSlice -
               anglePerSlice / 2;
-      final extraTurns = 5 + rng.nextInt(3);
-      targetRotation.value = (extraTurns * 2 * math.pi) + targetAngle;
-      await controller.forward(from: 0);
+      // Continue from where the previous spin rested instead of snapping
+      // back to 0.
+      spinPath.value = SpinCuePath.plan(
+        start: (spinPath.value?.end ?? 0) % (2 * math.pi),
+        targetAngle: targetAngle,
+        sliceCount: currentRewards.length,
+      );
+      await controller.forward(
+        from: (cuePlayhead ?? Duration.zero).inMicroseconds /
+            kSpinWheelDuration.inMicroseconds,
+      );
 
       final reward = currentRewards[targetIndex];
 
@@ -227,37 +235,16 @@ class SpinAndWinView extends HookConsumerWidget {
 
     Future<bool> showExitDuringSpinDialog() async {
       isExitDialogOpen.value = true;
-      final result = await showGeneralDialog<bool>(
+      final result = await showAppConfirmPopup(
         context: context,
-        barrierDismissible: false,
-        barrierLabel: 'Exit spin',
-        barrierColor: Colors.black.withOpacity(0.45),
-        transitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (dialogContext, animation, secondaryAnimation) {
-          return Center(
-            child: _SpinExitDialog(
-              onWait: () => Navigator.of(dialogContext).pop(false),
-              onExit: () => Navigator.of(dialogContext).pop(true),
-            ),
-          );
-        },
-        transitionBuilder: (context, animation, secondaryAnimation, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutBack,
-            reverseCurve: Curves.easeInCubic,
-          );
-          return FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.92, end: 1).animate(curved),
-              child: child,
-            ),
-          );
-        },
+        icon: Icons.casino_outlined,
+        title: 'Wheel is Spinning',
+        message: 'Leaving now may lose your reward.\nWant to exit anyway?',
+        confirmLabel: 'Exit Anyway',
+        cancelLabel: 'Wait',
       );
       isExitDialogOpen.value = false;
-      return result ?? false;
+      return result;
     }
 
     Future<bool> handleBackNavigation() async {
@@ -280,7 +267,6 @@ class SpinAndWinView extends HookConsumerWidget {
         backgroundColor: Colors.transparent,
         body: LayoutBuilder(
           builder: (context, constraints) {
-
             final wheelSize = math.min(
               constraints.maxWidth * 0.72,
               math.min(constraints.maxHeight * 0.42, 340.0),
@@ -509,9 +495,13 @@ class SpinAndWinView extends HookConsumerWidget {
                                               : SpinWheel(
                                                   rewards: _buildRewards(
                                                       spinOptionsState.options),
-                                                  rotation:
-                                                      targetRotation.value *
-                                                          animValue,
+                                                  rotation: spinPath.value
+                                                          ?.rotationAt(
+                                                        animValue *
+                                                            kSpinWheelDuration
+                                                                .inMilliseconds,
+                                                      ) ??
+                                                      0,
                                                   size: wheelSize,
                                                 ),
                                     ),
@@ -690,172 +680,5 @@ class _SpinShimmerTransform extends GradientTransform {
   @override
   Matrix4 transform(Rect bounds, {TextDirection? textDirection}) {
     return Matrix4.translationValues(bounds.width * slidePercent, 0, 0);
-  }
-}
-
-class _SpinExitDialog extends StatefulWidget {
-  const _SpinExitDialog({
-    required this.onWait,
-    required this.onExit,
-  });
-
-  final VoidCallback onWait;
-  final VoidCallback onExit;
-
-  @override
-  State<_SpinExitDialog> createState() => _SpinExitDialogState();
-}
-
-class _SpinExitDialogState extends State<_SpinExitDialog>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          final shimmer = _controller.value * 3 - 1;
-          return Container(
-            width: 320.w,
-            padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 16.h),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24.r),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1F5E60),
-                  Color(0xFF2B7D7F),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.28),
-                  blurRadius: 28.r,
-                  offset: Offset(0.w, 16.h),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24.r),
-                    child: ShaderMask(
-                      shaderCallback: (rect) {
-                        return LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.05),
-                            Colors.white.withOpacity(0.22),
-                            Colors.white.withOpacity(0.05),
-                          ],
-                          stops: const [0.2, 0.5, 0.8],
-                          begin: const Alignment(-1, -0.2),
-                          end: const Alignment(1, 0.2),
-                          transform: _SpinShimmerTransform(shimmer),
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.srcATop,
-                      child: Container(color: Colors.white.withOpacity(0.04)),
-                    ),
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 56.r,
-                      width: 56.r,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.25),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.casino_outlined,
-                        color: Colors.white,
-                        size: 28.r,
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-                    Text(
-                      'Wheel is Spinning',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    SizedBox(height: 6.h),
-                    Text(
-                      'Leaving now may lose your reward.\nWant to exit anyway?',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withOpacity(0.88),
-                            height: 1.4,
-                          ),
-                    ),
-                    SizedBox(height: 16.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: widget.onWait,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.5),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18.r),
-                              ),
-                            ),
-                            child: const Text('Wait'),
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: widget.onExit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF0B5E5A),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18.r),
-                              ),
-                            ),
-                            child: const Text('Exit Anyway'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
   }
 }

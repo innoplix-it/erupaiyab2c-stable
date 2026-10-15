@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:e_rupaiya/features/profile/controllers/profile_controller.dart';
 import 'package:e_rupaiya/features/profile/models/profile_model.dart';
 import 'package:e_rupaiya/features/profile/models/profile_state.dart';
@@ -86,6 +88,18 @@ class _RecordingSpinAudio implements SpinAudioPlayer {
   final List<String> preloads = [];
   int stopCount = 0;
 
+  /// Spin cue playhead reports, served in order (the last one repeats).
+  /// Empty: position unknown, as on a platform without position support.
+  List<Duration> playheads = [];
+  int positionQueries = 0;
+
+  @override
+  Future<Duration?> position(String asset) async {
+    if (playheads.isEmpty) return null;
+    final i = math.min(positionQueries++, playheads.length - 1);
+    return playheads[i];
+  }
+
   @override
   Future<void> disableLooping() async {}
 
@@ -141,7 +155,8 @@ void main() {
   });
 
   group('Spin & Win Button - Backend Spin Count', () {
-    testWidgets('1. Backend returns 0 spins -> Try Tomorrow is displayed and enabled',
+    testWidgets(
+        '1. Backend returns 0 spins -> Try Tomorrow is displayed and enabled',
         (tester) async {
       final controller = _TestProfileController(
         ProfileState(
@@ -234,8 +249,7 @@ void main() {
       );
     });
 
-    testWidgets(
-        '4. Tapping Try Tomorrow navigates to Home via GoRouter',
+    testWidgets('4. Tapping Try Tomorrow navigates to Home via GoRouter',
         (tester) async {
       final controller = _TestProfileController(
         ProfileState(
@@ -429,11 +443,14 @@ void main() {
         expect(textWidget.softWrap, isFalse);
 
         // Badge container expands with digit count
-        final badgeContainerFinder = find.ancestor(
-          of: countTextFinder,
-          matching: find.byType(Container),
-        ).first;
-        final badgeRender = tester.renderObject(badgeContainerFinder) as RenderBox;
+        final badgeContainerFinder = find
+            .ancestor(
+              of: countTextFinder,
+              matching: find.byType(Container),
+            )
+            .first;
+        final badgeRender =
+            tester.renderObject(badgeContainerFinder) as RenderBox;
         widths[count] = badgeRender.size.width;
 
         expect(tester.takeException(), isNull);
@@ -582,8 +599,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets(
-        'a single spin does not duplicate the cue across rebuilds',
+    testWidgets('a single spin does not duplicate the cue across rebuilds',
         (tester) async {
       final controller = _TestProfileController(
         ProfileState(
@@ -609,8 +625,7 @@ void main() {
 
     testWidgets(
         'popup cue fires exactly once at the moment the result popup becomes '
-        'visible - not before, not on subsequent rebuilds',
-        (tester) async {
+        'visible - not before, not on subsequent rebuilds', (tester) async {
       final controller = _TestProfileController(
         ProfileState(
           isFetching: false,
@@ -638,8 +653,9 @@ void main() {
       await tester.pump();
 
       // The popup cue is the last play call and was issued exactly once.
-      final popupPlays =
-          audio.plays.where((p) => p == SpinSoundController.popupAsset).toList();
+      final popupPlays = audio.plays
+          .where((p) => p == SpinSoundController.popupAsset)
+          .toList();
       expect(
         popupPlays,
         hasLength(1),
@@ -671,18 +687,16 @@ void main() {
       await tester.pump(kSpinWheelDuration + const Duration(seconds: 1));
       await tester.pump();
 
-      final countAfterFirstPump = audio.plays
-          .where((p) => p == SpinSoundController.popupAsset)
-          .length;
+      final countAfterFirstPump =
+          audio.plays.where((p) => p == SpinSoundController.popupAsset).length;
 
       // Additional frames must not re-trigger the popup cue.
       for (var i = 0; i < 5; i++) {
         await tester.pump(const Duration(milliseconds: 300));
       }
 
-      final countAfterMorePumps = audio.plays
-          .where((p) => p == SpinSoundController.popupAsset)
-          .length;
+      final countAfterMorePumps =
+          audio.plays.where((p) => p == SpinSoundController.popupAsset).length;
 
       expect(
         countAfterMorePumps,
@@ -693,8 +707,9 @@ void main() {
     });
 
     testWidgets(
-        'the wheel turns for 5100ms and the popup and its cue arrive '
-        'together on the frame it stops', (tester) async {
+        'the last click (4922ms) brings in the reward slice, the wheel settles '
+        'on its centre as the cue ends (5100ms), and the popup and its cue '
+        'arrive together on the frame it stops', (tester) async {
       final controller = _TestProfileController(
         ProfileState(
           isFetching: false,
@@ -709,14 +724,33 @@ void main() {
       await tester.pump();
       expect(audio.plays, [SpinSoundController.spinAsset]);
       // The cue has started; the wheel starts turning on this frame. Neither
-      // pump advances the clock, so 5100ms are measured from here.
+      // pump advances the clock, so cue times are measured from here.
       await tester.pump();
 
+      int sliceUnderPointer() {
+        final wheel = tester.widget<SpinWheel>(find.byType(SpinWheel));
+        final slice = 2 * math.pi / wheel.rewards.length;
+        return ((-wheel.rotation) % (2 * math.pi) / slice).floor() %
+            wheel.rewards.length;
+      }
+
       await tester.pump(
-        kSpinWheelDuration - const Duration(milliseconds: 1),
+        const Duration(milliseconds: kSpinCueLastClickMs - 1),
+      );
+      final beforeLastClick = sliceUnderPointer();
+      await tester.pump(const Duration(milliseconds: 2));
+      final afterLastClick = sliceUnderPointer();
+      expect(afterLastClick, isNot(beforeLastClick),
+          reason: 'the last click brings a new slice to the pointer');
+
+      await tester.pump(
+        kSpinWheelDuration -
+            const Duration(milliseconds: kSpinCueLastClickMs + 2),
       );
       expect(find.text('Spinning...'), findsOneWidget,
-          reason: 'the wheel must still be turning 1ms before 5100ms');
+          reason: 'the wheel must still be settling 1ms before 5100ms');
+      expect(sliceUnderPointer(), afterLastClick,
+          reason: 'no further slice change after the last click');
       expect(audio.plays, [SpinSoundController.spinAsset]);
       expect(find.byType(SpinResultPopup), findsNothing);
 
@@ -728,6 +762,103 @@ void main() {
         SpinSoundController.popupAsset,
       ]);
       expect(find.byType(SpinResultPopup), findsOneWidget);
+
+      // The resting angle points the top pin at the reward the popup shows.
+      final wheel = tester.widget<SpinWheel>(find.byType(SpinWheel));
+      final slice = 2 * math.pi / wheel.rewards.length;
+      final rest = wheel.rotation % (2 * math.pi);
+      final landed =
+          (wheel.rewards.length - (rest + slice / 2) / slice).round() %
+              wheel.rewards.length;
+      final shown =
+          tester.widget<SpinResultPopup>(find.byType(SpinResultPopup)).reward;
+      expect(wheel.rewards[landed].label, shown.label);
+      expect(wheel.rewards[landed].type, shown.type);
+      expect(sliceUnderPointer(), landed);
+      expect(sliceUnderPointer(), afterLastClick);
+      final offCentre = (rest + slice / 2) % slice;
+      expect(math.min(offCentre, slice - offCentre), lessThan(1e-9),
+          reason: 'rests on the reward slice centre');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'a late audio start shifts the wheel onto the cue: it waits for the '
+        'playhead, starts at it and changes slice on the last click',
+        (tester) async {
+      final controller = _TestProfileController(
+        ProfileState(
+          isFetching: false,
+          profile: _makeProfile(spins: 3),
+        ),
+      );
+      // Silent for the first ten polls, then already 300ms into the cue.
+      const lateBy = 300;
+      audio.playheads = [
+        for (var i = 0; i < 10; i++) Duration.zero,
+        const Duration(milliseconds: lateBy),
+      ];
+
+      await tester.pumpWidget(_buildTestApp(profileController: controller));
+      await tester.pump();
+
+      double rotation() =>
+          tester.widget<SpinWheel>(find.byType(SpinWheel)).rotation;
+      int sliceUnderPointer() {
+        final wheel = tester.widget<SpinWheel>(find.byType(SpinWheel));
+        final slice = 2 * math.pi / wheel.rewards.length;
+        return ((-wheel.rotation) % (2 * math.pi) / slice).floor() %
+            wheel.rewards.length;
+      }
+
+      final rest = rotation();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Spin The Wheel'));
+      await tester.pump();
+      expect(audio.plays, [SpinSoundController.spinAsset]);
+
+      // While the cue is silent the wheel must not move.
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(rotation(), rest, reason: 'no wheel movement before the sound');
+      expect(audio.positionQueries, lessThan(10));
+
+      // Step until the playhead is reported and the wheel starts on it.
+      var waited = 0;
+      while (audio.positionQueries < 11 && waited < 500) {
+        await tester.pump(const Duration(milliseconds: 1));
+        waited++;
+      }
+      await tester.pump();
+      expect(audio.positionQueries, 11);
+      // From here wheel time == cue time - lateBy.
+
+      await tester.pump(
+        const Duration(milliseconds: kSpinCueLastClickMs - lateBy - 2),
+      );
+      final beforeLastClick = sliceUnderPointer();
+      await tester.pump(const Duration(milliseconds: 4));
+      final afterLastClick = sliceUnderPointer();
+      expect(afterLastClick, isNot(beforeLastClick),
+          reason: 'the slice changes on the last click in cue time');
+
+      await tester.pump(
+        const Duration(
+          milliseconds: kSpinCueDurationMs - kSpinCueLastClickMs - 2 - 2,
+        ),
+      );
+      expect(find.byType(SpinResultPopup), findsNothing,
+          reason: 'no popup before the cue-time stop');
+      expect(sliceUnderPointer(), afterLastClick,
+          reason: 'no further slice change after the last click');
+
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pump();
+      expect(find.byType(SpinResultPopup), findsOneWidget,
+          reason: 'the wheel stops at cue time 5100ms, '
+              '${kSpinCueDurationMs - lateBy}ms after it started');
+      final shown =
+          tester.widget<SpinResultPopup>(find.byType(SpinResultPopup)).reward;
+      final wheel = tester.widget<SpinWheel>(find.byType(SpinWheel));
+      expect(wheel.rewards[sliceUnderPointer()].label, shown.label);
       expect(tester.takeException(), isNull);
     });
 
@@ -783,8 +914,7 @@ void main() {
       expect(audio.plays, isEmpty);
     });
 
-    testWidgets(
-        'popup asset is preloaded on screen mount before any spin tap',
+    testWidgets('popup asset is preloaded on screen mount before any spin tap',
         (tester) async {
       final controller = _TestProfileController(
         ProfileState(
@@ -814,4 +944,3 @@ void main() {
     });
   });
 }
-
