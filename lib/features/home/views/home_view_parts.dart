@@ -3073,7 +3073,10 @@ class _HomeContent extends HookConsumerWidget {
       onSilverTap: () => context.push(
         '${RouteConstants.digitalGold}?metal=silver&entry=home',
       ),
-      onZeroBalanceTap: () => handleServiceTap('Zero Balance'),
+      onZeroBalanceTap: () => openZeroBalanceAccountOffer(
+            context,
+            rewardAmount: ZeroBalanceBank.defaultRewardAmount,
+          ),
       bankingInvestmentBanners: bankingInvestmentBanners,
       bankingBannerController: bankingBannerController,
       bankingBannerPage: bankingBannerPage.value,
@@ -3343,8 +3346,9 @@ Widget debugHomeLoansGrid() => _CurvedIconGrid(
     );
 
 @visibleForTesting
-Widget debugHomeInvestmentRow() => _InvestmentCircleRow(
-      onZeroBalanceTap: () {},
+Widget debugHomeInvestmentRow({VoidCallback? onZeroBalanceTap}) =>
+    _InvestmentCircleRow(
+      onZeroBalanceTap: onZeroBalanceTap ?? () {},
       onGoldTap: () {},
       onSilverTap: () {},
     );

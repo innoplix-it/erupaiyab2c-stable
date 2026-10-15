@@ -68,6 +68,38 @@ void main() {
     return result;
   }
 
+  testWidgets('custom colours replace the default card and accent',
+      (tester) async {
+    const accent = Color(0xFF1565C0);
+    const card = Color(0xFFF5F9FF);
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(360, 690),
+        builder: (_, __) => MaterialApp(
+          home: AppConfirmPopup(
+            title: 'Title',
+            message: 'Message',
+            confirmLabel: 'OK',
+            cancelLabel: 'Cancel',
+            accentColor: accent,
+            backgroundColor: card,
+            onConfirm: () {},
+            onCancel: () {},
+          ),
+        ),
+      ),
+    );
+    expect(tester.widget<Dialog>(find.byType(Dialog)).backgroundColor, card);
+    expect(tester.widget<Icon>(find.byType(Icon)).color, accent);
+    final cancel = tester.widget<ElevatedButton>(
+      find.ancestor(
+        of: find.text('Cancel'),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
+    expect(cancel.style!.backgroundColor!.resolve({}), accent);
+  });
+
   testWidgets('confirm action resolves true', (tester) async {
     expect(await openAndTap(tester, 'Exit Anyway'), isTrue);
   });

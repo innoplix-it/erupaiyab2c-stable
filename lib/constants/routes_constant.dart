@@ -69,6 +69,8 @@ class RouteConstants {
   static const String referral = '/referral';
   static const String referAndEarn = '/refer-and-earn';
   static const String referAndEarnWallet = '/refer-and-earn/wallet';
+  static const String zeroBalanceOffer = '/zero-balance/offer';
+  static const String zeroBalanceChooseBank = '/zero-balance/choose-bank';
   static const String digitalGold = '/digital-gold';
   static const String digitalGoldDetails = '/digital-gold/details';
   static const String digitalGoldSummary = '/digital-gold/summary';

@@ -36,6 +36,7 @@ import 'features/educationFees/views/education_fees_amount_view.dart';
 import 'features/educationFees/views/education_fees_payment_view.dart';
 import 'features/educationFees/views/education_fees_recipient_view.dart';
 import 'features/educationFees/views/education_payment_thank_you_view.dart';
+import 'features/home/components/zero_balance_account_popup_view.dart';
 import 'features/home/views/home_view.dart';
 import 'features/home/views/notifications_screen.dart';
 import 'features/home/views/quick_actions_view.dart';
@@ -82,6 +83,7 @@ import 'features/services/views/credit_card_pay_deeplink_view.dart';
 import 'features/services/views/credit_card_transaction_detail_screen.dart';
 import 'features/services/views/credit_card_transactions_screen.dart';
 import 'features/spinandear/views/spin_and_win_view.dart';
+import 'features/zero_balance_account/views/choose_your_bank_view.dart';
 import 'services/logger_service.dart';
 import 'services/navigation_interaction_lock.dart';
 import 'widgets/k_dialog.dart';
@@ -678,6 +680,19 @@ final routerProvider = Provider<GoRouter>(
         GoRoute(
           path: RouteConstants.referAndEarnWallet,
           builder: (context, state) => const ReferAndEarnWalletView(),
+        ),
+        GoRoute(
+          path: RouteConstants.zeroBalanceOffer,
+          pageBuilder: buildZeroBalanceOfferPage,
+        ),
+        GoRoute(
+          path: RouteConstants.zeroBalanceChooseBank,
+          builder: (context, state) {
+            final extra = state.extra;
+            return extra is num
+                ? ChooseYourBankView(rewardAmount: extra)
+                : const ChooseYourBankView();
+          },
         ),
         GoRoute(
           path: RouteConstants.digitalGold,

@@ -126,7 +126,7 @@ void main() {
         expect(lottie.left, greaterThanOrEqualTo(0));
         expect(lottie.right, lessThanOrEqualTo(size.width));
         // The hero animation scales with the screen height, as designed.
-        expect(lottie.height, closeTo(120.h, 0.01));
+        expect(lottie.height, closeTo(96.h, 0.01));
 
         final partner = tester.getRect(_partnerLogo);
         expect(partner.height, closeTo(28.h, 0.01));

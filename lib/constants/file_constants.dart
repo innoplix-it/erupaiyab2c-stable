@@ -1,12 +1,10 @@
 class FileConstants {
-  static String loginLogo = 'assets/images/svg/erupaiya_logo.svg';
   static String authBackground = 'assets/images/png/bgauthentication.png';
   static String otpTimerIcon = 'assets/images/svg/otp_timer.svg';
   static String otpResendIcon = 'assets/images/svg/otp_resend.svg';
   static String mpinSuccessBadge = 'assets/images/svg/mpin_success_badge.svg';
   static String fingerprintButton = 'assets/images/svg/fingerprint_button.svg';
   static String successVectorIcon = 'assets/images/svg/Vector.svg';
-  static String amountContainer = 'assets/images/svg/frame_19840.svg';
   static String indiaFlag = 'assets/images/png/indiaFlag.png';
   static String logo = 'assets/images/png/logo.png';
   static String favicon = 'assets/images/png/favicon.png';
@@ -36,7 +34,6 @@ class FileConstants {
   static String deleteAutopaySvg = 'assets/images/svg/delete_autopay.svg';
   static String deleteAccountSvg = 'assets/images/svg/delete_account.svg';
   static String homeScreenImg = 'assets/images/png/homescreenimghome.png';
-  static String cibilImg = 'assets/images/svg/cibil.svg';
   static String cibilLogoPng = 'assets/images/png/cibil.png';
   static String zeroBalanceBanner = 'assets/images/svg/zerobalance.svg';
   static String zeroBalanceBannerPng = 'assets/images/png/zerobalance.png';
@@ -151,8 +148,6 @@ class FileConstants {
   static String spinRupeeSvg = 'assets/spin/spin_rupee.svg';
   static String spinPointerSvg = 'assets/spin/spin_pointer.svg';
   static String spinCoinSvg = 'assets/spin/spin_coin.svg';
-  static String surpriseIconSvg = 'assets/images/svg/surprise_icon.svg';
-  static String extraSpinIconSvg = 'assets/images/svg/extra_spin_icon.svg';
   static String subscriptions = 'assets/images/png/home_icon/subscriptions.png';
   static String housing = 'assets/images/png/home_icon/housing_society.png';
   static String agentCollection =
@@ -169,11 +164,6 @@ class FileConstants {
   // Intrinsic ratio: processingbanner.png 440x343. Bundled via the
   // assets/images/png/ folder entry in pubspec.yaml.
   static String processingBanner = 'assets/images/png/processingbanner.png';
-
-  // Full-bleed banner SVG (raster embedded in SVG) used by the education
-  // payment thank-you screen. Intrinsic ratio: educationthanks.svg 392x450.
-  static String educationThankYouBannerSvg =
-      'assets/images/svg/educationthanks.svg';
 
   // Local ad banner for the education payment thank-you screen.
   static String thankYouBanner = 'assets/images/png/thankyoubanner.png';
@@ -263,8 +253,7 @@ class FileConstants {
   static String arrow = 'assets/images/png/arrow.png';
   static String referAndEarn = 'assets/images/png/referearn.png';
   // Refer & Earn hero artwork (girl + boy with coins), intrinsic 317 x 164.
-  static String referEarnHeroSvg =
-      'assets/images/svg/refer_and_earn_hero.svg';
+  static String referEarnHeroSvg = 'assets/images/svg/refer_and_earn_hero.svg';
   // How It Works video placeholder play icon (white ring + triangle),
   // intrinsic 62 x 62.
   static String referPlayIconSvg = 'assets/images/svg/refer_play_icon.svg';
@@ -273,6 +262,23 @@ class FileConstants {
   static String referEarnExampleIllustrationSvg =
       'assets/images/svg/refer_earn_example_illustration.svg';
   static String coin_3d = 'assets/images/png/3dcoin.png';
+  // Partner logos / offer badge (SVG wrapping embedded PNG artwork).
+  // Intrinsic sizes: airtel 131 x 20, kotak 100 x 50, zero percent 195 x 130.
+  static String airtelLogoSvg = 'assets/images/svg/airtel_logo.svg';
+  static String kotakLogoSvg = 'assets/images/svg/kotak_logo.svg';
+  static String zeroPercentBadgeSvg =
+      'assets/images/svg/zero_percent_badge.svg';
+  // Gift icon (SVG wrapping embedded PNG artwork), intrinsic 32 x 30.
+  static String giftIconSvg = 'assets/images/svg/gift_icon.svg';
+  // Unselected radio ring (#A1A1AA), intrinsic 20 x 20.
+  static String radioUnselectedIconSvg =
+      'assets/images/svg/radio_unselected_icon.svg';
+  // Zero Balance success popup reward pill background (text is drawn on top
+  // so the amount stays dynamic), intrinsic 319 x 38.
+  static String zeroBalanceRewardPillBgSvg =
+      'assets/images/svg/zero_balance_reward_pill_bg.svg';
+  // Zero Balance Account popup background, intrinsic 941 x 1672 (portrait).
+  static String zeroBalancePopupBg = 'assets/images/png/zerobalancebg.png';
   // Withdraw E-Coins conversion badge: the full Figma pill (glass rect +
   // coin glyph + "1 = ₹1 | Get Real Cash Instant" text) as one static SVG.
   static String withdrawGlassBadgeSvg =
@@ -342,7 +348,6 @@ class FileConstants {
 </defs>
 </svg>
 ''';
-  static String coin_100_svg = 'assets/images/svg/coin_100.svg';
   static String myTeam = 'assets/images/png/my_team.png';
   static String recentReferrals = 'assets/images/png/recent_referrals.png';
   static String referralsWorks = 'assets/images/png/referrals_works.png';

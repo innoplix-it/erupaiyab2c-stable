@@ -20,6 +20,8 @@ Future<bool> showAppConfirmPopup({
   required String confirmLabel,
   required String cancelLabel,
   IconData icon = Icons.info_outline,
+  Color accentColor = AppColors.primary,
+  Color backgroundColor = Colors.white,
   bool barrierDismissible = false,
 }) async {
   final result = await showDialog<bool>(
@@ -27,6 +29,8 @@ Future<bool> showAppConfirmPopup({
     barrierDismissible: barrierDismissible,
     builder: (dialogContext) => AppConfirmPopup(
       icon: icon,
+      accentColor: accentColor,
+      backgroundColor: backgroundColor,
       title: title,
       message: message,
       confirmLabel: confirmLabel,
@@ -52,9 +56,17 @@ class AppConfirmPopup extends StatelessWidget {
     required this.onConfirm,
     required this.onCancel,
     this.icon = Icons.info_outline,
+    this.accentColor = AppColors.primary,
+    this.backgroundColor = Colors.white,
   });
 
   final IconData icon;
+
+  /// Icon and cancel-button colour.
+  final Color accentColor;
+
+  /// Card colour.
+  final Color backgroundColor;
   final String title;
   final String message;
   final String confirmLabel;
@@ -69,7 +81,7 @@ class AppConfirmPopup extends StatelessWidget {
       borderRadius: BorderRadius.circular(12.r),
     );
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
       child: Padding(
@@ -81,11 +93,17 @@ class AppConfirmPopup extends StatelessWidget {
               width: 64.r,
               height: 64.r,
               decoration: BoxDecoration(
-                color: kAppConfirmIconFill,
+                color: accentColor == AppColors.primary
+                    ? kAppConfirmIconFill
+                    : accentColor.withOpacity(0.08),
                 shape: BoxShape.circle,
-                border: Border.all(color: kAppConfirmIconBorder),
+                border: Border.all(
+                  color: accentColor == AppColors.primary
+                      ? kAppConfirmIconBorder
+                      : accentColor.withOpacity(0.4),
+                ),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 34.r),
+              child: Icon(icon, color: accentColor, size: 34.r),
             ),
             SizedBox(height: 14.h),
             Text(
@@ -143,7 +161,7 @@ class AppConfirmPopup extends StatelessWidget {
                       onPressed: onCancel,
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: accentColor,
                         shape: buttonShape,
                       ),
                       child: Text(

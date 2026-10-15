@@ -138,7 +138,7 @@ class SplashView extends HookConsumerWidget {
                         ),
                     child: Lottie.asset(
                       FileConstants.splashLottie,
-                      height: 120.h,
+                      height: 96.h,
                       fit: BoxFit.contain,
                       repeat: true,
                       animate: true,
