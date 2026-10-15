@@ -474,19 +474,6 @@ class _SnackbarTheme {
     );
   }
 
-  static IconData _iconFor(AppSnackbarType type) {
-    switch (type) {
-      case AppSnackbarType.success:
-        return Icons.check_circle_outline;
-      case AppSnackbarType.error:
-        return Icons.error_outline;
-      case AppSnackbarType.warning:
-        return Icons.warning_amber_outlined;
-      case AppSnackbarType.info:
-      default:
-        return Icons.notifications_active_outlined;
-    }
-  }
 }
 
 class _SnackbarAccent {
@@ -501,7 +488,6 @@ class _SnackbarAccent {
       case AppSnackbarType.warning:
         return const Color(0xFFF57C00);
       case AppSnackbarType.info:
-      default:
         return AppColors.primary;
     }
   }

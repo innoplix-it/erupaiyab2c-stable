@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
-import 'package:e_rupaiya/constants/app_text_styles.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:e_rupaiya/features/home/components/home_shimmer.dart';
 import 'package:e_rupaiya/features/home/models/banner_model.dart';

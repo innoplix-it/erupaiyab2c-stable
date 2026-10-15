@@ -24,7 +24,6 @@ import '../components/spin_wheel.dart';
 import '../controllers/spin_options_controller.dart';
 import '../helpers/spin_sound_controller.dart';
 import '../models/spin_reward.dart';
-import '../repositories/spin_repository.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Figma order after the coin slices: Surprise, Extra Spin, Jackpot, Better Luck.

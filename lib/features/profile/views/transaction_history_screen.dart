@@ -17,7 +17,6 @@ import '../../home/controllers/home_tab_controller.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
-import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/screen_wrapper.dart';
 import '../controllers/transaction_history_controller.dart';
@@ -665,76 +664,6 @@ class _TransactionHistoryScreenState
   }
 }
 
-class _TransactionFilterRow extends StatelessWidget {
-  const _TransactionFilterRow({
-    required this.selectedDays,
-    required this.selectedRange,
-    this.selectedLastYears,
-    required this.onTap,
-  });
-
-  final int selectedDays;
-  final DateTimeRange? selectedRange;
-  final int? selectedLastYears;
-  final VoidCallback onTap;
-
-  String _formatLabel() {
-    if (selectedLastYears != null) {
-      return 'Last ${selectedLastYears!} years';
-    }
-    if (selectedRange == null) {
-      return 'Last $selectedDays days';
-    }
-    final start = selectedRange!.start;
-    final end = selectedRange!.end;
-    return '${_formatDate(start)} - ${_formatDate(end)}';
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // ✅ Pre-compute styles outside child tree
-    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
-        );
-    final filterLabelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.textPrimary.withOpacity(0.8),
-          fontWeight: FontWeight.w600,
-        );
-
-    return Row(
-      children: [
-        Text('All Transactions', style: labelStyle),
-        const Spacer(),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8.r),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-            child: Row(
-              children: [
-                Text(_formatLabel(), style: filterLabelStyle),
-                SizedBox(width: 6.w),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18.sp,
-                  color: AppColors.textPrimary.withOpacity(0.7),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// Card typography shared by every payment type (taken from the School Fee
 /// card), so House Rent, Shop Rent, Education Fee and the rest stay identical.
 abstract final class _TxnCardText {
@@ -1374,56 +1303,6 @@ String _getFeeTypeDisplay(TransactionHistoryEntry item) {
     return _formatFeeType(feeType);
   }
   return '';
-}
-
-class _FilterFab extends StatelessWidget {
-  const _FilterFab({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton.extended(
-      onPressed: onPressed,
-      backgroundColor: AppColors.primary,
-      icon: const Icon(Icons.filter_list, color: Colors.white),
-      label: Text(
-        'Filters',
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-      ),
-    );
-  }
-}
-
-Future<void> _openFilterSheet(
-  BuildContext context, {
-  required TransactionHistoryController controller,
-  required int selectedDays,
-  required int? selectedLastYears,
-  required DateTimeRange? selectedRange,
-}) async {
-  KDialog.instance.openSheet(
-    dialog: _TransactionFilterSheet(
-      selectedDays: selectedDays,
-      selectedLastYears: selectedLastYears,
-      selectedRange: selectedRange,
-      onSelectDays: (days) {
-        Navigator.of(context).pop();
-        controller.applyDaysFilter(days);
-      },
-      onSelectLastYears: (years) {
-        Navigator.of(context).pop();
-        controller.applyLastYears(years);
-      },
-      onSelectRange: (range) {
-        Navigator.of(context).pop();
-        controller.applyDateRange(range);
-      },
-    ),
-  );
 }
 
 class _TransactionFilterSheet extends StatefulWidget {

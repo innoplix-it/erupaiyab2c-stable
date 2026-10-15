@@ -18,7 +18,6 @@ import '../repositories/referral_track_repository.dart';
 double _figmaW(double px) => (px * 360 / 440).w;
 double _figmaH(double px) => (px * 690 / 956).h;
 double _figmaR(double px) => (px * 360 / 440).r;
-double _figmaSp(double px) => (px * 360 / 440).sp;
 
 /// Figma bottom bar shadows (CSS box-shadow, all pointing upwards).
 List<BoxShadow> get _bottomBarShadows => [

@@ -12,7 +12,6 @@ extension EducationAccountTypeLabel on EducationAccountType {
       case EducationAccountType.bankDetails:
         return 'Bank Details';
       case EducationAccountType.none:
-      default:
         return 'Select Account Type';
     }
   }

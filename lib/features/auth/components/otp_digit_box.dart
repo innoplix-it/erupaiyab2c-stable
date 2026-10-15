@@ -1,6 +1,5 @@
 import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/core/barrel_file.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class OtpDigitBox extends StatelessWidget {
   const OtpDigitBox({

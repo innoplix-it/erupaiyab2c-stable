@@ -96,7 +96,3 @@ void _hideLoading(BuildContext? dialogContext) {
     Navigator.of(dialogContext).pop();
   }
 }
-
-String _buildShareLink(String link) {
-  return link;
-}

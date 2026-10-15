@@ -22,7 +22,6 @@ import 'withdraw_e_coins_view.dart';
 double _figmaW(double px) => (px * 360 / 440).w;
 double _figmaH(double px) => (px * 690 / 956).h;
 double _figmaR(double px) => (px * 360 / 440).r;
-double _figmaSp(double px) => (px * 360 / 440).sp;
 
 /// Figma measurements, expressed in the 360-wide design units used by
 /// ScreenUtilInit. Every value is scaled exactly once at the call site
@@ -54,7 +53,6 @@ class _Fig {
   // Hero
   static const coinHero = 32.0;
   static const balanceFont = 34.0;
-  static const balanceLabelFont = 11.5;
   static const withdrawFont = 11.5;
 
   // Milestone card
