@@ -354,13 +354,21 @@ class _StandardBillerListingBody extends HookConsumerWidget {
       children: [
         if (showSearch)
           Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppSearchBar.sideInset,
-              vertical: 12.h,
+            padding: EdgeInsets.fromLTRB(
+              AppSearchBar.sideInset,
+              12.h,
+              AppSearchBar.sideInset,
+              FetchProviderMetrics.h(8),
             ),
             child: AppSearchBar(
-              hintText: 'Search Provider',
+              // Same bar as Electricity Fetch Your Provider.
+              hintText: 'Search by billers',
               controller: searchController,
+              textStyle: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w500,
+                fontSize: 14.sp,
+                color: Colors.black,
+              ),
               onChanged: (value) => ref
                   .read(billerListingControllerProvider.notifier)
                   .updateSearch(value),
@@ -529,7 +537,7 @@ class _ElectricityFlow extends HookConsumerWidget {
                 FetchProviderMetrics.w(24),
                 FetchProviderMetrics.h(4),
                 FetchProviderMetrics.w(24),
-                16.h,
+                16.h + MediaQuery.paddingOf(context).bottom,
               ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
@@ -599,7 +607,13 @@ class _BillerListPane extends StatelessWidget {
         hasMore: hasMore,
         onEndReached: onEndReached,
         child: ListView.builder(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          // Match Electricity Fetch Your Provider list insets + home indicator.
+          padding: EdgeInsets.fromLTRB(
+            FetchProviderMetrics.w(24),
+            FetchProviderMetrics.h(4),
+            FetchProviderMetrics.w(24),
+            16.h + MediaQuery.paddingOf(context).bottom,
+          ),
           itemCount: billers.length + (isFetchingMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index >= billers.length) {
@@ -609,6 +623,7 @@ class _BillerListPane extends StatelessWidget {
             return _BillerTile(
               biller: biller,
               onTap: () => onTapBiller(biller),
+              figmaStyle: true,
             );
           },
         ),
@@ -1659,7 +1674,13 @@ class _BillerListingFigmaLayout extends StatelessWidget {
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 16.h),
+              // Match Electricity Fetch Your Provider list insets.
+              padding: EdgeInsets.fromLTRB(
+                FetchProviderMetrics.w(24),
+                FetchProviderMetrics.h(4),
+                FetchProviderMetrics.w(24),
+                16.h,
+              ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -1672,6 +1693,7 @@ class _BillerListingFigmaLayout extends StatelessWidget {
                         _BillerTile(
                           biller: item,
                           onTap: () => onTapBiller(item),
+                          figmaStyle: true,
                         ),
                       ],
                     );
@@ -1724,7 +1746,7 @@ class _BillerListingSkeleton extends StatelessWidget {
                     SizedBox(width: 10.w),
                     Expanded(
                       child: Text(
-                        'Search Service',
+                        'Search by billers',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.textPrimary,
                             ),
@@ -1735,13 +1757,18 @@ class _BillerListingSkeleton extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: ListView.builder(
+                padding: EdgeInsets.fromLTRB(
+                  FetchProviderMetrics.w(24),
+                  FetchProviderMetrics.h(4),
+                  FetchProviderMetrics.w(24),
+                  16.h + MediaQuery.paddingOf(context).bottom,
+                ),
                 itemCount: _mockBillers.length,
-                separatorBuilder: (_, __) => SizedBox(height: 10.h),
                 itemBuilder: (_, index) => _BillerTile(
                   biller: _mockBillers[index],
                   onTap: () {},
+                  figmaStyle: true,
                 ),
               ),
             ),
@@ -1765,6 +1792,7 @@ class _BillerListingFooterSkeleton extends StatelessWidget {
           child: _BillerTile(
             biller: _BillerListingSkeleton._mockBillers.first,
             onTap: null,
+            figmaStyle: true,
           ),
         ),
       ),
@@ -2050,9 +2078,11 @@ class _BillerTile extends StatelessWidget {
     final cardSize = FetchProviderMetrics.r(50);
     final cardPadding = FetchProviderMetrics.r(4);
     final logoSize = cardSize - 2 * (cardPadding + borderWidth);
+    final arrowSize = FetchProviderMetrics.r(24);
     // The Figma spaces rows 20px apart on a 440-wide frame. Deriving the gap
-    // from the device width (not .h) stops tall phones from getting extra
-    // space between rows.
+    // from screen width (not .h) stops tall phones from getting extra space
+    // between rows. Screen width matches the Figma frame reference; list
+    // insets are applied outside this row.
     final screenWidth = MediaQuery.sizeOf(context).width;
     final rowGap = screenWidth * 20 / 440;
     return InkWell(
@@ -2102,8 +2132,8 @@ class _BillerTile extends StatelessWidget {
               SizedBox(width: 10.w),
               Image.asset(
                 FileConstants.tiltArrow,
-                width: 24.w,
-                height: 24.h,
+                width: arrowSize,
+                height: arrowSize,
                 fit: BoxFit.contain,
               ),
             ],

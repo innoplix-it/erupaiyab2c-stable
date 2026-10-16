@@ -56,7 +56,6 @@ String _rasterHomeAsset(String asset) {
         'assets/images/png/invest_silver.png',
     'assets/images/svg/zero_balance_account.svg':
         'assets/images/png/zero_balance_account.png',
-    'assets/images/svg/zerobalance.svg': 'assets/images/png/zerobalance_hd.png',
   };
   return mapped[asset] ?? asset;
 }

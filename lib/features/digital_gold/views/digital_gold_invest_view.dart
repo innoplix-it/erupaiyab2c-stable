@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
@@ -268,12 +269,19 @@ class _MiniMarketCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          SizedBox(width: 44.w,
+          SizedBox(
+            width: 44.w,
             height: 36.h,
-            child: Image.asset(
-              asset,
-              fit: BoxFit.contain,
-            ),
+            child: asset.toLowerCase().endsWith('.json')
+                ? Lottie.asset(
+                    asset,
+                    fit: BoxFit.contain,
+                    repeat: true,
+                  )
+                : Image.asset(
+                    asset,
+                    fit: BoxFit.contain,
+                  ),
           ),
         ],
       ),

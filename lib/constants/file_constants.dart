@@ -35,7 +35,8 @@ class FileConstants {
   static String deleteAccountSvg = 'assets/images/svg/delete_account.svg';
   static String homeScreenImg = 'assets/images/png/homescreenimghome.png';
   static String cibilLogoPng = 'assets/images/png/cibil.png';
-  static String zeroBalanceBanner = 'assets/images/svg/zerobalance.svg';
+  static String zeroBalanceBanner =
+      'assets/images/png/zerobalacnepngimg.png';
   static String zeroBalanceBannerPng = 'assets/images/png/zerobalance.png';
   static String investGoldIcon = 'assets/images/svg/invest_gold.svg';
   static String investSilverIcon = 'assets/images/svg/invest_silver.svg';
@@ -53,7 +54,7 @@ class FileConstants {
   static String loadingGif = 'assets/images/png/loading.gif';
   static String gasGif = 'assets/gif/gasGif.gif';
   static String digitalSilver = 'assets/gif/gasGif.gif';
-  static String homeBannerGif = 'assets/gif/homeBanner.gif';
+  static String homeBannerGif = 'assets/images/png/homeimg.png';
   static String creditCardGif = 'assets/gif/creditcard.gif';
   static String splashLottie = 'assets/lottie/logo-verticle.json';
   static String electricityBulbLottie = 'assets/lottie/electricitybulb.json';
@@ -218,12 +219,12 @@ class FileConstants {
   static String giftIcon = 'assets/images/png/home_icon/giftIcon.png';
   static String spinIcon = 'assets/images/png/home_icon/spinIcon.png';
   static String faqIcon = 'assets/images/png/home_icon/faq.png';
-  static String digitalSilverGif = 'assets/gif/silver.gif';
+  static String digitalSilverGif = 'assets/lottie/silver.json';
   static String goldSip = 'assets/images/png/digital_gold_silver/goldSip.png';
   static String sipBg = 'assets/images/png/digital_gold_silver/sigBg.png';
   static String coinsDeck =
       'assets/images/png/digital_gold_silver/coinDeck.png';
-  static String digitalGoldGif = 'assets/gif/gold.gif';
+  static String digitalGoldGif = 'assets/lottie/gold-icon-1.json';
   static String spincoin = 'assets/images/png/home_icon/spincoin.png';
   static String digitalsGold = 'assets/images/png/home_icon/digital_gold.png';
   static String homeBanner2 = 'assets/images/png/home_icon/home_banner2.png';

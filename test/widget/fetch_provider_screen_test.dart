@@ -18,6 +18,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../helpers/responsive_test_sizes.dart';
+
+/// The nine portrait sizes required for listing responsive audits, taken from
+/// [responsiveTestScreenSizes] (no duplicate matrix).
+final _nineListingSizes = responsiveTestScreenSizes.where((s) {
+  const allowed = <String>{
+    '320x568',
+    '360x640',
+    '360x690',
+    '360x800',
+    '375x812',
+    '390x844',
+    '412x915',
+    '440x956',
+    '458x1024',
+  };
+  return allowed.contains('${s.width.toInt()}x${s.height.toInt()}');
+}).toList(growable: false);
+
 const _billers = [
   Biller(
     billerId: '1',
@@ -67,6 +86,7 @@ void main() {
     Size size, {
     Future<List<LatestTransaction>> Function()? savedBillers,
     String categoryName = 'Electricity',
+    double textScale = 1.15,
   }) async {
     tester.view.devicePixelRatio = 2;
     tester.view.physicalSize = size * 2;
@@ -90,7 +110,7 @@ void main() {
             home: Builder(
               builder: (context) => MediaQuery(
                 data: MediaQuery.of(context)
-                    .copyWith(textScaler: const TextScaler.linear(1.15)),
+                    .copyWith(textScaler: TextScaler.linear(textScale)),
                 child: BillerListingView(categoryName: categoryName),
               ),
             ),
@@ -103,129 +123,141 @@ void main() {
     }
   }
 
-  const sizes = [
-    Size(320, 568),
-    Size(320, 700),
-    Size(360, 640),
-    Size(375, 812),
-    Size(390, 844),
-    Size(412, 915),
-    Size(440, 956),
-  ];
+  for (final size in _nineListingSizes) {
+    for (final textScale in const [0.85, 1.15]) {
+      testWidgets(
+          'Fetch Your Provider fits ${size.width.toInt()}x'
+          '${size.height.toInt()} at $textScale text', (tester) async {
+        await pump(tester, size, textScale: textScale);
+        expect(tester.takeException(), isNull);
 
-  for (final size in sizes) {
-    testWidgets(
-        'Fetch Your Provider fits ${size.width.toInt()}x'
-        '${size.height.toInt()} at 1.15 text', (tester) async {
-      await pump(tester, size);
-      expect(tester.takeException(), isNull);
+        expect(find.text('Saved Billers'), findsOneWidget);
+        final title = tester.getRect(find.text('Saved Billers'));
+        final viewAll = tester.getRect(find.text('View all'));
+        expect(title.right, lessThanOrEqualTo(viewAll.left));
+        expect(viewAll.right, lessThanOrEqualTo(size.width));
 
-      expect(find.text('Saved Billers'), findsOneWidget);
-      final title = tester.getRect(find.text('Saved Billers'));
-      final viewAll = tester.getRect(find.text('View all'));
-      expect(title.right, lessThanOrEqualTo(viewAll.left));
-      expect(viewAll.right, lessThanOrEqualTo(size.width));
+        expect(find.text('Search by billers'), findsOneWidget);
+        final search = tester.getRect(find.byType(AppSearchBar));
+        expect(search.left, greaterThanOrEqualTo(0));
+        expect(search.right, lessThanOrEqualTo(size.width));
 
-      expect(find.text('Search by billers'), findsOneWidget);
-      final search = tester.getRect(find.byType(AppSearchBar));
-      expect(search.left, greaterThanOrEqualTo(0));
-      expect(search.right, lessThanOrEqualTo(size.width));
+        final dots = _dots().first;
+        final card = tester.getRect(
+          find.ancestor(of: dots, matching: find.byType(GestureDetector)).last,
+        );
+        final dotsRect = tester.getRect(dots);
+        expect(dotsRect.right, lessThanOrEqualTo(card.right));
+        final badgeFinder = find.byType(SvgPicture).first;
+        final badge = tester.getRect(badgeFinder);
+        expect(badge.right, lessThanOrEqualTo(card.right));
+        expect(badge.bottom, lessThanOrEqualTo(card.bottom));
+        expect(badge.width / badge.height, moreOrLessEquals(78 / 25));
 
-      final dots = _dots().first;
-      final card = tester.getRect(
-        find.ancestor(of: dots, matching: find.byType(GestureDetector)).last,
-      );
-      final dotsRect = tester.getRect(dots);
-      expect(dotsRect.right, lessThanOrEqualTo(card.right));
-      final badgeFinder = find.byType(SvgPicture).first;
-      final badge = tester.getRect(badgeFinder);
-      expect(badge.right, lessThanOrEqualTo(card.right));
-      expect(badge.bottom, lessThanOrEqualTo(card.bottom));
-      expect(badge.width / badge.height, moreOrLessEquals(78 / 25));
-
-      final rowName = find.text(_billers.first.billerName);
-      expect(rowName, findsOneWidget);
-      final nameRect = tester.getRect(rowName);
-      expect(nameRect.right, lessThanOrEqualTo(size.width));
-    });
+        final rowName = find.text(_billers.first.billerName);
+        expect(rowName, findsOneWidget);
+        final nameRect = tester.getRect(rowName);
+        expect(nameRect.right, lessThanOrEqualTo(size.width));
+      });
+    }
   }
 
-  for (final size in const [
-    Size(320, 700),
-    Size(360, 740),
-    Size(375, 812),
-    Size(390, 844),
-    Size(412, 915),
-    Size(440, 956),
-  ]) {
-    testWidgets('operator rows are clean at ${size.width.toInt()}px',
-        (tester) async {
-      await pump(tester, size);
-      expect(tester.takeException(), isNull);
+  for (final size in _nineListingSizes) {
+    for (final textScale in const [0.85, 1.15]) {
+      testWidgets(
+          'operator rows are clean at ${size.width.toInt()}x'
+          '${size.height.toInt()} ($textScale text)', (tester) async {
+        await pump(tester, size, textScale: textScale);
+        expect(tester.takeException(), isNull);
 
-      for (final biller in _billers) {
-        final name = find.text(biller.billerName);
-        final text = tester.widget<Text>(name);
-        expect(text.maxLines, isNull, reason: 'names must not be clipped');
-        expect(text.style!.fontSize, moreOrLessEquals(13.sp));
-        expect(text.style!.fontWeight, FontWeight.w500);
-        expect(text.style!.color, const Color(0xFF000000));
+        final arrowSize = FetchProviderMetrics.r(24);
+        final scrollable = find.byType(Scrollable).first;
+        for (final biller in _billers) {
+          final name = find.text(biller.billerName);
+          // Short viewports only build visible slivers until scrolled.
+          await tester.scrollUntilVisible(name, 80, scrollable: scrollable);
+          await tester.pump(const Duration(milliseconds: 50));
+          final text = tester.widget<Text>(name);
+          expect(text.maxLines, isNull, reason: 'names must not be clipped');
+          expect(text.style!.fontSize, moreOrLessEquals(13.sp));
+          expect(text.style!.fontWeight, FontWeight.w500);
+          expect(text.style!.color, const Color(0xFF000000));
 
-        final row = find.ancestor(of: name, matching: find.byType(Row)).first;
-        final logoCard = tester.getRect(
-          find.descendant(of: row, matching: find.byType(Container)).first,
-        );
-        final arrow = tester.getRect(
-          find.descendant(of: row, matching: find.byType(Image)).last,
-        );
-        final nameRect = tester.getRect(name);
-        final rowRect = tester.getRect(row);
-
-        // Square card, 50px on the 440 Figma frame, with the logo filling
-        // all but a 4px inset and the 1.w border.
-        final cardSize = FetchProviderMetrics.r(50);
-        expect(logoCard.width, moreOrLessEquals(cardSize, epsilon: 0.5));
-        expect(logoCard.height, moreOrLessEquals(cardSize, epsilon: 0.5));
-        if (size.width == 440) {
-          expect(logoCard.width, moreOrLessEquals(50, epsilon: 0.5));
-        }
-        final logo = tester.widget<Container>(
-          find.descendant(of: row, matching: find.byType(Container)).first,
-        );
-        final logoSide = cardSize - 2 * (FetchProviderMetrics.r(4) + 1.w);
-        expect(
-          logo.padding,
-          EdgeInsets.all(FetchProviderMetrics.r(4)),
-        );
-        expect(logoSide / cardSize, greaterThan(0.75));
-        expect(arrow.width, moreOrLessEquals(24.w, epsilon: 0.5));
-        expect(arrow.height, moreOrLessEquals(24.h, epsilon: 0.5));
-        expect(nameRect.left, greaterThanOrEqualTo(logoCard.right));
-        expect(nameRect.right, lessThanOrEqualTo(arrow.left));
-        expect(arrow.right, lessThanOrEqualTo(size.width));
-        expect(logoCard.center.dy, moreOrLessEquals(rowRect.center.dy));
-        expect(arrow.center.dy, moreOrLessEquals(rowRect.center.dy));
-
-        // Every line gets the same 1.35 line height, so wrapped names have
-        // an even gap and the paragraph height is a whole number of lines.
-        final lineHeight = 13.sp * 1.35 * 1.15;
-        final lines = nameRect.height / lineHeight;
-        expect(lines, moreOrLessEquals(lines.roundToDouble(), epsilon: 0.1));
-        expect(lines.round(), greaterThanOrEqualTo(1));
-      }
-
-      Rect rowOf(String name) => tester.getRect(
-            find
-                .ancestor(of: find.text(name), matching: find.byType(Row))
-                .first,
+          final row = find.ancestor(of: name, matching: find.byType(Row)).first;
+          final logoCard = tester.getRect(
+            find.descendant(of: row, matching: find.byType(Container)).first,
           );
-      for (var i = 1; i < _billers.length; i++) {
-        final gap = rowOf(_billers[i].billerName).top -
-            rowOf(_billers[i - 1].billerName).bottom;
-        expect(gap, moreOrLessEquals(size.width * 20 / 440, epsilon: 0.5),
-            reason: 'rows keep the Figma 20px gap scaled by screen width');
-      }
-    });
+          final arrow = tester.getRect(
+            find.descendant(of: row, matching: find.byType(Image)).last,
+          );
+          final nameRect = tester.getRect(name);
+          final rowRect = tester.getRect(row);
+
+          // Square card, 50px on the 440 Figma frame, with the logo filling
+          // all but a 4px inset and the 1.w border.
+          final cardSize = FetchProviderMetrics.r(50);
+          expect(logoCard.width, moreOrLessEquals(cardSize, epsilon: 0.5));
+          expect(logoCard.height, moreOrLessEquals(cardSize, epsilon: 0.5));
+          if (size.width == 440) {
+            expect(logoCard.width, moreOrLessEquals(50, epsilon: 0.5));
+          }
+          final logo = tester.widget<Container>(
+            find.descendant(of: row, matching: find.byType(Container)).first,
+          );
+          final logoSide = cardSize - 2 * (FetchProviderMetrics.r(4) + 1.w);
+          expect(
+            logo.padding,
+            EdgeInsets.all(FetchProviderMetrics.r(4)),
+          );
+          expect(logoSide / cardSize, greaterThan(0.75));
+          expect(arrow.width, moreOrLessEquals(arrowSize, epsilon: 0.5));
+          expect(arrow.height, moreOrLessEquals(arrowSize, epsilon: 0.5));
+          expect(arrow.width, moreOrLessEquals(arrow.height, epsilon: 0.01));
+          expect(nameRect.left, greaterThanOrEqualTo(logoCard.right));
+          expect(nameRect.right, lessThanOrEqualTo(arrow.left));
+          expect(arrow.right, lessThanOrEqualTo(size.width));
+          expect(logoCard.center.dy, moreOrLessEquals(rowRect.center.dy));
+          expect(arrow.center.dy, moreOrLessEquals(rowRect.center.dy));
+
+          // Every line gets the same 1.35 line height, so wrapped names have
+          // an even gap and the paragraph height is a whole number of lines.
+          final lineHeight = 13.sp * 1.35 * textScale;
+          final lines = nameRect.height / lineHeight;
+          expect(lines, moreOrLessEquals(lines.roundToDouble(), epsilon: 0.1));
+          expect(lines.round(), greaterThanOrEqualTo(1));
+        }
+
+        // Gap checks need two rows on-screen together (skip very short viewports).
+        if (size.height >= 740) {
+          await tester.scrollUntilVisible(
+            find.text(_billers.first.billerName),
+            80,
+            scrollable: scrollable,
+          );
+          await tester.pump(const Duration(milliseconds: 50));
+          Rect rowOf(String label) => tester.getRect(
+                find
+                    .ancestor(of: find.text(label), matching: find.byType(Row))
+                    .first,
+              );
+          for (var i = 1; i < _billers.length; i++) {
+            await tester.scrollUntilVisible(
+              find.text(_billers[i].billerName),
+              40,
+              scrollable: scrollable,
+            );
+            await tester.pump(const Duration(milliseconds: 50));
+            if (find.text(_billers[i - 1].billerName).evaluate().isEmpty) {
+              continue;
+            }
+            final gap = rowOf(_billers[i].billerName).top -
+                rowOf(_billers[i - 1].billerName).bottom;
+            expect(gap, moreOrLessEquals(size.width * 20 / 440, epsilon: 0.5),
+                reason: 'rows keep the Figma 20px gap scaled by screen width');
+          }
+        }
+      });
+    }
   }
 
   group('tall phones do not get extra space between operators', () {
@@ -418,23 +450,36 @@ void main() {
 
   group('FASTag and Book Gas use the shared search bar', () {
     for (final category in ['Fastag', 'LPG Gas']) {
-      for (final width in [320.0, 360.0, 375.0, 390.0, 412.0, 440.0]) {
-        testWidgets('$category at ${width.toInt()}px', (tester) async {
-          final size = Size(width, 800);
-          await pump(tester, size, categoryName: category);
-          expect(tester.takeException(), isNull);
+      for (final size in _nineListingSizes) {
+        for (final textScale in const [0.85, 1.15]) {
+          testWidgets(
+              '$category at ${size.width.toInt()}x${size.height.toInt()} '
+              '($textScale text)', (tester) async {
+            await pump(
+              tester,
+              size,
+              categoryName: category,
+              textScale: textScale,
+            );
+            expect(tester.takeException(), isNull);
 
-          final bar = find.byType(AppSearchBar);
-          expect(bar, findsOneWidget);
-          expect(find.text('Search Provider'), findsOneWidget);
-          final rect = tester.getRect(bar);
-          expect(rect.height, moreOrLessEquals(AppSearchBar.height));
-          expect(rect.left, moreOrLessEquals(AppSearchBar.sideInset));
-          expect(
-            rect.right,
-            moreOrLessEquals(size.width - AppSearchBar.sideInset),
-          );
-        });
+            final bar = find.byType(AppSearchBar);
+            expect(bar, findsOneWidget);
+            // Same hint + sizing as Electricity Fetch Your Provider.
+            expect(find.text('Search by billers'), findsOneWidget);
+            final rect = tester.getRect(bar);
+            expect(rect.height, moreOrLessEquals(AppSearchBar.height));
+            expect(rect.left, moreOrLessEquals(AppSearchBar.sideInset));
+            expect(
+              rect.right,
+              moreOrLessEquals(size.width - AppSearchBar.sideInset),
+            );
+            await tester.enterText(find.byType(TextField), 'test');
+            await tester.pump(const Duration(milliseconds: 50));
+            final field = tester.widget<TextField>(find.byType(TextField));
+            expect(field.style!.fontFamily, startsWith('PlusJakartaSans'));
+          });
+        }
       }
     }
   });

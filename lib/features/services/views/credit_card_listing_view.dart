@@ -3,7 +3,9 @@
 import 'package:e_rupaiya/constants/file_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -17,13 +19,13 @@ import '../../../widgets/screen_wrapper.dart';
 import '../../../widgets/app_search_bar.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 import '../../profile/controllers/profile_controller.dart';
+import '../components/fetch_provider_metrics.dart';
 import '../components/service_recent_section.dart';
 import '../controllers/biller_detail_controller.dart';
 import '../controllers/biller_listing_controller.dart';
 import '../controllers/service_extras_controller.dart';
 import '../models/biller_detail_args.dart';
 import '../models/biller_model.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CreditCardListingView extends HookConsumerWidget {
   const CreditCardListingView({super.key});
@@ -112,13 +114,21 @@ class CreditCardListingView extends HookConsumerWidget {
             onBack: () => context.pop(),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppSearchBar.sideInset,
-              vertical: 12.h,
+            padding: EdgeInsets.fromLTRB(
+              AppSearchBar.sideInset,
+              12.h,
+              AppSearchBar.sideInset,
+              FetchProviderMetrics.h(8),
             ),
             child: AppSearchBar(
-              hintText: 'Search bank name',
+              // Same bar styling as Electricity Fetch Your Provider.
+              hintText: 'Search by billers',
               controller: searchController,
+              textStyle: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w500,
+                fontSize: 14.sp,
+                color: Colors.black,
+              ),
               onChanged: (value) => ref
                   .read(billerListingControllerProvider.notifier)
                   .updateSearch(value),
@@ -154,7 +164,12 @@ class CreditCardListingView extends HookConsumerWidget {
                       child: isSearching
                           ? ListView.builder(
                               primary: false,
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
+                              padding: EdgeInsets.fromLTRB(
+                                FetchProviderMetrics.w(24),
+                                FetchProviderMetrics.h(4),
+                                FetchProviderMetrics.w(24),
+                                16.h + MediaQuery.paddingOf(context).bottom,
+                              ),
                               itemCount: billers.length +
                                   (listingState.isFetchingMore ? 1 : 0),
                               itemBuilder: (context, index) {
@@ -192,7 +207,10 @@ class CreditCardListingView extends HookConsumerWidget {
                             )
                           : SingleChildScrollView(
                               primary: false,
-                              padding: EdgeInsets.zero,
+                              padding: EdgeInsets.only(
+                                bottom: 16.h +
+                                    MediaQuery.paddingOf(context).bottom,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -202,8 +220,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                     onAction: () {},
                                   ),
                                   Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 16.w),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: FetchProviderMetrics.w(24),
+                                    ),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -340,16 +359,24 @@ class _BillerGridTile extends StatelessWidget {
 
   final Biller biller;
   final VoidCallback? onTap;
-  static const double _tileHeight = 112;
 
   @override
   Widget build(BuildContext context) {
+    // Height is derived from width-scaled children (not a fixed 112 + .h),
+    // so tall/wide phones cannot RenderFlex-overflow the Column.
+    final pad = 10.w;
+    final iconSize = 44.r;
+    final gap = 10.w;
+    final textHeight = 32.w;
+    final tileHeight = pad * 2 + iconSize + gap + textHeight;
+    final logoSize = 38.r;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
-        constraints: const BoxConstraints.tightFor(height: _tileHeight),
-        padding: EdgeInsets.all(10.w),
+        height: tileHeight,
+        padding: EdgeInsets.all(pad),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),
@@ -365,17 +392,18 @@ class _BillerGridTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _ProviderIconFrame(
+              size: iconSize,
               child: _BillerIcon(
                 name: biller.billerName,
                 iconUrl: biller.iconUrl,
-                size: 38.r,
+                size: logoSize,
                 backgroundColor: Colors.white,
                 borderRadius: BorderRadius.circular(14.r),
               ),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: gap),
             SizedBox(
-              height: 32.h,
+              height: textHeight,
               child: Text(
                 biller.billerName,
                 maxLines: 2,
@@ -401,41 +429,78 @@ class _BillerListTile extends StatelessWidget {
   final Biller biller;
   final VoidCallback? onTap;
 
+  /// Matches Electricity Fetch Your Provider operator rows: 50x50 logo card,
+  /// 13sp Plus Jakarta name, square 24 arrow, width-scaled row gap.
   @override
   Widget build(BuildContext context) {
+    final borderWidth = 1.w;
+    final cardSize = FetchProviderMetrics.r(50);
+    final cardPadding = FetchProviderMetrics.r(4);
+    final logoSize = cardSize - 2 * (cardPadding + borderWidth);
+    final arrowSize = FetchProviderMetrics.r(24);
+    // Same Figma row gap rule as Electricity (screen width, not .h).
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final rowGap = screenWidth * 20 / 440;
+    final name = biller.billerName.trim();
+    final displayName = name
+        .split(RegExp(r'\s+'))
+        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
+
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 10.h),
-        child: Row(
-          children: [
-            _ProviderIconFrame(
-              size: 44,
-              child: _BillerIcon(
-                name: biller.billerName,
-                iconUrl: biller.iconUrl,
-                size: 38.r,
-                backgroundColor: Colors.white,
-                borderRadius: BorderRadius.circular(14.r),
+        padding: EdgeInsets.symmetric(vertical: rowGap / 2),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: cardSize),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: cardSize,
+                height: cardSize,
+                padding: EdgeInsets.all(cardPadding),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(FetchProviderMetrics.r(16)),
+                  border: Border.all(
+                    color: AppColors.lightBorder2,
+                    width: borderWidth,
+                  ),
+                ),
+                child: _BillerIcon(
+                  name: biller.billerName,
+                  iconUrl: biller.iconUrl,
+                  size: logoSize,
+                  backgroundColor: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(FetchProviderMetrics.r(12)),
+                ),
               ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Text(
-                biller.billerName,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  displayName,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13.sp,
+                    height: 1.35,
+                    letterSpacing: 0,
+                    color: const Color(0xFF000000),
+                  ),
+                ),
               ),
-            ),
-            Image.asset(
-              FileConstants.tiltArrow,
-              height: 22.r,
-              width: 22.r,
-              fit: BoxFit.contain,
-            ),
-          ],
+              SizedBox(width: 10.w),
+              Image.asset(
+                FileConstants.tiltArrow,
+                width: arrowSize,
+                height: arrowSize,
+                fit: BoxFit.contain,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -530,7 +595,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                     SizedBox(width: 10.w),
                     Expanded(
                       child: Text(
-                        'Search bank name',
+                        'Search by billers',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.textPrimary,
                             ),
@@ -543,7 +608,12 @@ class _CreditCardListingSkeleton extends StatelessWidget {
             Expanded(
               child: isSearching
                   ? ListView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      padding: EdgeInsets.fromLTRB(
+                        FetchProviderMetrics.w(24),
+                        FetchProviderMetrics.h(4),
+                        FetchProviderMetrics.w(24),
+                        16.h + MediaQuery.paddingOf(context).bottom,
+                      ),
                       itemCount: _mockBillers.length,
                       itemBuilder: (_, index) => _BillerListTile(
                         biller: _mockBillers[index],
@@ -551,7 +621,12 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                       ),
                     )
                   : SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      padding: EdgeInsets.fromLTRB(
+                        FetchProviderMetrics.w(24),
+                        0,
+                        FetchProviderMetrics.w(24),
+                        16.h + MediaQuery.paddingOf(context).bottom,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -623,7 +698,10 @@ class _CreditCardListingFooterSkeleton extends StatelessWidget {
       enabled: true,
       child: IgnorePointer(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: FetchProviderMetrics.w(24),
+            vertical: 12.h,
+          ),
           child: _BillerListTile(
             biller: Biller(billerId: '1', billerName: 'Loading Credit Card'),
             onTap: null,
@@ -637,7 +715,7 @@ class _CreditCardListingFooterSkeleton extends StatelessWidget {
 class _ProviderIconFrame extends StatelessWidget {
   const _ProviderIconFrame({
     required this.child,
-    this.size = 44,
+    required this.size,
   });
 
   final Widget child;

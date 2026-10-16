@@ -264,11 +264,14 @@ class _RecentRow extends StatelessWidget {
         const [_SavedBillerCardShimmer(), _SavedBillerCardShimmer()],
       );
     }
+    // Viewport height must cover the card Column. Mixing a short 126.h
+    // viewport with .w padding + .h bars caused ~8px bottom overflow.
+    final recentRowHeight = _RecentCardShimmer.viewportHeight;
     return recentTransactions.when(
       loading: () => SizedBox(
-        height: 126.h,
+        height: recentRowHeight,
         child: ListView.separated(
-          padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           clipBehavior: Clip.none,
           scrollDirection: Axis.horizontal,
           itemCount: 2,
@@ -291,9 +294,9 @@ class _RecentRow extends StatelessWidget {
           ]);
         }
         return SizedBox(
-          height: 126.h,
+          height: recentRowHeight,
           child: ListView.separated(
-            padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             clipBehavior: Clip.none,
             scrollDirection: Axis.horizontal,
             itemCount: display.length,
@@ -438,6 +441,11 @@ class _SavedBillerCardShimmer extends StatelessWidget {
 class _RecentCardShimmer extends StatelessWidget {
   const _RecentCardShimmer();
 
+  /// Horizontal recent-row viewport: pad×4 + icon + divider + pay row + gaps,
+  /// all width-scaled so tall phones do not squeeze a short .h viewport.
+  static double get viewportHeight =>
+      (14.w * 4) + 38.w + 1 + 40.w + 8.w + 10.w + 24.w;
+
   @override
   Widget build(BuildContext context) {
     return _Shimmer(
@@ -455,6 +463,7 @@ class _RecentCardShimmer extends StatelessWidget {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
               padding: EdgeInsets.all(14.w),
@@ -472,9 +481,10 @@ class _RecentCardShimmer extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          height: 12.h,
+                          height: 12.w,
                           width: 160.w,
                           decoration: BoxDecoration(
                             color:
@@ -482,9 +492,9 @@ class _RecentCardShimmer extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8.r),
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 8.w),
                         Container(
-                          height: 10.h,
+                          height: 10.w,
                           width: 110.w,
                           decoration: BoxDecoration(
                             color:
@@ -497,8 +507,8 @@ class _RecentCardShimmer extends StatelessWidget {
                   ),
                   SizedBox(width: 12.w),
                   Container(
-                    height: 18.h,
-                    width: 18.h,
+                    height: 18.w,
+                    width: 18.w,
                     decoration: BoxDecoration(
                       color: AppColors.lightBorder.withValues(alpha: 0.25),
                       shape: BoxShape.circle,
@@ -516,9 +526,10 @@ class _RecentCardShimmer extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          height: 16.h,
+                          height: 16.w,
                           width: 120.w,
                           decoration: BoxDecoration(
                             color:
@@ -526,9 +537,9 @@ class _RecentCardShimmer extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8.r),
                           ),
                         ),
-                        SizedBox(height: 10.h),
+                        SizedBox(height: 10.w),
                         Container(
-                          height: 10.h,
+                          height: 10.w,
                           width: 130.w,
                           decoration: BoxDecoration(
                             color:
@@ -541,7 +552,7 @@ class _RecentCardShimmer extends StatelessWidget {
                   ),
                   SizedBox(width: 12.w),
                   Container(
-                    height: 30.h,
+                    height: 30.w,
                     width: 78.w,
                     decoration: BoxDecoration(
                       color: AppColors.lightBorder.withValues(alpha: 0.25),
@@ -551,8 +562,6 @@ class _RecentCardShimmer extends StatelessWidget {
                 ],
               ),
             ),
-            // Prevent tiny RenderFlex overflow due to fractional dp rounding.
-            SizedBox(height: 1.h),
           ],
         ),
       ),
@@ -1039,6 +1048,7 @@ class _RecentCard extends StatelessWidget {
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
                 padding: EdgeInsets.all(13.w),
@@ -1071,6 +1081,7 @@ class _RecentCard extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             title,
@@ -1083,7 +1094,7 @@ class _RecentCard extends StatelessWidget {
                           ),
                           if (accountHolderName.isNotEmpty ||
                               consumerNo.isNotEmpty) ...[
-                            SizedBox(height: 2.h),
+                            SizedBox(height: 2.w),
                             Row(
                               children: [
                                 if (accountHolderName.isNotEmpty)
@@ -1148,6 +1159,7 @@ class _RecentCard extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             '₹${amount.toStringAsFixed(2)}',
@@ -1158,7 +1170,7 @@ class _RecentCard extends StatelessWidget {
                                     ),
                           ),
                           if (dueLabel.isNotEmpty) ...[
-                            SizedBox(height: 4.h),
+                            SizedBox(height: 4.w),
                             Text(
                               dueLabel,
                               style:
@@ -1173,7 +1185,7 @@ class _RecentCard extends StatelessWidget {
                     ),
                     SizedBox(width: 12.w),
                     SizedBox(
-                      height: 30.h,
+                      height: 30.w,
                       child: ElevatedButton(
                         onPressed: onPayNow,
                         style: ElevatedButton.styleFrom(

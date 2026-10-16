@@ -1,4 +1,0 @@
-892 assets/spin/spin_close.svg
-5110 assets/spin/spin_coin.svg
-3200 assets/spin/spin_pointer.svg
-2305 assets/spin/spin_rupee.svg
