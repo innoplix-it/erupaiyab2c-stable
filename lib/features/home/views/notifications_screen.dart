@@ -440,10 +440,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                               ? Padding(
                                                   padding: EdgeInsets.only(
                                                       bottom: 24.h),
-                                                  child: const Center(
+                                                  child: Center(
                                                     child: SpinKitCircle(
                                                       color: AppColors.primary,
-                                                      size: 48,
+                                                      size: 48.r,
                                                     ),
                                                   ),
                                                 )
@@ -477,12 +477,12 @@ class _LookupOverlay extends StatelessWidget {
       children: [
         child,
         if (isLoading)
-          const Positioned.fill(
+          Positioned.fill(
             child: AbsorbPointer(
               child: ColoredBox(
-                color: Color(0x33000000),
+                color: const Color(0x33000000),
                 child: Center(
-                  child: SpinKitCircle(color: AppColors.primary, size: 48),
+                  child: SpinKitCircle(color: AppColors.primary, size: 48.r),
                 ),
               ),
             ),

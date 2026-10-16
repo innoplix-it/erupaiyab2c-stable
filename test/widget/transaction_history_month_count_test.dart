@@ -651,7 +651,7 @@ void main() {
     final repo = _PagedRepository()..pages = {1: _month('oct', 2026, 10, 12)};
     await _pump(tester, repo);
 
-    final gap = (16 * 360 / 440).w;
+    final gap = AppSearchBar.verticalInset;
     final searchRow = find
         .ancestor(of: find.byType(AppSearchBar), matching: find.byType(Padding))
         .first;
@@ -665,6 +665,7 @@ void main() {
 
     await tester.drag(_list(), const Offset(0, -300));
     await _settle(tester);
+    // Gap remains: list viewport top is unchanged while content scrolls.
     expect(tester.getRect(_list()).top, moreOrLessEquals(listTop));
   });
 

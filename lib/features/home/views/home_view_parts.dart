@@ -468,7 +468,7 @@ class _HomeTopBar extends StatelessWidget {
                           : displayBalance[0].toUpperCase() +
                               displayBalance.substring(1),
                       maxLines: 1,
-                      style: GoogleFonts.bricolageGrotesque(
+                      style: GoogleFonts.plusJakartaSans(
                         color: const Color(0xFF000000),
                         fontWeight: FontWeight.w700,
                         fontSize: 14.sp,

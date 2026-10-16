@@ -70,6 +70,16 @@ class _CreditCardTransactionsScreenState
             showHelp: true,
             onBack: () => context.pop(),
           ),
+          // Pinned like Transaction History: gap stays under the field while
+          // the list scrolls in the Expanded below.
+          Padding(
+            padding: AppSearchBar.pinnedPadding,
+            child: AppSearchBar(
+              hintText: 'Search Transactions',
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
           Expanded(
             child: state.isLoading
                 ? const Center(
@@ -80,21 +90,6 @@ class _CreditCardTransactionsScreenState
                   )
                 : CustomScrollView(
                     slivers: [
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          AppSearchBar.sideInset,
-                          8.h,
-                          AppSearchBar.sideInset,
-                          12.h,
-                        ),
-                        sliver: SliverToBoxAdapter(
-                          child: AppSearchBar(
-                            hintText: 'Search Transactions',
-                            controller: _searchController,
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                      ),
                       if (items.isEmpty)
                         const SliverToBoxAdapter(
                           child: _EmptyState(),

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../constants/app_colors.dart';
+import 'app_search_bar.dart';
 import 'search_textfield.dart';
 
 /// Shared search bar used by Fetch Your Provider and other screens.
@@ -51,7 +52,8 @@ class CommonSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fieldHeight = height ?? 60.w;
+    // Match AppSearchBar (Figma 54 on 440→360), not a wrong-axis 60.w default.
+    final fieldHeight = height ?? AppSearchBar.height;
     return SearchTextfield(
       hintText: hintText,
       controller: controller,
@@ -72,13 +74,13 @@ class CommonSearchBar extends StatelessWidget {
               ? EdgeInsets.only(left: 16.w)
               : EdgeInsets.only(right: 16.w)),
       hintStyle: hintStyle ??
-          GoogleFonts.bricolageGrotesque(
+          GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w500,
             fontSize: 14.sp,
             color: AppColors.textPrimary.withOpacity(0.45),
           ),
       style: style ??
-          GoogleFonts.bricolageGrotesque(
+          GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w500,
             fontSize: 14.sp,
             color: Colors.black,

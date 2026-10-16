@@ -143,7 +143,7 @@ Future<void> _loadRealFonts() async {
       (FontLoader(family)..addFont(Future.value(bytes[nearest(weight)]!)))
           .load();
 
-  for (final family in ['PlusJakartaSans', 'BricolageGrotesque']) {
+  for (final family in ['PlusJakartaSans']) {
     await register('${family}_regular', 400);
     await register('${family}_italic', 400);
     for (var w = 100; w <= 900; w += 100) {

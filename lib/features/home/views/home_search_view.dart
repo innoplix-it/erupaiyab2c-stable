@@ -257,24 +257,16 @@ class HomeSearchView extends HookConsumerWidget {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          // Perf: the whole list is only ~3-4 screens tall, but the default
-          // 250px cache extent disposes every tile section that scrolls out
-          // and re-builds it (regex label formatting, GoogleFonts styles,
-          // gradient+shadow decorations, SVG widgets) when it scrolls back
-          // in — measured on 390x844: only 21 of 52 tiles realized at rest,
-          // count churned 21→31→17→21 across one up/down fling pass.
-          // A generous cache extent keeps all 52 tiles realized (verified
-          // constant across fling-down → bottom → fling-up), so scrolling
-          // composites cached layers instead of rebuilding subtrees.
-          cacheExtent: MediaQuery.sizeOf(context).height * 4,
+        // Pinned search like Transaction History: verticalInset gap stays
+        // under the field while sections scroll in the Expanded list.
+        child: Column(
           children: [
-            SizedBox(height: 10.h),
             Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalSidePadding,
-                vertical: 6.h,
+              padding: EdgeInsets.fromLTRB(
+                horizontalSidePadding,
+                AppSearchBar.verticalInset,
+                horizontalSidePadding,
+                AppSearchBar.verticalInset,
               ),
               child: AppSearchBar(
                 hintText: 'Search Services',
@@ -289,113 +281,131 @@ class HomeSearchView extends HookConsumerWidget {
                 ),
               ),
             ),
-            if (!isSearching) ...[
-              SizedBox(height: 8.h),
-              _RechargeHighlightSection(
-                onServiceTap: handleServiceTap,
-              ),
-              SizedBox(height: 14.h),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
-                child: _RechargeCategorySection(
-                  onServiceTap: handleServiceTap,
-                ),
-              ),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
-                child: _UtilityBillsCategorySection(
-                  onServiceTap: handleServiceTap,
-                ),
-              ),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
-                child: _FinancialCategorySection(
-                  onServiceTap: handleServiceTap,
-                ),
-              ),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
-                child: _EducationCategorySection(
-                  onServiceTap: handleServiceTap,
-                ),
-              ),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
-                child: _InsuranceCategorySection(
-                  onServiceTap: handleServiceTap,
-                ),
-              ),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
-                child: _RentPropertyCategorySection(
-                  onServiceTap: handleServiceTap,
-                ),
-              ),
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: horizontalSidePadding),
-                child: _OtherServicesCategorySection(
-                  onServiceTap: handleServiceTap,
-                ),
-              ),
-            ] else ...[
-              SizedBox(height: 8.h),
-            ],
-            if (isLoading.value)
-              const _HomeSearchLoadingSkeleton()
-            else if (error.value != null)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-                child: Text(
-                  error.value!,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14.sp,
-                    color: Colors.red.shade700,
-                  ),
-                ),
-              )
-            else if (isSearching && hasFetched.value && apiCategories.isEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-                child: Center(
-                  child: Text(
-                    'No services found',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.sp,
-                      color: AppColors.textPrimary.withOpacity(0.6),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                // Perf: the whole list is only ~3-4 screens tall, but the default
+                // 250px cache extent disposes every tile section that scrolls out
+                // and re-builds it (regex label formatting, GoogleFonts styles,
+                // gradient+shadow decorations, SVG widgets) when it scrolls back
+                // in — measured on 390x844: only 21 of 52 tiles realized at rest,
+                // count churned 21→31→17→21 across one up/down fling pass.
+                // A generous cache extent keeps all 52 tiles realized (verified
+                // constant across fling-down → bottom → fling-up), so scrolling
+                // composites cached layers instead of rebuilding subtrees.
+                cacheExtent: MediaQuery.sizeOf(context).height * 4,
+                children: [
+                  if (!isSearching) ...[
+                    _RechargeHighlightSection(
+                      onServiceTap: handleServiceTap,
                     ),
-                  ),
-                ),
-              )
-            else if (apiCategories.isNotEmpty)
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalSidePadding,
-                    4.h,
-                    horizontalSidePadding,
-                    16 + MediaQuery.of(context).padding.bottom,
-                  ),
-                  child: Column(
-                    children: [
-                      for (final category in apiCategories)
-                        _CategorySection(
-                          category: category,
-                          onServiceTap: handleServiceTap,
+                    SizedBox(height: 14.h),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalSidePadding),
+                      child: _RechargeCategorySection(
+                        onServiceTap: handleServiceTap,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalSidePadding),
+                      child: _UtilityBillsCategorySection(
+                        onServiceTap: handleServiceTap,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalSidePadding),
+                      child: _FinancialCategorySection(
+                        onServiceTap: handleServiceTap,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalSidePadding),
+                      child: _EducationCategorySection(
+                        onServiceTap: handleServiceTap,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalSidePadding),
+                      child: _InsuranceCategorySection(
+                        onServiceTap: handleServiceTap,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalSidePadding),
+                      child: _RentPropertyCategorySection(
+                        onServiceTap: handleServiceTap,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: horizontalSidePadding),
+                      child: _OtherServicesCategorySection(
+                        onServiceTap: handleServiceTap,
+                      ),
+                    ),
+                  ],
+                  if (isLoading.value)
+                    const _HomeSearchLoadingSkeleton()
+                  else if (error.value != null)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 24.h),
+                      child: Text(
+                        error.value!,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.sp,
+                          color: Colors.red.shade700,
                         ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              const SizedBox.shrink(),
+                      ),
+                    )
+                  else if (isSearching &&
+                      hasFetched.value &&
+                      apiCategories.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 24.h),
+                      child: Center(
+                        child: Text(
+                          'No services found',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            color: AppColors.textPrimary.withOpacity(0.6),
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (apiCategories.isNotEmpty)
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalSidePadding,
+                          4.h,
+                          horizontalSidePadding,
+                          16 + MediaQuery.of(context).padding.bottom,
+                        ),
+                        child: Column(
+                          children: [
+                            for (final category in apiCategories)
+                              _CategorySection(
+                                category: category,
+                                onServiceTap: handleServiceTap,
+                              ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                ],
+              ),
+            ),
           ],
         ),
       ),

@@ -354,12 +354,8 @@ class _StandardBillerListingBody extends HookConsumerWidget {
       children: [
         if (showSearch)
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              AppSearchBar.sideInset,
-              12.h,
-              AppSearchBar.sideInset,
-              FetchProviderMetrics.h(8),
-            ),
+            // Same pinned gap as Transaction History (sticky above the list).
+            padding: AppSearchBar.pinnedPadding,
             child: AppSearchBar(
               // Same bar as Electricity Fetch Your Provider.
               hintText: 'Search by billers',
@@ -481,13 +477,16 @@ class _ElectricityFlow extends HookConsumerWidget {
               ),
             ),
           ),
+          // Search sits in the scroll (recent + banner above). Sticky pin
+          // would reorder the Electricity layout; keep flow, match the
+          // Transaction History gap under the field.
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 AppSearchBar.sideInset,
                 0,
                 AppSearchBar.sideInset,
-                FetchProviderMetrics.h(8),
+                AppSearchBar.verticalInset,
               ),
               child: AppSearchBar(
                 hintText: 'Search by billers',

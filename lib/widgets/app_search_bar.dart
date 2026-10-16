@@ -47,7 +47,7 @@ class AppSearchBar extends StatelessWidget {
   /// clear button.
   final Widget? trailing;
 
-  /// Style of the typed text; defaults to Bricolage Grotesque 14sp.
+  /// Style of the typed text; defaults to Plus Jakarta Sans 14sp.
   final TextStyle? textStyle;
 
   /// Converts a value from the 440-wide Figma frame to ScreenUtil radius
@@ -60,13 +60,27 @@ class AppSearchBar extends StatelessWidget {
   /// every screen gives it the same width as on Electricity.
   static double get sideInset => (24 * 360 / 440).w;
 
+  /// Vertical inset above and below a pinned search row (16px on the 440
+  /// frame). Transaction History reference: the bar sits outside the
+  /// scroll view, and scrolled content stops this far under the field.
+  static double get verticalInset => (16 * 360 / 440).w;
+
+  /// Padding for a pinned [AppSearchBar] row matching Transaction History
+  /// (`sideInset` horizontal, [verticalInset] above and below).
+  static EdgeInsets get pinnedPadding => EdgeInsets.fromLTRB(
+        sideInset,
+        verticalInset,
+        sideInset,
+        verticalInset,
+      );
+
   @override
   Widget build(BuildContext context) {
     final fieldHeight = height;
     final radius = BorderRadius.circular(_r(12));
     final hintSize = (14 * 360 / 440).sp.clamp(12.0, 14.0).toDouble();
     final textStyle = this.textStyle ??
-        GoogleFonts.bricolageGrotesque(
+        GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w500,
           fontSize: 14.sp,
           color: Colors.black,

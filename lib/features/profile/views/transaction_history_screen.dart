@@ -261,14 +261,10 @@ class _TransactionHistoryScreenState
               helpIconSize: 20,
             ),
             Padding(
-              // Same 16px (440 frame) above and below the search row, so
+              // Pinned search row (Column above Expanded list). Same 16px
+              // (440→360) above and below as AppSearchBar.pinnedPadding so
               // scrolled cards stop that far under the field.
-              padding: EdgeInsets.fromLTRB(
-                AppSearchBar.sideInset,
-                _figmaW(16),
-                AppSearchBar.sideInset,
-                _figmaW(16),
-              ),
+              padding: AppSearchBar.pinnedPadding,
               // Reference: the field, then the filter icon outside it on the
               // right with no background. Icon and gap scale with the screen
               // width from the 440 frame.

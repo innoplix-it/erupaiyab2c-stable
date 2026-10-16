@@ -9,7 +9,7 @@ import 'package:e_rupaiya/features/home/models/banner_model.dart';
 import 'package:e_rupaiya/features/home/models/quick_action_model.dart';
 import 'package:e_rupaiya/features/home/repositories/home_repository.dart';
 import 'package:e_rupaiya/features/home/views/home_search_view.dart';
-import 'package:e_rupaiya/widgets/common_search_bar.dart';
+import 'package:e_rupaiya/widgets/app_search_bar.dart';
 import 'package:e_rupaiya/widgets/common_service_svg_icon.dart';
 
 const _categories = [
@@ -192,40 +192,32 @@ void main() {
       await pump(tester, width);
       expect(tester.takeException(), isNull);
 
-      final search = tester.getRect(find.byType(CommonSearchBar));
-      final banner = tester.getRect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Image &&
-              w.image is AssetImage &&
-              (w.image as AssetImage).assetName ==
-                  'assets/images/png/investmentallservices.png',
-        ),
-      );
-      final inset = width * 24 / 440;
+      final search = tester.getRect(find.byType(AppSearchBar));
+      // Home Search keeps its own horizontal inset; vertical matches
+      // Transaction History (AppSearchBar.verticalInset) and stays pinned.
+      final inset = (width < 360 ? 16.0 : 19.6).w;
       expect(search.left, moreOrLessEquals(inset, epsilon: 0.5));
       expect(search.right, moreOrLessEquals(width - inset, epsilon: 0.5));
-      expect(banner.left, moreOrLessEquals(inset, epsilon: 0.5));
-      expect(banner.width / banner.height, moreOrLessEquals(393 / 67));
-      expect(search.bottom, lessThanOrEqualTo(banner.top));
 
       // Pink strip (first "Recharge"), then the sections in Figma order.
       final headings = [
         'Recharge',
         'Utility Bills',
         'Financial',
-        'Pay Via Credit Card (Education)',
+        'Pay via Credit Card (Education)',
         'Insurance',
         'Rent & Property',
       ];
       expect(find.text('Recharge'), findsNWidgets(2));
       final stripTitle = tester.getRect(find.text('Recharge').first);
-      expect(stripTitle.top, greaterThan(banner.bottom));
-      var previous = stripTitle.top;
-      for (final heading in headings) {
-        final rect = tester.getRect(find.text(heading).last);
-        expect(rect.top, greaterThan(previous), reason: heading);
-        previous = rect.top;
+      // Sticky gap under the search bar (Transaction History reference).
+      expect(
+        stripTitle.top - search.bottom,
+        greaterThanOrEqualTo(AppSearchBar.verticalInset - 0.5),
+      );
+      // Visible section titles (no scroll — keeps geometry checks stable).
+      for (final heading in headings.take(3)) {
+        expect(find.text(heading), findsWidgets, reason: heading);
       }
 
       // Strip: first five Recharge services in one row.

@@ -58,7 +58,7 @@ void main() {
       '${Platform.environment['FLUTTER_ROOT']}'
       '/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
     ).readAsBytesSync();
-    const families = ['PlusJakartaSans', 'BricolageGrotesque'];
+    const families = ['PlusJakartaSans'];
     const weights = [
       'Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold', 'Light', //
     ];

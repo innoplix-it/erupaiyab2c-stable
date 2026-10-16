@@ -114,12 +114,8 @@ class CreditCardListingView extends HookConsumerWidget {
             onBack: () => context.pop(),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              AppSearchBar.sideInset,
-              12.h,
-              AppSearchBar.sideInset,
-              FetchProviderMetrics.h(8),
-            ),
+            // Same pinned gap as Transaction History (sticky above the list).
+            padding: AppSearchBar.pinnedPadding,
             child: AppSearchBar(
               // Same bar styling as Electricity Fetch Your Provider.
               hintText: 'Search by billers',
@@ -580,9 +576,9 @@ class _CreditCardListingSkeleton extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: AppSearchBar.pinnedPadding,
               child: Container(
-                height: 52.h,
+                height: AppSearchBar.height,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14.r),

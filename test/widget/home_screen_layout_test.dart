@@ -496,7 +496,7 @@ void main() {
       final value = find.text('128750');
       expect(value, findsOneWidget);
       final style = tester.widget<Text>(value).style!;
-      expect(style.fontFamily, contains('BricolageGrotesque'));
+      expect(style.fontFamily, contains('PlusJakartaSans'));
       expect(style.fontWeight, FontWeight.w700);
       expect(style.fontSize, closeTo(14.sp, 0.01));
       expect(style.fontStyle, FontStyle.normal);
