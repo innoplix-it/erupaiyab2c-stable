@@ -3073,10 +3073,13 @@ class _HomeContent extends HookConsumerWidget {
       onSilverTap: () => context.push(
         '${RouteConstants.digitalGold}?metal=silver&entry=home',
       ),
-      onZeroBalanceTap: () => openZeroBalanceAccountOffer(
-            context,
-            rewardAmount: ZeroBalanceBank.defaultRewardAmount,
-          ),
+      onZeroBalanceTap: () => handleServiceTap('Zero Balance'),
+      // Zero Balance offer popup flow, parked until re-enabled (also restore
+      // its two imports in home_view.dart):
+      // onZeroBalanceTap: () => openZeroBalanceAccountOffer(
+      //       context,
+      //       rewardAmount: ZeroBalanceBank.defaultRewardAmount,
+      //     ),
       bankingInvestmentBanners: bankingInvestmentBanners,
       bankingBannerController: bankingBannerController,
       bankingBannerPage: bankingBannerPage.value,
