@@ -259,6 +259,22 @@ class FileConstants {
   static String referAndEarn = 'assets/images/png/referearn.png';
   // Refer & Earn hero artwork (girl + boy with coins), intrinsic 317 x 164.
   static String referEarnHeroSvg = 'assets/images/svg/refer_and_earn_hero.svg';
+  // Figma Refer & Earn hero people crop (high-five + coins), no title text.
+  static String referEarnHeroPeoplePng =
+      'assets/images/png/refer_earn/hero_people.png';
+  // Gold eCoin = 1 Rupee artwork extracted from the Figma reference.
+  static String referCoinEqualsPng =
+      'assets/images/png/refer_earn/coin_equals_row.png';
+  static String referCoinEqualsSvg = 'assets/images/svg/refer_coin_equals.svg';
+  // How It Works step icons (cropped from Figma welcome (10).png).
+  static String referStepInvitePng =
+      'assets/images/png/refer_earn/step_1_icon.png';
+  static String referStepJoinPng =
+      'assets/images/png/refer_earn/step_2_icon.png';
+  static String referStepPaymentPng =
+      'assets/images/png/refer_earn/step_3_icon.png';
+  static String referStepRewardPng =
+      'assets/images/png/refer_earn/step_4_icon.png';
   // How It Works video placeholder play icon (white ring + triangle),
   // intrinsic 62 x 62.
   static String referPlayIconSvg = 'assets/images/svg/refer_play_icon.svg';

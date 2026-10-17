@@ -162,7 +162,7 @@ void main() {
           findsOneWidget,
         );
 
-        final cta = find.text('Refer On Whatsapp');
+        final cta = find.text('Invite Using Whatsapp');
         expect(cta, findsOneWidget);
         expect(tester.getRect(cta).bottom, lessThanOrEqualTo(size.height));
       });
@@ -259,7 +259,7 @@ void main() {
     const size = Size(360, 640);
     await _pumpMilestones(tester, size: size);
 
-    final cta = find.text('Refer On Whatsapp');
+    final cta = find.text('Invite Using Whatsapp');
     final ctaRectBefore = tester.getRect(cta);
 
     final lastCardText = find.text('10 More Referrals To Unlock The Rewards');
@@ -285,7 +285,7 @@ void main() {
           find.text('Complete Referral Milestones And Unlock Bonus E-Coins.'),
           findsOneWidget,
         );
-        expect(find.text('Refer On Whatsapp'), findsOneWidget);
+        expect(find.text('Invite Using Whatsapp'), findsOneWidget);
       });
     }
   });

@@ -33,11 +33,11 @@ Future<void> _loadRealFonts() async {
 }
 
 Future<void> _pumpWithdraw(
-    WidgetTester tester, {
-      required Size size,
-      double textScale = 1.0,
-      String balance = '600',
-    }) async {
+  WidgetTester tester, {
+  required Size size,
+  double textScale = 1.0,
+  String balance = '600',
+}) async {
   const dpr = 2.0;
   tester.view.devicePixelRatio = dpr;
   tester.view.physicalSize = size * dpr;
@@ -113,27 +113,27 @@ void main() {
   });
 
   testWidgets('max coins use Indian grouping like Figma (3,00,000)',
-          (tester) async {
-        await _pumpWithdraw(
-          tester,
-          size: const Size(390, 844),
-          balance: '300000',
-        );
-        expect(find.text('3,00,000'), findsOneWidget);
-        expect(find.text('Min: 100 Coins | Max: 3,00,000 Coins'), findsOneWidget);
-      });
+      (tester) async {
+    await _pumpWithdraw(
+      tester,
+      size: const Size(390, 844),
+      balance: '300000',
+    );
+    expect(find.text('3,00,000'), findsOneWidget);
+    expect(find.text('Min: 100 Coins | Max: 3,00,000 Coins'), findsOneWidget);
+  });
 
   testWidgets('balance amount reuses the Refer & Earn amount typography',
-          (tester) async {
-        await _pumpWithdraw(tester, size: const Size(360, 690));
-        final amount = tester.widget<Text>(find.text('600'));
-        expect(amount.style?.fontSize, 34.sp);
-        expect(amount.style?.fontWeight, FontWeight.w800);
-        expect(amount.style?.fontFamily, 'Plus Jakarta Sans');
-        expect(amount.style?.height, 1.0);
-        expect(amount.style?.letterSpacing, 0);
-        expect(amount.style?.color, Colors.white);
-      });
+      (tester) async {
+    await _pumpWithdraw(tester, size: const Size(360, 690));
+    final amount = tester.widget<Text>(find.text('600'));
+    expect(amount.style?.fontSize, 34.sp);
+    expect(amount.style?.fontWeight, FontWeight.w800);
+    expect(amount.style?.fontFamily, 'Plus Jakarta Sans');
+    expect(amount.style?.height, 1.0);
+    expect(amount.style?.letterSpacing, 0);
+    expect(amount.style?.color, Colors.white);
+  });
 
   testWidgets('percentage filter updates input and received amount',
       (tester) async {
@@ -178,11 +178,13 @@ void main() {
     expect(field.style?.letterSpacing, 0);
   });
 
-  testWidgets('footer is the shared Refer & Earn container with only '
+  testWidgets(
+      'footer is the shared Refer & Earn container with only '
       'Withdraw Now', (tester) async {
     await _pumpWithdraw(tester, size: const Size(390, 844));
     expect(find.byType(ReferralShareFooter), findsOneWidget);
     // No WhatsApp/Share actions on this screen.
+    expect(find.text('Invite Using Whatsapp'), findsNothing);
     expect(find.text('Refer On Whatsapp'), findsNothing);
     expect(find.byType(ReferralShareActions), findsNothing);
     expect(find.text('Withdraw Now'), findsOneWidget);
@@ -193,15 +195,15 @@ void main() {
   });
 
   testWidgets('below-minimum input shows the validation message',
-          (tester) async {
-        await _pumpWithdraw(tester, size: const Size(390, 844));
-        await tester.enterText(find.byType(TextField), '50');
-        await tester.pump(const Duration(milliseconds: 100));
-        expect(
-          find.text('Enter at least 100 E-Coins to withdraw.'),
-          findsOneWidget,
-        );
-      });
+      (tester) async {
+    await _pumpWithdraw(tester, size: const Size(390, 844));
+    await tester.enterText(find.byType(TextField), '50');
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      find.text('Enter at least 100 E-Coins to withdraw.'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('conversion badge renders as the single static Figma SVG',
       (tester) async {
@@ -218,21 +220,21 @@ void main() {
   });
 
   testWidgets('fixed footer stays visible while notes scroll into view',
-          (tester) async {
-        await _pumpWithdraw(tester, size: const Size(320, 480));
-        final size = tester.view.physicalSize / tester.view.devicePixelRatio;
-        expect(tester.getRect(find.text('Withdraw Now')).bottom,
-            lessThan(size.height));
+      (tester) async {
+    await _pumpWithdraw(tester, size: const Size(320, 480));
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    expect(tester.getRect(find.text('Withdraw Now')).bottom,
+        lessThan(size.height));
 
-        await tester.dragUntilVisible(
-          find.text('Once A Withdrawal Request Is Submitted, It Cannot Be '
-              'Cancelled.'),
-          find.byType(SingleChildScrollView).first,
-          const Offset(0, -60),
-        );
-        expect(find.text('Withdraw Now'), findsOneWidget);
-        expect(tester.takeException(), isNull);
-      });
+    await tester.dragUntilVisible(
+      find.text('Once A Withdrawal Request Is Submitted, It Cannot Be '
+          'Cancelled.'),
+      find.byType(SingleChildScrollView).first,
+      const Offset(0, -60),
+    );
+    expect(find.text('Withdraw Now'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   group('supported text scales', () {
     for (final scale in [0.85, 1.0, 1.15]) {

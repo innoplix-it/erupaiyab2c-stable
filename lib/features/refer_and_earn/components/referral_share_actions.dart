@@ -10,7 +10,7 @@ double _figmaH(double px) => (px * 690 / 956).h;
 double _figmaR(double px) => (px * 360 / 440).r;
 double _figmaSp(double px) => (px * 360 / 440).sp;
 
-const Color _kOrange = Color(0xFFE85A2C);
+const Color _kOrange = Color(0xFFDD5428);
 const Color _kSharePink = Color(0xFFF7DCD2);
 
 class ReferralShareActions extends HookWidget {
@@ -32,33 +32,36 @@ class ReferralShareActions extends HookWidget {
                 color: _kOrange,
                 borderRadius: BorderRadius.circular(_figmaR(40)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: _figmaW(24),
-                    height: _figmaW(24),
-                    child: Image.asset(
-                      FileConstants.whatsapp,
-                      fit: BoxFit.contain,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: _figmaW(10)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: _figmaW(24),
+                      height: _figmaW(24),
+                      child: Image.asset(
+                        FileConstants.whatsapp,
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: _figmaW(14)),
-                  Flexible(
-                    child: Text(
-                      'Refer On Whatsapp',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                            fontSize: _figmaSp(16),
-                            letterSpacing: 0,
-                          ),
+                    SizedBox(width: _figmaW(10)),
+                    Flexible(
+                      child: Text(
+                        'Invite Using Whatsapp',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                              fontSize: _figmaSp(16),
+                              letterSpacing: 0,
+                            ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -68,7 +71,7 @@ class ReferralShareActions extends HookWidget {
           onTap: () => ReferralShareService.shareAny(context),
           child: Container(
             height: buttonHeight,
-            width: _figmaW(90),
+            width: buttonHeight,
             decoration: BoxDecoration(
               color: _kSharePink,
               borderRadius: BorderRadius.circular(_figmaR(40)),
@@ -136,10 +139,11 @@ class ReferralShareFooter extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
+          // Figma footer: ~20 side inset, 56-tall actions, ~20 vertical pad.
           padding: EdgeInsets.fromLTRB(
-            _figmaW(16),
+            _figmaW(20),
             _figmaH(20),
-            _figmaW(16),
+            _figmaW(20),
             _figmaH(20),
           ),
           child: SizedBox(

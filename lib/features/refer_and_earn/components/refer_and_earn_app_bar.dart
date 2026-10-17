@@ -17,6 +17,9 @@ class ReferAndEarnAppBar extends HookWidget {
     this.titleStyle,
     this.bottomReserve,
     this.centerTitle = false,
+    this.backgroundColor,
+    this.whiteHelpBadge = false,
+    this.hideBottomStrip = false,
   });
 
   final String title;
@@ -43,57 +46,64 @@ class ReferAndEarnAppBar extends HookWidget {
   /// screen centre. Defaults to the original leading-aligned title.
   final bool centerTitle;
 
+  /// Solid Figma hero fill (e.g. `#084591`). When null, uses [FileConstants.bluebg].
+  final Color? backgroundColor;
+
+  /// Figma help control: white circular badge with a tinted `?`.
+  final bool whiteHelpBadge;
+
+  /// When true, skips the white rounded strip (home view draws its own panel).
+  final bool hideBottomStrip;
+
   @override
   Widget build(BuildContext context) {
     final barHeight = height ?? 320.h;
+    final helpTint = backgroundColor ?? const Color(0xFF084591);
     return SizedBox(
       height: barHeight,
       child: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              FileConstants.bluebg,
-              fit: BoxFit.cover,
-              cacheWidth: (MediaQuery.sizeOf(context).width *
-                  MediaQuery.devicePixelRatioOf(context))
-                  .round()
-                  .clamp(1, 4096),
-            ),
+            child: backgroundColor != null
+                ? ColoredBox(color: backgroundColor!)
+                : Image.asset(
+                    FileConstants.bluebg,
+                    fit: BoxFit.cover,
+                    cacheWidth: (MediaQuery.sizeOf(context).width *
+                            MediaQuery.devicePixelRatioOf(context))
+                        .round()
+                        .clamp(1, 4096),
+                  ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: -1,
-            child: Container(
-              height: 36.h,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28.r),
+          if (!hideBottomStrip)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: -1,
+              child: Container(
+                height: 36.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(28.r),
+                  ),
                 ),
               ),
             ),
-          ),
           SafeArea(
             bottom: false,
             child: Column(
               children: [
                 Padding(
                   padding:
-                  EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                   child: Row(
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed:
-                        onBack ?? () => Navigator.of(context).maybePop(),
+                            onBack ?? () => Navigator.of(context).maybePop(),
                       ),
-                      // No asymmetric leading spacer: the back and help
-                      // IconButtons are equal width, so the centred title
-                      // (textAlign: center) sits exactly on the screen axis
-                      // at every width. A leading-only gap here shifted the
-                      // centre by half the gap, which only crossed the
-                      // alignment tolerance on wide tablets.
                       Expanded(
                         child: Text(
                           title,
@@ -101,27 +111,47 @@ class ReferAndEarnAppBar extends HookWidget {
                           overflow: TextOverflow.ellipsis,
                           textAlign:
                               centerTitle ? TextAlign.center : TextAlign.start,
-                          // Same common title styling as MyAppBar (used by
-                          // Transaction History, Mobile Recharge, ...): the
-                          // theme's titleMedium - which already carries Plus
-                          // Jakarta Sans via the app-wide textTheme - plus a
-                          // w700 override. No locally hardcoded font family.
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
                               ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          )
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              )
                               .merge(titleStyle),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.help_outline, color: Colors.white),
-                        // Default help action across all Refer & Earn screens:
-                        // the Help & Support screen.
-                        onPressed:
-                            onHelp ?? () => context.push(RouteConstants.helpSupport),
+                        icon: whiteHelpBadge
+                            ? Builder(
+                                builder: (context) {
+                                  // Figma 440 frame → ScreenUtil 360 design once.
+                                  final badge = (28 * 360 / 440).r;
+                                  final qSize = (16 * 360 / 440).sp;
+                                  return Container(
+                                    width: badge,
+                                    height: badge,
+                                    alignment: Alignment.center,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '?',
+                                      style: TextStyle(
+                                        color: helpTint,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: qSize,
+                                        height: 1,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : const Icon(Icons.help_outline,
+                                color: Colors.white),
+                        onPressed: onHelp ??
+                            () => context.push(RouteConstants.helpSupport),
                       ),
                     ],
                   ),
@@ -129,8 +159,6 @@ class ReferAndEarnAppBar extends HookWidget {
                 if (body != null)
                   Expanded(
                     child: Padding(
-                      // Reserve space for the white strip plus the panel that
-                      // is translated up over the bar by the owning view.
                       padding: EdgeInsets.only(bottom: bottomReserve ?? 52.h),
                       child: body!,
                     ),

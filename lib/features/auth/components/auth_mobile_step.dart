@@ -88,6 +88,7 @@ class _AuthMobileStepState extends State<AuthMobileStep>
   late FocusNode _focus;
   bool _ownsFocus = false;
   bool _hadKeyboard = false;
+  bool _focusLostBeforeKeyboard = false;
 
   bool get _phoneValid {
     final digits = widget.controller.text.replaceAll(RegExp(r'\D'), '');
@@ -130,11 +131,21 @@ class _AuthMobileStepState extends State<AuthMobileStep>
   }
 
   void _onFocusChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final hasFocus = _focus.hasFocus;
+    final inset = View.maybeOf(context)?.viewInsets.bottom ?? 0;
+    // Track if focus was lost while keyboard was still open (user dismissal)
+    if (!hasFocus && inset > 0) {
+      _focusLostBeforeKeyboard = true;
+    } else if (hasFocus && inset == 0) {
+      _focusLostBeforeKeyboard = false;
+    }
+    setState(() {});
   }
 
   /// Keyboard hidden (Android back / iOS dismiss) -> unfocus so the closed
-  /// layout comes back instead of staying in overlay mode.
+  /// layout comes back instead of staying in overlay mode. Does not unfocus
+  /// when focus is retained (e.g., phone hint sheet hid the keyboard).
   @override
   void didChangeMetrics() {
     if (!mounted) return;
@@ -143,7 +154,12 @@ class _AuthMobileStepState extends State<AuthMobileStep>
       _hadKeyboard = true;
     } else if (_hadKeyboard) {
       _hadKeyboard = false;
-      if (_focus.hasFocus) _focus.unfocus();
+      // Only unfocus if focus was already lost before keyboard hid (user action)
+      // If focus is still retained, an external sheet hid the keyboard
+      if (_focusLostBeforeKeyboard) {
+        _focus.unfocus();
+        _focusLostBeforeKeyboard = false;
+      }
     }
   }
 
@@ -310,8 +326,7 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                                             fit: BoxFit.contain,
                                                           ),
                                                         ),
-                                                        SizedBox(
-                                                            height: f(12)),
+                                                        SizedBox(height: f(12)),
                                                         Text(
                                                           'Pay Bills & Earn',
                                                           textAlign:
@@ -320,13 +335,13 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                                             fontSize: f(20),
                                                             fontWeight:
                                                                 FontWeight.w700,
-                                                            color: AuthMobileStep
-                                                                ._ink,
+                                                            color:
+                                                                AuthMobileStep
+                                                                    ._ink,
                                                             height: 1.2,
                                                           ),
                                                         ),
-                                                        SizedBox(
-                                                            height: f(10)),
+                                                        SizedBox(height: f(10)),
                                                         Text(
                                                           'Enter your mobile number to continue.',
                                                           textAlign:
@@ -335,8 +350,9 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                                             fontSize: f(16),
                                                             fontWeight:
                                                                 FontWeight.w400,
-                                                            color: AuthMobileStep
-                                                                ._ink,
+                                                            color:
+                                                                AuthMobileStep
+                                                                    ._ink,
                                                             height: 1.3,
                                                           ),
                                                         ),
@@ -363,15 +379,15 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                                             fontSize: f(14),
                                                             fontWeight:
                                                                 FontWeight.w700,
-                                                            color: AuthMobileStep
-                                                                ._ink,
+                                                            color:
+                                                                AuthMobileStep
+                                                                    ._ink,
                                                           ),
                                                         ),
-                                                        SizedBox(
-                                                            height: f(8)),
+                                                        SizedBox(height: f(8)),
                                                         _FigmaMobileField(
-                                                          controller: widget
-                                                              .controller,
+                                                          controller:
+                                                              widget.controller,
                                                           focusNode: _focus,
                                                           enabled: fieldEnabled,
                                                           k: k,
@@ -391,29 +407,24 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                                                     !widget
                                                                         .isLoading;
                                                             return CustomElevatedButton(
-                                                              label:
-                                                                  'Continue',
+                                                              label: 'Continue',
                                                               uppercaseLabel:
                                                                   false,
-                                                              onPressed:
-                                                                  canContinue
-                                                                      ? widget
-                                                                          .onContinue
-                                                                      : null,
+                                                              onPressed: canContinue
+                                                                  ? widget
+                                                                      .onContinue
+                                                                  : null,
                                                               isLoading: widget
                                                                   .isLoading,
-                                                              backgroundColor:
-                                                                  canContinue
-                                                                      ? AppColors
-                                                                          .primary
-                                                                      : AuthMobileStep
-                                                                          ._continueDisabledFill,
-                                                              labelColor:
-                                                                  canContinue
-                                                                      ? Colors
-                                                                          .white
-                                                                      : AuthMobileStep
-                                                                          ._continueDisabledLabel,
+                                                              backgroundColor: canContinue
+                                                                  ? AppColors
+                                                                      .primary
+                                                                  : AuthMobileStep
+                                                                      ._continueDisabledFill,
+                                                              labelColor: canContinue
+                                                                  ? Colors.white
+                                                                  : AuthMobileStep
+                                                                      ._continueDisabledLabel,
                                                               height: f(50),
                                                             );
                                                           },

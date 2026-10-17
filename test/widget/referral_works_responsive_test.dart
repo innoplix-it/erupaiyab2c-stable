@@ -41,10 +41,10 @@ Future<void> _loadRealFonts() async {
 }
 
 Future<void> _pumpWorks(
-    WidgetTester tester, {
-      required Size size,
-      double textScale = 1.0,
-    }) async {
+  WidgetTester tester, {
+  required Size size,
+  double textScale = 1.0,
+}) async {
   const dpr = 2.0;
   tester.view.devicePixelRatio = dpr;
   tester.view.physicalSize = size * dpr;
@@ -92,7 +92,7 @@ void main() {
         expect(find.text('You → A → B → C'), findsOneWidget);
         expect(find.text('You Earn:'), findsOneWidget);
         expect(find.text('100 E-Coins When A Transacts'), findsOneWidget);
-        expect(find.text('Refer On Whatsapp'), findsOneWidget);
+        expect(find.text('Invite Using Whatsapp'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }
@@ -128,36 +128,36 @@ void main() {
   });
 
   testWidgets('video placeholder sits in the header above the content',
-          (tester) async {
-        await _pumpWorks(tester, size: const Size(390, 844));
-        expect(videoFinder, findsOneWidget);
+      (tester) async {
+    await _pumpWorks(tester, size: const Size(390, 844));
+    expect(videoFinder, findsOneWidget);
 
-        final videoRect = tester.getRect(videoFinder);
-        // Figma 407 x 182: the box must keep its ratio (width-driven), not
-        // stretch vertically on tall screens.
-        expect(videoRect.width / videoRect.height, closeTo(407 / 182, 0.05));
-        final size = tester.view.physicalSize / tester.view.devicePixelRatio;
-        // Inside the header area: below the status/nav zone and within width.
-        expect(videoRect.top, greaterThan(50));
-        expect(videoRect.left, greaterThanOrEqualTo(0));
-        expect(videoRect.right, lessThanOrEqualTo(size.width));
-        // Above the Example heading (i.e. moved out of the Example section).
-        expect(
-          videoRect.bottom,
-          lessThan(tester.getRect(find.text('Example:')).top),
-        );
-      });
+    final videoRect = tester.getRect(videoFinder);
+    // Figma 407 x 182: the box must keep its ratio (width-driven), not
+    // stretch vertically on tall screens.
+    expect(videoRect.width / videoRect.height, closeTo(407 / 182, 0.05));
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    // Inside the header area: below the status/nav zone and within width.
+    expect(videoRect.top, greaterThan(50));
+    expect(videoRect.left, greaterThanOrEqualTo(0));
+    expect(videoRect.right, lessThanOrEqualTo(size.width));
+    // Above the Example heading (i.e. moved out of the Example section).
+    expect(
+      videoRect.bottom,
+      lessThan(tester.getRect(find.text('Example:')).top),
+    );
+  });
 
   testWidgets('placeholder appears exactly once and no embed before tap',
-          (tester) async {
-        await _pumpWorks(tester, size: const Size(390, 844));
-        expect(
-          find.byKey(const ValueKey('refer-works-video'), skipOffstage: false),
-          findsOneWidget,
-        );
-        // The YouTube webview is not built until the user taps the placeholder.
-        expect(find.text('You → A → B → C'), findsOneWidget);
-      });
+      (tester) async {
+    await _pumpWorks(tester, size: const Size(390, 844));
+    expect(
+      find.byKey(const ValueKey('refer-works-video'), skipOffstage: false),
+      findsOneWidget,
+    );
+    // The YouTube webview is not built until the user taps the placeholder.
+    expect(find.text('You → A → B → C'), findsOneWidget);
+  });
 
   testWidgets('illustration renders directly below Example:', (tester) async {
     await _pumpWorks(tester, size: const Size(390, 844));
@@ -191,21 +191,21 @@ void main() {
   });
 
   testWidgets('footer stays fixed while the last paragraph scrolls into view',
-          (tester) async {
-        await _pumpWorks(tester, size: const Size(360, 640));
-        final footer = find.text('Refer On Whatsapp');
-        final footerRect = tester.getRect(footer);
-        final size = tester.view.physicalSize / tester.view.devicePixelRatio;
-        expect(footerRect.bottom, lessThan(size.height));
+      (tester) async {
+    await _pumpWorks(tester, size: const Size(360, 640));
+    final footer = find.text('Invite Using Whatsapp');
+    final footerRect = tester.getRect(footer);
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    expect(footerRect.bottom, lessThan(size.height));
 
-        await tester.dragUntilVisible(
-          find.textContaining('There’s No Limit'),
-          find.byType(SingleChildScrollView).first,
-          const Offset(0, -60),
-        );
-        expect(find.text('Refer On Whatsapp'), findsOneWidget);
-        expect(tester.takeException(), isNull);
-      });
+    await tester.dragUntilVisible(
+      find.textContaining('There’s No Limit'),
+      find.byType(SingleChildScrollView).first,
+      const Offset(0, -60),
+    );
+    expect(find.text('Invite Using Whatsapp'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   group('supported text scales', () {
     for (final scale in [0.85, 1.0, 1.15]) {

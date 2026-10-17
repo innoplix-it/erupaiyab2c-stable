@@ -54,9 +54,11 @@ ReferralWalletSummary _summary({List<ReferralMilestone>? milestones}) {
     teamCount: 5,
     totalTeamEarnings: 1850,
     myTeam: const [
-      TeamMember(name: 'Ivanshu Patil', since: 'Sins. 1 Jan 2025', earnings: 120),
+      TeamMember(
+          name: 'Ivanshu Patil', since: 'Sins. 1 Jan 2025', earnings: 120),
       TeamMember(name: 'Monu Ali', since: 'Sins. 2 Feb 2025', earnings: 50),
-      TeamMember(name: 'Surpiya Ithappully', since: 'Sins. 3 Mar 2025', earnings: 100),
+      TeamMember(
+          name: 'Surpiya Ithappully', since: 'Sins. 3 Mar 2025', earnings: 100),
     ],
     recentReferrals: const [
       RecentReferral(
@@ -172,9 +174,9 @@ void main() {
         }
 
         // Fixed bottom CTA is visible and inside the viewport.
-        expect(find.text('Refer On Whatsapp'), findsOneWidget);
+        expect(find.text('Invite Using Whatsapp'), findsOneWidget);
         expect(
-          tester.getRect(find.text('Refer On Whatsapp')).bottom,
+          tester.getRect(find.text('Invite Using Whatsapp')).bottom,
           lessThanOrEqualTo(size.height),
         );
       });
@@ -270,12 +272,11 @@ void main() {
     expect(label('02').style?.fontWeight, FontWeight.w500);
   });
 
-  testWidgets('team rows scroll into view above the fixed CTA',
-      (tester) async {
+  testWidgets('team rows scroll into view above the fixed CTA', (tester) async {
     const size = Size(360, 640);
     await _pumpWallet(tester, size: size);
 
-    final cta = find.text('Refer On Whatsapp');
+    final cta = find.text('Invite Using Whatsapp');
     final ctaRectBefore = tester.getRect(cta);
 
     final lastMember = find.text('Surpiya Ithappully');
