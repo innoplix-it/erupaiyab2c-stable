@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../constants/app_colors.dart';
 
@@ -19,46 +20,46 @@ class CreditCardPayNowOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor =
-        isSelected ? const Color(0xFFE85A2C) : AppColors.lightBorder;
+    final borderColor = isSelected ? AppColors.primary : AppColors.lightBorder;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12.r),
       child: Container(
-        height: 90.h,
-        padding: EdgeInsets.all(14.w),
+        constraints: BoxConstraints(minHeight: 68.h),
+        padding: EdgeInsets.fromLTRB(12.w, 10.h, 10.w, 10.h),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: borderColor, width: 1.2),
+          border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
         ),
-        child: Stack(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Positioned(
-              top: 0,
-              right: 0,
-              child: _RadioDot(isSelected: isSelected),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11.sp,
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
+                  Text(
+                    amount,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFFE85A2C),
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  amount,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-              ],
-            ),
+            _RadioDot(isSelected: isSelected),
           ],
         ),
       ),
@@ -73,21 +74,21 @@ class _RadioDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor =
-        isSelected ? const Color(0xFFE85A2C) : AppColors.lightBorder;
+        isSelected ? AppColors.primary : const Color(0xFFD4D4D8);
     return Container(
-      width: 16.r,
-      height: 16.r,
+      width: 18.r,
+      height: 18.r,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: borderColor, width: 1.6),
       ),
       child: Center(
         child: Container(
-          width: 8.r,
-          height: 8.r,
+          width: 9.r,
+          height: 9.r,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isSelected ? const Color(0xFFE85A2C) : Colors.transparent,
+            color: isSelected ? AppColors.primary : Colors.transparent,
           ),
         ),
       ),

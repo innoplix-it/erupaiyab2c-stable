@@ -156,6 +156,7 @@ void main() {
       Size(390, 844),
       Size(412, 915),
       Size(440, 956),
+      Size(1024, 1366),
     ];
 
     for (final size in testSizes) {

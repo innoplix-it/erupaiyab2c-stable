@@ -40,8 +40,7 @@ class PinInputRow extends StatelessWidget {
               onChanged: (value) {
                 if (value.isEmpty && i > 0) {
                   focusNodes[i - 1].requestFocus();
-                } else if (value.isNotEmpty &&
-                    i < focusNodes.length - 1) {
+                } else if (value.isNotEmpty && i < focusNodes.length - 1) {
                   focusNodes[i + 1].requestFocus();
                 }
                 final pin = controllers.map((c) => c.text).join();

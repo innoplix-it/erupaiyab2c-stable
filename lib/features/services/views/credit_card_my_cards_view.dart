@@ -74,7 +74,7 @@ class CreditCardMyCardsView extends HookConsumerWidget {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: MyAppBar(
-          title: 'Credit Card Payment',
+          title: 'My Cards',
           showHelp: true,
           onBack: handleBack,
         ),
@@ -97,7 +97,6 @@ class CreditCardMyCardsView extends HookConsumerWidget {
                                   padding: EdgeInsets.only(bottom: 14.h),
                                   child: CreditCardMyCardTile(
                                     item: entry.value,
-                                    isHighlighted: entry.key == 0,
                                     onOpen: () async {
                                       final item = entry.value;
                                       final billerName =
@@ -177,7 +176,7 @@ class CreditCardMyCardsView extends HookConsumerWidget {
                       context.push(RouteConstants.creditCardListing),
                   label: 'Add New Card',
                   uppercaseLabel: false,
-                  height: 42.h,
+                  height: 48.h,
                 ),
               ),
             ),
@@ -201,14 +200,12 @@ class CreditCardMyCardTile extends HookWidget {
     required this.onOpen,
     required this.onPayNow,
     required this.onMenuTap,
-    this.isHighlighted = false,
   });
 
   final CreditCardItem item;
   final Future<void> Function() onOpen;
   final Future<void> Function() onPayNow;
   final VoidCallback onMenuTap;
-  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -223,208 +220,209 @@ class CreditCardMyCardTile extends HookWidget {
     );
     final amount = item.lastAmount ?? 0.0;
     final isDue = item.isDue == true;
+    // Figma: "Due On 6 May 2026" (title case On).
     final dueText = isDue
         ? ((item.dueDate ?? '').trim().isNotEmpty
-            ? 'Bill Due ${DateFormatHelper.formatDisplayDateWithYear(item.dueDate!)}'
-            : 'Bill Due Soon')
+            ? 'Due On ${DateFormatHelper.formatDisplayDateWithYear(item.dueDate!)}'
+            : 'Due Soon')
         : ((item.lastPaidDate ?? '').trim().isNotEmpty
-            ? 'Last Paid on ${DateFormatHelper.formatDisplayDateWithYear(item.lastPaidDate!)}'
+            ? 'Last Paid On ${DateFormatHelper.formatDisplayDateWithYear(item.lastPaidDate!)}'
             : 'Last Paid');
 
     return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () async => onOpen(),
-          borderRadius: BorderRadius.circular(16.r),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(
-                color: isHighlighted
-                    ? AppColors.primary.withOpacity(0.45)
-                    : AppColors.lightBorder,
-                width: 1.2,
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async => onOpen(),
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: AppColors.lightBorder),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8.r,
+                offset: Offset(0, 2.h),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.cardShadow,
-                  blurRadius: 10.r,
-                  offset: Offset(0.w, 6.h),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(12.w, 12.h, 8.w, 10.h),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40.w,
-                        height: 40.w,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.lightBorder),
-                        ),
-                        child: Center(
-                          child: item.icon?.trim().isNotEmpty == true
-                              ? AppNetworkImage(
-                                  url: item.icon,
-                                  width: 20.w,
-                                  height: 20.w,
+            ],
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(14.w, 12.h, 8.w, 12.h),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8.r),
+                      child: Container(
+                        width: 36.r,
+                        height: 36.r,
+                        color: Colors.white,
+                        alignment: Alignment.center,
+                        child: item.icon?.trim().isNotEmpty == true
+                            ? AppNetworkImage(
+                                url: item.icon,
+                                width: 36.r,
+                                height: 36.r,
+                                fit: BoxFit.contain,
+                                borderRadius: BorderRadius.circular(8.r),
+                                errorWidget: Image.asset(
+                                  FileConstants.credit,
+                                  width: 24.r,
+                                  height: 24.r,
                                   fit: BoxFit.contain,
-                                  borderRadius: BorderRadius.circular(10.r),
-                                  errorWidget: Image.asset(
-                                    FileConstants.credit,
-                                    width: 20.w,
-                                    height: 20.w,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  placeholder: Image.asset(
-                                    FileConstants.credit,
-                                    width: 20.w,
-                                    height: 20.w,
-                                    fit: BoxFit.contain,
+                                ),
+                                placeholder: Image.asset(
+                                  FileConstants.credit,
+                                  width: 24.r,
+                                  height: 24.r,
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                            : Image.asset(
+                                FileConstants.credit,
+                                width: 24.r,
+                                height: 24.r,
+                                fit: BoxFit.contain,
+                              ),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            bankName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14.sp,
+                                ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            masked,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: const Color(0xFF71717A),
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: onMenuTap,
+                      borderRadius: BorderRadius.circular(16.r),
+                      child: Padding(
+                        padding: EdgeInsets.all(6.w),
+                        child: Icon(
+                          Icons.more_vert,
+                          size: 20.sp,
+                          color: AppColors.textPrimary.withOpacity(0.7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, thickness: 1, color: AppColors.lightBorder),
+              Padding(
+                padding: EdgeInsets.fromLTRB(14.w, 12.h, 12.w, 12.h),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatAmount(amount),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16.sp,
+                                ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            dueText,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12.sp,
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isDue)
+                      InkWell(
+                        onTap: isPayNowLoading.value
+                            ? null
+                            : () async {
+                                isPayNowLoading.value = true;
+                                try {
+                                  await onPayNow();
+                                } finally {
+                                  if (context.mounted) {
+                                    isPayNowLoading.value = false;
+                                  }
+                                }
+                              },
+                        borderRadius: BorderRadius.circular(20.r),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 8.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: isPayNowLoading.value
+                              ? SizedBox(
+                                  width: 16.sp,
+                                  height: 16.sp,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
-                              : Image.asset(
-                                  FileConstants.credit,
-                                  width: 20.w,
-                                  height: 20.w,
-                                  fit: BoxFit.contain,
+                              : Text(
+                                  'Pay Now',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13.sp,
+                                      ),
                                 ),
                         ),
                       ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              bankName,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                            SizedBox(height: 2.h),
-                            Text(
-                              masked,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color:
-                                        AppColors.textPrimary.withOpacity(0.6),
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      InkWell(
-                        onTap: onMenuTap,
-                        borderRadius: BorderRadius.circular(16.r),
-                        child: Padding(
-                          padding: EdgeInsets.all(6.w),
-                          child: Icon(
-                            Icons.more_vert,
-                            size: 20.sp,
-                            color: AppColors.textPrimary.withOpacity(0.7),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-                Divider(
-                    height: 1, color: AppColors.lightBorder.withOpacity(0.8)),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(14.w, 10.h, 12.w, 12.h),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _formatAmount(amount),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                            SizedBox(height: 2.h),
-                            Text(
-                              dueText,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isDue)
-                        InkWell(
-                          onTap: isPayNowLoading.value
-                              ? null
-                              : () async {
-                                  isPayNowLoading.value = true;
-                                  try {
-                                    await onPayNow();
-                                  } finally {
-                                    if (context.mounted) {
-                                      isPayNowLoading.value = false;
-                                    }
-                                  }
-                                },
-                          borderRadius: BorderRadius.circular(22.r),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.w, vertical: 8.h),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(22.r),
-                            ),
-                            child: isPayNowLoading.value
-                                ? SizedBox(width: 16.sp,
-                                    height: 16.sp,
-                                    child: const CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                    ),
-                                  )
-                                : Text(
-                                    'Pay Now',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge
-                                        ?.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   String _maskedId(String? masked, String? last4, String? billerId) {
@@ -606,7 +604,8 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(height: 40.h,
+                  child: SizedBox(
+                    height: 40.h,
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
@@ -629,7 +628,8 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: SizedBox(height: 40.h,
+                  child: SizedBox(
+                    height: 40.h,
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: ElevatedButton.styleFrom(

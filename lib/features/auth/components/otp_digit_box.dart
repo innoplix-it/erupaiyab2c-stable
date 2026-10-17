@@ -25,7 +25,8 @@ class OtpDigitBox extends StatelessWidget {
             ? AppColors.primary
             : const Color(0xFFD9D9D9);
 
-    return SizedBox(width: 40.r,
+    return SizedBox(
+      width: 40.r,
       height: 40.r,
       child: TextField(
         controller: controller,

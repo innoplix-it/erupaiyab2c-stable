@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../constants/app_colors.dart';
-import '../../../../constants/file_constants.dart';
 import '../../models/bill_response_model.dart';
 import 'credit_card_pay_now_option_card.dart';
 
@@ -51,27 +51,32 @@ class CreditCardPayNowSection extends StatelessWidget {
           children: [
             Text(
               'Bill Amount',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 14.sp,
+              ),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 10.w),
             Container(
               width: 1,
-              height: 16.h,
+              height: 14.h,
               color: AppColors.lightBorder,
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 10.w),
             Expanded(
               child: Text(
+                // Figma: "Due on 11 May" (day + month, no year).
                 dueOn.isEmpty ? '' : 'Due on $dueOn',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFB77023),
-                      fontWeight: FontWeight.w800,
-                    ),
+                textAlign: TextAlign.left,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.sp,
+                  height: 1,
+                ),
               ),
             ),
           ],
@@ -81,7 +86,7 @@ class CreditCardPayNowSection extends StatelessWidget {
           controller: amountController,
           onChanged: (_) => onChanged(CreditCardPayNowAmountType.custom),
         ),
-        SizedBox(height: 14.h),
+        SizedBox(height: 12.h),
         Row(
           children: [
             Expanded(
@@ -105,11 +110,7 @@ class CreditCardPayNowSection extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: 18.h),
-        const _ConsentNote(
-          text:
-              'By Proceeding Further, You Allow Erupaiya To Fetch Your Current And Future Balances And Remind You',
-        ),
+        // Consent lives above the fixed Proceed CTA (BharatConnectConsentCard).
       ],
     );
   }
@@ -117,7 +118,11 @@ class CreditCardPayNowSection extends StatelessWidget {
   String _formatCurrency(double value) {
     final rounded = value.round();
     final asText = rounded.toString();
-    return '₹$asText';
+    final withCommas = asText.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+    return '₹$withCommas';
   }
 
   String _formatDueOn(String raw) {
@@ -186,11 +191,18 @@ class _CreditCardBillInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: AppColors.lightBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8.r,
+            offset: Offset(0, 2.h),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -198,57 +210,77 @@ class _CreditCardBillInfoCard extends StatelessWidget {
           _ColonRow(label: 'Bill Date', value: billDate),
           _ColonRow(
             label: 'Minimum Amount Due',
-            value: minimumDue == null ? '' : '₹${minimumDue!.round()}',
+            value: minimumDue == null ? '' : _rupee(minimumDue!),
           ),
           _ColonRow(
-            label: 'Current Outstanding',
-            value: '₹${totalOutstanding.round()}',
+            label: 'Current Outstanding...',
+            value: _rupee(totalOutstanding),
+            isLast: true,
           ),
         ],
       ),
     );
   }
+
+  String _rupee(double value) {
+    final asText = value.round().toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
+    return '₹$asText';
+  }
 }
 
 class _ColonRow extends StatelessWidget {
-  const _ColonRow({required this.label, required this.value});
+  const _ColonRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
 
   final String label;
   final String value;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 8.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 2,
+            flex: 5,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w400,
-                  ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                color: const Color(0xFF71717A),
+                fontWeight: FontWeight.w500,
+                fontSize: 12.sp,
+              ),
             ),
           ),
           Text(
-            ':',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w700,
-                ),
+            ' :  ',
+            style: GoogleFonts.plusJakartaSans(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+              fontSize: 12.sp,
+            ),
           ),
-          SizedBox(width: 10.w),
           Expanded(
-            flex: 2,
+            flex: 4,
             child: Text(
               value,
-              textAlign: TextAlign.left,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12.sp,
+              ),
             ),
           ),
         ],
@@ -277,10 +309,11 @@ class _AmountField extends StatelessWidget {
       onChanged: onChanged,
       decoration: InputDecoration(
         prefixText: '₹ ',
-        prefixStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
+        prefixStyle: GoogleFonts.plusJakartaSans(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+          fontSize: 18.sp,
+        ),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -295,51 +328,12 @@ class _AmountField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.r),
           borderSide: const BorderSide(color: AppColors.primary),
         ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       ),
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-    );
-  }
-}
-
-class _ConsentNote extends StatelessWidget {
-  const _ConsentNote({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.lightBorder),
-      ),
-      child: Row(
-        children: [
-          Image.asset(
-            FileConstants.bharatConnectColor,
-            height: 16.h,
-            width: 50.w,
-            fit: BoxFit.contain,
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.black,
-                  height: 1.4,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 10.sp),
-            ),
-          ),
-        ],
+      style: GoogleFonts.plusJakartaSans(
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w700,
+        fontSize: 18.sp,
       ),
     );
   }

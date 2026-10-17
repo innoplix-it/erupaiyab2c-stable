@@ -98,9 +98,8 @@ class _AuthShakeState extends State<AuthShake>
       child: widget.child,
       builder: (context, child) {
         final t = _animation.value;
-        final dx = math.sin(t * _oscillations * 2 * math.pi) *
-            amplitude *
-            (1 - t);
+        final dx =
+            math.sin(t * _oscillations * 2 * math.pi) * amplitude * (1 - t);
         return Transform.translate(offset: Offset(dx, 0), child: child);
       },
     );

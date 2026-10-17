@@ -27,6 +27,16 @@ class AppColors {
     end: Alignment.bottomCenter,
   );
 
+  /// Login mobile step: Peach Coral — light salmon → white.
+  /// `linear-gradient(180deg, #FFA68A 0%, #FFFFFF 100%)`
+  static const Color loginPeachCoral = Color(0xFFFFA68A);
+  static const LinearGradient loginPeachCoralGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [loginPeachCoral, Color(0xFFFFFFFF)],
+    stops: [0.0, 1.0],
+  );
+
   static const LinearGradient onboardingBackground = LinearGradient(
     colors: [
       Color(0xFFFFE8DF),

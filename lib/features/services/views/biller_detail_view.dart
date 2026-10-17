@@ -404,15 +404,24 @@ class BillerDetailView extends HookConsumerWidget {
               tc.text = _sanitizePhone(loggedInMobile);
               _debugLog(
                   'Prefilled gas mobile for ${param.paramName}: ${tc.text}');
-            } else if (mobilePrefill != null &&
-                mobilePrefill.isNotEmpty &&
-                !isLastFourField &&
+            } else if (!isLastFourField &&
                 (isMobileField ||
                     _isIdentifierParam(param.paramName, param.dataType))) {
-              tc.text =
-                  isMobileField ? _sanitizePhone(mobilePrefill) : mobilePrefill;
-              _debugLog(
-                  'Prefilled identifier for ${param.paramName}: ${tc.text}');
+              // Credit Card Figma: Mobile Number under Last 4 — prefer args,
+              // then logged-in profile so the field is not left blank.
+              final source = (mobilePrefill != null && mobilePrefill.isNotEmpty)
+                  ? mobilePrefill
+                  : (isCreditCardFlow &&
+                          isMobileField &&
+                          loggedInMobile != null &&
+                          loggedInMobile.isNotEmpty)
+                      ? loggedInMobile
+                      : null;
+              if (source != null) {
+                tc.text = isMobileField ? _sanitizePhone(source) : source;
+                _debugLog(
+                    'Prefilled identifier for ${param.paramName}: ${tc.text}');
+              }
             } else if (last4Prefill != null &&
                 last4Prefill.isNotEmpty &&
                 isLastFourField) {
@@ -455,13 +464,20 @@ class BillerDetailView extends HookConsumerWidget {
             loggedInMobile != null &&
             loggedInMobile.isNotEmpty) {
           tc.text = _sanitizePhone(loggedInMobile);
-        } else if (mobilePrefill != null &&
-            mobilePrefill.isNotEmpty &&
-            !isLastFourField &&
+        } else if (!isLastFourField &&
             (isMobileField ||
                 _isIdentifierParam(param.paramName, param.dataType))) {
-          tc.text =
-              isMobileField ? _sanitizePhone(mobilePrefill) : mobilePrefill;
+          final source = (mobilePrefill != null && mobilePrefill.isNotEmpty)
+              ? mobilePrefill
+              : (isCreditCardFlow &&
+                      isMobileField &&
+                      loggedInMobile != null &&
+                      loggedInMobile.isNotEmpty)
+                  ? loggedInMobile
+                  : null;
+          if (source != null) {
+            tc.text = isMobileField ? _sanitizePhone(source) : source;
+          }
         } else if (last4Prefill != null &&
             last4Prefill.isNotEmpty &&
             isLastFourField) {
@@ -540,10 +556,11 @@ class BillerDetailView extends HookConsumerWidget {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: MyAppBar(
+          // Figma: input step = "Pay Credit Card Bill"; after fetch = "Pay Now".
           title: isElectricityInputStep
               ? 'Fetch Your Provider'
-              : (isCreditCardFlow && detailState.billResponse != null)
-                  ? 'Pay Now'
+              : (isCreditCardFlow && detailState.billResponse == null)
+                  ? 'Pay Credit Card Bill'
                   : 'Pay Now',
           // Title typography: MyAppBar default (= Transaction History).
           fitTitle: true,
@@ -659,13 +676,46 @@ class BillerDetailView extends HookConsumerWidget {
                               ),
                               SizedBox(height: 16.h),
                             ],
-                            ...detail.customerParams
-                                .where((p) => p.visibility)
+                            ...() {
+                              // Figma Credit Card bill: Last 4 above, Mobile below.
+                              final visibleParams = detail.customerParams
+                                  .where((p) => p.visibility)
+                                  .toList();
+                              if (isCreditCardFlow) {
+                                int rank(BillerCustomerParam p) {
+                                  final last4 = _isLastFourParam(p.paramName) ||
+                                      (p.dataType.toUpperCase() == 'NUMERIC' &&
+                                          p.maxLength == 4);
+                                  final mobile = _isMobileParam(p.paramName) ||
+                                      (p.dataType.toUpperCase() == 'NUMERIC' &&
+                                          p.maxLength == 10 &&
+                                          !last4);
+                                  if (last4) return 0;
+                                  if (mobile) return 1;
+                                  return 2;
+                                }
+
+                                visibleParams.sort(
+                                  (a, b) => rank(a).compareTo(rank(b)),
+                                );
+                              }
+                              return visibleParams;
+                            }()
                                 .map((param) {
                               final tc = inputControllers[param.paramName];
                               final isLastFour =
-                                  _isLastFourParam(param.paramName);
-                              final isMobile = _isMobileParam(param.paramName);
+                                  _isLastFourParam(param.paramName) ||
+                                      (isCreditCardFlow &&
+                                          param.dataType.toUpperCase() ==
+                                              'NUMERIC' &&
+                                          param.maxLength == 4);
+                              final isMobile =
+                                  _isMobileParam(param.paramName) ||
+                                      (isCreditCardFlow &&
+                                          param.dataType.toUpperCase() ==
+                                              'NUMERIC' &&
+                                          param.maxLength == 10 &&
+                                          !isLastFour);
                               final isGasLockedMobile =
                                   isGasCylinder && isMobile;
                               final isDate =
@@ -679,9 +729,17 @@ class BillerDetailView extends HookConsumerWidget {
                                   : null;
                               final errorText =
                                   fieldErrors.value[param.paramName];
-                              final label = isGasLockedMobile
-                                  ? 'Registered Mobile Number'
-                                  : param.paramName;
+                              // Figma labels for credit-card bill entry.
+                              final label = isCreditCardFlow
+                                  ? (isLastFour
+                                      ? 'Last 4 digits of Credit Card'
+                                      : (isMobile
+                                          ? 'Mobile Number'
+                                          : param.paramName))
+                                  : (isGasLockedMobile
+                                      ? 'Registered Mobile Number'
+                                      : param.paramName);
+                              final useCreditFieldChrome = isCreditCardFlow;
                               return Padding(
                                 padding: EdgeInsets.only(bottom: 16.h),
                                 child: Column(
@@ -692,7 +750,8 @@ class BillerDetailView extends HookConsumerWidget {
                                         Flexible(
                                           child: Text(
                                             label,
-                                            style: isElectricity
+                                            style: (isElectricity ||
+                                                    isCreditCardFlow)
                                                 ? GoogleFonts.plusJakartaSans(
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 14.sp,
@@ -772,130 +831,195 @@ class BillerDetailView extends HookConsumerWidget {
                                         },
                                       )
                                     else
-                                      TextField(
-                                        controller: tc,
-                                        readOnly: isGasLockedMobile,
-                                        enableInteractiveSelection:
-                                            !isGasLockedMobile,
-                                        showCursor:
-                                            isGasLockedMobile ? false : null,
-                                        onTap: isGasLockedMobile
-                                            ? () =>
-                                                FocusScope.of(context).unfocus()
-                                            : null,
-                                        keyboardType:
-                                            param.dataType == 'NUMERIC'
-                                                ? TextInputType.number
-                                                : TextInputType.text,
-                                        inputFormatters: isAlphaNumeric
-                                            ? const [_UpperCaseTextFormatter()]
-                                            : null,
-                                        maxLength:
-                                            isLastFour ? 4 : param.maxLength,
-                                        onChanged: (_) {
-                                          if (fieldErrors.value
-                                              .containsKey(param.paramName)) {
-                                            fieldErrors.value =
-                                                Map.from(fieldErrors.value)
-                                                  ..remove(param.paramName);
-                                          }
-                                          if (gasPolicyMessage.value != null) {
-                                            gasPolicyMessage.value = null;
-                                          }
-                                        },
-                                        decoration: InputDecoration(
-                                          hintText: _buildParamHint(param),
-                                          errorText: errorText,
-                                          counterText: '',
-                                          filled: true,
-                                          fillColor: Colors.grey.shade50,
-                                          hintStyle: isElectricity
-                                              ? GoogleFonts.plusJakartaSans(
-                                                  fontWeight: FontWeight.w400,
-                                                  fontSize: 14.sp,
-                                                  color: AppColors.textPrimary
-                                                      .withValues(alpha: 0.45),
-                                                )
-                                              : null,
-                                          prefixIcon: isLastFour
-                                              ? _MaskedPrefix()
-                                              : null,
-                                          suffixIcon: (isMobile &&
-                                                  !isGasLockedMobile)
-                                              ? IconButton(
-                                                  icon: const Icon(
-                                                    Icons.contact_phone,
-                                                    color: AppColors.primary,
+                                      DecoratedBox(
+                                        decoration: useCreditFieldChrome
+                                            ? BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(12.r),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withValues(
+                                                            alpha: 0.06),
+                                                    blurRadius: 8.r,
+                                                    offset: Offset(0, 2.h),
                                                   ),
-                                                  onPressed: () async {
-                                                    final picked =
-                                                        await _pickContactNumber(
-                                                      context,
-                                                      permissionService,
-                                                      contactsController:
-                                                          contactsController,
-                                                    );
-                                                    if (picked != null &&
-                                                        picked.isNotEmpty) {
-                                                      tc?.text = picked;
-                                                    }
-                                                    if (gasPolicyMessage
-                                                            .value !=
-                                                        null) {
-                                                      gasPolicyMessage.value =
-                                                          null;
-                                                    }
-                                                  },
+                                                ],
+                                              )
+                                            : const BoxDecoration(),
+                                        child: TextField(
+                                          controller: tc,
+                                          readOnly: isGasLockedMobile,
+                                          enableInteractiveSelection:
+                                              !isGasLockedMobile,
+                                          showCursor:
+                                              isGasLockedMobile ? false : null,
+                                          onTap: isGasLockedMobile
+                                              ? () => FocusScope.of(context)
+                                                  .unfocus()
+                                              : null,
+                                          keyboardType:
+                                              param.dataType == 'NUMERIC'
+                                                  ? TextInputType.number
+                                                  : TextInputType.text,
+                                          inputFormatters: [
+                                            if (isAlphaNumeric)
+                                              const _UpperCaseTextFormatter(),
+                                            if (isLastFour ||
+                                                (isMobile && isCreditCardFlow))
+                                              FilteringTextInputFormatter
+                                                  .digitsOnly,
+                                          ],
+                                          maxLength: isLastFour
+                                              ? 4
+                                              : (isMobile && isCreditCardFlow
+                                                  ? 10
+                                                  : param.maxLength),
+                                          onChanged: (_) {
+                                            if (fieldErrors.value
+                                                .containsKey(param.paramName)) {
+                                              fieldErrors.value =
+                                                  Map.from(fieldErrors.value)
+                                                    ..remove(param.paramName);
+                                            }
+                                            if (gasPolicyMessage.value !=
+                                                null) {
+                                              gasPolicyMessage.value = null;
+                                            }
+                                          },
+                                          decoration: InputDecoration(
+                                            hintText: useCreditFieldChrome
+                                                ? (isLastFour
+                                                    ? '1234'
+                                                    : (isMobile
+                                                        ? 'Enter mobile number'
+                                                        : _buildParamHint(
+                                                            param)))
+                                                : _buildParamHint(param),
+                                            errorText: errorText,
+                                            counterText: '',
+                                            filled: true,
+                                            fillColor: useCreditFieldChrome
+                                                ? Colors.white
+                                                : Colors.grey.shade50,
+                                            hintStyle: (isElectricity ||
+                                                    isCreditCardFlow)
+                                                ? GoogleFonts.plusJakartaSans(
+                                                    fontWeight: FontWeight.w400,
+                                                    fontSize: 14.sp,
+                                                    color: AppColors.textPrimary
+                                                        .withValues(
+                                                            alpha: 0.45),
+                                                  )
+                                                : null,
+                                            prefixIcon: isLastFour
+                                                ? const _MaskedPrefix()
+                                                : null,
+                                            suffixIcon: (isMobile &&
+                                                    !isGasLockedMobile)
+                                                ? Padding(
+                                                    padding: EdgeInsets.only(
+                                                      right: 8.w,
+                                                    ),
+                                                    child: Material(
+                                                      color: AppColors.primary,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8.r),
+                                                      child: InkWell(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8.r),
+                                                        onTap: () async {
+                                                          final picked =
+                                                              await _pickContactNumber(
+                                                            context,
+                                                            permissionService,
+                                                            contactsController:
+                                                                contactsController,
+                                                          );
+                                                          if (picked != null &&
+                                                              picked
+                                                                  .isNotEmpty) {
+                                                            tc?.text = picked;
+                                                          }
+                                                          if (gasPolicyMessage
+                                                                  .value !=
+                                                              null) {
+                                                            gasPolicyMessage
+                                                                .value = null;
+                                                          }
+                                                        },
+                                                        child: SizedBox(
+                                                          width: 36.r,
+                                                          height: 36.r,
+                                                          child: Icon(
+                                                            Icons
+                                                                .contact_page_outlined,
+                                                            color: Colors.white,
+                                                            size: 20.r,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                : null,
+                                            suffixIconConstraints:
+                                                const BoxConstraints(
+                                              minWidth: 44,
+                                              minHeight: 36,
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              borderSide: const BorderSide(
+                                                  color: AppColors.lightBorder),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              borderSide: const BorderSide(
+                                                  color: AppColors.lightBorder),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              borderSide: const BorderSide(
+                                                  color: AppColors.primary),
+                                            ),
+                                            errorBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              borderSide: const BorderSide(
+                                                  color: Colors.red),
+                                            ),
+                                            focusedErrorBorder:
+                                                OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              borderSide: const BorderSide(
+                                                  color: Colors.red),
+                                            ),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                              horizontal: isElectricity
+                                                  ? FetchProviderMetrics.w(16)
+                                                  : 16.w,
+                                              vertical: isElectricity
+                                                  ? FetchProviderMetrics.h(16)
+                                                  : 14.h,
+                                            ),
+                                          ),
+                                          style: (isElectricity ||
+                                                  isCreditCardFlow)
+                                              ? GoogleFonts.plusJakartaSans(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 15.sp,
+                                                  color: Colors.black,
+                                                  letterSpacing: -0.02 * 15.sp,
                                                 )
                                               : null,
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.r),
-                                            borderSide: const BorderSide(
-                                                color: AppColors.lightBorder),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.r),
-                                            borderSide: const BorderSide(
-                                                color: AppColors.lightBorder),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.r),
-                                            borderSide: const BorderSide(
-                                                color: AppColors.primary),
-                                          ),
-                                          errorBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.r),
-                                            borderSide: const BorderSide(
-                                                color: Colors.red),
-                                          ),
-                                          focusedErrorBorder:
-                                              OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.r),
-                                            borderSide: const BorderSide(
-                                                color: Colors.red),
-                                          ),
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: isElectricity
-                                                ? FetchProviderMetrics.w(16)
-                                                : 16.w,
-                                            vertical: isElectricity
-                                                ? FetchProviderMetrics.h(16)
-                                                : 16.h,
-                                          ),
                                         ),
-                                        style: isElectricity
-                                            ? GoogleFonts.plusJakartaSans(
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 15.sp,
-                                                color: Colors.black,
-                                                letterSpacing: -0.02 * 15.sp,
-                                              )
-                                            : null,
                                       ),
                                   ],
                                 ),
@@ -1025,8 +1149,11 @@ class BillerDetailView extends HookConsumerWidget {
                               ),
                           ],
 
+                          // Credit Card uses BharatConnectConsentCard above CTA
+                          // (Figma); keep the scroll note for other categories.
                           if (detail != null &&
                               !isElectricityInputStep &&
+                              !isCreditCardFlow &&
                               (bill == null || showSubscriptionSummary)) ...[
                             SizedBox(height: 12.h),
                             const _InfoNoteCard(
@@ -1069,11 +1196,16 @@ class BillerDetailView extends HookConsumerWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (isElectricity &&
-                              !(isElectricityBillStep &&
-                                  detailState.showFullDetails)) ...[
+                          if ((isElectricity &&
+                                  !(isElectricityBillStep &&
+                                      detailState.showFullDetails)) ||
+                              isCreditCardFlow) ...[
                             const BharatConnectConsentCard(),
-                            SizedBox(height: FetchProviderMetrics.h(20)),
+                            SizedBox(
+                              height: isCreditCardFlow
+                                  ? 16.h
+                                  : FetchProviderMetrics.h(20),
+                            ),
                           ],
                           ValueListenableBuilder<TextEditingValue>(
                             valueListenable: billAmountController,
@@ -1084,6 +1216,7 @@ class BillerDetailView extends HookConsumerWidget {
                                   ? (enteredAmount ??
                                       _resolveDateBasedAmount(bill))
                                   : 0.0;
+                              // Figma Credit Card bill entry CTA is "Proceed".
                               final payLabel = showSubscriptionSummary
                                   ? 'Pay Now'
                                   : (bill != null
@@ -1092,7 +1225,7 @@ class BillerDetailView extends HookConsumerWidget {
                                           : (isElectricity
                                               ? 'Pay ₹${_formatAmountForInput(amountForLabel)}'
                                               : 'Proceed'))
-                                      : (isElectricity
+                                      : (isElectricity || isCreditCardFlow
                                           ? 'Proceed'
                                           : 'CONFIRM'));
                               final subscriptionAmount = showSubscriptionSummary

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:e_rupaiya/features/auth/components/auth_mobile_step.dart';
 import 'package:e_rupaiya/features/auth/components/login_services_slider.dart';
 import 'package:flutter/material.dart';
@@ -27,13 +29,16 @@ final _loginRequiredSizes = responsiveTestScreenSizes.where((s) {
   return false;
 }).toList();
 
+/// Figma px -> dp factor (mirrors AuthMobileStep.scaleFor: width / 440).
+double _k(Size size) => math.min(1.1, math.max(0.72, size.width / 440));
+
 Future<void> _pumpStep(
-  WidgetTester tester, {
-  required Widget home,
-  Size size = const Size(360, 690),
-  double textScale = 1.0,
-  double viewInsetBottom = 0,
-}) async {
+    WidgetTester tester, {
+      required Widget home,
+      Size size = const Size(360, 690),
+      double textScale = 1.0,
+      double viewInsetBottom = 0,
+    }) async {
   final view = tester.view;
   view.physicalSize = size;
   view.devicePixelRatio = 1.0;
@@ -84,42 +89,68 @@ void main() {
 
   group('AuthMobileStep responsive layout', () {
     testWidgets('keeps core Figma actions and branding across phone sizes',
-        (tester) async {
-      final controller = TextEditingController();
-      addTearDown(controller.dispose);
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
 
-      expect(_loginRequiredSizes, hasLength(9));
+          expect(_loginRequiredSizes, hasLength(9));
 
-      for (final size in _loginRequiredSizes) {
-        await _pumpStep(
-          tester,
-          size: size,
-          home: Scaffold(
-            resizeToAvoidBottomInset: true,
-            body: AuthMobileStep(
-              controller: controller,
-              isLoading: false,
-              onContinue: () {},
+          for (final size in _loginRequiredSizes) {
+            await _pumpStep(
+              tester,
+              size: size,
+              home: Scaffold(
+                resizeToAvoidBottomInset: true,
+                body: AuthMobileStep(
+                  controller: controller,
+                  isLoading: false,
+                  onContinue: () {},
+                ),
+              ),
+            );
+
+            expect(find.byType(LoginServicesSlider), findsOneWidget);
+            expect(find.text('Pay Bills & Earn'), findsOneWidget);
+            expect(
+              find.text('Enter your mobile number to continue.'),
+              findsOneWidget,
+            );
+            expect(find.text('Mobile Number'), findsOneWidget);
+            expect(find.text('+91'), findsOneWidget);
+            expect(find.text('Enter 10 Digit Mobile Number'), findsOneWidget);
+            expect(find.text('Continue'), findsOneWidget);
+            expect(find.textContaining('By continuing, you agree'), findsOneWidget);
+            expect(find.text('Terms of Use'), findsOneWidget);
+            expect(find.text('Privacy Policy'), findsOneWidget);
+            expect(tester.takeException(), isNull);
+          }
+        });
+
+    testWidgets('closed: Terms/Privacy keep the Figma gap to the bottom edge',
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
+
+          const size = Size(360, 690);
+          await _pumpStep(
+            tester,
+            size: size,
+            home: Scaffold(
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
             ),
-          ),
-        );
+          );
 
-        expect(find.byType(LoginServicesSlider), findsOneWidget);
-        expect(find.text('Pay Bills & Earn'), findsOneWidget);
-        expect(
-          find.text('Enter your mobile number to continue.'),
-          findsOneWidget,
-        );
-        expect(find.text('Mobile Number'), findsOneWidget);
-        expect(find.text('+91'), findsOneWidget);
-        expect(find.text('Enter 10 Digit Mobile Number'), findsOneWidget);
-        expect(find.text('Continue'), findsOneWidget);
-        expect(find.textContaining('By continuing, you agree'), findsOneWidget);
-        expect(find.text('Terms of Use'), findsOneWidget);
-        expect(find.text('Privacy Policy'), findsOneWidget);
-        expect(tester.takeException(), isNull);
-      }
-    });
+          final termsBottom = tester.getBottomLeft(find.text('Privacy Policy')).dy;
+          final gap = size.height - termsBottom;
+          // Figma: ~40 (home indicator included).
+          expect(gap, greaterThanOrEqualTo(36));
+          expect(gap, lessThanOrEqualTo(48));
+          expect(tester.takeException(), isNull);
+        });
 
     testWidgets('supports text scaling on required sizes', (tester) async {
       final controller = TextEditingController();
@@ -147,85 +178,199 @@ void main() {
       }
     });
 
-    testWidgets('keeps form usable when keyboard inset is applied',
-        (tester) async {
-      final controller = TextEditingController();
-      addTearDown(controller.dispose);
+    testWidgets('keyboard open: faded compact slider sits behind the form',
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
 
-      await _pumpStep(
-        tester,
-        size: const Size(360, 690),
-        viewInsetBottom: 280,
-        home: Scaffold(
-          resizeToAvoidBottomInset: true,
-          body: AuthMobileStep(
-            controller: controller,
-            isLoading: false,
-            onContinue: () {},
-          ),
-        ),
-      );
+          // Simulate Scaffold resizeToAvoidBottomInset + keyboard-open flag.
+          const shrunk = Size(360, 410);
+          await _pumpStep(
+            tester,
+            size: shrunk,
+            viewInsetBottom: 1,
+            home: Scaffold(
+              resizeToAvoidBottomInset: true,
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
+            ),
+          );
+          // Let the crossfade / gradient animations finish.
+          await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.text('Pay Bills & Earn'), findsOneWidget);
-      expect(find.text('Mobile Number'), findsOneWidget);
-      expect(find.text('Continue'), findsOneWidget);
-      expect(find.text('Terms of Use'), findsOneWidget);
+          expect(find.text('Pay Bills & Earn'), findsOneWidget);
+          expect(find.text('Mobile Number'), findsOneWidget);
+          expect(find.text('Continue'), findsOneWidget);
+          expect(find.text('Terms of Use'), findsOneWidget);
+          expect(find.byType(LoginServicesSlider), findsOneWidget);
 
-      // Terms sit tight above the keyboard — no large home-indicator gap.
-      final termsBottom = tester.getBottomLeft(find.text('Privacy Policy')).dy;
-      final bodyHeight = tester.getSize(find.byType(Scaffold)).height;
-      expect(bodyHeight - termsBottom, lessThanOrEqualTo(24));
-      expect(tester.takeException(), isNull);
-    });
+          // Compact Figma rows use full labels.
+          expect(find.text('Electricity Bill'), findsWidgets);
+          expect(find.text('Mobile Recharge'), findsWidgets);
+
+          // 2 compact rows: 117/428 tiles, 19/428 gap.
+          final slider = tester.widget<LoginServicesSlider>(
+            find.byType(LoginServicesSlider),
+          );
+          expect(slider.compact, isTrue);
+          expect(slider.rowCount, 2);
+
+          final sliderSize = tester.getSize(find.byType(LoginServicesSlider));
+          final expectedH = LoginServicesSlider.naturalHeight(
+            shrunk.width,
+            2,
+            compact: true,
+          );
+          expect(sliderSize.height, moreOrLessEquals(expectedH, epsilon: 2.0));
+          expect(sliderSize.height, lessThanOrEqualTo(shrunk.height * 0.7));
+
+          // Form overlaps the slider (Figma): title starts above the slider's
+          // bottom edge (+ small tolerance).
+          final sliderBottom =
+              tester.getBottomLeft(find.byType(LoginServicesSlider)).dy;
+          final titleTop = tester.getTopLeft(find.text('Pay Bills & Earn')).dy;
+          expect(titleTop, lessThan(sliderBottom + 60));
+
+          // Footer sits ~24 above the keyboard edge (Figma keyboard frame).
+          final termsBottom = tester.getBottomLeft(find.text('Privacy Policy')).dy;
+          expect(termsBottom, lessThanOrEqualTo(shrunk.height));
+          final gap = shrunk.height - termsBottom;
+          expect(gap, greaterThanOrEqualTo(18));
+          expect(gap, lessThanOrEqualTo(30));
+          expect(tester.takeException(), isNull);
+        });
+
+    testWidgets('focusing the mobile field lifts the form immediately',
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
+
+          await _pumpStep(
+            tester,
+            home: Scaffold(
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
+            ),
+          );
+          expect(
+            tester
+                .widget<LoginServicesSlider>(find.byType(LoginServicesSlider))
+                .compact,
+            isFalse,
+          );
+
+          // No keyboard inset yet: focus alone must switch to the overlay layout.
+          await tester.tap(find.byType(TextField));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+
+          final slider = tester.widget<LoginServicesSlider>(
+            find.byType(LoginServicesSlider),
+          );
+          expect(slider.compact, isTrue);
+          expect(slider.rowCount, 2);
+          expect(tester.takeException(), isNull);
+        });
+
+    testWidgets(
+        'keyboard open switches slider to compact mode without exceptions',
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
+
+          await _pumpStep(
+            tester,
+            home: Scaffold(
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
+            ),
+          );
+          expect(
+            tester
+                .widget<LoginServicesSlider>(find.byType(LoginServicesSlider))
+                .compact,
+            isFalse,
+          );
+
+          await _pumpStep(
+            tester,
+            size: const Size(360, 410),
+            viewInsetBottom: 1,
+            home: Scaffold(
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
+            ),
+          );
+          await tester.pump(const Duration(milliseconds: 400));
+          expect(
+            tester
+                .widget<LoginServicesSlider>(find.byType(LoginServicesSlider))
+                .compact,
+            isTrue,
+          );
+          expect(tester.takeException(), isNull);
+        });
 
     testWidgets('keeps form and footer usable on short landscape phones',
-        (tester) async {
-      final controller = TextEditingController();
-      addTearDown(controller.dispose);
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
 
-      await _pumpStep(
-        tester,
-        size: const Size(740, 360),
-        home: Scaffold(
-          body: AuthMobileStep(
-            controller: controller,
-            isLoading: false,
-            onContinue: () {},
-          ),
-        ),
-      );
+          await _pumpStep(
+            tester,
+            size: const Size(740, 360),
+            home: Scaffold(
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
+            ),
+          );
 
-      expect(find.byType(LoginServicesSlider), findsOneWidget);
-      expect(find.text('Pay Bills & Earn'), findsOneWidget);
-      expect(find.text('Continue'), findsOneWidget);
-      expect(find.text('Terms of Use'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+          expect(find.byType(LoginServicesSlider), findsOneWidget);
+          expect(find.text('Pay Bills & Earn'), findsOneWidget);
+          expect(find.text('Continue'), findsOneWidget);
+          expect(find.text('Terms of Use'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        });
 
     testWidgets('Terms links use primary color and regular weight',
-        (tester) async {
-      final controller = TextEditingController();
-      addTearDown(controller.dispose);
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
 
-      await _pumpStep(
-        tester,
-        home: Scaffold(
-          body: AuthMobileStep(
-            controller: controller,
-            isLoading: false,
-            onContinue: () {},
-          ),
-        ),
-      );
+          await _pumpStep(
+            tester,
+            home: Scaffold(
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
+            ),
+          );
 
-      final terms = tester.widget<Text>(find.text('Terms of Use'));
-      expect(terms.style?.color, const Color(0xFFDD5428));
-      expect(terms.style?.fontWeight, FontWeight.w400);
+          final terms = tester.widget<Text>(find.text('Terms of Use'));
+          expect(terms.style?.color, const Color(0xFFDD5428));
+          expect(terms.style?.fontWeight, FontWeight.w400);
 
-      final privacy = tester.widget<Text>(find.text('Privacy Policy'));
-      expect(privacy.style?.color, const Color(0xFFDD5428));
-      expect(privacy.style?.fontWeight, FontWeight.w400);
-    });
+          final privacy = tester.widget<Text>(find.text('Privacy Policy'));
+          expect(privacy.style?.color, const Color(0xFFDD5428));
+          expect(privacy.style?.fontWeight, FontWeight.w400);
+        });
 
     testWidgets('+91 uses black medium weight', (tester) async {
       final controller = TextEditingController();
@@ -248,55 +393,76 @@ void main() {
     });
 
     testWidgets('slider tiles match Figma metrics across required sizes',
-        (tester) async {
+            (tester) async {
+          final controller = TextEditingController();
+          addTearDown(controller.dispose);
+
+          for (final size in _loginRequiredSizes) {
+            await _pumpStep(
+              tester,
+              size: size,
+              home: Scaffold(
+                body: AuthMobileStep(
+                  controller: controller,
+                  isLoading: false,
+                  onContinue: () {},
+                ),
+              ),
+            );
+
+            expect(find.byType(LoginServicesSlider), findsOneWidget);
+            expect(find.text('Electricity'), findsWidgets);
+            expect(find.text('Book LPG'), findsWidgets);
+            expect(find.text('School Fees'), findsWidgets);
+            expect(find.text('Personal Loan'), findsWidgets);
+            expect(find.text('Shop Rent'), findsWidgets);
+
+            final sliderSize =
+            tester.getSize(find.byType(LoginServicesSlider).first);
+            expect(sliderSize.height, greaterThan(0));
+            expect(sliderSize.width, greaterThan(0));
+            expect(sliderSize.height, lessThanOrEqualTo(size.height * 0.58));
+
+            // Mirrors AuthMobileStep budget (keyboard closed, zero insets).
+            final k = _k(size);
+            final topPad = 6 * k;
+            final available = size.height - topPad;
+            final reserve = (AuthMobileStep.formReserveDesign +
+                AuthMobileStep.closedBottomGapDesign) *
+                k;
+            final budget = (available - reserve)
+                .clamp(available * 0.38, available * 0.56)
+                .toDouble();
+            final naturalH = LoginServicesSlider.naturalHeight(
+              size.width,
+              LoginServicesSlider.maxRowCount,
+            );
+            final expectedH = naturalH > budget ? budget : naturalH;
+            expect(
+              sliderSize.height,
+              moreOrLessEquals(expectedH, epsilon: 2.0),
+            );
+            expect(tester.takeException(), isNull);
+          }
+        });
+
+    testWidgets('slider animates without exceptions', (tester) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
 
-      for (final size in _loginRequiredSizes) {
-        await _pumpStep(
-          tester,
-          size: size,
-          home: Scaffold(
-            body: AuthMobileStep(
-              controller: controller,
-              isLoading: false,
-              onContinue: () {},
-            ),
+      await _pumpStep(
+        tester,
+        home: Scaffold(
+          body: AuthMobileStep(
+            controller: controller,
+            isLoading: false,
+            onContinue: () {},
           ),
-        );
+        ),
+      );
 
-        expect(find.byType(LoginServicesSlider), findsOneWidget);
-        expect(find.text('Electricity Bill'), findsWidgets);
-        expect(find.text('Book LPG'), findsWidgets);
-        expect(find.text('School Fees'), findsWidgets);
-        expect(find.text('Personal Loan'), findsWidgets);
-
-        final sliderSize =
-            tester.getSize(find.byType(LoginServicesSlider).first);
-        expect(sliderSize.height, greaterThan(0));
-        expect(sliderSize.width, greaterThan(0));
-        // Four compact rows occupy the upper half, not the whole screen.
-        expect(sliderSize.height, lessThanOrEqualTo(size.height * 0.58));
-
-        // Square tiles: width == height from Figma 100/440 mapping.
-        final expectedTile = size.width *
-            (LoginServicesSlider.tileDesign /
-                LoginServicesSlider.figmaFrameWidth);
-        final expectedGap = size.width *
-            (LoginServicesSlider.gapDesign /
-                LoginServicesSlider.figmaFrameWidth);
-        final expectedFourRowH = LoginServicesSlider.rowCount * expectedTile +
-            (LoginServicesSlider.rowCount - 1) * expectedGap;
-        // Matches AuthMobileStep LayoutBuilder budget.
-        final topPad = 8 * size.height / 690;
-        final maxBudget =
-            ((size.height - topPad) * 0.55).clamp(72.0, size.height * 0.58);
-        final expectedH =
-            expectedFourRowH > maxBudget ? maxBudget : expectedFourRowH;
-        expect(
-          sliderSize.height,
-          moreOrLessEquals(expectedH, epsilon: 2.0),
-        );
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(seconds: 9));
         expect(tester.takeException(), isNull);
       }
     });

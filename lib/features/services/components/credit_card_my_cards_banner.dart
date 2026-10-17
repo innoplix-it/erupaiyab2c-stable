@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../home/models/banner_model.dart';
@@ -39,18 +38,27 @@ class CreditCardMyCardsBanner extends StatelessWidget {
   }
 
   Widget _fallback() {
-    return Container(
-      height: 74.h,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.lightBorder.withOpacity(0.8)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Image.asset(
-        FileConstants.homeBanner4,
-        width: double.infinity,
-        fit: BoxFit.cover,
-      ),
+    // Figma promo banner ~ wide card; keep aspect without clipping art.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 32.w;
+        final height = (width * (120 / 360)).clamp(88.h, 140.h);
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Image.asset(
+              FileConstants.homeBanner4,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+            ),
+          ),
+        );
+      },
     );
   }
 }

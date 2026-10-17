@@ -339,22 +339,27 @@ double? _parseAmountFromPlan(String raw) {
 }
 
 class _MaskedPrefix extends StatelessWidget {
+  const _MaskedPrefix();
+
   @override
   Widget build(BuildContext context) {
+    // Figma: grey pill with three masked groups before the last-4 input.
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      margin: EdgeInsets.symmetric(vertical: 8.h, horizontal: 8.w),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.05),
+        color: const Color(0xFFF4F4F5),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Text(
-        '\u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              letterSpacing: 1.2,
-              color: AppColors.textPrimary.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w600,
-            ),
+        '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022',
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 13.sp,
+          letterSpacing: 1.0,
+          height: 1,
+          color: AppColors.textPrimary.withValues(alpha: 0.55),
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

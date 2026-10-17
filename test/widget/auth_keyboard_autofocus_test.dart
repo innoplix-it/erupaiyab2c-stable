@@ -20,7 +20,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AuthKeyboardOnOpen', () {
-    testWidgets('AuthMobileStep autofocuses the mobile field', (tester) async {
+    testWidgets('AuthMobileStep does not autofocus the mobile field',
+        (tester) async {
       final controller = TextEditingController();
       final focusNode = FocusNode();
       addTearDown(() {
@@ -40,7 +41,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(focusNode.hasFocus, isTrue);
+      // Closed Figma layout first — keyboard opens only when user taps.
+      expect(focusNode.hasFocus, isFalse);
     });
 
     testWidgets('AuthPinStep autofocuses the PIN field', (tester) async {

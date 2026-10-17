@@ -11,7 +11,6 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 
-
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
@@ -100,13 +99,19 @@ void _openPaymentResultFlow(
   if (outcome == _PaymentOutcome.success) {
     final paymentName = paymentTypeOverride?.trim().isNotEmpty == true
         ? paymentTypeOverride!.trim()
-        : billerName.trim().isNotEmpty ? billerName.trim() : 'Mobile Recharge';
+        : billerName.trim().isNotEmpty
+            ? billerName.trim()
+            : 'Mobile Recharge';
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => EducationPaymentThankYouView(
-          amount: amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2),
-          payableAmount: amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2),
-          transactionTime: (transactionDateTime?.isNotEmpty == true) ? transactionDateTime! : DateTime.now().toIso8601String(),
+          amount: amount
+              .toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2),
+          payableAmount: amount
+              .toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2),
+          transactionTime: (transactionDateTime?.isNotEmpty == true)
+              ? transactionDateTime!
+              : DateTime.now().toIso8601String(),
           paymentType: paymentName,
         ),
       ),
@@ -312,16 +317,81 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     );
   }
 
+  Future<void> _onPayPressed({
+    required BillerDetailState detailState,
+    required double remainingAmount,
+  }) async {
+    final controller = ref.read(billerDetailControllerProvider.notifier);
+    final billerName = detailState.selectedBiller?.billerName ?? 'Biller';
+    final paymentType = _resolvePaymentType(detailState);
+
+    final order = await controller.createPayAllServicesOrder(
+      amount: widget.amount,
+      paymentType: paymentType,
+      useWallet: _useECoins,
+      isCreditCardFlow: widget.isCreditCardFlow,
+    );
+
+    if (!mounted) return;
+    if (order == null ||
+        order.orderId.trim().isEmpty ||
+        order.key.trim().isEmpty ||
+        order.transactionRef.trim().isEmpty) {
+      AppSnackbar.show(
+        ref.read(billerDetailControllerProvider).payErrorMessage ??
+            'Unable to start payment. Please try again.',
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+      return;
+    }
+
+    if (remainingAmount <= 0) {
+      await _verifyAndShow(
+        transactionRef: order.transactionRef,
+        amount: widget.amount,
+        billerName: billerName,
+        fallbackMessage: 'We are verifying your payment. Please wait a moment.',
+      );
+      return;
+    }
+
+    await _startRazorpay(
+      amount: remainingAmount,
+      billerName: billerName,
+      orderId: order.orderId,
+      keyOverride: order.key,
+      transactionRef: order.transactionRef,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final detailState = ref.watch(billerDetailControllerProvider);
-    final controller = ref.read(billerDetailControllerProvider.notifier);
     final isPaying = detailState.isPayingBill;
     final availableECoins = _availableECoins();
     final maxAllowedECoins = _maxECoinsAllowed(availableECoins);
     final canUseECoins = availableECoins > 0;
     final eCoinsApplied = _eCoinsApplied(availableECoins);
     final remainingAmount = _remainingAmount(eCoinsApplied);
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+    final maxSheetH = MediaQuery.sizeOf(context).height * 0.88;
+
+    if (widget.isCreditCardFlow) {
+      return _buildCreditCardQuickPay(
+        context: context,
+        detailState: detailState,
+        isPaying: isPaying,
+        availableECoins: availableECoins,
+        maxAllowedECoins: maxAllowedECoins,
+        canUseECoins: canUseECoins,
+        eCoinsApplied: eCoinsApplied,
+        remainingAmount: remainingAmount,
+        bottomSafe: bottomSafe,
+        maxSheetH: maxSheetH,
+      );
+    }
+
     final buttonLabel = remainingAmount == 0 ? 'Pay Now' : 'Proceed';
     return AbsorbPointer(
       absorbing: isPaying,
@@ -331,7 +401,6 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               children: [
                 Expanded(
@@ -358,7 +427,6 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
               ],
             ),
             SizedBox(height: 12.h),
-            // Orange progress bar
             Container(
               height: 3.h,
               decoration: BoxDecoration(
@@ -367,8 +435,6 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
               ),
             ),
             SizedBox(height: 10.h),
-
-            // E-Coins option
             _PaymentOptionTile(
               icon: Icons.monetization_on_outlined,
               iconAsset: FileConstants.favicon,
@@ -393,11 +459,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                   ? () => setState(() => _useECoins = !_useECoins)
                   : null,
             ),
-
             SizedBox(height: 10.h),
-            // SizedBox(height: 16.h),
-
-            // Bottom bar: amount + PAY NOW
             SafeArea(
               top: false,
               child: Container(
@@ -416,56 +478,10 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                     CustomElevatedButton(
                       onPressed: isPaying
                           ? null
-                          : () async {
-                              final billerName =
-                                  detailState.selectedBiller?.billerName ??
-                                      'Biller';
-                              final paymentType =
-                                  _resolvePaymentType(detailState);
-
-                              final order =
-                                  await controller.createPayAllServicesOrder(
-                                amount: widget.amount,
-                                paymentType: paymentType,
-                                useWallet: _useECoins,
-                                isCreditCardFlow: widget.isCreditCardFlow,
-                              );
-
-                              if (!context.mounted) return;
-                              if (order == null ||
-                                  order.orderId.trim().isEmpty ||
-                                  order.key.trim().isEmpty ||
-                                  order.transactionRef.trim().isEmpty) {
-                                AppSnackbar.show(
-                                  ref
-                                          .read(billerDetailControllerProvider)
-                                          .payErrorMessage ??
-                                      'Unable to start payment. Please try again.',
-                                  backgroundColor: Colors.red,
-                                  textColor: Colors.white,
-                                );
-                                return;
-                              }
-
-                              if (remainingAmount <= 0) {
-                                await _verifyAndShow(
-                                  transactionRef: order.transactionRef,
-                                  amount: widget.amount,
-                                  billerName: billerName,
-                                  fallbackMessage:
-                                      'We are verifying your payment. Please wait a moment.',
-                                );
-                                return;
-                              }
-
-                              await _startRazorpay(
-                                amount: remainingAmount,
-                                billerName: billerName,
-                                orderId: order.orderId,
-                                keyOverride: order.key,
-                                transactionRef: order.transactionRef,
-                              );
-                            },
+                          : () => _onPayPressed(
+                                detailState: detailState,
+                                remainingAmount: remainingAmount,
+                              ),
                       label: buttonLabel,
                       isLoading: isPaying,
                       showArrow: false,
@@ -477,6 +493,299 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreditCardQuickPay({
+    required BuildContext context,
+    required BillerDetailState detailState,
+    required bool isPaying,
+    required double availableECoins,
+    required double maxAllowedECoins,
+    required bool canUseECoins,
+    required double eCoinsApplied,
+    required double remainingAmount,
+    required double bottomSafe,
+    required double maxSheetH,
+  }) {
+    final bill = detailState.billResponse;
+    final billerName = detailState.selectedBiller?.billerName ?? 'Credit Card';
+    final customerName = bill?.accountHolderName.trim() ?? '';
+    // Masked last-4 is not always on BillResponse; keep a safe placeholder.
+    const maskedSuffix = '****';
+    final payLabel = 'PAY ₹${remainingAmount.toStringAsFixed(0)}';
+
+    return AbsorbPointer(
+      absorbing: isPaying,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxSheetH),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, bottomSafe + 12.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Quick Pay',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18.sp,
+                        color: AppColors.textPrimary,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.textPrimary,
+                        decorationThickness: 1.5,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    borderRadius: BorderRadius.circular(20.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(4.w),
+                      child: Icon(Icons.close, size: 22.sp),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Divider(height: 1, color: AppColors.lightBorder),
+              SizedBox(height: 12.h),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.28),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Credit Card • XXXX$maskedSuffix',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13.sp,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '₹${widget.amount.toStringAsFixed(0)}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.sp,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 4.h),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    customerName.isEmpty
+                                        ? billerName
+                                        : customerName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12.sp,
+                                      color: const Color(0xFF71717A),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Navigator.of(context).maybePop(),
+                                  child: Text(
+                                    'View Details',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12.sp,
+                                      color: AppColors.primary,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      _PaymentOptionTile(
+                        icon: Icons.monetization_on_outlined,
+                        iconAsset: FileConstants.favicon,
+                        iconColor: AppColors.primary,
+                        title:
+                            'E-Coins (${availableECoins.toStringAsFixed(0)})',
+                        subtitle: _useECoins
+                            ? 'Use E-Coins For Recharge (Rs.${eCoinsApplied.toStringAsFixed(0)})'
+                            : 'Use E-Coins For Recharge (Rs.${maxAllowedECoins.toStringAsFixed(0)})',
+                        enabled: canUseECoins && maxAllowedECoins > 0,
+                        trailing: Checkbox(
+                          value: _useECoins,
+                          activeColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          onChanged: (canUseECoins && maxAllowedECoins > 0)
+                              ? (v) => setState(() => _useECoins = v ?? false)
+                              : null,
+                        ),
+                        onTap: (canUseECoins && maxAllowedECoins > 0)
+                            ? () => setState(() => _useECoins = !_useECoins)
+                            : null,
+                      ),
+                      if (_useECoins && eCoinsApplied > 0) ...[
+                        SizedBox(height: 10.h),
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 8.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F8EF),
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(
+                              color: const Color(0xFF86EFAC),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.star_rounded,
+                                  size: 16.sp, color: Colors.black87),
+                              SizedBox(width: 6.w),
+                              Expanded(
+                                child: Text.rich(
+                                  TextSpan(
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    children: [
+                                      const TextSpan(text: 'You saved '),
+                                      TextSpan(
+                                        text:
+                                            '₹${eCoinsApplied.toStringAsFixed(0)}',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                          fontSize: 12.sp,
+                                        ),
+                                      ),
+                                      const TextSpan(
+                                          text: ' for this transaction'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 10.h),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 12.h,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.35),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Payable Amount:',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.sp,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_useECoins && eCoinsApplied > 0) ...[
+                              Text(
+                                '₹${widget.amount.toStringAsFixed(0)}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.sp,
+                                  color: const Color(0xFFA1A1AA),
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                            ],
+                            Text(
+                              '₹${remainingAmount.toStringAsFixed(0)}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      Text(
+                        'UPI',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        'You will continue with Razorpay checkout for UPI and cards.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11.sp,
+                          color: const Color(0xFF71717A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 12.h),
+              CustomElevatedButton(
+                onPressed: isPaying
+                    ? null
+                    : () => _onPayPressed(
+                          detailState: detailState,
+                          remainingAmount: remainingAmount,
+                        ),
+                label: payLabel,
+                isLoading: isPaying,
+                showArrow: false,
+                uppercaseLabel: true,
+                height: 48.h,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -584,9 +893,10 @@ class _PrepaidPaymentBottomSheetState
     Map<String, String>? prefill,
   }) async {
     final state = ref.read(mobilePrepaidControllerProvider);
-    final paymentName = state.operatorInfo?.operatorName.trim().isNotEmpty == true
-        ? '${state.operatorInfo!.operatorName.trim()} Recharge'
-        : null;
+    final paymentName =
+        state.operatorInfo?.operatorName.trim().isNotEmpty == true
+            ? '${state.operatorInfo!.operatorName.trim()} Recharge'
+            : null;
 
     if (!await RazorpayGuard.ensureProfileReadyAndNotPaused(ref)) return;
     await RazorpayService.instance.openCheckout(

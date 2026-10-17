@@ -554,7 +554,8 @@ class LoginView extends HookConsumerWidget {
     // resolved to `canPop: true` for this step, so it changed nothing.
     if (step.value == _LoginStep.mobile) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        // Peach Coral top so no white flash behind the full-bleed gradient.
+        backgroundColor: AppColors.loginPeachCoral,
         resizeToAvoidBottomInset: true,
         body: buildMobileStep(),
       );
