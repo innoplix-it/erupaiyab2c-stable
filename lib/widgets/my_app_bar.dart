@@ -11,6 +11,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.onBack,
     this.showHelp = true,
+    this.showBharatConnect,
     this.onHelp,
     this.trailing,
     this.height,
@@ -25,7 +26,16 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String title;
   final VoidCallback? onBack;
+
+  /// When true, shows the Help (`?`) action. Defaults to true so existing
+  /// callers keep their current Help visibility.
   final bool showHelp;
+
+  /// Bharat Connect logo visibility. When null, follows [showHelp] so
+  /// existing callers that only set [showHelp] keep pairing both icons.
+  /// Pass `true`/`false` to show or hide the logo independently of Help.
+  final bool? showBharatConnect;
+
   final VoidCallback? onHelp;
   final Widget? trailing;
   final double? height;
@@ -43,6 +53,18 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// the gap between the Bharat Connect icon and the divider. Keep it within
   /// the row's own bottom padding (6.h) so nothing overlaps the divider.
   final double bottomTrim;
+
+  /// Typography used by Transaction History and every MyAppBar that does not
+  /// pass [titleStyle]. Color flips to white when [backgroundColor] is set.
+  TextStyle? defaultTitleStyle(BuildContext context) {
+    return Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: backgroundColor == null ? Colors.black : Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
+          letterSpacing: 0.15,
+          height: 1.5,
+        );
+  }
 
   double get _platformTopPadding {
     final views = WidgetsBinding.instance.platformDispatcher.views;
@@ -185,19 +207,13 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                         SizedBox(width: 4.w),
                         Expanded(
                           child: Builder(builder: (context) {
+                            // Default matches Transaction History AppBar title:
+                            // Plus Jakarta (theme titleMedium), size 16,
+                            // weight w700, letterSpacing 0.15, height 1.5.
                             final titleText = Text(
                               title,
                               maxLines: fitTitle ? 1 : null,
-                              style: titleStyle ??
-                                  Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        color: backgroundColor == null
-                                            ? Colors.black
-                                            : Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                              style: titleStyle ?? defaultTitleStyle(context),
                             );
                             if (!fitTitle) return titleText;
                             return Align(
@@ -211,13 +227,14 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                           }),
                         ),
                         if (trailing != null) trailing!,
-                        if (showHelp) ...[
+                        if (showBharatConnect ?? showHelp)
                           Image.asset(
                             FileConstants.bharatConnectColor,
                             height: (bharatConnectHeight ?? 15).h,
                             width: (bharatConnectWidth ?? 50).w,
                             fit: BoxFit.contain,
                           ),
+                        if (showHelp)
                           IconButton(
                             onPressed: onHelp ??
                                 () => context.push(RouteConstants.helpSupport),
@@ -238,7 +255,6 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                                   : Colors.white,
                             ),
                           ),
-                        ],
                       ],
                     ),
                   ),

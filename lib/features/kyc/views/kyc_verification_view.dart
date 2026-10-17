@@ -233,14 +233,10 @@ class KycVerificationView extends HookConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: MyAppBar(
-        // Hide the built-in Bharat Connect + help row and supply only the
-        // help icon via [trailing], so this screen shows no Bharat Connect
-        // logo while keeping the ? route to Help & Support.
-        showHelp: false,
-        trailing: IconButton(
-          onPressed: () => context.push(RouteConstants.helpSupport),
-          icon: const Icon(Icons.help_outline, color: AppColors.textPrimary),
-        ),
+        // Help only — no Bharat Connect on KYC (independent flags on MyAppBar).
+        showHelp: true,
+        showBharatConnect: false,
+        onHelp: () => context.push(RouteConstants.helpSupport),
         title: step.value == _KycStep.complete
             ? 'KYC Completed'
             : 'Identity Verification',
@@ -706,7 +702,8 @@ class _KycSuccessDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(height: 44.h,
+                  child: SizedBox(
+                    height: 44.h,
                     child: OutlinedButton(
                       onPressed: onNotNow,
                       style: OutlinedButton.styleFrom(
@@ -727,7 +724,8 @@ class _KycSuccessDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
-                  child: SizedBox(height: 44.h,
+                  child: SizedBox(
+                    height: 44.h,
                     child: ElevatedButton(
                       onPressed: onAddBankAccount,
                       style: ElevatedButton.styleFrom(

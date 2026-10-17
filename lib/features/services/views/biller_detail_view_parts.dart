@@ -1237,33 +1237,41 @@ class ElectricityBillSection extends StatelessWidget {
                 padding: EdgeInsets.only(bottom: arrowSize / 2),
                 child: Container(
                   width: double.infinity,
+                  // Expanded (open) card: Figma 392×Hug — even insets so
+                  // label / colon / value sit inside the border, with extra
+                  // bottom room for the centered toggle arrow.
                   padding: EdgeInsets.fromLTRB(
-                    FetchProviderMetrics.w(20),
-                    FetchProviderMetrics.h(10),
-                    FetchProviderMetrics.w(20),
-                    FetchProviderMetrics.h(12),
+                    FetchProviderMetrics.w(isExpanded ? 16 : 20),
+                    FetchProviderMetrics.h(isExpanded ? 16 : 10),
+                    FetchProviderMetrics.w(isExpanded ? 16 : 20),
+                    FetchProviderMetrics.h(isExpanded ? 28 : 12),
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius:
                         BorderRadius.circular(FetchProviderMetrics.r(12)),
+                    // Figma open details card: 1px solid #D8D8D8.
                     border: Border.all(
                       color: const Color(0xFFD8D8D8),
-                      width: 1.0,
+                      width: 1,
                     ),
                   ),
                   child: Table(
-                    // Expanded rows can wrap to two lines; Figma keeps the
-                    // label, colon and value aligned to the first line.
+                    // Expanded rows wrap; keep label, colon and value
+                    // top-aligned on the first line (Figma).
                     defaultVerticalAlignment: isExpanded
                         ? TableCellVerticalAlignment.top
                         : TableCellVerticalAlignment.middle,
-                    // Figma: label column 180, colon column 15, value column
-                    // takes the rest of the 352 inner width.
+                    // Inner 360 content (392 − 16×2): label 168, colon 12,
+                    // value flex — colons stay in one vertical gutter.
                     columnWidths: {
-                      0: const FlexColumnWidth(180),
-                      1: FixedColumnWidth(FetchProviderMetrics.w(15)),
-                      2: const FlexColumnWidth(157),
+                      0: FixedColumnWidth(
+                        FetchProviderMetrics.w(isExpanded ? 168 : 180),
+                      ),
+                      1: FixedColumnWidth(
+                        FetchProviderMetrics.w(isExpanded ? 12 : 15),
+                      ),
+                      2: const FlexColumnWidth(),
                     },
                     children: rows,
                   ),
@@ -1302,16 +1310,18 @@ class ElectricityBillSection extends StatelessWidget {
   }
 
   TableRow _buildTableRow({required String label, required String value}) {
-    final labelSize = FetchProviderMetrics.font(14, min: 12);
-    final valueSize = FetchProviderMetrics.font(16, min: 13);
-    final rowHeight = FetchProviderMetrics.h(27);
-    final rowGap = isExpanded ? FetchProviderMetrics.h(4) : 0.0;
+    // Label and value share the same Figma size (Consumer No == its value).
+    final textSize = FetchProviderMetrics.font(14, min: 12);
+    final rowHeight = FetchProviderMetrics.h(isExpanded ? 24 : 27);
+    final rowGap = isExpanded ? FetchProviderMetrics.h(6) : 0.0;
+    final lineHeight = isExpanded ? 18 / 14 : 1.0;
 
-    Widget cell(Widget child, {Alignment alignment = Alignment.centerLeft}) =>
+    Widget cell(Widget child,
+            {AlignmentGeometry alignment = Alignment.centerLeft}) =>
         ConstrainedBox(
           constraints: BoxConstraints(minHeight: rowHeight),
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: rowGap),
+            padding: EdgeInsets.symmetric(vertical: rowGap / 2),
             child: Align(
               alignment: alignment,
               widthFactor: 1,
@@ -1327,37 +1337,38 @@ class ElectricityBillSection extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: labelSize,
+              fontSize: textSize,
               fontWeight: FontWeight.w400,
               color: const Color(0xFF373737),
-              // Two-line labels ("Early payment date & amount") need leading.
-              height: isExpanded ? 18 / 14 : 1.0,
+              height: lineHeight,
             ),
           ),
+          alignment: isExpanded ? Alignment.topLeft : Alignment.centerLeft,
         ),
         cell(
           Text(
             ':',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: valueSize,
-              fontWeight: FontWeight.w600,
+              fontSize: textSize,
+              fontWeight: FontWeight.w500,
               color: Colors.black,
-              height: 1.0,
+              height: lineHeight,
             ),
           ),
-          alignment: Alignment.center,
+          alignment: isExpanded ? Alignment.topCenter : Alignment.center,
         ),
         cell(
           Text(
             value,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: valueSize,
-              fontWeight: FontWeight.w600,
+              fontSize: textSize,
+              fontWeight: FontWeight.w500,
               color: Colors.black,
-              height: 20 / 16,
-              letterSpacing: -0.02 * valueSize,
+              height: lineHeight,
+              letterSpacing: -0.02 * textSize,
             ),
           ),
+          alignment: isExpanded ? Alignment.topLeft : Alignment.centerLeft,
         ),
       ],
     );
@@ -1381,9 +1392,12 @@ class _ElectricityAmountCard extends StatelessWidget {
     final lastPaidAmount = _resolveLastPaidAmount(bill);
     final lastPaidDate = _resolveLastPaidDate(bill);
 
-    final badgeFont = FetchProviderMetrics.font(14, min: 11);
+    // Bill for badge: Figma 14 → 12 (−2px), weight 500.
+    final badgeFont = FetchProviderMetrics.font(12, min: 10);
+    // Due on: weight 500.
     final dueFont = FetchProviderMetrics.font(16, min: 12);
-    final amountFont = FetchProviderMetrics.font(55, min: 39);
+    // ₹ + amount: Figma 55 → 53 (−2px) for both symbol and digits.
+    final amountFont = FetchProviderMetrics.font(53, min: 37);
     final lastPaidFont = FetchProviderMetrics.font(14, min: 12);
     final sidePadding = FetchProviderMetrics.w(20);
 
@@ -1393,14 +1407,15 @@ class _ElectricityAmountCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(FetchProviderMetrics.r(16)),
-        border: Border.all(color: const Color(0xFFD8D8D8), width: 1.0),
+        // Figma: 1px solid #D8D8D8
+        border: Border.all(color: const Color(0xFFD8D8D8), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: FetchProviderMetrics.h(16)),
 
-          // ── Badge (shrinks to text) + Due date ──
+          // ── Badge (shrinks to text) + Due date — shared vertical center ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -1409,7 +1424,7 @@ class _ElectricityAmountCard extends StatelessWidget {
                 Flexible(
                   child: Container(
                     constraints: BoxConstraints(
-                      minHeight: FetchProviderMetrics.h(29),
+                      minHeight: FetchProviderMetrics.h(27),
                     ),
                     padding: EdgeInsets.only(
                       left: FetchProviderMetrics.w(10),
@@ -1423,19 +1438,17 @@ class _ElectricityAmountCard extends StatelessWidget {
                             Radius.circular(FetchProviderMetrics.r(20)),
                       ),
                     ),
-                    child: Center(
-                      widthFactor: 1, // <- badge = text width only
-                      child: Text(
-                        billPeriod,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: badgeFont,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                          height: 1.0,
-                          letterSpacing: -0.02 * badgeFont,
-                        ),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      billPeriod,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: badgeFont,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                        height: 1.0,
+                        letterSpacing: -0.02 * badgeFont,
                       ),
                     ),
                   ),
@@ -1445,9 +1458,10 @@ class _ElectricityAmountCard extends StatelessWidget {
               if (dueDateText.isNotEmpty)
                 Flexible(
                   child: Padding(
+                    // Right inset matches amount / last-paid inner padding.
                     padding: EdgeInsets.only(
                       left: FetchProviderMetrics.w(8),
-                      right: FetchProviderMetrics.w(16),
+                      right: sidePadding,
                     ),
                     child: Text(
                       'Due on: $dueDateText',
@@ -1632,13 +1646,13 @@ class _ElectricityAdditionalFeeCard extends StatelessWidget {
     final text = _resolveFeeNote();
     if (text.isEmpty) return const SizedBox.shrink();
 
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    // Figma 440 frame: 392px card with 24px margins on both sides.
-    final cardWidth = screenWidth - 2 * FetchProviderMetrics.w(24);
+    // Prefer parent max width (LayoutBuilder) over full-screen MediaQuery
+    // when the card already sits inside horizontal page padding.
     final fontSize = 12.sp;
     final lineHeight = fontSize * 20 / 12;
+    // Icon: .w for width, .r for the near-square glyph height (not .w).
     final iconWidth = FetchProviderMetrics.w(14);
-    final iconHeight = FetchProviderMetrics.w(15);
+    final iconHeight = FetchProviderMetrics.r(15);
     final textScaler = MediaQuery.textScalerOf(context);
 
     return LayoutBuilder(
@@ -1647,9 +1661,9 @@ class _ElectricityAdditionalFeeCard extends StatelessWidget {
         // borderRadius + a one-side Border asserts in BoxDecoration, so the
         // rounded corners come from the ClipRRect.
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(FetchProviderMetrics.r(12)),
           child: Container(
-            width: cardWidth.clamp(0.0, constraints.maxWidth).toDouble(),
+            width: constraints.maxWidth,
             constraints: BoxConstraints(minHeight: FetchProviderMetrics.h(72)),
             decoration: BoxDecoration(
               color: const Color(0xFFFAFAFA),
@@ -2678,7 +2692,8 @@ class AutoPayBottomSheet extends HookConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w500,
-                                fontSize: FetchProviderMetrics.font(14, min: 12),
+                                fontSize:
+                                    FetchProviderMetrics.font(14, min: 12),
                                 color: const Color(0xFF7A7A7A),
                                 height: 1.0,
                               ),
@@ -2705,7 +2720,8 @@ class AutoPayBottomSheet extends HookConsumerWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w500,
-                                  fontSize: FetchProviderMetrics.font(14, min: 12),
+                                  fontSize:
+                                      FetchProviderMetrics.font(14, min: 12),
                                   color: const Color(0xFF7A7A7A),
                                   height: 1.0,
                                 ),
@@ -2788,8 +2804,7 @@ class AutoPayBottomSheet extends HookConsumerWidget {
               ),
               decoration: BoxDecoration(
                 color: const Color(0xFFEAF4FF),
-                borderRadius:
-                    BorderRadius.circular(FetchProviderMetrics.r(12)),
+                borderRadius: BorderRadius.circular(FetchProviderMetrics.r(12)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

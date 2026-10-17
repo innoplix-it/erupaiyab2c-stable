@@ -27,20 +27,28 @@ class BillerListingController extends StateNotifier<BillerListingState> {
   String? _activeCategoryName;
   String _activeSearchQuery = '';
   Timer? _searchDebounce;
+  int _fetchGeneration = 0;
 
   Future<void> fetchBillers({
     required String categoryName,
     String? searchQuery,
+    bool preserveResultsWhileLoading = false,
   }) async {
+    final generation = ++_fetchGeneration;
     _activeCategoryName = categoryName;
     _activeSearchQuery = searchQuery?.trim() ?? '';
+    // Clearing billers on every search refetch swaps Electricity's
+    // CustomScrollView from SliverList → SliverFillRemaining (skeleton),
+    // which jumps scroll extent and makes the in-scroll search bar leave
+    // the viewport (and sometimes drop focus). Keep prior results while a
+    // search refresh is in flight; initial/category loads still clear.
     state = state.copyWith(
       isFetching: true,
       isFetchingMore: false,
       errorMessage: null,
       currentPage: 1,
       totalPages: 1,
-      billers: const [],
+      billers: preserveResultsWhileLoading ? state.billers : const [],
     );
     try {
       final page = await _repository.fetchBillers(
@@ -49,6 +57,7 @@ class BillerListingController extends StateNotifier<BillerListingState> {
         limit: state.limit,
         search: _activeSearchQuery,
       );
+      if (generation != _fetchGeneration) return;
       state = state.copyWith(
         isFetching: false,
         billers: page.billers,
@@ -58,6 +67,7 @@ class BillerListingController extends StateNotifier<BillerListingState> {
         limit: page.limit,
       );
     } catch (e, stackTrace) {
+      if (generation != _fetchGeneration) return;
       logger.error(
         'Failed to fetch billers',
         error: e,
@@ -117,11 +127,18 @@ class BillerListingController extends StateNotifier<BillerListingState> {
     final categoryName = _activeCategoryName;
     _activeSearchQuery = query.trim();
     _searchDebounce?.cancel();
+    // Invalidate in-flight search responses so a slow older query cannot
+    // replace newer results or leave isFetching stuck after we type again.
+    _fetchGeneration++;
+    if (state.isFetching) {
+      state = state.copyWith(isFetching: false);
+    }
     if (categoryName == null) return;
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
       fetchBillers(
         categoryName: categoryName,
         searchQuery: _activeSearchQuery,
+        preserveResultsWhileLoading: true,
       );
     });
   }

@@ -42,11 +42,10 @@ class QuickActionsView extends HookConsumerWidget {
           MyAppBar(
             title: 'Quick Actions',
             onBack: () => context.pop(),
-            trailing: IconButton(
-              icon:
-                  const Icon(Icons.help_outline, color: AppColors.textPrimary),
-              onPressed: () {},
-            ),
+            // Help only (no Bharat Connect). Avoid a dead trailing ? that
+            // duplicated the built-in help with an empty onPressed.
+            showHelp: true,
+            showBharatConnect: false,
           ),
           // Custom tab bar
           Container(
@@ -247,7 +246,8 @@ class QuickActionsView extends HookConsumerWidget {
                                       ),
                                       // Card content
                                       Padding(
-                                        padding: EdgeInsets.fromLTRB(16.w, 20.h, 80.w, 48.h),
+                                        padding: EdgeInsets.fromLTRB(
+                                            16.w, 20.h, 80.w, 48.h),
                                         child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.center,

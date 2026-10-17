@@ -135,6 +135,25 @@ void main() {
     expect(title.fontWeight, FontWeight.w500);
     expect(title.height, 1);
 
+    // Operator card: Figma multi-layer shadow + #E2E0E0 border + Change pill.
+    final operatorCard = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byType(SimpleQuickActionCard),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    final operatorDecoration = operatorCard.decoration! as BoxDecoration;
+    expect(operatorDecoration.boxShadow, hasLength(5));
+    expect(
+      (operatorDecoration.border! as Border).top.color,
+      const Color(0xFFE2E0E0),
+    );
+    final change = tester.widget<Text>(find.text('Change'));
+    expect(change.style!.color, Colors.white);
+    expect(change.style!.fontWeight, FontWeight.w600);
+
     final consent =
         tester.widget<Text>(find.text(BharatConnectConsentCard.message)).style!;
     expect(consent.fontWeight, FontWeight.w400);
@@ -209,6 +228,7 @@ class _PayNowHarnessState extends State<_PayNowHarness> {
             leadingAsset: FileConstants.bharatConnectColor,
             actionLabel: 'Change',
             operatorStyle: true,
+            showShadow: true,
             onAction: () {},
           ),
           const SizedBox(height: 16),

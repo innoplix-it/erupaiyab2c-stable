@@ -162,17 +162,15 @@ void openSavedBillerPayment(
     return;
   }
   final identifier = txn.primaryConsumerNumber;
-  final isMaskedIdentifier = identifier.contains('*') ||
-      identifier.toLowerCase().contains('x');
+  final isMaskedIdentifier =
+      identifier.contains('*') || identifier.toLowerCase().contains('x');
 
   final effectiveBiller = txn.billerName.trim().isNotEmpty
       ? Biller(
           billerId: biller.billerId,
           billerName: txn.billerName.trim(),
           icon: biller.icon ??
-              (txn.icon.trim().isNotEmpty
-                  ? txn.icon.trim()
-                  : null),
+              (txn.icon.trim().isNotEmpty ? txn.icon.trim() : null),
         )
       : biller;
 
@@ -210,6 +208,7 @@ class BillerListingView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final listingState = ref.watch(billerListingControllerProvider);
     final searchController = useTextEditingController();
+    final searchFocusNode = useFocusNode();
     final uiConfig = _resolveUiConfig(categoryName);
 
     useEffect(() {
@@ -226,16 +225,27 @@ class BillerListingView extends HookConsumerWidget {
 
     final billers = listingState.billers;
 
+    final isElectricityFlow =
+        uiConfig.variant == _BillerListingVariant.electricityFlow;
+
     return Scaffold(
       backgroundColor: Colors.white,
+      // Electricity reuses the same MyAppBar + icon sizing as Transaction
+      // History (bharatConnect 52×25, help 20). Other biller categories keep
+      // their existing AppBar config unchanged.
       appBar: MyAppBar(
         title: uiConfig.appBarTitle,
         showHelp: true,
         onBack: () => context.pop(),
         onHelp: () => context.push(RouteConstants.helpSupport),
-        bottomTrim: uiConfig.appBarTitle == 'Fetch Your Provider'
-            ? (6.h).clamp(0.0, 8.0).toDouble()
-            : 0,
+        bharatConnectWidth: isElectricityFlow ? 52 : null,
+        bharatConnectHeight: isElectricityFlow ? 25 : null,
+        helpIconSize: isElectricityFlow ? 20 : null,
+        bottomTrim: isElectricityFlow
+            ? 0
+            : (uiConfig.appBarTitle == 'Fetch Your Provider'
+                ? (6.h).clamp(0.0, 8.0).toDouble()
+                : 0),
       ),
       body: switch (uiConfig.variant) {
         _BillerListingVariant.standard => _StandardBillerListingBody(
@@ -314,6 +324,7 @@ class BillerListingView extends HookConsumerWidget {
         _BillerListingVariant.electricityFlow => _ElectricityFlow(
             categoryName: categoryName,
             searchController: searchController,
+            searchFocusNode: searchFocusNode,
           ),
       },
     );
@@ -395,10 +406,12 @@ class _ElectricityFlow extends HookConsumerWidget {
   const _ElectricityFlow({
     required this.categoryName,
     required this.searchController,
+    required this.searchFocusNode,
   });
 
   final String categoryName;
   final TextEditingController searchController;
+  final FocusNode searchFocusNode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -407,6 +420,7 @@ class _ElectricityFlow extends HookConsumerWidget {
         ref.watch(serviceLatestTransactionsProvider(categoryName.trim()));
 
     final billers = listingState.billers;
+    final searchHeaderHeight = AppSearchBar.height + AppSearchBar.verticalInset;
 
     void openBiller(Biller biller) {
       ref.read(billerDetailControllerProvider.notifier).selectBiller(
@@ -428,6 +442,9 @@ class _ElectricityFlow extends HookConsumerWidget {
       onEndReached: () =>
           ref.read(billerListingControllerProvider.notifier).fetchNextPage(),
       child: CustomScrollView(
+        // Keep the focused search field in view when the keyboard opens or
+        // when result slivers swap (empty ↔ list) after a search response.
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
           SliverToBoxAdapter(
             child: ServiceRecentSection(
@@ -451,16 +468,18 @@ class _ElectricityFlow extends HookConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
+              // Figma 440 frame insets via FetchProviderMetrics (.w / .h),
+              // not a mix of bare ScreenUtil .h next to Figma helpers.
               padding: EdgeInsets.fromLTRB(
                 FetchProviderMetrics.w(24),
-                12.h,
+                FetchProviderMetrics.h(12),
                 FetchProviderMetrics.w(24),
                 FetchProviderMetrics.h(20),
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Width follows the screen; height keeps Figma's 392:117
-                  // ratio so the artwork is never stretched or cropped.
+                  // Width from parent constraints; height from aspect ratio
+                  // (not MediaQuery / not width-derived via ScreenUtil .h).
                   final bannerWidth = constraints.maxWidth;
                   final bannerHeight = bannerWidth * (117 / 392);
                   return ClipRRect(
@@ -477,57 +496,90 @@ class _ElectricityFlow extends HookConsumerWidget {
               ),
             ),
           ),
-          // Search sits in the scroll (recent + banner above). Sticky pin
-          // would reorder the Electricity layout; keep flow, match the
-          // Transaction History gap under the field.
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppSearchBar.sideInset,
-                0,
-                AppSearchBar.sideInset,
-                AppSearchBar.verticalInset,
-              ),
-              child: AppSearchBar(
-                hintText: 'Search by billers',
-                controller: searchController,
-                textStyle: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14.sp,
-                  color: Colors.black,
+          // Pin after Saved Billers + banner so Figma order is unchanged at
+          // rest, but typing/keyboard/result swaps cannot scroll the field
+          // out of the viewport (the prior disappear glitch).
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _ElectricitySearchHeaderDelegate(
+              height: searchHeaderHeight,
+              child: ColoredBox(
+                color: Colors.white,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSearchBar.sideInset,
+                    0,
+                    AppSearchBar.sideInset,
+                    AppSearchBar.verticalInset,
+                  ),
+                  child: AppSearchBar(
+                    hintText: 'Search by billers',
+                    controller: searchController,
+                    focusNode: searchFocusNode,
+                    textStyle: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w500,
+                      fontSize: FetchProviderMetrics.font(14, min: 12),
+                      color: Colors.black,
+                    ),
+                    onChanged: (value) => ref
+                        .read(billerListingControllerProvider.notifier)
+                        .updateSearch(value),
+                  ),
                 ),
-                onChanged: (value) => ref
-                    .read(billerListingControllerProvider.notifier)
-                    .updateSearch(value),
               ),
             ),
           ),
+          // Results area only — never replace/remove the search header.
+          // Avoid SliverFillRemaining + full-page skeleton (which embeds a
+          // fake search bar) so scroll extent does not thrash while typing.
           if (listingState.isFetching &&
               billers.isEmpty &&
               listingState.errorMessage == null)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: _BillerListingSkeleton(),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                FetchProviderMetrics.w(24),
+                FetchProviderMetrics.h(4),
+                FetchProviderMetrics.w(24),
+                FetchProviderMetrics.h(16) +
+                    MediaQuery.paddingOf(context).bottom,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => const _BillerListingFooterSkeleton(),
+                  childCount: 6,
+                ),
+              ),
             )
           else if (listingState.errorMessage != null || billers.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: ScreenWrapper(
-                isFetching: false,
-                isEmpty: billers.isEmpty && listingState.errorMessage == null,
-                emptyMessage: 'No providers found',
-                errorMessage: listingState.errorMessage,
-                actions: listingState.errorMessage != null
-                    ? [
-                        TextButton(
-                          onPressed: () => ref
-                              .read(billerListingControllerProvider.notifier)
-                              .fetchBillers(categoryName: categoryName),
-                          child: const Text('Retry'),
-                        ),
-                      ]
-                    : null,
-                child: const SizedBox.shrink(),
+            // Sized adapter (not FillRemaining) so empty/error states do not
+            // rewrite scroll metrics under the pinned search field.
+            // Height from MediaQuery.sizeOf — scales with viewport, not a
+            // fixed ScreenUtil block that dominates short phones.
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: (MediaQuery.sizeOf(context).height * 0.28)
+                    .clamp(160.0, 280.0),
+                child: ScreenWrapper(
+                  isFetching: false,
+                  isEmpty: billers.isEmpty && listingState.errorMessage == null,
+                  emptyMessage: 'No providers found',
+                  errorMessage: listingState.errorMessage,
+                  actions: listingState.errorMessage != null
+                      ? [
+                          TextButton(
+                            onPressed: () => ref
+                                .read(billerListingControllerProvider.notifier)
+                                .fetchBillers(
+                                  categoryName: categoryName,
+                                  searchQuery: searchController.text,
+                                  preserveResultsWhileLoading: true,
+                                ),
+                            child: const Text('Retry'),
+                          ),
+                        ]
+                      : null,
+                  child: const SizedBox.shrink(),
+                ),
               ),
             )
           else
@@ -536,7 +588,8 @@ class _ElectricityFlow extends HookConsumerWidget {
                 FetchProviderMetrics.w(24),
                 FetchProviderMetrics.h(4),
                 FetchProviderMetrics.w(24),
-                16.h + MediaQuery.paddingOf(context).bottom,
+                FetchProviderMetrics.h(16) +
+                    MediaQuery.paddingOf(context).bottom,
               ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
@@ -558,6 +611,41 @@ class _ElectricityFlow extends HookConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Pinned Electricity search row: fixed extent, white background so list
+/// content does not show through while the header is stuck under the AppBar.
+class _ElectricitySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _ElectricitySearchHeaderDelegate({
+    required this.height,
+    required this.child,
+  });
+
+  final double height;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(covariant _ElectricitySearchHeaderDelegate oldDelegate) {
+    // Height-only: recreating the child on every listingState rebuild was
+    // remounting TextField and contributing to focus/visibility flicker.
+    // Controller, focus node, and onChanged close over stable objects.
+    return height != oldDelegate.height;
   }
 }
 

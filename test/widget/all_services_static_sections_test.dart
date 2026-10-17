@@ -18,11 +18,13 @@ const _categories = [
     services: [QuickActionService(name: 'Water')],
   ),
   QuickActionCategory(
-    // Only the five approved cards survive; the rest are commented out.
+    // Lifestyle & Membership keep-list; Water/Metro/Pan stay hidden.
     category: 'Other Services',
     services: [
       QuickActionService(name: 'Donation'),
       QuickActionService(name: 'Subscription'),
+      QuickActionService(name: 'Gym Membership'),
+      QuickActionService(name: 'Clubs & Associations'),
       QuickActionService(name: 'Water'),
       QuickActionService(name: 'Metro Recharge'),
       QuickActionService(name: 'Pan Card Services'),
@@ -157,7 +159,7 @@ void main() {
       'Pay via Credit Card (Education)',
       'Insurance',
       'Rent & Property',
-      'Other Services',
+      'Lifestyle & Membership',
     ]) {
       expect(find.text(heading), findsNWidgets(1), reason: heading);
     }
@@ -172,7 +174,8 @@ void main() {
           .dy,
       'Insurance': tester.getTopLeft(find.text('Insurance')).dy,
       'Rent & Property': tester.getTopLeft(find.text('Rent & Property')).dy,
-      'Other Services': tester.getTopLeft(find.text('Other Services')).dy,
+      'Lifestyle & Membership':
+          tester.getTopLeft(find.text('Lifestyle & Membership')).dy,
       'Money Transfer': tester.getTopLeft(find.text('Money Transfer')).dy,
     };
     final keys = ordered.keys.toList();
@@ -222,7 +225,8 @@ void main() {
     expect(tilesNamed(tester, 'Rental').single.svgAsset,
         'assets/images/svg/services/rental.svg');
 
-    expect(tilesNamed(tester, 'Gym Membership'), isEmpty);
+    // Gym lives in Lifestyle & Membership (static), not Education.
+    expect(tilesNamed(tester, 'Gym Membership'), hasLength(1));
     // Old API duplicates are suppressed: single occurrences only.
     for (final label in [
       'School Fees',
@@ -266,16 +270,18 @@ void main() {
     ]) {
       expect(find.text(heading), findsNothing, reason: heading);
     }
-    // Commented-out Other Services items never render...
-    expect(find.text('Donation'), findsNothing);
     expect(find.text('Recurring Deposit'), findsNothing);
-    // ...while the five approved cards do (Pipe Gas / Prepaid Meter also
-    // exist in the Utility Bills container, hence two occurrences).
+    expect(find.text('Other Services'), findsNothing);
+    // Lifestyle & Membership cards.
+    expect(tilesNamed(tester, 'Gym Membership'), hasLength(1));
+    expect(tilesNamed(tester, 'Clubs & Associations'), hasLength(1));
     expect(tilesNamed(tester, 'Subscription'), hasLength(1));
-    expect(tilesNamed(tester, 'Water'), hasLength(1));
-    expect(tilesNamed(tester, 'Metro Recharge'), hasLength(1));
-    expect(tilesNamed(tester, 'Pipe Gas'), hasLength(2));
-    expect(tilesNamed(tester, 'Prepaid Meter'), hasLength(2));
+    expect(tilesNamed(tester, 'Donation'), hasLength(1));
+    // Old Other Services cards removed from the static section.
+    expect(tilesNamed(tester, 'Water'), isEmpty);
+    expect(tilesNamed(tester, 'Metro Recharge'), isEmpty);
+    expect(tilesNamed(tester, 'Piped Gas'), hasLength(1)); // Utility Bills only
+    expect(tilesNamed(tester, 'Prepaid Meter'), hasLength(1));
     // Non-replaced API category still renders.
     expect(find.text('Money Transfer'), findsOneWidget);
     expect(tilesNamed(tester, 'IMPS'), hasLength(1));
@@ -290,15 +296,15 @@ void main() {
     expect(tilesNamed(tester, 'DTH'), isNotEmpty);
     expect(find.text('Recharge'), findsNothing);
 
-    // Commented-out Other Services items stay hidden in search too...
-    await tester.enterText(find.byType(TextField), 'donation');
+    // Filtered-out Other Services items stay hidden in search...
+    await tester.enterText(find.byType(TextField), 'metro');
     await tester.pumpAndSettle();
     expect(find.text('No services found'), findsOneWidget);
 
-    // ...but the kept ones remain searchable.
-    await tester.enterText(find.byType(TextField), 'metro');
+    // ...but Lifestyle keep-list items remain searchable.
+    await tester.enterText(find.byType(TextField), 'donation');
     await tester.pumpAndSettle();
-    expect(tilesNamed(tester, 'Metro Recharge'), isNotEmpty);
+    expect(tilesNamed(tester, 'Donation'), isNotEmpty);
 
     await tester.enterText(find.byType(TextField), 'zzz-no-match');
     await tester.pumpAndSettle();

@@ -110,15 +110,15 @@ class HomeSearchView extends HookConsumerWidget {
             'banking',
           ];
 
-          // Figma: the "Other Services" container keeps only these cards;
-          // every other item of the API category is commented out (hidden
-          // in browse and search). Substring match, lower-case.
+          // Lifestyle & Membership (was Other Services) keeps only these
+          // cards; every other API item in that category is hidden in
+          // browse and search. Substring match, lower-case.
           const otherServicesKeep = <String>[
+            'gym',
+            'club',
+            'association',
             'subscription',
-            'pipe', // covers "Pipe Gas" and "Piped Gas"
-            'water',
-            'metro', // covers "Metro Recharge"
-            'prepaid meter',
+            'donation',
           ];
           allResults.value = data.categories.where((c) {
             final name = c.category.trim().toLowerCase();
@@ -172,10 +172,38 @@ class HomeSearchView extends HookConsumerWidget {
           .toList();
     }, [query.value, allResults.value]);
 
-    void handleServiceTap(String serviceName) {
+    /// Prefer the exact API service name from fetched quick-actions (same
+    /// string home passes into billerListing). [fallback] if not found yet.
+    String apiServiceName(List<String> keywords, String fallback) {
+      for (final cat in allResults.value) {
+        for (final s in cat.services) {
+          final n = s.name.trim().toLowerCase();
+          if (keywords.every(n.contains)) {
+            return s.name.trim();
+          }
+        }
+      }
+      return fallback;
+    }
+
+    Future<void> handleServiceTap(String serviceName) async {
       final normalized = serviceName.trim().toLowerCase();
-      if (normalized == 'credit card') {
-        context.push(RouteConstants.creditCardMyCards);
+      // Same credit-card flow as the home Credit Card tile.
+      if (normalized == 'credit card' || normalized == 'credit card bill') {
+        final homeState = ref.read(homeControllerProvider);
+        if (homeState.isFetchingCreditCards) {
+          return;
+        }
+        await ref
+            .read(homeControllerProvider.notifier)
+            .fetchCreditCardActions();
+        if (!context.mounted) return;
+        final cards = ref.read(homeControllerProvider).creditCardActions;
+        if (cards != null && cards.isNotEmpty) {
+          context.push(RouteConstants.creditCardMyCards);
+        } else {
+          context.push(RouteConstants.creditCardListing);
+        }
       } else if (normalized == 'mobile prepaid') {
         context.push(RouteConstants.mobilePrepaid);
       } else if (normalized == 'digital gold') {
@@ -185,6 +213,11 @@ class HomeSearchView extends HookConsumerWidget {
       } else if (normalized == 'digital silver') {
         context.push(
           '${RouteConstants.digitalGold}?metal=silver&entry=home',
+        );
+      } else if (normalized == 'book lpg' || normalized == 'book gas') {
+        context.push(
+          RouteConstants.billerListing,
+          extra: 'Book Gas',
         );
       } else if (normalized == 'tuition fees' ||
           normalized == 'tution fees' ||
@@ -206,6 +239,35 @@ class HomeSearchView extends HookConsumerWidget {
         context.push(
           RouteConstants.billerListing,
           extra: 'Electricity',
+        );
+      } else if (normalized == 'piped gas' || normalized == 'pipe gas') {
+        context.push(
+          RouteConstants.billerListing,
+          extra: 'Pipe Gas',
+        );
+      } else if (normalized == 'life insurance') {
+        // /api/billers?category_name=Life
+        context.push(
+          RouteConstants.billerListing,
+          extra: 'Life',
+        );
+      } else if (normalized == 'health insurance') {
+        // /api/billers?category_name=Health
+        context.push(
+          RouteConstants.billerListing,
+          extra: 'Health',
+        );
+      } else if (normalized == 'general insurance' ||
+          normalized == 'motor insurance') {
+        // Home shows "Motor Insurance" for the API general/motor service and
+        // taps with that service's exact name — reuse the same string.
+        final fromApi = apiServiceName(const ['general'], '');
+        final motorApi = apiServiceName(const ['motor', 'insurance'], '');
+        context.push(
+          RouteConstants.billerListing,
+          extra: fromApi.isNotEmpty
+              ? fromApi
+              : (motorApi.isNotEmpty ? motorApi : 'Motor Insurance'),
         );
       } else {
         context.push(
@@ -249,11 +311,7 @@ class HomeSearchView extends HookConsumerWidget {
         title: 'All Services',
         showHelp: true,
         onBack: () => Navigator.of(context).pop(),
-        titleStyle: GoogleFonts.plusJakartaSans(
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w600,
-          color: Colors.black,
-        ),
+        // Title typography: MyAppBar default (= Transaction History).
       ),
       body: SafeArea(
         top: false,
@@ -679,14 +737,14 @@ class _UtilityBillsCategorySection extends StatelessWidget {
           onTap: () => onServiceTap('Electricity Bill'),
         ),
         HomeIconTile(
-          label: 'Book LPG',
+          label: 'Book Gas',
           svgAsset: 'assets/images/svg/services/digital_silver.svg',
-          onTap: () => onServiceTap('Book LPG'),
+          onTap: () => onServiceTap('Book Gas'),
         ),
         HomeIconTile(
-          label: 'Pipe Gas',
+          label: 'Piped Gas',
           svgAsset: 'assets/images/svg/services/pipe_gas.svg',
-          onTap: () => onServiceTap('Pipe Gas'),
+          onTap: () => onServiceTap('Piped Gas'),
         ),
         HomeIconTile(
           label: 'Prepaid Meter',
@@ -900,10 +958,8 @@ class _RentPropertyCategorySection extends StatelessWidget {
   }
 }
 
-/// Other Services — re-enabled per Figma as the LAST container with only
-/// the approved cards (Subscription, Pipe Gas, Water, Metro Recharge,
-/// Prepaid Meter). All other items from the old API category stay
-/// commented out (see otherServicesKeep in the fetch effect).
+/// Lifestyle & Membership — last container; old Other Services cards removed.
+/// Cards: Gym Membership, Clubs & Associations, Subscription, Donation.
 class _OtherServicesCategorySection extends StatelessWidget {
   const _OtherServicesCategorySection({required this.onServiceTap});
 
@@ -912,32 +968,28 @@ class _OtherServicesCategorySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StaticCategorySection(
-      title: 'Other Services',
+      title: 'Lifestyle & Membership',
       tiles: [
         HomeIconTile(
+          label: 'Gym Membership',
+          svgAsset: 'assets/images/svg/services/gym_membership.svg',
+          onTap: () => onServiceTap('Gym Membership'),
+        ),
+        HomeIconTile(
+          label: 'Clubs & Associations',
+          svgAsset: 'assets/images/svg/services/clubs_associations.svg',
+          onTap: () => onServiceTap('Clubs & Associations'),
+        ),
+        HomeIconTile(
           label: 'Subscription',
-          iconUrl: FileConstants.subscriptions,
+          // Same credit-card style icon used on home / Credit Card Bill.
+          svgAsset: 'assets/images/svg/services/ncmc_recharge.svg',
           onTap: () => onServiceTap('Subscription'),
         ),
         HomeIconTile(
-          label: 'Pipe Gas',
-          svgAsset: 'assets/images/svg/services/pipe_gas.svg',
-          onTap: () => onServiceTap('Pipe Gas'),
-        ),
-        HomeIconTile(
-          label: 'Water',
-          iconUrl: FileConstants.water,
-          onTap: () => onServiceTap('Water'),
-        ),
-        HomeIconTile(
-          label: 'Metro Recharge',
-          iconUrl: FileConstants.metro,
-          onTap: () => onServiceTap('Metro Recharge'),
-        ),
-        HomeIconTile(
-          label: 'Prepaid Meter',
-          svgAsset: 'assets/images/svg/services/prepaid_meter.svg',
-          onTap: () => onServiceTap('Prepaid Meter'),
+          label: 'Donation',
+          svgAsset: 'assets/images/svg/services/donation.svg',
+          onTap: () => onServiceTap('Donation'),
         ),
       ],
     );
@@ -1115,9 +1167,7 @@ class _CategorySection extends HookWidget {
     final isElectricity = lower.contains('electricity');
     final isEChallan = lower.contains('challan');
     final isNcmc = lower.contains('ncmc');
-    // Figma: the Gym Membership tile is replaced by Education Fees here.
-    final label =
-        lower.contains('gym') ? 'Education Fees' : displayServiceName(name);
+    final label = displayServiceName(name);
 
     String? svgAsset;
     String? iconUrl = service.icon;
@@ -1142,8 +1192,16 @@ class _CategorySection extends HookWidget {
         svgAsset = 'assets/images/svg/services/mobile_recharge.svg';
       } else if (lower.contains('fastag')) {
         svgAsset = 'assets/images/svg/services/fastag_recharge.svg';
-      } else if (lower.contains('gym') || lower.contains('education fees')) {
+      } else if (lower.contains('gym')) {
+        svgAsset = 'assets/images/svg/services/gym_membership.svg';
+      } else if (lower.contains('education fees')) {
         svgAsset = 'assets/images/svg/services/education_fees.svg';
+      } else if (lower.contains('club') || lower.contains('association')) {
+        svgAsset = 'assets/images/svg/services/clubs_associations.svg';
+      } else if (lower.contains('donation')) {
+        svgAsset = 'assets/images/svg/services/donation.svg';
+      } else if (lower.contains('subscription')) {
+        svgAsset = 'assets/images/svg/services/ncmc_recharge.svg';
       } else if (lower.contains('rental')) {
         svgAsset = 'assets/images/svg/services/rental.svg';
       } else if (lower.contains('credit card')) {

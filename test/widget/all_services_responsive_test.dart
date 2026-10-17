@@ -28,8 +28,8 @@ const _categories = [
     category: 'Utility Bills',
     services: [
       QuickActionService(name: 'Electricity Bill'),
-      QuickActionService(name: 'Book LPG'),
-      QuickActionService(name: 'Pipe Gas', icon: 'https://cdn/x.png'),
+      QuickActionService(name: 'Book Gas'),
+      QuickActionService(name: 'Piped Gas', icon: 'https://cdn/x.png'),
       QuickActionService(name: 'Prepaid Meter'),
       QuickActionService(name: 'Cable TV'),
       QuickActionService(name: 'DTH'),
@@ -122,7 +122,7 @@ const _suppliedSvgs = {
   'EV Recharge': 'ev_recharge',
   'Fleet Card Recharge': 'fleet_card_recharge',
   'NCMC Recharge': 'ncmc_recharge',
-  'Pipe Gas': 'pipe_gas',
+  'Piped Gas': 'pipe_gas',
   'Prepaid Meter': 'prepaid_meter',
   'Cable TV': 'cable_tv',
   'DTH': 'dth',
@@ -130,7 +130,8 @@ const _suppliedSvgs = {
   'Landline': 'landline',
   'Housing Society': 'housing_society',
   'Municipal Services': 'municipal_services',
-  'Digital Gold': 'digital_gold',
+  // Financial reuses these icons per Figma (not the unused digital_*.svg files).
+  'Digital Gold': 'electricity_bill',
   'Digital Silver': 'digital_silver',
   'Loan Repayment': 'loan_repayment',
   'Municipal Taxes': 'municipal_taxes',
@@ -241,8 +242,8 @@ void main() {
       final utilityRow = [
         for (final name in [
           'Electricity Bill',
-          'Book LPG',
-          'Pipe Gas',
+          'Book Gas',
+          'Piped Gas',
           'Prepaid Meter',
           'Cable TV',
         ])
@@ -271,11 +272,8 @@ void main() {
     tester,
   ) async {
     await pump(tester, 390);
-    // Sections with more than two rows start collapsed (existing behaviour).
-    for (final heading in ['Utility Bills', 'Financial']) {
-      await tester.tap(find.text(heading));
-      await tester.pumpAndSettle();
-    }
+    // Static sections start expanded; leave Utility Bills / Financial open
+    // so their SVG tiles stay in the tree for this assertion.
     expect(tester.takeException(), isNull);
     final rendered = tester
         .widgetList<CommonServiceSvgIcon>(find.byType(CommonServiceSvgIcon))
@@ -290,11 +288,11 @@ void main() {
     }
 
     // The supplied SVG wins over an API icon.
-    expect(tileNamed(tester, 'Pipe Gas').iconUrl, isNull);
-    // EChallan reuses the Credit Card icon.
+    expect(tileNamed(tester, 'Piped Gas').iconUrl, isNull);
+    // eChallan reuses the Credit Card Bill SVG.
     expect(
-      tileNamed(tester, 'EChallan').iconUrl,
-      tileNamed(tester, 'Credit Card Bill').iconUrl,
+      tileNamed(tester, 'eChallan').svgAsset,
+      tileNamed(tester, 'Credit Card Bill').svgAsset,
     );
   });
 

@@ -150,6 +150,7 @@ class _CreditCardPayDeeplinkViewState
         title: 'Credit Card',
         onBack: () => context.pop(),
         showHelp: false,
+        showBharatConnect: false,
       ),
       body: Center(
         child: Padding(

@@ -134,7 +134,8 @@ class BillerDetailView extends HookConsumerWidget {
     final showSubscriptionSummary = isSubscription && bill != null;
     final isElectricityInputStep =
         isElectricity && detail != null && bill == null;
-    final isElectricityBillStep = isElectricity && detail != null && bill != null;
+    final isElectricityBillStep =
+        isElectricity && detail != null && bill != null;
 
     Map<String, String?> gasCylinderInlineErrors(BillerDetail detail) {
       final errors = <String, String?>{};
@@ -544,11 +545,7 @@ class BillerDetailView extends HookConsumerWidget {
               : (isCreditCardFlow && detailState.billResponse != null)
                   ? 'Pay Now'
                   : 'Pay Now',
-          titleStyle: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w600,
-            fontSize: 18.sp,
-            color: Colors.black,
-          ),
+          // Title typography: MyAppBar default (= Transaction History).
           fitTitle: true,
           showHelp: true,
           onBack: () {
@@ -591,9 +588,9 @@ class BillerDetailView extends HookConsumerWidget {
                             operatorStyle:
                                 isElectricityInputStep || isElectricityBillStep,
                             actionLabel: 'Change',
-                            showShadow:
-                                !(isElectricityInputStep ||
-                                    isElectricityBillStep),
+                            // Electricity Pay Now: Figma multi-layer soft
+                            // shadow on the Maharashtra / operator card.
+                            showShadow: true,
                             onAction: () {
                               controller.reset();
                               context.pop();
@@ -700,7 +697,8 @@ class BillerDetailView extends HookConsumerWidget {
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 14.sp,
                                                     height: 1,
-                                                    color: AppColors.textPrimary,
+                                                    color:
+                                                        AppColors.textPrimary,
                                                   )
                                                 : Theme.of(context)
                                                     .textTheme
@@ -722,8 +720,7 @@ class BillerDetailView extends HookConsumerWidget {
                                                 ? GoogleFonts.plusJakartaSans(
                                                     fontWeight: FontWeight.w400,
                                                     fontSize: 12.sp,
-                                                    color: AppColors
-                                                        .textPrimary
+                                                    color: AppColors.textPrimary
                                                         .withValues(alpha: 0.5),
                                                   )
                                                 : Theme.of(context)
@@ -732,7 +729,8 @@ class BillerDetailView extends HookConsumerWidget {
                                                     ?.copyWith(
                                                       color: AppColors
                                                           .textPrimary
-                                                          .withValues(alpha: 0.5),
+                                                          .withValues(
+                                                              alpha: 0.5),
                                                     ),
                                           ),
                                       ],
@@ -782,17 +780,15 @@ class BillerDetailView extends HookConsumerWidget {
                                         showCursor:
                                             isGasLockedMobile ? false : null,
                                         onTap: isGasLockedMobile
-                                            ? () => FocusScope.of(context)
-                                                .unfocus()
+                                            ? () =>
+                                                FocusScope.of(context).unfocus()
                                             : null,
                                         keyboardType:
                                             param.dataType == 'NUMERIC'
                                                 ? TextInputType.number
                                                 : TextInputType.text,
                                         inputFormatters: isAlphaNumeric
-                                            ? const [
-                                                _UpperCaseTextFormatter()
-                                              ]
+                                            ? const [_UpperCaseTextFormatter()]
                                             : null,
                                         maxLength:
                                             isLastFour ? 4 : param.maxLength,
@@ -883,8 +879,7 @@ class BillerDetailView extends HookConsumerWidget {
                                             borderSide: const BorderSide(
                                                 color: Colors.red),
                                           ),
-                                          contentPadding:
-                                              EdgeInsets.symmetric(
+                                          contentPadding: EdgeInsets.symmetric(
                                             horizontal: isElectricity
                                                 ? FetchProviderMetrics.w(16)
                                                 : 16.w,
@@ -1138,312 +1133,354 @@ class BillerDetailView extends HookConsumerWidget {
                                         btnConstraints.maxWidth,
                                       )
                                       .toDouble(),
-                                onPressed: shouldDisablePay ||
-                                        detailState.isPayingBill ||
-                                        isHandlingPayAction.value
-                                    ? null
-                                    : () async {
-                                        if (isHandlingPayAction.value ||
-                                            detailState.isPayingBill) {
-                                          return;
-                                        }
-                                        isHandlingPayAction.value = true;
-                                        try {
-                                          if (showSubscriptionSummary) {
-                                            final amountToPay =
-                                                subscriptionAmount ?? 0;
-                                            final mobile =
-                                                _resolveSubscriptionMobile(
-                                              customerParamsInput,
-                                            );
-                                            final name = biller.billerName
-                                                    .trim()
-                                                    .isNotEmpty
-                                                ? biller.billerName.trim()
-                                                : detail.billerCategoryName.trim().isNotEmpty
-                                                    ? detail.billerCategoryName.trim()
-                                                    : 'Payment';
-                                            if (!await RazorpayGuard
-                                                .ensureProfileReadyAndNotPaused(
-                                              ref,
-                                            )) {
-                                              return;
-                                            }
-                                            final paymentType =
-                                                (args?.paymentType ?? '')
-                                                        .trim()
-                                                        .isNotEmpty
-                                                    ? args!.paymentType!.trim()
-                                                    : detail.billerCategoryName.trim().isNotEmpty
-                                                        ? detail.billerCategoryName.trim()
-                                                        : 'Payment';
-                                            final order = await controller
-                                                .createPayAllServicesOrder(
-                                              amount: amountToPay,
-                                              paymentType: paymentType,
-                                              useWallet: false,
-                                              isCreditCardFlow:
-                                                  isCreditCardFlow,
-                                            );
-                                            if (!context.mounted) return;
-                                            if (order == null ||
-                                                order.orderId.isEmpty ||
-                                                order.key.isEmpty ||
-                                                order.transactionRef.isEmpty) {
-                                              AppSnackbar.show(
-                                                ref
-                                                        .read(
-                                                          billerDetailControllerProvider,
-                                                        )
-                                                        .payErrorMessage ??
-                                                    'Unable to start payment. Please try again.',
-                                                type: AppSnackbarType.error,
+                                  onPressed: shouldDisablePay ||
+                                          detailState.isPayingBill ||
+                                          isHandlingPayAction.value
+                                      ? null
+                                      : () async {
+                                          if (isHandlingPayAction.value ||
+                                              detailState.isPayingBill) {
+                                            return;
+                                          }
+                                          isHandlingPayAction.value = true;
+                                          try {
+                                            if (showSubscriptionSummary) {
+                                              final amountToPay =
+                                                  subscriptionAmount ?? 0;
+                                              final mobile =
+                                                  _resolveSubscriptionMobile(
+                                                customerParamsInput,
                                               );
-                                              return;
-                                            }
-
-                                            Future<void> verifyAndShowResult({
-                                              required String fallbackMessage,
-                                            }) async {
-                                              if (!context.mounted) return;
-                                              final wait =
-                                                  await showPaymentProcessingWhile(
-                                                work: controller
-                                                    .verifyPayAllServicesStatus(
-                                                  transactionRef:
-                                                      order.transactionRef,
-                                                ),
-                                              );
-                                              if (!context.mounted) return;
-                                              final status = wait.value;
-                                              final normalized = (status?.status
+                                              final name = biller.billerName
                                                       .trim()
-                                                      .toUpperCase() ??
-                                                  '');
-                                              final fallbackStatus =
-                                                  normalized.isNotEmpty
-                                                      ? normalized
-                                                      : 'PENDING';
-                                              final entry =
-                                                  buildPaymentFlowTransactionEntryFromRechargeStatus(
-                                                status: status,
-                                                fallbackStatus: fallbackStatus,
-                                                fallbackPaymentType: args
-                                                        ?.paymentType ??
-                                                    detail.billerCategoryName,
-                                                fallbackBillerName: name,
-                                                fallbackAmount: amountToPay,
-                                                fallbackTransactionId:
-                                                    order.transactionRef,
-                                                fallbackServiceNo:
-                                                    args?.mobileNumber,
-                                                fallbackServiceNoFull:
-                                                    args?.mobileNumber,
+                                                      .isNotEmpty
+                                                  ? biller.billerName.trim()
+                                                  : detail.billerCategoryName
+                                                          .trim()
+                                                          .isNotEmpty
+                                                      ? detail
+                                                          .billerCategoryName
+                                                          .trim()
+                                                      : 'Payment';
+                                              if (!await RazorpayGuard
+                                                  .ensureProfileReadyAndNotPaused(
+                                                ref,
+                                              )) {
+                                                return;
+                                              }
+                                              final paymentType = (args
+                                                              ?.paymentType ??
+                                                          '')
+                                                      .trim()
+                                                      .isNotEmpty
+                                                  ? args!.paymentType!.trim()
+                                                  : detail.billerCategoryName
+                                                          .trim()
+                                                          .isNotEmpty
+                                                      ? detail
+                                                          .billerCategoryName
+                                                          .trim()
+                                                      : 'Payment';
+                                              final order = await controller
+                                                  .createPayAllServicesOrder(
+                                                amount: amountToPay,
+                                                paymentType: paymentType,
+                                                useWallet: false,
+                                                isCreditCardFlow:
+                                                    isCreditCardFlow,
                                               );
+                                              if (!context.mounted) return;
+                                              if (order == null ||
+                                                  order.orderId.isEmpty ||
+                                                  order.key.isEmpty ||
+                                                  order
+                                                      .transactionRef.isEmpty) {
+                                                AppSnackbar.show(
+                                                  ref
+                                                          .read(
+                                                            billerDetailControllerProvider,
+                                                          )
+                                                          .payErrorMessage ??
+                                                      'Unable to start payment. Please try again.',
+                                                  type: AppSnackbarType.error,
+                                                );
+                                                return;
+                                              }
 
-                                              final isSuccess = normalized == 'SUCCESS';
-                                              if (isSuccess) {
-                                                final paymentName = (args?.paymentType?.trim().isNotEmpty == true
-                                                        ? args!.paymentType!.trim()
-                                                        : detail.billerCategoryName.trim())
-                                                    .trim();
-                                                Navigator.of(context).pushReplacement(
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        EducationPaymentThankYouView(
-                                                      amount: amountToPay.toStringAsFixed(amountToPay.truncateToDouble() == amountToPay ? 0 : 2),
-                                                      payableAmount: amountToPay.toStringAsFixed(amountToPay.truncateToDouble() == amountToPay ? 0 : 2),
-                                                      transactionTime: DateTime.now().toIso8601String(),
-                                                      paymentType: paymentName,
-                                                    ),
+                                              Future<void> verifyAndShowResult({
+                                                required String fallbackMessage,
+                                              }) async {
+                                                if (!context.mounted) return;
+                                                final wait =
+                                                    await showPaymentProcessingWhile(
+                                                  work: controller
+                                                      .verifyPayAllServicesStatus(
+                                                    transactionRef:
+                                                        order.transactionRef,
                                                   ),
                                                 );
-                                              } else {
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        TransactionDetailScreen(
-                                                      entry: entry,
-                                                      doneLabel: 'Continue',
-                                                      navigateHomeOnExit: true,
+                                                if (!context.mounted) return;
+                                                final status = wait.value;
+                                                final normalized = (status
+                                                        ?.status
+                                                        .trim()
+                                                        .toUpperCase() ??
+                                                    '');
+                                                final fallbackStatus =
+                                                    normalized.isNotEmpty
+                                                        ? normalized
+                                                        : 'PENDING';
+                                                final entry =
+                                                    buildPaymentFlowTransactionEntryFromRechargeStatus(
+                                                  status: status,
+                                                  fallbackStatus:
+                                                      fallbackStatus,
+                                                  fallbackPaymentType: args
+                                                          ?.paymentType ??
+                                                      detail.billerCategoryName,
+                                                  fallbackBillerName: name,
+                                                  fallbackAmount: amountToPay,
+                                                  fallbackTransactionId:
+                                                      order.transactionRef,
+                                                  fallbackServiceNo:
+                                                      args?.mobileNumber,
+                                                  fallbackServiceNoFull:
+                                                      args?.mobileNumber,
+                                                );
+
+                                                final isSuccess =
+                                                    normalized == 'SUCCESS';
+                                                if (isSuccess) {
+                                                  final paymentName = (args
+                                                                  ?.paymentType
+                                                                  ?.trim()
+                                                                  .isNotEmpty ==
+                                                              true
+                                                          ? args!.paymentType!
+                                                              .trim()
+                                                          : detail
+                                                              .billerCategoryName
+                                                              .trim())
+                                                      .trim();
+                                                  Navigator.of(context)
+                                                      .pushReplacement(
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          EducationPaymentThankYouView(
+                                                        amount: amountToPay
+                                                            .toStringAsFixed(
+                                                                amountToPay.truncateToDouble() ==
+                                                                        amountToPay
+                                                                    ? 0
+                                                                    : 2),
+                                                        payableAmount: amountToPay
+                                                            .toStringAsFixed(
+                                                                amountToPay.truncateToDouble() ==
+                                                                        amountToPay
+                                                                    ? 0
+                                                                    : 2),
+                                                        transactionTime: DateTime
+                                                                .now()
+                                                            .toIso8601String(),
+                                                        paymentType:
+                                                            paymentName,
+                                                      ),
                                                     ),
-                                                  ),
-                                                );
+                                                  );
+                                                } else {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          TransactionDetailScreen(
+                                                        entry: entry,
+                                                        doneLabel: 'Continue',
+                                                        navigateHomeOnExit:
+                                                            true,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
                                               }
-                                            }
 
-                                            await RazorpayService.instance
-                                                .openCheckout(
-                                              amount: amountToPay,
-                                              name: name,
-                                              description:
-                                                  'Subscription bill payment',
-                                              orderId: order.orderId,
-                                              keyOverride: order.key,
-                                              prefill: {
-                                                if (mobile.isNotEmpty)
-                                                  'contact': mobile,
-                                              },
-                                              onSuccess: (_) async {
-                                                await verifyAndShowResult(
-                                                  fallbackMessage:
-                                                      'Your payment was completed successfully.',
-                                                );
-                                              },
-                                              onFailure: (message) async {
-                                                await verifyAndShowResult(
-                                                  fallbackMessage: message
-                                                          .isEmpty
-                                                      ? 'Payment failed. Please try again.'
-                                                      : message,
-                                                );
-                                              },
-                                              onExternalWallet: (_) async {
-                                                await verifyAndShowResult(
-                                                  fallbackMessage:
-                                                      'We are verifying your payment. Please wait a moment.',
-                                                );
-                                              },
-                                            );
-                                            return;
-                                          }
-                                          if (bill != null &&
-                                              isFastTag &&
-                                              (enteredAmount ?? 0) < 100) {
-                                            AppSnackbar.show(
-                                              AppErrorMessages.minAmount100,
-                                            );
-                                            return;
-                                          }
-                                          if (bill == null) {
-                                            // Validate all visible params
-                                            final visibleParams = detail
-                                                .customerParams
-                                                .where((p) => p.visibility)
-                                                .toList();
-                                            if (visibleParams.isEmpty) return;
-
-                                            final errors = <String, String?>{};
-                                            final values = <String, String>{};
-                                            for (final param in visibleParams) {
-                                              final value = inputControllers[
-                                                          param.paramName]
-                                                      ?.text
-                                                      .trim() ??
-                                                  '';
-                                              final error =
-                                                  _validateParam(param, value);
-                                              if (error != null) {
-                                                errors[param.paramName] = error;
-                                              } else if (value.isNotEmpty) {
-                                                values[param.paramName] = value;
-                                              }
-                                            }
-
-                                            if (errors.isNotEmpty) {
-                                              fieldErrors.value = errors;
+                                              await RazorpayService.instance
+                                                  .openCheckout(
+                                                amount: amountToPay,
+                                                name: name,
+                                                description:
+                                                    'Subscription bill payment',
+                                                orderId: order.orderId,
+                                                keyOverride: order.key,
+                                                prefill: {
+                                                  if (mobile.isNotEmpty)
+                                                    'contact': mobile,
+                                                },
+                                                onSuccess: (_) async {
+                                                  await verifyAndShowResult(
+                                                    fallbackMessage:
+                                                        'Your payment was completed successfully.',
+                                                  );
+                                                },
+                                                onFailure: (message) async {
+                                                  await verifyAndShowResult(
+                                                    fallbackMessage: message
+                                                            .isEmpty
+                                                        ? 'Payment failed. Please try again.'
+                                                        : message,
+                                                  );
+                                                },
+                                                onExternalWallet: (_) async {
+                                                  await verifyAndShowResult(
+                                                    fallbackMessage:
+                                                        'We are verifying your payment. Please wait a moment.',
+                                                  );
+                                                },
+                                              );
                                               return;
                                             }
-                                            fieldErrors.value = {};
-
-                                            if (isGasCylinder &&
-                                                visibleParams.isNotEmpty &&
-                                                values.isEmpty) {
-                                              fieldErrors.value =
-                                                  gasCylinderInlineErrors(
-                                                      detail);
+                                            if (bill != null &&
+                                                isFastTag &&
+                                                (enteredAmount ?? 0) < 100) {
+                                              AppSnackbar.show(
+                                                AppErrorMessages.minAmount100,
+                                              );
                                               return;
                                             }
+                                            if (bill == null) {
+                                              // Validate all visible params
+                                              final visibleParams = detail
+                                                  .customerParams
+                                                  .where((p) => p.visibility)
+                                                  .toList();
+                                              if (visibleParams.isEmpty) return;
 
-                                            if (values.isNotEmpty) {
-                                              if (gasPolicyMessage.value !=
-                                                  null) {
-                                                gasPolicyMessage.value = null;
+                                              final errors =
+                                                  <String, String?>{};
+                                              final values = <String, String>{};
+                                              for (final param
+                                                  in visibleParams) {
+                                                final value = inputControllers[
+                                                            param.paramName]
+                                                        ?.text
+                                                        .trim() ??
+                                                    '';
+                                                final error = _validateParam(
+                                                    param, value);
+                                                if (error != null) {
+                                                  errors[param.paramName] =
+                                                      error;
+                                                } else if (value.isNotEmpty) {
+                                                  values[param.paramName] =
+                                                      value;
+                                                }
                                               }
-                                              controller.fetchBill(
-                                                customerParams: values,
+
+                                              if (errors.isNotEmpty) {
+                                                fieldErrors.value = errors;
+                                                return;
+                                              }
+                                              fieldErrors.value = {};
+
+                                              if (isGasCylinder &&
+                                                  visibleParams.isNotEmpty &&
+                                                  values.isEmpty) {
+                                                fieldErrors.value =
+                                                    gasCylinderInlineErrors(
+                                                        detail);
+                                                return;
+                                              }
+
+                                              if (values.isNotEmpty) {
+                                                if (gasPolicyMessage.value !=
+                                                    null) {
+                                                  gasPolicyMessage.value = null;
+                                                }
+                                                controller.fetchBill(
+                                                  customerParams: values,
+                                                );
+                                              }
+                                            } else if (!detailState
+                                                .showFullDetails) {
+                                              // Open payment bottom sheet (details expansion is via the
+                                              // down-arrow in the bill card, not the pay CTA).
+                                              final amountToPay =
+                                                  enteredAmount ??
+                                                      bill.amountInRupees;
+                                              final consumerForAutoPay =
+                                                  isElectricity
+                                                      ? _extractConsumerNumber(
+                                                          customerParamsInput,
+                                                          bill: bill,
+                                                        )
+                                                      : '';
+                                              _showPaymentSheet(
+                                                context,
+                                                amountToPay,
+                                                isCreditCardFlow:
+                                                    isCreditCardFlow,
+                                                paymentTypeOverride:
+                                                    args?.paymentType,
+                                                ecoinsRestrictionsPercent: bill
+                                                    .ecoinsRestrictionsPercent,
+                                                isElectricityFlow:
+                                                    isElectricity,
+                                                billerName: biller.billerName,
+                                                providerIconUrl: biller.iconUrl,
+                                                accountHolderName:
+                                                    bill.accountHolderName,
+                                                consumerNumber:
+                                                    consumerForAutoPay,
+                                              );
+                                            } else {
+                                              // Open payment bottom sheet
+                                              final amountToPay =
+                                                  enteredAmount ??
+                                                      bill.amountInRupees;
+                                              final consumerForAutoPay2 =
+                                                  isElectricity
+                                                      ? _extractConsumerNumber(
+                                                          customerParamsInput,
+                                                          bill: bill,
+                                                        )
+                                                      : '';
+                                              _showPaymentSheet(
+                                                context,
+                                                amountToPay,
+                                                isCreditCardFlow:
+                                                    isCreditCardFlow,
+                                                paymentTypeOverride:
+                                                    args?.paymentType,
+                                                ecoinsRestrictionsPercent: bill
+                                                    .ecoinsRestrictionsPercent,
+                                                isElectricityFlow:
+                                                    isElectricity,
+                                                billerName: biller.billerName,
+                                                providerIconUrl: biller.iconUrl,
+                                                accountHolderName:
+                                                    bill.accountHolderName,
+                                                consumerNumber:
+                                                    consumerForAutoPay2,
                                               );
                                             }
-                                          } else if (!detailState
-                                              .showFullDetails) {
-                                            // Open payment bottom sheet (details expansion is via the
-                                            // down-arrow in the bill card, not the pay CTA).
-                                            final amountToPay = enteredAmount ??
-                                                bill.amountInRupees;
-                                            final consumerForAutoPay =
-                                                isElectricity
-                                                    ? _extractConsumerNumber(
-                                                        customerParamsInput,
-                                                        bill: bill,
-                                                      )
-                                                    : '';
-                                            _showPaymentSheet(
-                                              context,
-                                              amountToPay,
-                                              isCreditCardFlow:
-                                                  isCreditCardFlow,
-                                              paymentTypeOverride:
-                                                  args?.paymentType,
-                                              ecoinsRestrictionsPercent: bill
-                                                  .ecoinsRestrictionsPercent,
-                                              isElectricityFlow: isElectricity,
-                                              billerName: biller.billerName,
-                                              providerIconUrl: biller.iconUrl,
-                                              accountHolderName:
-                                                  bill.accountHolderName,
-                                              consumerNumber:
-                                                  consumerForAutoPay,
-                                            );
-                                          } else {
-                                            // Open payment bottom sheet
-                                            final amountToPay = enteredAmount ??
-                                                bill.amountInRupees;
-                                            final consumerForAutoPay2 =
-                                                isElectricity
-                                                    ? _extractConsumerNumber(
-                                                        customerParamsInput,
-                                                        bill: bill,
-                                                      )
-                                                    : '';
-                                            _showPaymentSheet(
-                                              context,
-                                              amountToPay,
-                                              isCreditCardFlow:
-                                                  isCreditCardFlow,
-                                              paymentTypeOverride:
-                                                  args?.paymentType,
-                                              ecoinsRestrictionsPercent: bill
-                                                  .ecoinsRestrictionsPercent,
-                                              isElectricityFlow: isElectricity,
-                                              billerName: biller.billerName,
-                                              providerIconUrl: biller.iconUrl,
-                                              accountHolderName:
-                                                  bill.accountHolderName,
-                                              consumerNumber:
-                                                  consumerForAutoPay2,
-                                            );
+                                          } finally {
+                                            isHandlingPayAction.value = false;
                                           }
-                                        } finally {
-                                          isHandlingPayAction.value = false;
-                                        }
-                                      },
-                                label: detailState.isPayingBill ||
-                                        isHandlingPayAction.value
-                                    ? 'Processing...'
-                                    : payLabel,
-                                showArrow: false,
-                                uppercaseLabel: false,
-                                height: FetchProviderMetrics.h(56),
-                                labelStyle:
-                                    GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16.sp,
-                                  color: Colors.white,
-                                  height: 1.0,
+                                        },
+                                  label: detailState.isPayingBill ||
+                                          isHandlingPayAction.value
+                                      ? 'Processing...'
+                                      : payLabel,
+                                  showArrow: false,
+                                  uppercaseLabel: false,
+                                  height: FetchProviderMetrics.h(56),
+                                  labelStyle: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16.sp,
+                                    color: Colors.white,
+                                    height: 1.0,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
                           ),
                           // if (bill == null) ...[
                           //   SizedBox(height: 10.h),

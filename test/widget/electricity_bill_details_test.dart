@@ -88,6 +88,20 @@ void main() {
       expect(find.text('PC'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
 
+      // Customer / open-details card: 1px solid #D8D8D8
+      final customerCard = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.text('Customer Number'),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final customerDecoration = customerCard.decoration! as BoxDecoration;
+      final customerBorder = customerDecoration.border! as Border;
+      expect(customerBorder.top.color, const Color(0xFFD8D8D8));
+      expect(customerBorder.top.width, 1);
+
       // Verify toggle button works
       final svgWidgets = find.byType(SvgPicture);
       expect(svgWidgets, findsNWidgets(3)); // Down arrow, clock, info
@@ -101,6 +115,31 @@ void main() {
       expect(find.text('₹450.00'), findsOneWidget);
       expect(find.textContaining('Last Paid'), findsOneWidget);
       expect(find.textContaining('6 Dec 2025'), findsOneWidget);
+
+      final billFor = tester.widget<Text>(find.text("Bill for Sep '25"));
+      expect(billFor.style!.fontWeight, FontWeight.w500);
+      expect(
+        billFor.style!.fontSize,
+        moreOrLessEquals(FetchProviderMetrics.font(12, min: 10)),
+      );
+      final dueOn = tester.widget<Text>(find.text('Due on: 6th Oct'));
+      expect(dueOn.style!.fontWeight, FontWeight.w500);
+      final amountCard = tester
+          .widgetList<Container>(
+        find.ancestor(
+          of: find.text("Bill for Sep '25"),
+          matching: find.byType(Container),
+        ),
+      )
+          .firstWhere((c) {
+        final d = c.decoration;
+        if (d is! BoxDecoration || d.border is! Border) return false;
+        return (d.border! as Border).top.color == const Color(0xFFD8D8D8);
+      });
+      expect(
+        ((amountCard.decoration! as BoxDecoration).border! as Border).top.width,
+        1,
+      );
 
       // 3. Additional fee card checks
       expect(
@@ -346,6 +385,21 @@ void main() {
         );
         expect(tester.takeException(), isNull);
 
+        final detailsCard = tester.getRect(
+          find
+              .ancestor(
+                of: find.text('Customer Number'),
+                matching: find.byType(Container),
+              )
+              .first,
+        );
+        final innerPad = FetchProviderMetrics.w(16);
+        // Open card fills the 24px screen inset (392 on the 440 frame).
+        expect(
+          detailsCard.left,
+          moreOrLessEquals(FetchProviderMetrics.w(24), epsilon: 1),
+        );
+
         for (final entry in {
           'Customer Number': '058927104563',
           'Early Payment Date': '2025-09-25',
@@ -367,7 +421,32 @@ void main() {
           expect(label.right, lessThan(value.left), reason: entry.key);
           expect(label.top, moreOrLessEquals(value.top, epsilon: 4),
               reason: entry.key);
+          // Inner alignment: label / value stay inside the card padding.
+          expect(
+            label.left,
+            greaterThanOrEqualTo(detailsCard.left + innerPad - 1),
+            reason: entry.key,
+          );
+          expect(
+            value.right,
+            lessThanOrEqualTo(detailsCard.right - innerPad + 1),
+            reason: entry.value,
+          );
         }
+
+        final labelStyle =
+            tester.widget<Text>(find.text('Customer Name')).style!;
+        final valueStyle =
+            tester.widget<Text>(find.text('RAHUL SURESH PATIL')).style!;
+        expect(valueStyle.fontWeight, FontWeight.w500);
+        // Values after ":" match label size (e.g. Consumer No == value).
+        expect(valueStyle.fontSize, moreOrLessEquals(labelStyle.fontSize!));
+
+        final amountStyle = tester.widget<Text>(find.text('₹450.00')).style!;
+        expect(
+          amountStyle.fontSize,
+          moreOrLessEquals(FetchProviderMetrics.font(53, min: 37)),
+        );
 
         expect(feeText(), findsNothing);
         expect(find.text('₹450.00'), findsOneWidget);

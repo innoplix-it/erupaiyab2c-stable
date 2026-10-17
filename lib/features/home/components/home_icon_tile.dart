@@ -19,8 +19,6 @@ class HomeServiceCircle extends StatelessWidget {
 
   final Widget child;
 
-  /// Radial gradient (centre → edge) for metal-themed circles; defaults to
-  /// the standard #FFFFFF → #EEF3FD fill.
   final List<Color>? fillColors;
 
   static const goldFill = [Color(0xFFFFFFFF), Color(0xFFFFF7D5)];
@@ -28,9 +26,6 @@ class HomeServiceCircle extends StatelessWidget {
 
   static const defaultFill = [Color(0xFFFFFFFF), Color(0xFFEEF3FD)];
 
-  /// Figma sizes are drawn on a 440px frame while ScreenUtil's design size is
-  /// 360, so Figma px are converted before applying `.w`; this keeps a 68px
-  /// Figma circle exactly 68px on the Figma device and proportional elsewhere.
   static double _figma(double px) => (px * 360 / 440).w;
 
   static double get size => _figma(68);

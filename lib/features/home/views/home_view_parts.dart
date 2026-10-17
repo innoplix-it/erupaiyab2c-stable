@@ -3066,13 +3066,20 @@ class _HomeContent extends HookConsumerWidget {
       onServiceTap: handleServiceTap,
       onMyBillsTap: () => context.push(RouteConstants.quickActions),
       onExploreUtilitiesTap: () => context.push(RouteConstants.homeSearchView),
-      onGoldTap: () => context.push(
-        '${RouteConstants.digitalGold}?entry=home',
-      ),
-      onSilverTap: () => context.push(
-        '${RouteConstants.digitalGold}?metal=silver&entry=home',
-      ),
-      onZeroBalanceTap: () => handleServiceTap('Zero Balance'),
+      // Routes parked — cards stay visible; taps are no-ops for now.
+      onGoldTap: () {
+        // context.push(
+        //   '${RouteConstants.digitalGold}?entry=home',
+        // );
+      },
+      onSilverTap: () {
+        // context.push(
+        //   '${RouteConstants.digitalGold}?metal=silver&entry=home',
+        // );
+      },
+      onZeroBalanceTap: () {
+        // handleServiceTap('Zero Balance');
+      },
       // Zero Balance offer popup flow, parked until re-enabled (also restore
       // its two imports in home_view.dart):
       // onZeroBalanceTap: () => openZeroBalanceAccountOffer(
