@@ -203,19 +203,14 @@ class LoginView extends HookConsumerWidget {
 
     Future<void> handleMobileContinue() async {
       final phone = phoneController.text.trim();
-      debugPrint(
-        '[LoginView] Continue tapped -> mobile=$phone, consent=${allowConsent.value}',
-      );
+      debugPrint('[LoginView] Continue tapped -> mobile=$phone');
       if (phone.isEmpty || phone.length != 10) {
         debugPrint('[LoginView] Continue blocked -> invalid mobile');
         AppSnackbar.show('Enter a valid 10-digit mobile number');
         return;
       }
-      if (!allowConsent.value) {
-        debugPrint('[LoginView] Continue blocked -> consent not allowed');
-        AppSnackbar.show('Please allow access to continue');
-        return;
-      }
+      // Figma mobile step uses Terms/Privacy footer links (no checkbox).
+      allowConsent.value = true;
       final flow = await ref
           .read(authControllerProvider.notifier)
           .checkLogin(mobile: phone);
@@ -452,10 +447,6 @@ class LoginView extends HookConsumerWidget {
       return AuthMobileStep(
         controller: phoneController,
         isLoading: authState.isSubmitting,
-        isConsentAllowed: allowConsent.value,
-        onConsentChanged: (value) => allowConsent.value = value,
-        // Same wiring and same guard as the previous PhoneNumberInputCard call:
-        // handleMobileContinue still re-checks the number and the consent.
         onContinue: authState.isSubmitting ? null : handleMobileContinue,
         referralBanner: (referralCode.value?.isNotEmpty ?? false)
             ? buildReferralBanner()

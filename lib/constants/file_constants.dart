@@ -35,8 +35,7 @@ class FileConstants {
   static String deleteAccountSvg = 'assets/images/svg/delete_account.svg';
   static String homeScreenImg = 'assets/images/png/homescreenimghome.png';
   static String cibilLogoPng = 'assets/images/png/cibil.png';
-  static String zeroBalanceBanner =
-      'assets/images/png/zerobalacnepngimg.png';
+  static String zeroBalanceBanner = 'assets/images/png/zerobalacnepngimg.png';
   static String zeroBalanceBannerPng = 'assets/images/png/zerobalance.png';
   static String investGoldIcon = 'assets/images/svg/invest_gold.svg';
   static String investSilverIcon = 'assets/images/svg/invest_silver.svg';
@@ -193,6 +192,11 @@ class FileConstants {
   static String education = 'assets/images/png/home_icon/education.png';
   static String rLogo = 'assets/images/png/home_icon/r_logo.png';
   static String erupaiyaLogo = 'assets/images/png/home_icon/erupaiya_logo.png';
+  static String loginSliderSvg = 'assets/images/svg/login_slider.svg';
+  static String loginElectricityTileSvg =
+      'assets/images/svg/login_electricity_tile.svg';
+  static String loginElectricityBillIcon =
+      'assets/images/png/login_electricity_bill_icon.png';
   static String orangeRight = 'assets/images/png/orangeRight.png';
   static String wallet = 'assets/images/png/home_icon/wallet.png';
   static String homeSpin = 'assets/images/png/home_icon/homeSpin.png';
