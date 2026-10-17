@@ -120,9 +120,9 @@ void main() {
 
       expect(decorated, isNotEmpty);
       final gradient = decorated.first.gradient! as LinearGradient;
-      expect(gradient.begin, Alignment.topCenter);
-      expect(gradient.end, Alignment.bottomCenter);
-      expect(gradient.colors.first, const Color(0xFFFFA68A));
+      expect(gradient.begin, const Alignment(0.001, -1.2768));
+      expect(gradient.end, const Alignment(-0.001, 0.9242));
+      expect(gradient.colors.first, const Color(0xFFDD5428));
       expect(gradient.colors.last, const Color(0xFFFFFFFF));
     });
 

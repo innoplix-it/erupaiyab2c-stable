@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:e_rupaiya/constants/file_constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -194,10 +196,16 @@ class _LoginServicesSliderState extends State<LoginServicesSlider>
             duration: const Duration(milliseconds: 240),
             switchInCurve: Curves.easeOut,
             switchOutCurve: Curves.easeOut,
+            // Previous child must not grow the Stack (otherwise compact→closed
+            // transition reports a Column overflow at the tall closed height).
             layoutBuilder: (current, previous) => Stack(
               alignment: Alignment.topLeft,
+              clipBehavior: Clip.hardEdge,
               children: <Widget>[
-                ...previous,
+                for (final child in previous)
+                  Positioned.fill(
+                    child: ClipRect(child: child),
+                  ),
                 if (current != null) current,
               ],
             ),
@@ -434,37 +442,49 @@ class _SliderContent extends StatelessWidget {
       _padBottomDesign * scale,
     );
 
-    return SizedBox(
-      height: layout.height,
-      width: double.infinity,
-      child: ClipRect(
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var r = 0; r < layout.rows; r++) ...[
-                if (r > 0) SizedBox(height: layout.vGap),
-                _MarqueeRow(
-                  distance: distance,
-                  specs: source[r],
-                  viewWidth: layout.viewWidth,
-                  tileSize: tileSize,
-                  gap: layout.hGap,
-                  offset: offsets[r % offsets.length] * scale,
-                  iconCircle: iconCircle,
-                  iconArt: iconArt,
-                  radius: radius,
-                  padding: padding,
-                  tileFill: _tileFill,
-                  labelColor: _labelColor,
-                  compact: compact,
-                ),
-              ],
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxH = constraints.maxHeight;
+        final height = maxH.isFinite
+            ? math.min(layout.height, maxH)
+            : layout.height;
+        // Clip + unconstrained OverflowBox so AnimatedSwitcher previous
+        // children never report Column overflow when the stack shrinks.
+        return SizedBox(
+          height: height,
+          width: double.infinity,
+          child: ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.topLeft,
+              maxHeight: double.infinity,
+              minHeight: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var r = 0; r < layout.rows; r++) ...[
+                    if (r > 0) SizedBox(height: layout.vGap),
+                    _MarqueeRow(
+                      distance: distance,
+                      specs: source[r],
+                      viewWidth: layout.viewWidth,
+                      tileSize: tileSize,
+                      gap: layout.hGap,
+                      offset: offsets[r % offsets.length] * scale,
+                      iconCircle: iconCircle,
+                      iconArt: iconArt,
+                      radius: radius,
+                      padding: padding,
+                      tileFill: _tileFill,
+                      labelColor: _labelColor,
+                      compact: compact,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
