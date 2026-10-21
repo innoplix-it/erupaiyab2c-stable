@@ -9,6 +9,7 @@ class BillerDetailArgs {
     this.cardLast4,
     this.autoFetchBill = false,
     this.autoOpenPaymentSheet = false,
+    this.creditCardPayNowEntry = false,
   });
 
   final Biller biller;
@@ -18,4 +19,6 @@ class BillerDetailArgs {
   final String? cardLast4;
   final bool autoFetchBill;
   final bool autoOpenPaymentSheet;
+  /// Entered from [RouteConstants.creditCardPayNow] (skip bill entry form).
+  final bool creditCardPayNowEntry;
 }

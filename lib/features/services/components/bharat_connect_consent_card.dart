@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/file_constants.dart';
+import 'credit_card/credit_card_figma_metrics.dart';
 import 'fetch_provider_metrics.dart';
 
 class BharatConnectConsentCard extends StatelessWidget {
-  const BharatConnectConsentCard({super.key});
+  const BharatConnectConsentCard({super.key, this.useCreditCardFigma = false});
+
+  /// Credit Card bill screens use [CreditCardFigmaMetrics] (440 frame, no
+  /// ScreenUtil double-scale).
+  final bool useCreditCardFigma;
 
   static const message =
       'By Proceeding Further, You Allow Erupaiya To Fetch Your Current And '
@@ -14,9 +19,21 @@ class BharatConnectConsentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.sizeOf(context).width < 360;
-    final inset = FetchProviderMetrics.w(16);
-    final logoWidth = FetchProviderMetrics.w(48);
-    final fontSize = FetchProviderMetrics.font(12, min: 10);
+    final inset = useCreditCardFigma
+        ? CreditCardFigmaMetrics.s(context, 16)
+        : FetchProviderMetrics.w(16);
+    final logoWidth = useCreditCardFigma
+        ? CreditCardFigmaMetrics.s(context, 48)
+        : FetchProviderMetrics.w(48);
+    final fontSize = useCreditCardFigma
+        ? CreditCardFigmaMetrics.s(context, 12).clamp(10.0, 12.0)
+        : FetchProviderMetrics.font(12, min: 10);
+    final minHeight = useCreditCardFigma
+        ? CreditCardFigmaMetrics.s(context, 64)
+        : FetchProviderMetrics.h(64);
+    final radius = useCreditCardFigma
+        ? CreditCardFigmaMetrics.s(context, 16)
+        : FetchProviderMetrics.r(16);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -25,13 +42,11 @@ class BharatConnectConsentCard extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: Container(
             width: maxCardWidth,
-            constraints:
-                BoxConstraints(minHeight: FetchProviderMetrics.h(64)),
+            constraints: BoxConstraints(minHeight: minHeight),
             padding: EdgeInsets.all(inset),
             decoration: BoxDecoration(
               color: const Color(0xFFF9F9F9),
-              borderRadius:
-                  BorderRadius.circular(FetchProviderMetrics.r(16)),
+              borderRadius: BorderRadius.circular(radius),
               border: Border.all(color: const Color(0xFFE0E0E0)),
             ),
             child: Row(

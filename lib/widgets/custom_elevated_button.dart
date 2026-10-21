@@ -19,6 +19,7 @@ class CustomElevatedButton extends StatelessWidget {
     this.borderColor,
     this.labelColor,
     this.labelStyle,
+    this.borderRadius,
   });
 
   final VoidCallback? onPressed;
@@ -33,9 +34,11 @@ class CustomElevatedButton extends StatelessWidget {
   final Color? borderColor;
   final Color? labelColor;
   final TextStyle? labelStyle;
+  final double? borderRadius;
 
   @override
   Widget build(BuildContext context) {
+    final radius = borderRadius ?? 28.r;
     final background = backgroundColor != null
         ? LinearGradient(
             colors: [backgroundColor!, backgroundColor!],
@@ -55,7 +58,7 @@ class CustomElevatedButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: isBorder ? null : background,
           color: isBorder ? (backgroundColor ?? Colors.transparent) : null,
-          borderRadius: BorderRadius.circular(28.r),
+          borderRadius: BorderRadius.circular(radius),
           border: isBorder
               ? Border.all(
                   color: borderColor ?? AppColors.primary,
@@ -74,7 +77,7 @@ class CustomElevatedButton extends StatelessWidget {
             foregroundColor: labelColor ?? Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28.r),
+              borderRadius: BorderRadius.circular(radius),
             ),
           ),
           child: Row(

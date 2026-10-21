@@ -48,42 +48,47 @@ class AuthAppLockStep extends StatefulWidget {
 }
 
 class _AuthAppLockStepState extends State<AuthAppLockStep> {
-  bool _obscure = true;
+  /// Show/Hide only repaints the PIN row + toggle, never the whole screen.
+  final ValueNotifier<bool> _obscure = ValueNotifier<bool>(true);
+
+  @override
+  void dispose() {
+    _obscure.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final side = authSidePadding(context);
     return Stack(
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Colors.white),
-        const AuthBackgroundImage(),
+        // Window sized, so the artwork is not re-scaled by the keyboard.
+        authFixedBackground(context),
         SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  authHorizontalPadding,
-                  20.h,
-                  authHorizontalPadding,
-                  24.h,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              side,
+              authH(context, 20),
+              side,
+              authH(context, 24),
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: authContentMaxWidth(context),
                 ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: authContentMaxWidth(context),
-                    ),
-                    child: _buildContent(),
-                  ),
-                ),
-              );
-            },
+                child: _buildContent(context),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -93,7 +98,7 @@ class _AuthAppLockStepState extends State<AuthAppLockStep> {
             Icon(Icons.help_outline, size: 20.r, color: authInk),
           ],
         ),
-        SizedBox(height: 29.h),
+        SizedBox(height: authH(context, 29)),
         Text(
           'Please enter your security pin',
           style: authTextStyle(
@@ -102,37 +107,46 @@ class _AuthAppLockStepState extends State<AuthAppLockStep> {
             height: 1.3,
           ),
         ),
-        SizedBox(height: 20.h),
+        SizedBox(height: authH(context, 20)),
         const AuthCodeLabel('Enter Pin'),
-        SizedBox(height: 8.h),
-        AuthPinBoxes(
-          controller: widget.pinController,
-          focusNode: widget.pinFocusNode,
-          shakeController: widget.shakeController,
-          obscure: _obscure,
-          autofocus: true,
-          enabled: widget.enabled,
-          hasError: widget.errorText != null,
-          onChanged: widget.onPinChanged,
-          onCompleted: widget.onPinCompleted,
-        ),
-        AuthPinActionsRow(
-          obscure: _obscure,
-          onToggle: () => setState(() => _obscure = !_obscure),
-          onForgotPin: widget.onForgotPin,
-          errorText: widget.errorText,
+        SizedBox(height: authH(context, 8)),
+        ValueListenableBuilder<bool>(
+          valueListenable: _obscure,
+          builder: (context, obscure, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AuthPinBoxes(
+                controller: widget.pinController,
+                focusNode: widget.pinFocusNode,
+                shakeController: widget.shakeController,
+                obscure: obscure,
+                autofocus: true,
+                enabled: widget.enabled,
+                hasError: widget.errorText != null,
+                onChanged: widget.onPinChanged,
+                onCompleted: widget.onPinCompleted,
+              ),
+              AuthPinActionsRow(
+                obscure: obscure,
+                onToggle: () => _obscure.value = !_obscure.value,
+                onForgotPin: widget.onForgotPin,
+                errorText: widget.errorText,
+              ),
+            ],
+          ),
         ),
         if (widget.showFingerprint) ...[
           SizedBox(height: MediaQuery.sizeOf(context).height * 0.05),
-          Center(child: _buildFingerprint()),
+          Center(child: _buildFingerprint(context)),
         ],
       ],
     );
   }
 
-  Widget _buildFingerprint() {
+  Widget _buildFingerprint(BuildContext context) {
     final fingerprintSize =
-        authWidthFraction(context, 74 / 360, min: 60, max: 110);
+    authWidthFraction(context, 74 / 360, min: 60, max: 110);
+    final h = MediaQuery.sizeOf(context).height / 690;
     return Semantics(
       button: true,
       label: 'Use Fingerprint Instead',
@@ -140,7 +154,7 @@ class _AuthAppLockStepState extends State<AuthAppLockStep> {
         onTap: widget.onFingerprint,
         borderRadius: BorderRadius.circular(16.r),
         child: Padding(
-          padding: EdgeInsets.all(8.r),
+          padding: EdgeInsets.all(authW(context, 8)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -151,22 +165,22 @@ class _AuthAppLockStepState extends State<AuthAppLockStep> {
                     BoxShadow(
                       color: _fingerprintShadowTint.withValues(alpha: 0.10),
                       blurRadius: 5.r,
-                      offset: Offset(0, 2.h),
+                      offset: Offset(0, 2 * h),
                     ),
                     BoxShadow(
                       color: _fingerprintShadowTint.withValues(alpha: 0.09),
                       blurRadius: 10.r,
-                      offset: Offset(0, 10.h),
+                      offset: Offset(0, 10 * h),
                     ),
                     BoxShadow(
                       color: _fingerprintShadowTint.withValues(alpha: 0.05),
                       blurRadius: 13.r,
-                      offset: Offset(0, 22.h),
+                      offset: Offset(0, 22 * h),
                     ),
                     BoxShadow(
                       color: _fingerprintShadowTint.withValues(alpha: 0.01),
                       blurRadius: 16.r,
-                      offset: Offset(0, 40.h),
+                      offset: Offset(0, 40 * h),
                     ),
                   ],
                 ),
@@ -176,7 +190,7 @@ class _AuthAppLockStepState extends State<AuthAppLockStep> {
                   height: fingerprintSize,
                 ),
               ),
-              SizedBox(height: 13.h),
+              SizedBox(height: authH(context, 13)),
               Text(
                 'Use Fingerprint Instead',
                 textAlign: TextAlign.center,

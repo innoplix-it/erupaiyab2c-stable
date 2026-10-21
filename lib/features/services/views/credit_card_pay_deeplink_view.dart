@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -11,6 +10,7 @@ import '../../home/models/credit_card_item.dart';
 import '../controllers/biller_detail_controller.dart';
 import '../models/biller_detail_args.dart';
 import '../models/biller_model.dart';
+import '../components/credit_card/credit_card_figma_metrics.dart';
 
 class CreditCardPayDeeplinkView extends ConsumerStatefulWidget {
   const CreditCardPayDeeplinkView({
@@ -137,12 +137,15 @@ class _CreditCardPayDeeplinkViewState
     Future.microtask(() {
       ref.read(homeControllerProvider.notifier).fetchCreditCardActions();
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _tryNavigate());
   }
 
   @override
   Widget build(BuildContext context) {
     final homeState = ref.watch(homeControllerProvider);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _tryNavigate());
+    ref.listen(homeControllerProvider, (_, __) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _tryNavigate());
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -154,12 +157,12 @@ class _CreditCardPayDeeplinkViewState
       ),
       body: Center(
         child: Padding(
-          padding: EdgeInsets.all(20.w),
+          padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 20)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const CircularProgressIndicator(),
-              SizedBox(height: 12.h),
+              SizedBox(height: CreditCardFigmaMetrics.s(context, 12)),
               Text(
                 homeState.isFetchingCreditCards
                     ? 'Loading your cards…'

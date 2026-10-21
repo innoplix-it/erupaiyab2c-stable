@@ -179,16 +179,14 @@ class _AuthResetMpinStepState extends State<AuthResetMpinStep>
 
   @override
   Widget build(BuildContext context) {
-    return AuthPeachMarqueeShell(
-      child: SafeArea(
-        child: Column(
-          children: [
-            Expanded(child: _buildScrollableContent()),
-            // Figma Reset MPIN: keypad stays; hide footer CTA while open
-            // or while Verify is processing so content does not drop.
-            if (!_lifted) _buildFooter(),
-          ],
-        ),
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(child: _buildScrollableContent()),
+          // Figma Reset MPIN: keypad stays; hide footer CTA while open
+          // or while Verify is processing so content does not drop.
+          if (!_lifted) _buildFooter(),
+        ],
       ),
     );
   }
@@ -283,8 +281,7 @@ class _AuthResetMpinStepState extends State<AuthResetMpinStep>
                     onToggle: widget.isSubmitting
                         ? () {}
                         : () => setState(() => _obscureNew = !_obscureNew),
-                    onChanged:
-                        widget.isSubmitting ? null : widget.onChanged,
+                    onChanged: widget.isSubmitting ? null : widget.onChanged,
                     onCompleted:
                         widget.isSubmitting ? null : widget.onNewPinCompleted,
                   ),
@@ -302,8 +299,7 @@ class _AuthResetMpinStepState extends State<AuthResetMpinStep>
                         : () => setState(
                               () => _obscureConfirm = !_obscureConfirm,
                             ),
-                    onChanged:
-                        widget.isSubmitting ? null : widget.onChanged,
+                    onChanged: widget.isSubmitting ? null : widget.onChanged,
                     onCompleted: widget.isSubmitting
                         ? null
                         : widget.onConfirmPinCompleted,

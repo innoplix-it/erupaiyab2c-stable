@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../constants/app_colors.dart';
 import '../../models/bill_response_model.dart';
+import '../credit_card/credit_card_figma_metrics.dart';
 import 'credit_card_pay_now_option_card.dart';
 
 enum CreditCardPayNowAmountType {
@@ -33,6 +33,7 @@ class CreditCardPayNowSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
     final dueOn = _formatDueOn(bill.dueDate);
     final billDate = _formatLongDate(bill.billDate);
     final customerName = bill.accountHolderName.trim();
@@ -46,7 +47,7 @@ class CreditCardPayNowSection extends StatelessWidget {
           minimumDue: minimumDue,
           totalOutstanding: totalOutstanding,
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: sx(20)),
         Row(
           children: [
             Text(
@@ -54,16 +55,16 @@ class CreditCardPayNowSection extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
-                fontSize: 14.sp,
+                fontSize: sx(14),
               ),
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: sx(10)),
             Container(
               width: 1,
-              height: 14.h,
+              height: sx(14),
               color: AppColors.lightBorder,
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: sx(10)),
             Expanded(
               child: Text(
                 // Figma: "Due on 11 May" (day + month, no year).
@@ -74,19 +75,19 @@ class CreditCardPayNowSection extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 13.sp,
+                  fontSize: sx(13),
                   height: 1,
                 ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: sx(10)),
         _AmountField(
           controller: amountController,
           onChanged: (_) => onChanged(CreditCardPayNowAmountType.custom),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: sx(12)),
         Row(
           children: [
             Expanded(
@@ -99,7 +100,7 @@ class CreditCardPayNowSection extends StatelessWidget {
                     : () => onChanged(CreditCardPayNowAmountType.minimum),
               ),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: sx(12)),
             Expanded(
               child: CreditCardPayNowOptionCard(
                 title: 'Total Amount',
@@ -189,18 +190,20 @@ class _CreditCardBillInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
+    double sy(double v) => CreditCardFigmaMetrics.sy(context, v);
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: sx(16), vertical: sy(14)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(sx(12)),
         border: Border.all(color: AppColors.lightBorder),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 8.r,
-            offset: Offset(0, 2.h),
+            blurRadius: sx(8),
+            offset: Offset(0, sx(2)),
           ),
         ],
       ),
@@ -244,8 +247,9 @@ class _ColonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 8.h),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : sx(8)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -258,7 +262,7 @@ class _ColonRow extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 color: const Color(0xFF71717A),
                 fontWeight: FontWeight.w500,
-                fontSize: 12.sp,
+                fontSize: sx(12),
               ),
             ),
           ),
@@ -267,7 +271,7 @@ class _ColonRow extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w600,
-              fontSize: 12.sp,
+              fontSize: sx(12),
             ),
           ),
           Expanded(
@@ -279,7 +283,7 @@ class _ColonRow extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
-                fontSize: 12.sp,
+                fontSize: sx(12),
               ),
             ),
           ),
@@ -300,6 +304,10 @@ class _AmountField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
+    double sy(double v) => CreditCardFigmaMetrics.sy(context, v);
+    // Figma bill amount field: 18px base + 10px per product request.
+    final amountFontSize = sx(28);
     return TextField(
       controller: controller,
       keyboardType: TextInputType.number,
@@ -312,28 +320,29 @@ class _AmountField extends StatelessWidget {
         prefixStyle: GoogleFonts.plusJakartaSans(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w700,
-          fontSize: 18.sp,
+          fontSize: amountFontSize,
         ),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(sx(12)),
           borderSide: const BorderSide(color: AppColors.lightBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(sx(12)),
           borderSide: const BorderSide(color: AppColors.lightBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(sx(12)),
           borderSide: const BorderSide(color: AppColors.primary),
         ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        contentPadding:
+            EdgeInsets.symmetric(horizontal: sx(16), vertical: sy(16)),
       ),
       style: GoogleFonts.plusJakartaSans(
         color: AppColors.textPrimary,
         fontWeight: FontWeight.w700,
-        fontSize: 18.sp,
+        fontSize: amountFontSize,
       ),
     );
   }

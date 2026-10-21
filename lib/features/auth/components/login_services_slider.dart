@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Slow, seamless, staggered marquee of login service tiles.
 ///
@@ -88,12 +87,12 @@ class LoginServicesSlider extends StatefulWidget {
 
   /// Natural (unshrunk) height for [rows] rows at [screenWidth].
   static double naturalHeight(
-      double screenWidth,
-      int rows, {
-        bool compact = false,
-      }) =>
+    double screenWidth,
+    int rows, {
+    bool compact = false,
+  }) =>
       rows * tileFor(screenWidth, compact: compact) +
-          (rows - 1) * vGapFor(screenWidth, compact: compact);
+      (rows - 1) * vGapFor(screenWidth, compact: compact);
 
   @override
   State<LoginServicesSlider> createState() => _LoginServicesSliderState();
@@ -121,7 +120,7 @@ class _LoginServicesSliderState extends State<LoginServicesSlider>
   void _onTick(Duration elapsed) {
     // Clamp dt so a resumed (un-muted) ticker never causes a visible jump.
     final dt = ((elapsed - _lastElapsed).inMicroseconds /
-        Duration.microsecondsPerSecond)
+            Duration.microsecondsPerSecond)
         .clamp(0.0, 0.1)
         .toDouble();
     _lastElapsed = elapsed;
@@ -151,7 +150,7 @@ class _LoginServicesSliderState extends State<LoginServicesSlider>
           final rows = widget.rowCount.clamp(1, maxRows);
 
           var tileSize =
-          LoginServicesSlider.tileFor(screenWidth, compact: compact);
+              LoginServicesSlider.tileFor(screenWidth, compact: compact);
           var hGap = LoginServicesSlider.hGapFor(screenWidth, compact: compact);
           var vGap = LoginServicesSlider.vGapFor(screenWidth, compact: compact);
           var naturalH = rows * tileSize + (rows - 1) * vGap;
@@ -241,13 +240,13 @@ class _SliderLayout {
   @override
   bool operator ==(Object other) =>
       other is _SliderLayout &&
-          other.compact == compact &&
-          other.rows == rows &&
-          other.tileSize == tileSize &&
-          other.hGap == hGap &&
-          other.vGap == vGap &&
-          other.viewWidth == viewWidth &&
-          other.height == height;
+      other.compact == compact &&
+      other.rows == rows &&
+      other.tileSize == tileSize &&
+      other.hGap == hGap &&
+      other.vGap == vGap &&
+      other.viewWidth == viewWidth &&
+      other.height == height;
 
   @override
   int get hashCode =>
@@ -445,9 +444,8 @@ class _SliderContent extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxH = constraints.maxHeight;
-        final height = maxH.isFinite
-            ? math.min(layout.height, maxH)
-            : layout.height;
+        final height =
+            maxH.isFinite ? math.min(layout.height, maxH) : layout.height;
         // Clip + unconstrained OverflowBox so AnimatedSwitcher previous
         // children never report Column overflow when the stack shrinks.
         return SizedBox(
@@ -668,7 +666,8 @@ class _ServiceTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         fontSize: labelSize,
                         fontWeight: FontWeight.w600,
                         color: labelColor,

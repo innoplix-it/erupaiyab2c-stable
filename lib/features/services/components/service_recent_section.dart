@@ -10,15 +10,19 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../utils/date_format_helper.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../constants/app_error_messages.dart';
+import 'credit_card/credit_card_figma_metrics.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/screen_wrapper.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
+import '../models/biller_model.dart';
 import '../../profile/models/electricity_card_history_scope.dart';
 import '../controllers/biller_detail_controller.dart';
+import '../controllers/service_extras_controller.dart';
 import 'delete_saved_biller_dialog.dart';
 import 'fetch_provider_metrics.dart';
 
@@ -32,6 +36,8 @@ class ServiceRecentSection extends StatelessWidget {
     this.onAction,
     this.savedBillersStyle = false,
     this.serviceCategory,
+    this.operatorLogo = false,
+    this.operatorBillers = const [],
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
@@ -41,6 +47,12 @@ class ServiceRecentSection extends StatelessWidget {
   final VoidCallback? onAction;
   final bool savedBillersStyle;
   final String? serviceCategory;
+
+  /// Credit-card recent row: 41×41 rounded operator mark instead of a circle.
+  final bool operatorLogo;
+
+  /// Billers used to fill the operator logo and bank name on credit-card cards.
+  final List<Biller> operatorBillers;
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +109,8 @@ class ServiceRecentSection extends StatelessWidget {
               onPayNow: onPayNow,
               savedBillersStyle: savedBillersStyle,
               serviceCategory: serviceCategory,
+              operatorLogo: operatorLogo,
+              operatorBillers: operatorBillers,
             ),
           ],
         ),
@@ -123,6 +137,8 @@ class ServiceRecentSection extends StatelessWidget {
                 onPayNow: onPayNow,
                 savedBillersStyle: savedBillersStyle,
                 serviceCategory: serviceCategory,
+                operatorLogo: operatorLogo,
+                operatorBillers: operatorBillers,
               ),
             ],
           ),
@@ -228,12 +244,16 @@ class _RecentRow extends StatelessWidget {
     required this.onPayNow,
     this.savedBillersStyle = false,
     this.serviceCategory,
+    this.operatorLogo = false,
+    this.operatorBillers = const [],
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
   final ValueChanged<LatestTransaction> onPayNow;
   final bool savedBillersStyle;
   final String? serviceCategory;
+  final bool operatorLogo;
+  final List<Biller> operatorBillers;
 
   Widget _savedBillersRow(List<Widget> cards) {
     return SingleChildScrollView(
@@ -266,7 +286,10 @@ class _RecentRow extends StatelessWidget {
     }
     // Viewport height must cover the card Column. Mixing a short 126.h
     // viewport with .w padding + .h bars caused ~8px bottom overflow.
-    final recentRowHeight = _RecentCardShimmer.viewportHeight;
+    // Credit-card cards use a tighter Figma bottom pad, so their row is shorter.
+    final recentRowHeight = operatorLogo
+        ? _operatorRecentRowHeight(context)
+        : _RecentCardShimmer.viewportHeight;
     return recentTransactions.when(
       loading: () => SizedBox(
         height: recentRowHeight,
@@ -305,6 +328,8 @@ class _RecentRow extends StatelessWidget {
               txn: display[index],
               onPayNow: () => onPayNow(display[index]),
               serviceCategory: serviceCategory,
+              operatorLogo: operatorLogo,
+              operatorBillers: operatorBillers,
             ),
           ),
         );
@@ -436,6 +461,26 @@ class _SavedBillerCardShimmer extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Credit-card recent row. Figma gaps: ~11 between name and number,
+/// ~20 above and below the amount block and the Pay Now pill.
+double _operatorRecentRowHeight(BuildContext context) {
+  final titleBlock = CreditCardFigmaMetrics.myCardTitleSize(context) * 1.2 +
+      CreditCardFigmaMetrics.sy(context, 6) +
+      CreditCardFigmaMetrics.myCardMaskedSize(context) * 1.2;
+  final headerInner = titleBlock > 41.w ? titleBlock : 41.w;
+  final header = 13.w * 2 + headerInner;
+  final pad = CreditCardFigmaMetrics.sy(context, 20);
+  final buttonBlock =
+      pad + CreditCardFigmaMetrics.payNowButtonHeight(context) + pad;
+  final textBlock = pad +
+      CreditCardFigmaMetrics.myCardAmountSize(context) * 1.15 +
+      CreditCardFigmaMetrics.sy(context, 4) +
+      CreditCardFigmaMetrics.myCardDueSize(context) * 1.2 +
+      pad;
+  final lower = buttonBlock > textBlock ? buttonBlock : textBlock;
+  return header + 1 + lower + 4;
 }
 
 class _RecentCardShimmer extends StatelessWidget {
@@ -989,16 +1034,146 @@ String _capitalizeWords(String value) {
       .join(' ');
 }
 
+/// Full recent list behind "View all". Same cards and the same
+/// [serviceLatestTransactionsProvider] as the carousel.
+class ServiceRecentAllView extends ConsumerWidget {
+  const ServiceRecentAllView({
+    super.key,
+    required this.categoryName,
+    required this.onPayNow,
+    this.operatorLogo = false,
+    this.operatorBillers = const [],
+  });
+
+  final String categoryName;
+  final ValueChanged<LatestTransaction> onPayNow;
+  final bool operatorLogo;
+  final List<Biller> operatorBillers;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recent = ref.watch(serviceLatestTransactionsProvider(categoryName));
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          'Recent',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+        ),
+      ),
+      body: recent.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => Center(
+          child: TextButton(
+            onPressed: () => ref.invalidate(
+              serviceLatestTransactionsProvider(categoryName),
+            ),
+            child: const Text('Retry'),
+          ),
+        ),
+        data: (items) {
+          if (items.isEmpty) {
+            return const Center(child: Text('No recent cards'));
+          }
+          return ListView.separated(
+            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => SizedBox(height: 12.h),
+            itemBuilder: (context, index) {
+              final txn = items[index];
+              return _RecentCard(
+                txn: txn,
+                width: double.infinity,
+                operatorLogo: operatorLogo,
+                operatorBillers: operatorBillers,
+                serviceCategory: categoryName,
+                onPayNow: () => onPayNow(txn),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _OperatorLogoTile extends StatelessWidget {
+  const _OperatorLogoTile({required this.iconUrl, this.fallbackLabel = ''});
+
+  final String iconUrl;
+  final String fallbackLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final side = 41.w;
+    final radius = 12.25.r;
+    final url = iconUrl.trim();
+    final initial = fallbackLabel.trim().isEmpty
+        ? ''
+        : fallbackLabel.trim()[0].toUpperCase();
+    final fallback = Center(
+      child: Text(
+        initial,
+        style: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w700,
+          fontSize: 16.sp,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+    return Container(
+      width: side,
+      height: side,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: const Color(0xFFE2E2E2), width: 0.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: url.isEmpty
+          ? fallback
+          : Padding(
+              padding: EdgeInsets.all(6.w),
+              child: AppNetworkImage(
+                url: url,
+                width: side,
+                height: side,
+                fit: BoxFit.contain,
+                showShimmer: false,
+                placeholder: fallback,
+                errorWidget: fallback,
+              ),
+            ),
+    );
+  }
+}
+
 class _RecentCard extends StatelessWidget {
   const _RecentCard({
     required this.txn,
     required this.onPayNow,
     this.serviceCategory,
+    this.operatorLogo = false,
+    this.operatorBillers = const [],
+    this.width,
   });
 
   final LatestTransaction txn;
   final VoidCallback onPayNow;
   final String? serviceCategory;
+  final bool operatorLogo;
+  final List<Biller> operatorBillers;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -1032,10 +1207,18 @@ class _RecentCard extends StatelessWidget {
         final rawDueDate = (txn.dueDate != null && txn.dueDate!.isNotEmpty)
             ? txn.dueDate
             : (cached?.dueDate.isNotEmpty == true ? cached!.dueDate : null);
-        final dueLabel = _formatDueDate(rawDueDate);
+        final dueLabel = operatorLogo
+            ? _formatCreditDue(rawDueDate)
+            : _formatDueDate(rawDueDate);
+        final matched = operatorLogo ? _matchOperatorBiller(txn, operatorBillers) : null;
+        final bankName = (matched?.billerName.trim().isNotEmpty ?? false)
+            ? matched!.billerName.trim()
+            : title;
+        final logoUrl = _operatorIconUrl(txn.icon) ?? matched?.iconUrl;
+        final masked = _maskedCardNumber(consumerNo);
 
         return Container(
-          width: 280.w,
+          width: width ?? 280.w,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16.r),
@@ -1054,29 +1237,35 @@ class _RecentCard extends StatelessWidget {
                 padding: EdgeInsets.all(13.w),
                 child: Row(
                   children: [
-                    Container(
-                      height: 38.w,
-                      width: 38.w,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border:
-                            Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                      ),
-                      child: ClipOval(
-                        child: txn.icon.trim().isEmpty
-                            ? Icon(
-                                Icons.bolt,
-                                size: 18.sp,
-                                color: AppColors.primary,
-                              )
-                            : AppNetworkImage(
-                                url: txn.icon,
-                                fit: BoxFit.contain,
-                                showShimmer: false,
+                    operatorLogo
+                        ? _OperatorLogoTile(
+                            iconUrl: logoUrl ?? '',
+                            fallbackLabel: bankName,
+                          )
+                        : Container(
+                            height: 38.w,
+                            width: 38.w,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.08),
                               ),
-                      ),
-                    ),
+                            ),
+                            child: ClipOval(
+                              child: txn.icon.trim().isEmpty
+                                  ? Icon(
+                                      Icons.bolt,
+                                      size: 18.sp,
+                                      color: AppColors.primary,
+                                    )
+                                  : AppNetworkImage(
+                                      url: txn.icon,
+                                      fit: BoxFit.contain,
+                                      showShimmer: false,
+                                    ),
+                            ),
+                          ),
                     SizedBox(width: 12.w),
                     Expanded(
                       child: Column(
@@ -1084,16 +1273,29 @@ class _RecentCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            title,
+                            operatorLogo ? bankName : title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                ),
+                            style: operatorLogo
+                                ? CreditCardFigmaMetrics.myCardTitleStyle(context)
+                                : Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
                           ),
-                          if (accountHolderName.isNotEmpty ||
-                              consumerNo.isNotEmpty) ...[
+                          if (operatorLogo && masked.isNotEmpty) ...[
+                            SizedBox(height: CreditCardFigmaMetrics.sy(context, 6)),
+                            Text(
+                              masked,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: CreditCardFigmaMetrics.myCardMaskedStyle(
+                                context,
+                              ),
+                            ),
+                          ] else if (!operatorLogo &&
+                              (accountHolderName.isNotEmpty ||
+                                  consumerNo.isNotEmpty)) ...[
                             SizedBox(height: 2.w),
                             Row(
                               children: [
@@ -1153,8 +1355,16 @@ class _RecentCard extends StatelessWidget {
               Divider(
                   height: 1, color: AppColors.lightBorder.withValues(alpha: 0.7)),
               Padding(
-                padding: EdgeInsets.all(14.w),
+                padding: operatorLogo
+                    ? EdgeInsets.fromLTRB(
+                        CreditCardFigmaMetrics.s(context, 14),
+                        CreditCardFigmaMetrics.sy(context, 20),
+                        CreditCardFigmaMetrics.s(context, 12),
+                        CreditCardFigmaMetrics.sy(context, 20),
+                      )
+                    : EdgeInsets.all(14.w),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Column(
@@ -1162,19 +1372,32 @@ class _RecentCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '₹${amount.toStringAsFixed(2)}',
-                            style:
-                                Theme.of(context).textTheme.titleMedium?.copyWith(
+                            operatorLogo
+                                ? _formatInr(amount)
+                                : '₹${amount.toStringAsFixed(2)}',
+                            style: operatorLogo
+                                ? CreditCardFigmaMetrics.myCardAmountStyle(context)
+                                : Theme.of(context).textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       color: AppColors.textPrimary,
                                     ),
                           ),
                           if (dueLabel.isNotEmpty) ...[
-                            SizedBox(height: 4.w),
+                            SizedBox(
+                              height: operatorLogo
+                                  ? CreditCardFigmaMetrics.sy(context, 4)
+                                  : 4.w,
+                            ),
                             Text(
                               dueLabel,
-                              style:
-                                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: operatorLogo
+                                  ? CreditCardFigmaMetrics.myCardDueStyle(
+                                      context,
+                                      isDue: true,
+                                    )
+                                  : Theme.of(context).textTheme.bodySmall?.copyWith(
                                         color: Colors.red.shade600,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -1184,28 +1407,65 @@ class _RecentCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 12.w),
-                    SizedBox(
-                      height: 30.w,
-                      child: ElevatedButton(
-                        onPressed: onPayNow,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE85A2C),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: EdgeInsets.symmetric(horizontal: 18.w),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22.r),
-                          ),
-                        ),
-                        child: Text(
-                          'Pay Now',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
+                    operatorLogo
+                        ? SizedBox(
+                            width: CreditCardFigmaMetrics.payNowButtonWidth(
+                              context,
+                            ),
+                            height: CreditCardFigmaMetrics.payNowButtonHeight(
+                              context,
+                            ),
+                            child: ElevatedButton(
+                              onPressed: onPayNow,
+                              style: ElevatedButton.styleFrom(
+                                elevation: 0,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                backgroundColor:
+                                    CreditCardFigmaMetrics.payNowButtonColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    CreditCardFigmaMetrics.payNowButtonRadius(
+                                      context,
+                                    ),
+                                  ),
+                                ),
                               ),
-                        ),
-                      ),
-                    ),
+                              child: Text(
+                                'Pay Now',
+                                style: CreditCardFigmaMetrics
+                                    .payNowButtonLabelStyle(context),
+                              ),
+                            ),
+                          )
+                        : SizedBox(
+                            height: 30.w,
+                            child: ElevatedButton(
+                              onPressed: onPayNow,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE85A2C),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: EdgeInsets.symmetric(horizontal: 18.w),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22.r),
+                                ),
+                              ),
+                              child: Text(
+                                'Pay Now',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                          ),
                   ],
                 ),
               ),
@@ -1249,7 +1509,28 @@ String _formatWasPaidOn(LatestTransaction txn) {
   return '$amountText Paid On $day$suffix ${months[parsed.month - 1]} ${parsed.year}';
 }
 
-String _formatDueDate(String? raw) {
+String _formatCreditDue(String? raw) {
+  final value = (raw ?? '').trim();
+  if (value.isEmpty || value.toLowerCase() == 'null') return '';
+  return 'Due On ${DateFormatHelper.formatDisplayDateWithYear(value)}';
+}
+
+String _formatInr(num amount) {
+  final parts = amount.toStringAsFixed(2).split('.');
+  final digits = parts[0];
+  if (digits.length <= 3) return '₹$digits.${parts[1]}';
+  final last3 = digits.substring(digits.length - 3);
+  var rest = digits.substring(0, digits.length - 3);
+  final groups = <String>[];
+  while (rest.length > 2) {
+    groups.insert(0, rest.substring(rest.length - 2));
+    rest = rest.substring(0, rest.length - 2);
+  }
+  if (rest.isNotEmpty) groups.insert(0, rest);
+  return '₹${groups.join(',')},$last3.${parts[1]}';
+}
+
+String _formatDueDate(String? raw, {bool shortMonth = false}) {
   final value = (raw ?? '').trim();
   if (value.isEmpty || value.toLowerCase() == 'null') return '';
   final parsed = DateTime.tryParse(value);
@@ -1257,9 +1538,40 @@ String _formatDueDate(String? raw) {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
+  const shortMonths = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
   if (parsed == null) return 'Due On $value';
-  final m = months[parsed.month - 1];
+  final m = (shortMonth ? shortMonths : months)[parsed.month - 1];
   return 'Due On ${parsed.day} $m ${parsed.year}';
+}
+
+Biller? _matchOperatorBiller(LatestTransaction txn, List<Biller> billers) {
+  final id = txn.billerId.trim().toLowerCase();
+  final name = txn.billerName.trim().toLowerCase();
+  for (final biller in billers) {
+    if (id.isNotEmpty && biller.billerId.trim().toLowerCase() == id) {
+      return biller;
+    }
+  }
+  for (final biller in billers) {
+    if (name.isNotEmpty && biller.billerName.trim().toLowerCase() == name) {
+      return biller;
+    }
+  }
+  return null;
+}
+
+String? _operatorIconUrl(String raw) {
+  return Biller(billerId: '', billerName: '', icon: raw).iconUrl;
+}
+
+String _maskedCardNumber(String raw) {
+  final digits = raw.replaceAll(RegExp(r'\D'), '');
+  if (digits.isEmpty) return '';
+  final suffix = digits.length >= 4 ? digits.substring(digits.length - 4) : digits;
+  return 'XXXX$suffix';
 }
 
 class _Shimmer extends StatefulWidget {

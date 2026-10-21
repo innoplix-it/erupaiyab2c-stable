@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import 'refer_and_earn_figma_metrics.dart';
 
 /// Figma Refer & Earn help control: white circular `?` (20×20).
 ///
@@ -27,7 +27,7 @@ class ReferHelpIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = (size ?? (20 * 360 / 440)).r;
+    final iconSize = context.referW(size ?? 20);
     return IconButton(
       onPressed: onPressed ?? () => context.push(RouteConstants.helpSupport),
       icon: ColorFiltered(

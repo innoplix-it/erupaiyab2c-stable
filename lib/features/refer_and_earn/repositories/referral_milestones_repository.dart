@@ -12,8 +12,7 @@ class ReferralMilestonesRepository {
 
   Future<ReferralMilestonesResponse> fetchMilestones() async {
     try {
-      final response =
-          await _dio.get(ApiConstants.referralMilestonesEndpoint);
+      final response = await _dio.get(ApiConstants.referralMilestonesEndpoint);
       final payload = response.data as Map<String, dynamic>? ?? {};
       return ReferralMilestonesResponse.fromJson(payload);
     } catch (e, stackTrace) {

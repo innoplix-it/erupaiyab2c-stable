@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../constants/file_constants.dart';
 import '../../../widgets/my_app_bar.dart';
+import 'refer_and_earn_figma_metrics.dart';
 import 'refer_help_icon_button.dart';
 
 class ReferAndEarnAppBar extends HookWidget {
@@ -20,6 +21,7 @@ class ReferAndEarnAppBar extends HookWidget {
     this.backgroundColor,
     this.skipBackground = false,
     this.hideBottomStrip = false,
+    this.showNavRow = true,
   });
 
   final String title;
@@ -56,9 +58,13 @@ class ReferAndEarnAppBar extends HookWidget {
   /// When true, skips the white rounded strip (home view draws its own panel).
   final bool hideBottomStrip;
 
+  /// When false, the nav row is replaced by an equal-height gap so a pinned
+  /// copy can sit on top without doubling the back and help buttons.
+  final bool showNavRow;
+
   @override
   Widget build(BuildContext context) {
-    final barHeight = height ?? 320.h;
+    final barHeight = height ?? context.referH(320);
     return SizedBox(
       height: barHeight,
       child: Stack(
@@ -82,11 +88,11 @@ class ReferAndEarnAppBar extends HookWidget {
               right: 0,
               bottom: -1,
               child: Container(
-                height: 36.h,
+                height: context.referH(36),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(28.r),
+                    top: Radius.circular(context.referR(28)),
                   ),
                 ),
               ),
@@ -95,45 +101,80 @@ class ReferAndEarnAppBar extends HookWidget {
             bottom: false,
             child: Column(
               children: [
-                Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed:
-                            onBack ?? () => Navigator.of(context).maybePop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign:
-                              centerTitle ? TextAlign.center : TextAlign.start,
-                          // Same title text props as common [MyAppBar].
-                          style: MyAppBar.sharedTitleStyle(
-                            context,
-                            color: Colors.white,
-                          )?.merge(titleStyle),
-                        ),
-                      ),
-                      // Figma white circular `?` (20×20) across Refer & Earn.
-                      ReferHelpIconButton(onPressed: onHelp),
-                    ],
-                  ),
-                ),
+                if (showNavRow)
+                  ReferAndEarnNavRow(
+                    title: title,
+                    onBack: onBack,
+                    onHelp: onHelp,
+                    centerTitle: centerTitle,
+                    titleStyle: titleStyle,
+                  )
+                else
+                  SizedBox(height: ReferAndEarnNavRow.heightOf(context)),
                 if (body != null)
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.only(bottom: bottomReserve ?? 52.h),
+                      padding: EdgeInsets.only(
+                        bottom: bottomReserve ?? context.referH(52),
+                      ),
                       child: body!,
                     ),
                   ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Back, title, and help row shared by the scrolling hero and the pinned bar.
+class ReferAndEarnNavRow extends StatelessWidget {
+  const ReferAndEarnNavRow({
+    super.key,
+    required this.title,
+    this.onBack,
+    this.onHelp,
+    this.centerTitle = false,
+    this.titleStyle,
+  });
+
+  final String title;
+  final VoidCallback? onBack;
+  final VoidCallback? onHelp;
+  final bool centerTitle;
+  final TextStyle? titleStyle;
+
+  /// Padding plus the 48dp icon button. Matches the row painted below.
+  static double heightOf(BuildContext context) => context.referH(8) + 48;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.referW(12),
+        vertical: context.referH(4),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: centerTitle ? TextAlign.center : TextAlign.start,
+              style: MyAppBar.sharedTitleStyle(
+                context,
+                color: Colors.white,
+              )?.merge(titleStyle),
+            ),
+          ),
+          ReferHelpIconButton(onPressed: onHelp),
         ],
       ),
     );

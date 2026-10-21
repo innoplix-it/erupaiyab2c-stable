@@ -50,11 +50,8 @@ class ReferralWorksView extends HookWidget {
     final videoHeight = (media.width - 2 * sideGap) / _Fig.videoRatio;
     final navHeight = kMinInteractiveDimension + 2 * _Fig.navPadV.h;
     final bottomReserve = (_Fig.barStrip + _Fig.videoBottomGap).h;
-    final barHeight = topInset +
-        navHeight +
-        _Fig.videoTopGap.h +
-        videoHeight +
-        bottomReserve;
+    final barHeight =
+        topInset + navHeight + _Fig.videoTopGap.h + videoHeight + bottomReserve;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -98,9 +95,9 @@ class ReferralWorksView extends HookWidget {
                       Text(
                         'Example:',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                       SizedBox(height: 10.h),
                       SizedBox(
@@ -126,8 +123,8 @@ class ReferralWorksView extends HookWidget {
                       SizedBox(height: 15.h),
                       Text(
                         "There’s No Limit To How Many People Can Join Through "
-                            "Your Network — The More Your Network Grows, The More "
-                            "E-Coins You Earn!",
+                        "Your Network — The More Your Network Grows, The More "
+                        "E-Coins You Earn!",
                         style: _exampleTextStyle(context),
                       ),
                     ],
@@ -146,13 +143,13 @@ class ReferralWorksView extends HookWidget {
 /// Sans Medium 500, 14px with a 25px line height, 0 letter-spacing, black.
 TextStyle? _exampleTextStyle(BuildContext context) {
   return Theme.of(context).textTheme.bodyMedium?.copyWith(
-    color: const Color(0xFF000000),
-    fontFamily: 'Plus Jakarta Sans',
-    fontWeight: FontWeight.w500,
-    fontSize: 14.sp,
-    height: 25 / 14,
-    letterSpacing: 0,
-  );
+        color: const Color(0xFF000000),
+        fontFamily: 'Plus Jakarta Sans',
+        fontWeight: FontWeight.w500,
+        fontSize: 14.sp,
+        height: 25 / 14,
+        letterSpacing: 0,
+      );
 }
 
 /// Video box in the blue header (Figma 407 x 182, 16px radius).
@@ -174,25 +171,25 @@ class _VideoPlaceholder extends HookWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16.r),
         child: playing.value
-        // Tight constraints from AspectRatio + SizedBox.expand make the
-        // embed fill the whole box with no extra space around it.
+            // Tight constraints from AspectRatio + SizedBox.expand make the
+            // embed fill the whole box with no extra space around it.
             ? const SizedBox.expand(child: ReferralYoutubeEmbedCard())
             : GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => playing.value = true,
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: const Color(0x66FFFFFF),
-            child: Center(
-              child: SvgPicture.asset(
-                FileConstants.referPlayIconSvg,
-                width: 50.r,
-                height: 50.r,
+                behavior: HitTestBehavior.opaque,
+                onTap: () => playing.value = true,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: const Color(0x66FFFFFF),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      FileConstants.referPlayIconSvg,
+                      width: 50.r,
+                      height: 50.r,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -200,9 +197,9 @@ class _VideoPlaceholder extends HookWidget {
 
 List<Widget> _buildBullets(BuildContext context) {
   final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-    color: AppColors.textPrimary.withOpacity(0.8),
-    height: 1.5,
-  );
+        color: AppColors.textPrimary.withOpacity(0.8),
+        height: 1.5,
+      );
   const bullets = [
     'When Your Friend Joins Using Your Referral Code And\nCompletes Their First Transaction, You Earn 100 E-Coins.',
     'Your Friend Also Earns 100 E-Coins As A Welcome Bonus.',
@@ -212,27 +209,27 @@ List<Widget> _buildBullets(BuildContext context) {
   return bullets
       .map(
         (text) => Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: 4.h),
-            child: Container(
-              width: 6.w,
-              height: 6.w,
-              decoration: const BoxDecoration(
-                color: AppColors.textPrimary,
-                shape: BoxShape.circle,
+          padding: EdgeInsets.only(bottom: 8.h),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 4.h),
+                child: Container(
+                  width: 6.w,
+                  height: 6.w,
+                  decoration: const BoxDecoration(
+                    color: AppColors.textPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               ),
-            ),
+              SizedBox(width: 10.w),
+              Expanded(child: Text(text, style: textStyle)),
+            ],
           ),
-          SizedBox(width: 10.w),
-          Expanded(child: Text(text, style: textStyle)),
-        ],
-      ),
-    ),
-  )
+        ),
+      )
       .toList();
 }
 
@@ -246,26 +243,26 @@ List<Widget> _buildEarnBullets(BuildContext context) {
   return bullets
       .map(
         (text) => Padding(
-      padding: EdgeInsets.only(bottom: 6.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: 6.h),
-            child: Container(
-              width: 6.w,
-              height: 6.w,
-              decoration: const BoxDecoration(
-                color: AppColors.textPrimary,
-                shape: BoxShape.circle,
+          padding: EdgeInsets.only(bottom: 6.h),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Container(
+                  width: 6.w,
+                  height: 6.w,
+                  decoration: const BoxDecoration(
+                    color: AppColors.textPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               ),
-            ),
+              SizedBox(width: 10.w),
+              Expanded(child: Text(text, style: textStyle)),
+            ],
           ),
-          SizedBox(width: 10.w),
-          Expanded(child: Text(text, style: textStyle)),
-        ],
-      ),
-    ),
-  )
+        ),
+      )
       .toList();
 }

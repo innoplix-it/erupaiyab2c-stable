@@ -249,7 +249,8 @@ class AddBankAccountView extends HookConsumerWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 20.w,
+                      SizedBox(
+                        height: 20.w,
                         width: 20.w,
                         child: Checkbox(
                           value: confirmChecked.value,
@@ -590,7 +591,8 @@ class _PrimaryButton extends HookWidget {
         ),
         alignment: Alignment.center,
         child: loading
-            ? SizedBox(width: 22.w,
+            ? SizedBox(
+                width: 22.w,
                 height: 22.w,
                 child: const Center(
                   child: SpinKitCircle(

@@ -7,13 +7,15 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../components/credit_card/credit_card_figma_metrics.dart';
 
 class CreditCardIntroView extends StatelessWidget {
   const CreditCardIntroView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
+    double sy(double v) => CreditCardFigmaMetrics.sy(context, v);
     return Scaffold(
       backgroundColor: Colors.white,
       body: LayoutBuilder(
@@ -52,7 +54,7 @@ class CreditCardIntroView extends StatelessWidget {
                 child: SafeArea(
                   bottom: false,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    padding: EdgeInsets.symmetric(horizontal: sx(12)),
                     child: Row(
                       children: [
                         IconButton(
@@ -60,16 +62,21 @@ class CreditCardIntroView extends StatelessWidget {
                               const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => context.pop(),
                         ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          'Add New Card',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                        SizedBox(width: sx(4)),
+                        Expanded(
+                          child: Text(
+                            'Add New Card',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
                         ),
-                        const Spacer(),
                         IconButton(
                           icon: const Icon(
                             Icons.help_outline,
@@ -83,9 +90,9 @@ class CreditCardIntroView extends StatelessWidget {
                 ),
               ),
               Positioned(
-                left: 24,
-                right: 24,
-                top: curveHeight + 70,
+                left: sx(24),
+                right: sx(24),
+                top: curveHeight + sy(70),
                 child: Column(
                   children: [
                     Text(
@@ -96,7 +103,7 @@ class CreditCardIntroView extends StatelessWidget {
                           ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: sy(8)),
                     Text(
                       'Link your cards to E-Rupaiya for fast\nand secure digital payments.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -108,15 +115,20 @@ class CreditCardIntroView extends StatelessWidget {
                 ),
               ),
               Positioned(
-                left: 24,
-                right: 24,
-                bottom: 24 + MediaQuery.paddingOf(context).bottom,
+                left: sx(24),
+                right: sx(24),
+                bottom: sy(24) + MediaQuery.paddingOf(context).bottom,
                 child: CustomElevatedButton(
                   onPressed: () =>
                       context.push(RouteConstants.creditCardListing),
                   label: 'Add New Card',
                   showArrow: false,
                   uppercaseLabel: false,
+                  height: CreditCardFigmaMetrics.primaryButtonHeight(context),
+                  labelStyle: CreditCardFigmaMetrics.primaryButtonLabelStyle(
+                    context,
+                  ),
+                  borderRadius: CreditCardFigmaMetrics.s(context, 28),
                 ),
               ),
             ],

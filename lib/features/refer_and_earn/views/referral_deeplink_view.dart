@@ -36,7 +36,8 @@ class ReferralDeepLinkView extends HookConsumerWidget {
         logger.debug('ReferralDeepLink: received code=$code');
         final authState = ref.read(authControllerProvider);
         if (!authState.isAuthenticated) {
-          logger.debug('ReferralDeepLink: user not authenticated, storing code');
+          logger
+              .debug('ReferralDeepLink: user not authenticated, storing code');
           await storage.write(
             key: StorageKeys.pendingReferralCode,
             value: code,
@@ -49,7 +50,8 @@ class ReferralDeepLinkView extends HookConsumerWidget {
 
         final userId = await Utils.getUserId();
         if (userId == null || userId.trim().isEmpty) {
-          logger.debug('ReferralDeepLink: missing userId, redirecting to login');
+          logger
+              .debug('ReferralDeepLink: missing userId, redirecting to login');
           AppSnackbar.show('Please login to continue.');
           if (context.mounted) {
             context.go(RouteConstants.login);

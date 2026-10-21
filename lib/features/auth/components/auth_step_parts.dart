@@ -106,11 +106,39 @@ class _AuthKeyboardOnOpenState extends State<AuthKeyboardOnOpen> {
 /// Zinc-400 disabled fill from the Figma spec. Deliberately local to the auth
 /// steps: it must not leak into the global palette.
 const Color authDisabledFill = Color(0xFFA1A1AA);
+
+/// Light-grey disabled Continue (matches the Figma login / Verify OTP frames).
+const Color authContinueDisabledFill = Color(0xFFE3E3E6);
+const Color authContinueDisabledLabel = Color(0xFF64646B);
+
 const Color _hintColor = Color(0xFFA1A1AA);
 const Color _fieldDivider = Color(0xFFE4E4E7);
 
-/// Side gutter measured off the 360-wide Figma auth frames; every auth step
-/// shares it so labels, fields and the CTA line up on one edge.
+/// Figma auth frames are authored on 360 x 690.
+const double _designWidth = 360;
+const double _designHeight = 690;
+
+/// Width based MediaQuery sizing: [designPx] / 360 of the screen width,
+/// bounded so tiny phones and tablets stay usable. Already in logical pixels:
+/// never pass the result through ScreenUtil again.
+double authW(BuildContext context, double designPx) {
+  final value = MediaQuery.sizeOf(context).width * designPx / _designWidth;
+  return value.clamp(designPx * 0.78, designPx * 1.3).toDouble();
+}
+
+/// Height based MediaQuery sizing: [designPx] / 690 of the window height.
+/// [MediaQuery.sizeOf] is NOT reduced by the keyboard, so vertical gaps stay
+/// constant while the keyboard opens/closes (no jumping content).
+double authH(BuildContext context, double designPx) {
+  final value = MediaQuery.sizeOf(context).height * designPx / _designHeight;
+  return value.clamp(designPx * 0.7, designPx * 1.3).toDouble();
+}
+
+/// Side gutter (14 / 360) as a MediaQuery value.
+double authSidePadding(BuildContext context) => authW(context, 14);
+
+/// Kept for call sites not migrated yet (identity OTP, Create MPIN, ...).
+/// New code should use [authSidePadding].
 double get authHorizontalPadding => 14.w;
 
 /// MediaQuery sizing for auth layout boxes: [fraction] of the screen width
@@ -156,8 +184,38 @@ class AuthBackgroundImage extends StatelessWidget {
   }
 }
 
+/// Background sized to the FULL window (not the keyboard-reduced body), so the
+/// artwork is not re-laid-out / re-scaled on every keyboard animation frame.
+/// Use as a direct child of a [Stack]; the Stack clips the part that sits
+/// behind the keyboard.
+Widget authFixedBackground(BuildContext context) {
+  return Positioned(
+    top: 0,
+    left: 0,
+    right: 0,
+    height: MediaQuery.sizeOf(context).height,
+    child: const RepaintBoundary(child: AuthBackgroundImage()),
+  );
+}
+
+/// Plain white shell for Verify OTP, Create MPIN, and Reset MPIN (no marquee).
+class AuthPlainWhiteShell extends StatelessWidget {
+  const AuthPlainWhiteShell({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(color: Colors.white, child: child);
+  }
+}
+
 /// Peach band + animated [LoginServicesSlider] behind OTP / MPIN form content
-/// (Figma Verify OTP, Create MPIN, Reset MPIN).
+/// (legacy; login PIN uses the same shell as [AuthMobileStep]).
+///
+/// The slider height is derived from the full window height, never from the
+/// keyboard-reduced body, so opening the keyboard does not resize / rebuild
+/// the tiles on every frame.
 class AuthPeachMarqueeShell extends StatelessWidget {
   const AuthPeachMarqueeShell({super.key, required this.child});
 
@@ -177,58 +235,43 @@ class AuthPeachMarqueeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
     final topInset = MediaQuery.paddingOf(context).top;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final k = (screenWidth / LoginServicesSlider.figmaFrameWidth)
+    final k = (size.width / LoginServicesSlider.figmaFrameWidth)
         .clamp(0.72, 1.1)
         .toDouble();
     final topPad = topInset + 6 * k;
+    final available = math.max(0.0, size.height - topPad);
+    final natural = LoginServicesSlider.naturalHeight(
+      size.width,
+      2,
+      compact: true,
+    );
+    final sliderH = math.min(natural, available * 0.72);
 
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: AppColors.loginPeachCoralGradient,
       ),
-      child: LayoutBuilder(
-        builder: (context, viewport) {
-          final available = (viewport.maxHeight - topPad)
-              .clamp(0.0, double.infinity)
-              .toDouble();
-          final natural = LoginServicesSlider.naturalHeight(
-            screenWidth,
-            2,
-            compact: true,
-          );
-          final sliderH = math.min(natural, available * 0.72);
-
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned(
-                top: topPad,
-                left: 0,
-                right: 0,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: sliderH,
-                    minHeight: 0,
-                  ),
-                  child: const LoginServicesSlider(
-                    rowCount: 2,
-                    compact: true,
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    gradient: _overlayBandGradient,
-                  ),
-                  child: child,
-                ),
-              ),
-            ],
-          );
-        },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            top: topPad,
+            left: 0,
+            right: 0,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: sliderH, minHeight: 0),
+              child: const LoginServicesSlider(rowCount: 2, compact: true),
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(gradient: _overlayBandGradient),
+              child: child,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -246,52 +289,46 @@ class AuthStepLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final side = authSidePadding(context);
+    // Window based (not keyboard based) so the content does not shift when
+    // the keyboard opens.
+    final topGap =
+        (MediaQuery.sizeOf(context).height * 0.07).clamp(12.0, 56.0).toDouble();
     return Stack(
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Colors.white),
-        const AuthBackgroundImage(),
+        authFixedBackground(context),
         SafeArea(
           child: Column(
             children: [
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final topGap =
-                        (constraints.maxHeight * 0.07).clamp(12.h, 56.h);
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        authHorizontalPadding,
-                        topGap,
-                        authHorizontalPadding,
-                        0,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(side, topGap, side, 0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: authContentMaxWidth(context),
                       ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: authContentMaxWidth(context),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ...children,
-                              // Keeps the last control clear of the pinned
-                              // footer button.
-                              SizedBox(height: 24.h),
-                            ],
-                          ),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ...children,
+                          // Keeps the last control clear of the pinned
+                          // footer button.
+                          SizedBox(height: authH(context, 24)),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  authHorizontalPadding,
-                  8.h,
-                  authHorizontalPadding,
-                  16.h,
+                  side,
+                  authH(context, 8),
+                  side,
+                  authH(context, 16),
                 ),
                 child: footer,
               ),
@@ -309,14 +346,15 @@ class AuthBrandRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final logo = authW(context, 24);
     return Row(
       children: [
         Image.asset(
           FileConstants.erupaiyaLogo,
-          width: 24.r,
-          height: 24.r,
+          width: logo,
+          height: logo,
         ),
-        SizedBox(width: 6.w),
+        SizedBox(width: authW(context, 6)),
         Flexible(
           child: FittedBox(
             fit: BoxFit.scaleDown,
@@ -338,7 +376,7 @@ class AuthBrandRow extends StatelessWidget {
                     letterSpacing: 0,
                   ),
                 ),
-                SizedBox(width: 1.w),
+                const SizedBox(width: 1),
                 Text(
                   'TM',
                   style: TextStyle(
@@ -378,7 +416,7 @@ class AuthWelcomeHeading extends StatelessWidget {
             letterSpacing: 0,
           ),
         ),
-        SizedBox(height: 4.h),
+        SizedBox(height: authH(context, 4)),
         Text(
           'Enter your mobile number to continue.',
           style: TextStyle(
@@ -441,7 +479,7 @@ class AuthMobileField extends StatelessWidget {
   Widget build(BuildContext context) {
     final field = Container(
       height: authWidthFraction(context, 46 / 360, min: 40, max: 64),
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: authW(context, 16)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14.r),
@@ -449,7 +487,7 @@ class AuthMobileField extends StatelessWidget {
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
             blurRadius: 18.r,
-            offset: Offset(0.w, 8.h),
+            offset: Offset(0, 8.r),
           ),
         ],
       ),
@@ -457,10 +495,10 @@ class AuthMobileField extends StatelessWidget {
         children: [
           Image.asset(
             FileConstants.indiaFlag,
-            width: 22.r,
-            height: 15.r,
+            width: authW(context, 22),
+            height: authW(context, 15),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: authW(context, 8)),
           Text(
             '+91',
             style: TextStyle(
@@ -472,9 +510,9 @@ class AuthMobileField extends StatelessWidget {
               letterSpacing: 0,
             ),
           ),
-          SizedBox(width: 10.w),
-          Container(width: 1.w, height: 18.r, color: _fieldDivider),
-          SizedBox(width: 10.w),
+          SizedBox(width: authW(context, 10)),
+          Container(width: 1, height: authW(context, 18), color: _fieldDivider),
+          SizedBox(width: authW(context, 10)),
           Expanded(
             child: TextField(
               controller: controller,
@@ -578,13 +616,13 @@ class AuthPrimaryButton extends StatelessWidget {
         isLoading: isLoading,
         // No fixed height, so the label never clips at large text scales; the
         // 28.r radius still rounds the 48dp Material height into a full pill.
-        backgroundColor: enabled ? AppColors.primary : authDisabledFill,
-        labelColor: Colors.white,
+        backgroundColor: enabled ? AppColors.primary : authContinueDisabledFill,
+        labelColor: enabled ? Colors.white : authContinueDisabledLabel,
         labelStyle: TextStyle(
           fontFamily: authFontFamily,
           fontSize: 12.sp,
           fontWeight: FontWeight.w500,
-          color: Colors.white,
+          color: enabled ? Colors.white : authContinueDisabledLabel,
           height: 1,
           letterSpacing: 0,
         ),

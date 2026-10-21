@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../components/credit_card/credit_card_figma_metrics.dart';
 
 import '../../../constants/app_colors.dart';
 
@@ -8,18 +9,26 @@ class CreditCardMyCardsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pad = CreditCardFigmaMetrics.screenPadding(context).copyWith(
+      top: CreditCardFigmaMetrics.sy(context, 6),
+      bottom: CreditCardFigmaMetrics.sy(context, 12),
+    );
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 12.h),
+      padding: pad,
       child: _Shimmer(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ShimmerLine(width: 90.w, height: 14.h),
-            SizedBox(height: 14.h),
+            _ShimmerLine(width: CreditCardFigmaMetrics.s(context, 90), height: CreditCardFigmaMetrics.sy(context, 14)),
+            SizedBox(
+              height: CreditCardFigmaMetrics.myCardAfterBannerGap(context),
+            ),
             ...List.generate(
               3,
               (index) => Padding(
-                padding: EdgeInsets.only(bottom: 14.h),
+                padding: EdgeInsets.only(
+                  bottom: CreditCardFigmaMetrics.myCardListGap(context),
+                ),
                 child: const _CardShimmer(),
               ),
             ),
@@ -36,59 +45,75 @@ class _CardShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.lightBorder, width: 1.2),
+        borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.myCardRadius(context)),
+        border: Border.all(color: AppColors.lightBorder),
         boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 10.r,
-            offset: Offset(0.w, 6.h),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: CreditCardFigmaMetrics.myCardShadowBlur(context),
+            offset: Offset(0, CreditCardFigmaMetrics.myCardShadowOffsetY(context)),
           ),
         ],
       ),
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 12.h, 8.w, 10.h),
+            padding: CreditCardFigmaMetrics.myCardHeaderPadding(context),
             child: Row(
               children: [
-                _ShimmerCircle(size: 40.r),
-                SizedBox(width: 12.w),
+                _ShimmerCircle(
+                  size: CreditCardFigmaMetrics.myCardLogoSize(context),
+                  radius: CreditCardFigmaMetrics.myCardLogoRadius(context),
+                ),
+                SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ShimmerLine(width: 140.w, height: 12.h),
-                      SizedBox(height: 6.h),
-                      _ShimmerLine(width: 90.w, height: 10.h),
+                      _ShimmerLine(
+                        width: CreditCardFigmaMetrics.s(context, 140),
+                        height: CreditCardFigmaMetrics.sy(context, 14),
+                      ),
+                      SizedBox(height: CreditCardFigmaMetrics.sy(context, 2)),
+                      _ShimmerLine(
+                        width: CreditCardFigmaMetrics.s(context, 90),
+                        height: CreditCardFigmaMetrics.sy(context, 12),
+                      ),
                     ],
                   ),
                 ),
-                _ShimmerCircle(size: 18.r),
+                _ShimmerCircle(size: CreditCardFigmaMetrics.myCardMenuIconSize(context)),
               ],
             ),
           ),
-          Divider(height: 1, color: AppColors.lightBorder.withOpacity(0.8)),
+          Divider(height: 1, color: AppColors.lightBorder),
           Padding(
-            padding: EdgeInsets.fromLTRB(14.w, 10.h, 12.w, 12.h),
+            padding: CreditCardFigmaMetrics.myCardBillPadding(context),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ShimmerLine(width: 90.w, height: 14.h),
-                      SizedBox(height: 6.h),
-                      _ShimmerLine(width: 120.w, height: 10.h),
+                      _ShimmerLine(
+                        width: CreditCardFigmaMetrics.s(context, 100),
+                        height: CreditCardFigmaMetrics.sy(context, 16),
+                      ),
+                      SizedBox(height: CreditCardFigmaMetrics.sy(context, 2)),
+                      _ShimmerLine(
+                        width: CreditCardFigmaMetrics.s(context, 130),
+                        height: CreditCardFigmaMetrics.sy(context, 12),
+                      ),
                     ],
                   ),
                 ),
                 _ShimmerBox(
-                  height: 30.h,
-                  width: 90.w,
-                  radius: 22.r,
+                  height: CreditCardFigmaMetrics.payNowButtonHeight(context),
+                  width: CreditCardFigmaMetrics.payNowButtonWidth(context),
+                  radius: CreditCardFigmaMetrics.payNowButtonRadius(context),
                 ),
               ],
             ),
@@ -203,16 +228,17 @@ class _ShimmerLine extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 8)),
       ),
     );
   }
 }
 
 class _ShimmerCircle extends StatelessWidget {
-  const _ShimmerCircle({required this.size});
+  const _ShimmerCircle({required this.size, this.radius});
 
   final double size;
+  final double? radius;
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +247,9 @@ class _ShimmerCircle extends StatelessWidget {
       width: size,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        shape: BoxShape.circle,
+        shape: radius == null ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius:
+            radius == null ? null : BorderRadius.circular(radius!),
       ),
     );
   }

@@ -1,7 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../components/credit_card/credit_card_figma_metrics.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
@@ -55,25 +56,25 @@ class CreditCardTransactionDetailScreen extends StatelessWidget {
         children: [
           MyAppBar(
             title: meta.label,
-            height: 150.h,
+            height: CreditCardFigmaMetrics.sy(context, 150),
             backgroundColor: meta.color,
             onBack: () => context.pop(),
           ),
           Expanded(
             child: SingleChildScrollView(
               child: Container(
-                padding: EdgeInsets.all(16.w),
+                padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 16)),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24.r),
+                  borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 24)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _SummaryCard(tx: tx),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
                     _InfoSection(title: 'Payment Details', rows: infoRows),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
                     if (tx.bankReferenceId.trim().isNotEmpty)
                       _CopyRow(
                         label: 'Bank Reference ID',
@@ -112,24 +113,24 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 12)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
         border: Border.all(color: AppColors.lightBorder),
         boxShadow: [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 12.r,
-            offset: Offset(0.w, 6.h),
+            blurRadius: CreditCardFigmaMetrics.s(context, 12),
+            offset: Offset(CreditCardFigmaMetrics.s(context, 0), CreditCardFigmaMetrics.sy(context, 6)),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            height: 48.r,
-            width: 48.r,
+            height: CreditCardFigmaMetrics.s(context, 48),
+            width: CreditCardFigmaMetrics.s(context, 48),
             decoration: BoxDecoration(
               color: AppColors.lightBorder.withOpacity(0.4),
               shape: BoxShape.circle,
@@ -144,21 +145,25 @@ class _SummaryCard extends StatelessWidget {
                   )
                 : const Icon(Icons.credit_card),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   tx.billerName.isNotEmpty ? tx.billerName : 'Card',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: CreditCardFigmaMetrics.sy(context, 4)),
                 Text(
                   tx.transactionTime,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textPrimary.withOpacity(0.6),
                       ),
@@ -166,12 +171,17 @@ class _SummaryCard extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            _formatAmount(tx.amount),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
+          Flexible(
+            child: Text(
+              _formatAmount(tx.amount),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
           ),
         ],
       ),
@@ -197,10 +207,10 @@ class _InfoSection extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         ...rows.map(
           (row) => Padding(
-            padding: EdgeInsets.only(bottom: 8.h),
+            padding: EdgeInsets.only(bottom: CreditCardFigmaMetrics.sy(context, 8)),
             child: row,
           ),
         ),
@@ -237,8 +247,16 @@ class _InfoRow extends StatelessWidget {
                 ),
           ),
         ),
-        SizedBox(width: 12.w),
-        Text(value, style: valueStyle),
+        SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: valueStyle,
+          ),
+        ),
       ],
     );
   }
@@ -253,7 +271,7 @@ class _CopyRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.only(bottom: CreditCardFigmaMetrics.sy(context, 10)),
       child: Row(
         children: [
           Expanded(
@@ -264,12 +282,17 @@ class _CopyRow extends StatelessWidget {
                   ),
             ),
           ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
           ),
         ],
       ),

@@ -1,7 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../components/credit_card/credit_card_figma_metrics.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -101,7 +102,7 @@ class _CreditCardTransactionsScreenState
                               final item = items[index];
                               return Padding(
                                 padding:
-                                    EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 12.h),
+                                    EdgeInsets.fromLTRB(CreditCardFigmaMetrics.s(context, 16), CreditCardFigmaMetrics.sy(context, 0), CreditCardFigmaMetrics.s(context, 16), CreditCardFigmaMetrics.sy(context, 12)),
                                 child: _TransactionTile(
                                   item: item,
                                   onTap: () => context.push(
@@ -115,7 +116,7 @@ class _CreditCardTransactionsScreenState
                           ),
                         ),
                       SliverToBoxAdapter(
-                        child: SizedBox(height: 24.h),
+                        child: SizedBox(height: CreditCardFigmaMetrics.sy(context, 24)),
                       ),
                     ],
                   ),
@@ -141,16 +142,16 @@ class _TransactionTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          padding: EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 16), vertical: CreditCardFigmaMetrics.sy(context, 14)),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
             border: Border.all(color: AppColors.lightBorder),
           ),
           child: Row(
             children: [
               Container(
-                height: 42.r,
-                width: 42.r,
+                height: CreditCardFigmaMetrics.s(context, 42),
+                width: CreditCardFigmaMetrics.s(context, 42),
                 decoration: BoxDecoration(
                   color: meta.color.withOpacity(0.12),
                   shape: BoxShape.circle,
@@ -171,21 +172,25 @@ class _TransactionTile extends StatelessWidget {
                         color: meta.color,
                       ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item.billerName.isNotEmpty ? item.billerName : 'Card',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w700,
                           ),
                     ),
-                    SizedBox(height: 4.h),
+                    SizedBox(height: CreditCardFigmaMetrics.sy(context, 4)),
                     Text(
                       item.transactionTime,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppColors.textPrimary.withOpacity(0.6),
                           ),
@@ -193,23 +198,26 @@ class _TransactionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Column(
+              Flexible(
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     _formatAmount(item.amount),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: CreditCardFigmaMetrics.sy(context, 6)),
                   Container(
                     padding:
-                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                        EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 8), vertical: CreditCardFigmaMetrics.sy(context, 4)),
                     decoration: BoxDecoration(
                       color: meta.color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12.r),
+                      borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 12)),
                     ),
                     child: Text(
                       meta.label,
@@ -220,6 +228,7 @@ class _TransactionTile extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
               ),
             ],
           ),
@@ -235,7 +244,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+      padding: EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 16), vertical: CreditCardFigmaMetrics.sy(context, 24)),
       child: Text(
         'No transactions found',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(

@@ -19,8 +19,7 @@ class FileConstants {
   static String verificationRed = 'assets/images/png/verification_red.png';
   static String prepaidcard = 'assets/images/png/home_icon/prepaid_card.png';
   static String bharatConnect = 'assets/images/png/bharat_con.png';
-  static String bharatConnectColor =
-      'assets/images/png/home_icon/bharatconnect_color.png';
+  static String bharatConnectColor = 'assets/images/png/home_icon/bharatconnect_color.png';
   static String npci = 'assets/images/png/npci.png';
   static String serverDown = 'assets/images/png/serverDown.png';
   static String upi = 'assets/images/png/upi.png';
@@ -273,10 +272,16 @@ class FileConstants {
       'assets/images/png/refer_earn/coin_equals_row.png';
   static String referCoinEqualsSvg = 'assets/images/svg/refer_coin_equals.svg';
   // How It Works step icons (cropped from Figma welcome (10).png).
+  static String referStepInviteSvg =
+      'assets/images/svg/refer_earn_step_invite.svg';
+  /// Step 1 invite artwork (Figma 39×30), raster for reliable rendering.
   static String referStepInvitePng =
-      'assets/images/png/refer_earn/step_1_icon.png';
+      'assets/images/png/refer_earn/step_1_invite_icon.png';
+  static String referStepJoinSvg =
+      'assets/images/svg/refer_earn_step_join.svg';
+  /// Step 2 join artwork (Figma 39×30), raster for reliable rendering.
   static String referStepJoinPng =
-      'assets/images/png/refer_earn/step_2_icon.png';
+      'assets/images/png/refer_earn/step_2_join_icon.png';
   static String referStepPaymentPng =
       'assets/images/png/refer_earn/step_3_icon.png';
   static String referStepRewardPng =

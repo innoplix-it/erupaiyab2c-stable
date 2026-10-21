@@ -129,23 +129,21 @@ class _AuthMpinSetupStepState extends State<AuthMpinSetupStep>
   bool get _lifted {
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0 ||
         (View.maybeOf(context)?.viewInsets.bottom ?? 0) > 0;
-    final anyFocused = widget.newPinFocusNode.hasFocus ||
-        widget.confirmPinFocusNode.hasFocus;
+    final anyFocused =
+        widget.newPinFocusNode.hasFocus || widget.confirmPinFocusNode.hasFocus;
     return keyboardOpen || anyFocused || widget.isSubmitting || _keepLifted;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthPeachMarqueeShell(
-      child: SafeArea(
-        child: Column(
-          children: [
-            Expanded(child: _buildScrollableContent()),
-            // Figma Create MPIN: no bottom CTA while keypad is up or while
-            // Verify is processing so content does not drop.
-            if (!_lifted) _buildFooter(),
-          ],
-        ),
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(child: _buildScrollableContent()),
+          // Figma Create MPIN: no bottom CTA while keypad is up or while
+          // Verify is processing so content does not drop.
+          if (!_lifted) _buildFooter(),
+        ],
       ),
     );
   }
@@ -211,8 +209,7 @@ class _AuthMpinSetupStepState extends State<AuthMpinSetupStep>
                     onToggle: widget.isSubmitting
                         ? () {}
                         : () => setState(() => _obscureNew = !_obscureNew),
-                    onChanged:
-                        widget.isSubmitting ? null : widget.onPinChanged,
+                    onChanged: widget.isSubmitting ? null : widget.onPinChanged,
                     onCompleted:
                         widget.isSubmitting ? null : widget.onNewPinCompleted,
                   ),
@@ -230,8 +227,7 @@ class _AuthMpinSetupStepState extends State<AuthMpinSetupStep>
                         : () => setState(
                               () => _obscureConfirm = !_obscureConfirm,
                             ),
-                    onChanged:
-                        widget.isSubmitting ? null : widget.onPinChanged,
+                    onChanged: widget.isSubmitting ? null : widget.onPinChanged,
                     onCompleted: widget.isSubmitting
                         ? null
                         : widget.onConfirmPinCompleted,

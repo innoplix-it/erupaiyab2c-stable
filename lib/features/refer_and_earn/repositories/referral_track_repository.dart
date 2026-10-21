@@ -5,7 +5,8 @@ import '../../../services/dio_service.dart';
 import '../../../services/logger_service.dart';
 
 class ReferralTrackRepository {
-  ReferralTrackRepository({Dio? dio}) : _dio = dio ?? DioService.instance.client;
+  ReferralTrackRepository({Dio? dio})
+      : _dio = dio ?? DioService.instance.client;
 
   final Dio _dio;
 

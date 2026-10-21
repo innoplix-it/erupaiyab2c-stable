@@ -393,7 +393,6 @@ class _CoinRateBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return SizedBox(
       height: 38.h,
       child: SvgPicture.asset(

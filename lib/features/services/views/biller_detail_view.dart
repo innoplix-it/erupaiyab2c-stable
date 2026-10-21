@@ -39,6 +39,7 @@ import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../../profile/views/transaction_detail_screen.dart';
 import '../components/bharat_connect_consent_card.dart';
+import '../components/credit_card/credit_card_figma_metrics.dart';
 import '../components/credit_card_pay_now/credit_card_pay_now_section.dart';
 import '../components/fetch_provider_metrics.dart';
 import '../components/piped_gas/piped_gas_bill_section.dart';
@@ -98,7 +99,9 @@ class BillerDetailView extends HookConsumerWidget {
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final mobilePrefill = args?.mobileNumber?.trim();
     final last4Prefill = args?.cardLast4?.trim();
-    final autoFetchBill = args?.autoFetchBill ?? false;
+    final creditCardPayNowEntry = args?.creditCardPayNowEntry ?? false;
+    final autoFetchBill =
+        (args?.autoFetchBill ?? false) || creditCardPayNowEntry;
     final autoOpenPaymentSheet = args?.autoOpenPaymentSheet ?? false;
     final loggedInMobile = profileState.profile?.mobile.trim();
     final isGasCylinder = useMemoized(
@@ -506,18 +509,25 @@ class BillerDetailView extends HookConsumerWidget {
         return null;
       }
 
-      didAutoFetchBill.value = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!context.mounted) return;
-        final params = <String, String>{};
-        for (final p in detail.customerParams.where((p) => p.visibility)) {
-          final tc = inputControllers[p.paramName];
-          final value = tc?.text.trim() ?? '';
-          if (value.isNotEmpty) {
-            params[p.paramName] = value;
-          }
-        }
+        if (didAutoFetchBill.value) return;
+
+        final params = _customerParamsForAutoFetchBill(
+          detail: detail,
+          inputControllers: inputControllers,
+          isCreditCardFlow: isCreditCardFlow,
+          isGasCylinder: isGasCylinder,
+          mobilePrefill: mobilePrefill,
+          last4Prefill: last4Prefill,
+          loggedInMobile: loggedInMobile,
+        );
         if (params.isEmpty) return;
+        if (!_hasAllVisibleParamsForAutoFetch(detail: detail, params: params)) {
+          return;
+        }
+
+        didAutoFetchBill.value = true;
         await controller.fetchBill(customerParams: params);
       });
       return null;
@@ -528,6 +538,11 @@ class BillerDetailView extends HookConsumerWidget {
       bill,
       detailState.isFetchingBill,
       detailState.isFetchingDetail,
+      mobilePrefill,
+      last4Prefill,
+      loggedInMobile,
+      isCreditCardFlow,
+      isGasCylinder,
     ]);
 
     useEffect(() {
@@ -548,6 +563,33 @@ class BillerDetailView extends HookConsumerWidget {
       return null;
     }, [autoOpenPaymentSheet, bill, detailState.isFetchingBill]);
 
+    final payNowEntryParams = detail != null && creditCardPayNowEntry
+        ? _customerParamsForAutoFetchBill(
+            detail: detail,
+            inputControllers: inputControllers,
+            isCreditCardFlow: isCreditCardFlow,
+            isGasCylinder: isGasCylinder,
+            mobilePrefill: mobilePrefill,
+            last4Prefill: last4Prefill,
+            loggedInMobile: loggedInMobile,
+          )
+        : const <String, String>{};
+    final canAutoFetchFromMyCards = creditCardPayNowEntry &&
+        detail != null &&
+        _hasAllVisibleParamsForAutoFetch(
+          detail: detail,
+          params: payNowEntryParams,
+        );
+    final hideCreditCardEntryForPayNow = creditCardPayNowEntry &&
+        isCreditCardFlow &&
+        bill == null &&
+        (detailState.isFetchingDetail ||
+            detailState.isFetchingBill ||
+            (canAutoFetchFromMyCards && !didAutoFetchBill.value));
+
+    double ccS(double figmaPx) => CreditCardFigmaMetrics.s(context, figmaPx);
+    double ccSy(double figmaPx) => CreditCardFigmaMetrics.sy(context, figmaPx);
+
     return PopScope(
       canPop: detailState.billResponse == null,
       onPopInvoked: (didPop) {
@@ -560,7 +602,9 @@ class BillerDetailView extends HookConsumerWidget {
           // Figma: input step = "Pay Credit Card Bill"; after fetch = "Pay Now".
           title: isElectricityInputStep
               ? 'Fetch Your Provider'
-              : (isCreditCardFlow && detailState.billResponse == null)
+              : (isCreditCardFlow &&
+                      detailState.billResponse == null &&
+                      !creditCardPayNowEntry)
                   ? 'Pay Credit Card Bill'
                   : 'Pay Now',
           // Title typography: MyAppBar default (= Transaction History).
@@ -595,7 +639,11 @@ class BillerDetailView extends HookConsumerWidget {
                                   FetchProviderMetrics.w(24),
                                   FetchProviderMetrics.h(20),
                                 )
-                              : EdgeInsets.all(16.w),
+                              : isCreditCardFlow
+                                  ? CreditCardFigmaMetrics.screenPadding(
+                                      context,
+                                    ).copyWith(bottom: ccSy(24))
+                                  : EdgeInsets.all(16.w),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -605,6 +653,7 @@ class BillerDetailView extends HookConsumerWidget {
                             leadingImageUrl: biller.iconUrl,
                             operatorStyle:
                                 isElectricityInputStep || isElectricityBillStep,
+                            creditCardStyle: isCreditCardFlow,
                             actionLabel: 'Change',
                             // Electricity Pay Now: Figma multi-layer soft
                             // shadow on the Maharashtra / operator card.
@@ -633,22 +682,39 @@ class BillerDetailView extends HookConsumerWidget {
                                 ? FetchProviderMetrics.h(28)
                                 : isElectricityBillStep
                                     ? FetchProviderMetrics.h(21)
-                                    : 24.h,
+                                    : isCreditCardFlow
+                                        ? ccSy(16)
+                                        : 24.h,
                           ),
 
                           // --- Loading detail ---
                           if (detailState.isFetchingDetail)
                             Padding(
-                              padding: EdgeInsets.symmetric(vertical: 32.h),
+                              padding: EdgeInsets.symmetric(
+                                vertical: isCreditCardFlow ? ccSy(32) : 32.h,
+                              ),
                               child: Center(
                                 child: SpinKitCircle(
                                   color: AppColors.primary,
-                                  size: 48,
+                                  size: isCreditCardFlow ? ccS(48) : 48,
                                 ),
                               ),
                             )
 
                           // --- Input form (no bill yet) ---
+                          else if (hideCreditCardEntryForPayNow &&
+                              !detailState.isFetchingBill)
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                vertical: isCreditCardFlow ? ccSy(32) : 32.h,
+                              ),
+                              child: Center(
+                                child: SpinKitCircle(
+                                  color: AppColors.primary,
+                                  size: isCreditCardFlow ? ccS(48) : 48,
+                                ),
+                              ),
+                            )
                           else if (detail != null && bill == null) ...[
                             if (isGasCylinder) ...[
                               BillSampleTermsCard(
@@ -741,8 +807,14 @@ class BillerDetailView extends HookConsumerWidget {
                                       ? 'Registered Mobile Number'
                                       : param.paramName);
                               final useCreditFieldChrome = isCreditCardFlow;
+                              final ccSx =
+                                  isCreditCardFlow ? ccS(14) : 14.sp;
+                              final fieldRadius =
+                                  isCreditCardFlow ? ccS(12) : 12.r;
                               return Padding(
-                                padding: EdgeInsets.only(bottom: 16.h),
+                                padding: EdgeInsets.only(
+                                  bottom: isCreditCardFlow ? ccSy(14) : 16.h,
+                                ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -755,7 +827,7 @@ class BillerDetailView extends HookConsumerWidget {
                                                     isCreditCardFlow)
                                                 ? GoogleFonts.plusJakartaSans(
                                                     fontWeight: FontWeight.w600,
-                                                    fontSize: 14.sp,
+                                                    fontSize: ccSx,
                                                     height: 1,
                                                     color:
                                                         AppColors.textPrimary,
@@ -795,7 +867,9 @@ class BillerDetailView extends HookConsumerWidget {
                                           ),
                                       ],
                                     ),
-                                    SizedBox(height: 8.h),
+                                    SizedBox(
+                                      height: isCreditCardFlow ? ccSy(8) : 8.h,
+                                    ),
                                     if (isDate)
                                       DatePickerField(
                                         controller: tc!,
@@ -836,14 +910,29 @@ class BillerDetailView extends HookConsumerWidget {
                                         decoration: useCreditFieldChrome
                                             ? BoxDecoration(
                                                 borderRadius:
-                                                    BorderRadius.circular(12.r),
+                                                    BorderRadius.circular(
+                                                  CreditCardFigmaMetrics.s(
+                                                    context,
+                                                    12,
+                                                  ),
+                                                ),
                                                 boxShadow: [
                                                   BoxShadow(
                                                     color: Colors.black
                                                         .withValues(
                                                             alpha: 0.06),
-                                                    blurRadius: 8.r,
-                                                    offset: Offset(0, 2.h),
+                                                    blurRadius:
+                                                        CreditCardFigmaMetrics.s(
+                                                      context,
+                                                      8,
+                                                    ),
+                                                    offset: Offset(
+                                                      0,
+                                                      CreditCardFigmaMetrics.sy(
+                                                        context,
+                                                        2,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ],
                                               )
@@ -907,30 +996,44 @@ class BillerDetailView extends HookConsumerWidget {
                                                     isCreditCardFlow)
                                                 ? GoogleFonts.plusJakartaSans(
                                                     fontWeight: FontWeight.w400,
-                                                    fontSize: 14.sp,
+                                                    fontSize: isCreditCardFlow
+                                                        ? ccS(14)
+                                                        : 14.sp,
                                                     color: AppColors.textPrimary
                                                         .withValues(
                                                             alpha: 0.45),
                                                   )
                                                 : null,
                                             prefixIcon: isLastFour
-                                                ? const _MaskedPrefix()
+                                                ? _MaskedPrefix(
+                                                    creditCard:
+                                                        isCreditCardFlow,
+                                                  )
                                                 : null,
                                             suffixIcon: (isMobile &&
                                                     !isGasLockedMobile)
                                                 ? Padding(
                                                     padding: EdgeInsets.only(
-                                                      right: 8.w,
+                                                      right: isCreditCardFlow
+                                                          ? ccS(8)
+                                                          : 8.w,
                                                     ),
                                                     child: Material(
                                                       color: AppColors.primary,
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                              8.r),
+                                                        isCreditCardFlow
+                                                            ? ccS(8)
+                                                            : 8.r,
+                                                      ),
                                                       child: InkWell(
                                                         borderRadius:
                                                             BorderRadius
-                                                                .circular(8.r),
+                                                                .circular(
+                                                          isCreditCardFlow
+                                                              ? ccS(8)
+                                                              : 8.r,
+                                                        ),
                                                         onTap: () async {
                                                           final picked =
                                                               await _pickContactNumber(
@@ -952,13 +1055,21 @@ class BillerDetailView extends HookConsumerWidget {
                                                           }
                                                         },
                                                         child: SizedBox(
-                                                          width: 36.r,
-                                                          height: 36.r,
+                                                          width: isCreditCardFlow
+                                                              ? ccS(36)
+                                                              : 36.r,
+                                                          height:
+                                                              isCreditCardFlow
+                                                                  ? ccSy(36)
+                                                                  : 36.r,
                                                           child: Icon(
                                                             Icons
                                                                 .contact_page_outlined,
                                                             color: Colors.white,
-                                                            size: 20.r,
+                                                            size:
+                                                                isCreditCardFlow
+                                                                    ? ccS(20)
+                                                                    : 20.r,
                                                           ),
                                                         ),
                                                       ),
@@ -966,38 +1077,62 @@ class BillerDetailView extends HookConsumerWidget {
                                                   )
                                                 : null,
                                             suffixIconConstraints:
-                                                const BoxConstraints(
-                                              minWidth: 44,
-                                              minHeight: 36,
+                                                BoxConstraints(
+                                              minWidth: isCreditCardFlow
+                                                  ? ccS(44)
+                                                  : 44,
+                                              minHeight: isCreditCardFlow
+                                                  ? ccSy(36)
+                                                  : 36,
                                             ),
                                             border: OutlineInputBorder(
                                               borderRadius:
-                                                  BorderRadius.circular(12.r),
+                                                  BorderRadius.circular(
+                                                isCreditCardFlow
+                                                    ? fieldRadius
+                                                    : 12.r,
+                                              ),
                                               borderSide: const BorderSide(
                                                   color: AppColors.lightBorder),
                                             ),
                                             enabledBorder: OutlineInputBorder(
                                               borderRadius:
-                                                  BorderRadius.circular(12.r),
+                                                  BorderRadius.circular(
+                                                isCreditCardFlow
+                                                    ? fieldRadius
+                                                    : 12.r,
+                                              ),
                                               borderSide: const BorderSide(
                                                   color: AppColors.lightBorder),
                                             ),
                                             focusedBorder: OutlineInputBorder(
                                               borderRadius:
-                                                  BorderRadius.circular(12.r),
+                                                  BorderRadius.circular(
+                                                isCreditCardFlow
+                                                    ? fieldRadius
+                                                    : 12.r,
+                                              ),
                                               borderSide: const BorderSide(
                                                   color: AppColors.primary),
                                             ),
                                             errorBorder: OutlineInputBorder(
                                               borderRadius:
-                                                  BorderRadius.circular(12.r),
+                                                  BorderRadius.circular(
+                                                isCreditCardFlow
+                                                    ? fieldRadius
+                                                    : 12.r,
+                                              ),
                                               borderSide: const BorderSide(
                                                   color: Colors.red),
                                             ),
                                             focusedErrorBorder:
                                                 OutlineInputBorder(
                                               borderRadius:
-                                                  BorderRadius.circular(12.r),
+                                                  BorderRadius.circular(
+                                                isCreditCardFlow
+                                                    ? fieldRadius
+                                                    : 12.r,
+                                              ),
                                               borderSide: const BorderSide(
                                                   color: Colors.red),
                                             ),
@@ -1005,19 +1140,27 @@ class BillerDetailView extends HookConsumerWidget {
                                                 EdgeInsets.symmetric(
                                               horizontal: isElectricity
                                                   ? FetchProviderMetrics.w(16)
-                                                  : 16.w,
+                                                  : isCreditCardFlow
+                                                      ? ccS(16)
+                                                      : 16.w,
                                               vertical: isElectricity
                                                   ? FetchProviderMetrics.h(16)
-                                                  : 14.h,
+                                                  : isCreditCardFlow
+                                                      ? ccSy(14)
+                                                      : 14.h,
                                             ),
                                           ),
                                           style: (isElectricity ||
                                                   isCreditCardFlow)
                                               ? GoogleFonts.plusJakartaSans(
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: 15.sp,
+                                                  fontSize: isCreditCardFlow
+                                                      ? ccS(15)
+                                                      : 15.sp,
                                                   color: Colors.black,
-                                                  letterSpacing: -0.02 * 15.sp,
+                                                  letterSpacing: isCreditCardFlow
+                                                      ? -0.02 * ccS(15)
+                                                      : -0.02 * 15.sp,
                                                 )
                                               : null,
                                         ),
@@ -1044,8 +1187,9 @@ class BillerDetailView extends HookConsumerWidget {
                                 message: creditCardErrorMessage.value!,
                                 onClose: () =>
                                     creditCardErrorMessage.value = null,
+                                useCreditCardFigma: true,
                               ),
-                              SizedBox(height: 12.h),
+                              SizedBox(height: ccSy(12)),
                             ],
                             if (gasPolicyMessage.value != null) ...[
                               _GasPolicyBanner(
@@ -1167,11 +1311,13 @@ class BillerDetailView extends HookConsumerWidget {
                           // Loading bill spinner
                           if (detailState.isFetchingBill)
                             Padding(
-                              padding: EdgeInsets.symmetric(vertical: 32.h),
+                              padding: EdgeInsets.symmetric(
+                                vertical: isCreditCardFlow ? ccSy(32) : 32.h,
+                              ),
                               child: Center(
                                 child: SpinKitCircle(
                                   color: AppColors.primary,
-                                  size: 48,
+                                  size: isCreditCardFlow ? ccS(48) : 48,
                                 ),
                               ),
                             ),
@@ -1192,8 +1338,13 @@ class BillerDetailView extends HookConsumerWidget {
                               FetchProviderMetrics.w(24),
                               16.h + bottomInset,
                             )
-                          : EdgeInsets.fromLTRB(
-                              16.w, 0.h, 16.w, 16.h + bottomInset),
+                          : isCreditCardFlow
+                              ? CreditCardFigmaMetrics.bottomBarPadding(
+                                  context,
+                                  bottomInset,
+                                )
+                              : EdgeInsets.fromLTRB(
+                                  16.w, 0.h, 16.w, 16.h + bottomInset),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1201,10 +1352,12 @@ class BillerDetailView extends HookConsumerWidget {
                                   !(isElectricityBillStep &&
                                       detailState.showFullDetails)) ||
                               isCreditCardFlow) ...[
-                            const BharatConnectConsentCard(),
+                            BharatConnectConsentCard(
+                              useCreditCardFigma: isCreditCardFlow,
+                            ),
                             SizedBox(
                               height: isCreditCardFlow
-                                  ? 16.h
+                                  ? ccSy(12)
                                   : FetchProviderMetrics.h(20),
                             ),
                           ],
@@ -1605,13 +1758,23 @@ class BillerDetailView extends HookConsumerWidget {
                                       : payLabel,
                                   showArrow: false,
                                   uppercaseLabel: false,
-                                  height: FetchProviderMetrics.h(56),
-                                  labelStyle: GoogleFonts.plusJakartaSans(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16.sp,
-                                    color: Colors.white,
-                                    height: 1.0,
-                                  ),
+                                  height: isCreditCardFlow
+                                      ? CreditCardFigmaMetrics.primaryButtonHeight(
+                                          context,
+                                        )
+                                      : FetchProviderMetrics.h(56),
+                                  borderRadius: isCreditCardFlow
+                                      ? ccS(28)
+                                      : null,
+                                  labelStyle: isCreditCardFlow
+                                      ? CreditCardFigmaMetrics
+                                          .primaryButtonLabelStyle(context)
+                                      : GoogleFonts.plusJakartaSans(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16.sp,
+                                          color: Colors.white,
+                                          height: 1.0,
+                                        ),
                                 ),
                               );
                             },

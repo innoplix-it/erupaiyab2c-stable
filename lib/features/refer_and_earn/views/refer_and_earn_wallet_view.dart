@@ -1,8 +1,9 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../../../constants/app_colors.dart';
@@ -10,28 +11,11 @@ import '../../../constants/file_constants.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../components/refer_and_earn_app_bar.dart';
 import '../components/referral_share_actions.dart';
+import '../components/refer_and_earn_figma_metrics.dart';
 import '../repositories/referral_wallet_repository.dart';
 import 'referral_milestones_view.dart';
 
-
-// The Figma frame for this screen is 440 x 956 while ScreenUtil's design size
-// is 360 x 690. Figma pixel values are converted once here and then scaled
-// exactly once by ScreenUtil (never both), so a 440-wide phone renders the
-// Figma pixel size and every other width scales proportionally.
-
-double _figmaW(double px) => (px * 360 / 440).w;
-
-double _figmaH(double px) => (px * 690 / 956).h;
-
-double _figmaR(double px) => (px * 360 / 440).r;
-
-/// Figma measurements, expressed in the 360-wide design units used by
-
-/// ScreenUtilInit. Every value is scaled exactly once at the call site
-
-/// (.w horizontal, .h vertical, .r radius/icon, .sp text), so nothing is
-
-/// scaled twice and nothing is a raw pixel value.
+/// Figma measurements (440×956) scaled once via [ReferAndEarnFigmaMetrics].
 
 class _Fig {
   const _Fig._();
@@ -42,7 +26,6 @@ class _Fig {
   static const orange = Color(0xFFDD5428);
   static const navy = Color(0xFF06458F);
   static const track = Color(0xFFF8D0C5);
-  static const ringIdle = Color(0xFFD9D9D9);
   static const hairline = Color(0xFFE6E6E6);
   static const chipBg = Color(0xFFFFEEE9);
   static const avatarBg = Color(0xFFFCECE7);
@@ -54,20 +37,55 @@ class _Fig {
   static const sheetTop = 10.0;
   static const sheetLift = 26.0;
 
-  // Hero
-  static const coinHero = 32.0;
-  static const balanceFont = 34.0;
+  // Hero (Figma rupee coin 52×50 beside balance)
+  static const coinHeroW = 52.0;
+  static const coinHeroH = 50.0;
+
+  /// Balance numeral — visually matches hero coin height (Figma).
+  static const balanceFont = 48.0;
+
+  /// Label → coin/amount row (Figma wallet hero).
+  static const balanceLabelGap = 16.0;
+
+  /// Breathing room below coin + amount before the white sheet (Figma).
+  static const balanceBelowGap = 20.0;
+
+  /// Section headings + matching row primary text (name, eCoins value).
+  static const sectionTitleWeight = FontWeight.w500;
   static const balanceYellowStart = Color(0xFFFBDA3E);
   static const balanceYellowEnd = Color(0xFFFAD836);
 
-  // Milestone card
-  static const cardRadius = 16.0;
-  static const dot = 25.0;
-  static const trackH = 6.0;
+  // Milestone card (Figma 440 frame, scaled with MediaQuery).
+  static const cardRadius = 22.0;
+  static const milestonePadX = 16.0;
+  static const milestonePadTop = 16.0;
+  static const milestonePadBottom = 16.0;
+  static const milestoneTitle = 16.0;
+  static const milestoneSubtitle = 12.0;
+  static const milestoneTitleGap = 4.0;
+  static const milestoneCtaFont = 12.0;
+  static const milestoneCtaRadius = 20.0;
+  static const milestoneCtaPadX = 14.0;
+  static const milestoneCtaPadY = 8.0;
+  static const milestoneHeaderGap = 10.0;
+  static const milestoneHeaderToTrack = 20.0;
+  static const dot = 38.0;
+  static const trackH = 8.0;
+  static const milestoneLabelGap = 6.0;
+  static const milestoneLabel = 12.0;
+  static const milestoneTrackToBox = 16.0;
+  static const referMoreDottedRadius = 14.0;
+  static const milestoneBoxPadX = 12.0;
+  static const milestoneBoxPadY = 12.0;
+  static const milestoneBoxFont = 13.0;
+  static const milestoneBoxIconW = 28.0;
+  static const milestoneBoxIconH = 22.0;
+  static const milestoneBoxIconGap = 10.0;
 }
 
 class ReferAndEarnWalletView extends HookWidget {
   const ReferAndEarnWalletView({super.key, this.repository});
+
   /// Injectable for widget tests; production keeps the real repository.
   @visibleForTesting
   final ReferralWalletRepository? repository;
@@ -75,7 +93,7 @@ class ReferAndEarnWalletView extends HookWidget {
   Widget build(BuildContext context) {
     final reloadToken = useState(0);
     final future = useMemoized(
-          () => (repository ?? ReferralWalletRepository()).fetchSummary(),
+      () => (repository ?? ReferralWalletRepository()).fetchSummary(),
       [reloadToken.value],
     );
     final snapshot = useFuture(future);
@@ -91,32 +109,12 @@ class ReferAndEarnWalletView extends HookWidget {
     }, [snapshot.hasError]);
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: _bottomBarShadows,
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              _figmaW(16),
-              _figmaH(20),
-              _figmaW(16),
-              _figmaH(20),
-            ),
-            child: SizedBox(
-              height: _figmaH(56),
-              child: const ReferralShareActions(),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: const ReferralShareFooter(),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final heroHeight =
-              MediaQuery.paddingOf(context).top + _Fig.heroBelowNav.h;
-          final sheetTop = heroHeight - _Fig.sheetLift.h;
+          final heroHeight = MediaQuery.paddingOf(context).top +
+              context.referH(_Fig.heroBelowNav);
+          final sheetTop = heroHeight - context.referH(_Fig.sheetLift);
           return Stack(
             clipBehavior: Clip.none,
             children: [
@@ -143,13 +141,18 @@ class ReferAndEarnWalletView extends HookWidget {
                     title: '',
                     centerTitle: true,
                     height: heroHeight,
-                    bottomReserve: _Fig.heroReserve.h,
+                    bottomReserve: context.referH(_Fig.heroReserve),
                     // Parent DecoratedBox owns the dark Figma gradient.
                     skipBackground: true,
                     hideBottomStrip: true,
-                    body: Padding(
-                      padding: EdgeInsets.only(top: 2.h),
-                      child: _WalletHeaderBalance(snapshot: snapshot),
+                    body: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom: context.referH(_Fig.balanceBelowGap),
+                        ),
+                        child: _WalletHeaderBalance(snapshot: snapshot),
+                      ),
                     ),
                   ),
                 ),
@@ -163,7 +166,7 @@ class ReferAndEarnWalletView extends HookWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFCFCFC),
                     borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(_Fig.sheetLift.r),
+                      top: Radius.circular(context.referR(_Fig.sheetLift)),
                     ),
                   ),
                   child: RefreshIndicator(
@@ -175,10 +178,10 @@ class ReferAndEarnWalletView extends HookWidget {
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(
-                          _Fig.pageX.w,
-                          _Fig.sheetTop.h,
-                          _Fig.pageX.w,
-                          18.h,
+                          context.referW(_Fig.pageX),
+                          context.referH(_Fig.sheetTop),
+                          context.referW(_Fig.pageX),
+                          context.referH(18),
                         ),
                         child: _buildBody(context, snapshot),
                       ),
@@ -194,50 +197,20 @@ class ReferAndEarnWalletView extends HookWidget {
   }
 }
 
-/// Figma bottom bar shadows (CSS box-shadow, all pointing upwards).
-
-List<BoxShadow> get _bottomBarShadows => [
-  BoxShadow(
-    color: const Color(0x1ACFCFCF),
-    offset: Offset(0, -_figmaH(3)),
-    blurRadius: _figmaR(7),
-  ),
-  BoxShadow(
-    color: const Color(0x17CFCFCF),
-    offset: Offset(0, -_figmaH(13)),
-    blurRadius: _figmaR(13),
-  ),
-  BoxShadow(
-    color: const Color(0x0DCFCFCF),
-    offset: Offset(0, -_figmaH(29)),
-    blurRadius: _figmaR(17),
-  ),
-  BoxShadow(
-    color: const Color(0x03CFCFCF),
-    offset: Offset(0, -_figmaH(51)),
-    blurRadius: _figmaR(21),
-  ),
-  BoxShadow(
-    color: const Color(0x00CFCFCF),
-    offset: Offset(0, -_figmaH(80)),
-    blurRadius: _figmaR(22),
-  ),
-];
-
-/// Theme text style with one explicit, ScreenUtil-scaled size.
+/// Theme text style with one Figma-scaled size (no double scaling).
 TextStyle _style(
-    BuildContext context,
-    double size,
-    FontWeight weight,
-    Color color, {
-      String? family,
-      double? height,
-    }) {
+  BuildContext context,
+  double size,
+  FontWeight weight,
+  Color color, {
+  String? family,
+  double? height,
+}) {
   return (Theme.of(context).textTheme.bodySmall ?? const TextStyle()).copyWith(
-    fontSize: size.sp,
+    fontSize: ReferAndEarnFigmaMetrics.sp(context, size),
     fontWeight: weight,
     color: color,
-    fontFamily: family,
+    fontFamily: family ?? _Fig.font,
     height: height,
     letterSpacing: 0,
   );
@@ -257,25 +230,28 @@ class _MilestoneCard extends HookWidget {
     final activeIndex = _activeMilestoneIndex(milestones);
     final activeMilestone = _activeMilestone(milestones);
     return Container(
-      padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 12.h),
+      padding: EdgeInsets.fromLTRB(
+        context.referW(_Fig.milestonePadX),
+        context.referH(_Fig.milestonePadTop),
+        context.referW(_Fig.milestonePadX),
+        context.referH(_Fig.milestonePadBottom),
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(_Fig.cardRadius.r),
-        border: Border.all(color: AppColors.lightBorder.withOpacity(0.8)),
+        borderRadius: BorderRadius.circular(context.referR(_Fig.cardRadius)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12.r,
-            offset: Offset(0, 6.h),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: context.referR(16),
+            offset: Offset(0, context.referH(4)),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title + subtitle on the left, dotted button on the right, all
-          // in ONE row. FittedBox keeps the title on a single line at every
-          // width / text scale instead of wrapping.
+          // Title + subtitle on the left, dotted pill on the right.
+          // FittedBox keeps each line on one row at every width and text scale.
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -292,13 +268,13 @@ class _MilestoneCard extends HookWidget {
                         softWrap: false,
                         style: _style(
                           context,
-                          12,
-                          FontWeight.w900,
-                          AppColors.textPrimary,
+                          _Fig.milestoneTitle,
+                          FontWeight.w700,
+                          const Color(0xFF000000),
                         ),
                       ),
                     ),
-                    SizedBox(height: 3.h),
+                    SizedBox(height: context.referH(_Fig.milestoneTitleGap)),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
@@ -310,16 +286,16 @@ class _MilestoneCard extends HookWidget {
                         softWrap: false,
                         style: _style(
                           context,
-                          9.5,
-                          FontWeight.w400,
-                          AppColors.textPrimary,
+                          _Fig.milestoneSubtitle,
+                          FontWeight.w500,
+                          const Color(0xFF000000),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: context.referW(_Fig.milestoneHeaderGap)),
               GestureDetector(
                 onTap: () {
                   Navigator.of(context).push(
@@ -329,21 +305,29 @@ class _MilestoneCard extends HookWidget {
                   );
                 },
                 child: _DottedBox(
-                  radius: 13,
+                  radius: _Fig.milestoneCtaRadius,
                   child: Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 7.h,
+                      horizontal: context.referW(_Fig.milestoneCtaPadX),
+                      vertical: context.referH(_Fig.milestoneCtaPadY),
                     ),
-                    child: Text(
-                      'View Milestones',
-                      maxLines: 1,
-                      softWrap: false,
-                      style: _style(
-                        context,
-                        9,
-                        FontWeight.w700,
-                        _Fig.navy,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.sizeOf(context).width * 0.38,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'View Milestones',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: _style(
+                            context,
+                            _Fig.milestoneCtaFont,
+                            FontWeight.w500,
+                            _Fig.navy,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -351,42 +335,53 @@ class _MilestoneCard extends HookWidget {
               ),
             ],
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: context.referH(_Fig.milestoneHeaderToTrack)),
           // Render exactly the milestones the backend configured; 5 is only
           // the empty-state fallback, never fake rows.
           _MilestoneDotRow(
             count: milestones.isNotEmpty ? milestones.length : 5,
             activeIndex: activeIndex,
+            nextArc: _nextMilestoneArc(totalReferrals, milestones, activeIndex),
           ),
-          SizedBox(height: 10.h),
-          // Icon + text only — no border, no background fill.
-          Row(
-            children: [
-              Image.asset(
-                FileConstants.referMoreFriendsIcon,
-                width: 26.w,
-                height: 20.h,
-                fit: BoxFit.contain,
+          SizedBox(height: context.referH(_Fig.milestoneTrackToBox)),
+          _DottedBox(
+            radius: _Fig.referMoreDottedRadius,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                context.referW(_Fig.milestoneBoxPadX),
+                context.referH(_Fig.milestoneBoxPadY),
+                context.referW(_Fig.milestoneBoxPadX),
+                context.referH(_Fig.milestoneBoxPadY),
               ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Text(
-                  activeMilestone == null
-                      ? 'Refer more friends to unlock rewards'
-                      : 'Refer ${_remainingReferrals(totalReferrals, activeMilestone)} more friends to unlock your ${activeMilestone.rewardCoins} eCoins',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: _style(
-                    context,
-                    10,
-                    FontWeight.w600,
-                    const Color(0xFF111111),
-                    family: 'Plus Jakarta Sans',
-                    height: 1.15,
+              child: Row(
+                children: [
+                  Image.asset(
+                    FileConstants.referMoreFriendsIcon,
+                    width: context.referW(_Fig.milestoneBoxIconW),
+                    height: context.referH(_Fig.milestoneBoxIconH),
+                    fit: BoxFit.contain,
                   ),
-                ),
+                  SizedBox(width: context.referW(_Fig.milestoneBoxIconGap)),
+                  Expanded(
+                    child: Text(
+                      activeMilestone == null
+                          ? 'Refer more friends to unlock rewards'
+                          : 'Refer ${_remainingReferrals(totalReferrals, activeMilestone)} more friends to unlock your ${activeMilestone.rewardCoins} eCoins',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _style(
+                        context,
+                        _Fig.milestoneBoxFont,
+                        FontWeight.w700,
+                        const Color(0xFF111111),
+                        family: 'Plus Jakarta Sans',
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -398,18 +393,23 @@ class _MilestoneDotRow extends StatelessWidget {
   const _MilestoneDotRow({
     required this.count,
     required this.activeIndex,
+    required this.nextArc,
   });
 
   final int count;
   final int activeIndex;
 
+  /// 0–1 sweep drawn on the coin after [activeIndex].
+  final double nextArc;
+
   @override
   Widget build(BuildContext context) {
-    final dot = _Fig.dot.w;
-    final trackH = _Fig.trackH.h;
+    final dot = context.referW(_Fig.dot);
+    final trackH = context.referH(_Fig.trackH);
+    final stroke = context.referW(1.6);
     final labels = List.generate(
       count,
-          (index) => (index + 1).toString().padLeft(2, '0'),
+      (index) => (index + 1).toString().padLeft(2, '0'),
     );
 
     return Column(
@@ -419,116 +419,63 @@ class _MilestoneDotRow extends StatelessWidget {
           height: dot,
           child: Stack(
             children: [
-              // The track runs from the centre of the first dot to the
-              // centre of the last one, vertically centred on the dots.
+              // Peach rail from the centre of the first coin to the last.
               Positioned(
                 left: dot / 2,
                 right: dot / 2,
                 top: (dot - trackH) / 2,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final progress = count <= 1
-                        ? 0.0
-                        : (activeIndex.clamp(0, count - 1) / (count - 1));
-                    return Stack(
-                      children: [
-                        Container(
-                          height: trackH,
-                          decoration: BoxDecoration(
-                            color: _Fig.track,
-                            borderRadius: BorderRadius.circular(trackH),
-                          ),
-                        ),
-                        if (progress > 0)
-                          FractionallySizedBox(
-                            widthFactor: progress,
-                            child: Container(
-                              height: trackH,
-                              decoration: BoxDecoration(
-                                color: _Fig.orange,
-                                borderRadius: BorderRadius.circular(trackH),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                child: Container(
+                  height: trackH,
+                  decoration: BoxDecoration(
+                    color: _Fig.track,
+                    borderRadius: BorderRadius.circular(trackH),
+                  ),
                 ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   for (var i = 0; i < count; i++)
-                    Container(
-                      width: dot,
-                      height: dot,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: i <= activeIndex
-                              ? _Fig.orange
-                              : _Fig.ringIdle,
-                          width: 1.5.w,
-                        ),
-                      ),
-                      child: Center(
-                        child: Image.asset(
-                          FileConstants.coinRupeeSmall,
-                          width: dot * 0.72,
-                          height: dot * 0.72,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+                    _MilestoneCoin(
+                      size: dot,
+                      stroke: stroke,
+                      ring: i == activeIndex
+                          ? _CoinRing.full
+                          : (i == activeIndex + 1 && nextArc > 0
+                              ? _CoinRing.arc
+                              : _CoinRing.none),
+                      arc: i == activeIndex + 1 ? nextArc : 0,
                     ),
                 ],
               ),
             ],
           ),
         ),
-        SizedBox(height: 4.h),
-        // Each label sits in a dot-wide slot so it stays centred under its
-        // dot regardless of the label's own width.
+        SizedBox(height: context.referH(_Fig.milestoneLabelGap)),
+        // Each label sits in a dot-wide slot so it stays centred under its coin.
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             for (var i = 0; i < count; i++)
               SizedBox(
                 width: dot,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      labels[i],
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.visible,
-                      textAlign: TextAlign.center,
-                      // Figma: active milestone is Plus Jakarta Sans Bold
-                      // #DD5428, inactive are Medium black.
-                      style: _style(
-                        context,
-                        10,
-                        i == activeIndex ? FontWeight.w700 : FontWeight.w500,
-                        i == activeIndex
-                            ? _Fig.orange
-                            : const Color(0xFF000000),
-                        family: 'Plus Jakarta Sans',
-                        height: 1.0,
-                      ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    labels[i],
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.center,
+                    // Active step is Plus Jakarta Sans Bold #DD5428.
+                    style: _style(
+                      context,
+                      _Fig.milestoneLabel,
+                      i == activeIndex ? FontWeight.w700 : FontWeight.w500,
+                      i == activeIndex ? _Fig.orange : const Color(0xFF000000),
+                      family: 'Plus Jakarta Sans',
+                      height: 1.0,
                     ),
-                    if (i == activeIndex) ...[
-                      SizedBox(height: 2.h),
-                      Container(
-                        width: 14.w,
-                        height: 1.5.h,
-                        decoration: BoxDecoration(
-                          color: _Fig.orange,
-                          borderRadius: BorderRadius.circular(1.r),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               ),
           ],
@@ -538,21 +485,120 @@ class _MilestoneDotRow extends StatelessWidget {
   }
 }
 
+enum _CoinRing { none, full, arc }
+
+class _MilestoneCoin extends StatelessWidget {
+  const _MilestoneCoin({
+    required this.size,
+    required this.stroke,
+    required this.ring,
+    required this.arc,
+  });
+
+  final double size;
+  final double stroke;
+  final _CoinRing ring;
+  final double arc;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: ring == _CoinRing.none
+                  ? Border.all(color: const Color(0xFFEFEFEF), width: stroke)
+                  : null,
+            ),
+            child: SizedBox(width: size, height: size),
+          ),
+          Image.asset(
+            FileConstants.coinRupeeSmall,
+            width: size * 0.62,
+            height: size * 0.62,
+            fit: BoxFit.contain,
+          ),
+          if (ring != _CoinRing.none)
+            CustomPaint(
+              size: Size(size, size),
+              painter: _CoinRingPainter(
+                color: _Fig.orange,
+                strokeWidth: stroke,
+                full: ring == _CoinRing.full,
+                sweep: arc,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoinRingPainter extends CustomPainter {
+  const _CoinRingPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.full,
+    required this.sweep,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final bool full;
+  final double sweep;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
+    final rect = Rect.fromLTWH(
+      strokeWidth / 2,
+      strokeWidth / 2,
+      size.width - strokeWidth,
+      size.height - strokeWidth,
+    );
+    if (full) {
+      canvas.drawArc(rect, 0, math.pi * 2, false, paint);
+    } else if (sweep > 0) {
+      canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * sweep, false, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CoinRingPainter oldDelegate) {
+    return oldDelegate.sweep != sweep ||
+        oldDelegate.full != full ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.color != color;
+  }
+}
+
 Widget _buildBody(
-    BuildContext context,
-    AsyncSnapshot<ReferralWalletSummary> snapshot,
-    ) {
+  BuildContext context,
+  AsyncSnapshot<ReferralWalletSummary> snapshot,
+) {
   if (snapshot.connectionState == ConnectionState.waiting) {
     return Padding(
-      padding: EdgeInsets.only(top: 40.h),
+      padding: EdgeInsets.only(top: context.referH(40)),
       child: Center(
-        child: SpinKitCircle(color: AppColors.primary, size: 40.r),
+        child:
+            SpinKitCircle(color: AppColors.primary, size: context.referR(40)),
       ),
     );
   }
   if (snapshot.hasError) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 28.h),
+      padding: EdgeInsets.symmetric(vertical: context.referH(28)),
       child: Text(
         'Failed to load wallet summary. Please pull to refresh.',
         style: _style(
@@ -575,59 +621,59 @@ Widget _buildBody(
         totalReferrals: totalReferrals,
         milestones: milestones,
       ),
-      SizedBox(height: 24.h),
+      SizedBox(height: context.referH(24)),
       Text(
         'Recent Referrals',
         style: _style(
           context,
           16,
-          FontWeight.w500,
+          _Fig.sectionTitleWeight,
           const Color(0xFF090909),
           family: _Fig.font,
           height: 1.15,
         ),
       ),
-      SizedBox(height: 18.h),
+      SizedBox(height: context.referH(18)),
       Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 18.w),
+        padding: EdgeInsets.symmetric(horizontal: context.referW(18)),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18.r),
+          borderRadius: BorderRadius.circular(context.referR(18)),
           boxShadow: [
             BoxShadow(
               color: const Color(0x10000000),
-              blurRadius: 24.r,
-              offset: Offset(0, 8.h),
+              blurRadius: context.referR(24),
+              offset: Offset(0, context.referH(8)),
             ),
           ],
         ),
         child: recentReferrals.isEmpty
             ? Padding(
-          padding: EdgeInsets.symmetric(vertical: 24.h),
-          child: Center(
-            child: Text(
-              'No recent referrals yet.',
-              style: _style(
-                context,
-                11,
-                FontWeight.w400,
-                AppColors.textPrimary.withOpacity(0.6),
-              ),
-            ),
-          ),
-        )
+                padding: EdgeInsets.symmetric(vertical: context.referH(24)),
+                child: Center(
+                  child: Text(
+                    'No recent referrals yet.',
+                    style: _style(
+                      context,
+                      11,
+                      FontWeight.w400,
+                      AppColors.textPrimary.withOpacity(0.6),
+                    ),
+                  ),
+                ),
+              )
             : Column(
-          children: [
-            for (var i = 0; i < recentReferrals.length; i++)
-              _RecentReferralRow(
-                referral: recentReferrals[i],
-                showDivider: i != recentReferrals.length - 1,
+                children: [
+                  for (var i = 0; i < recentReferrals.length; i++)
+                    _RecentReferralRow(
+                      referral: recentReferrals[i],
+                      showDivider: i != recentReferrals.length - 1,
+                    ),
+                ],
               ),
-          ],
-        ),
       ),
-      SizedBox(height: 18.h),
+      SizedBox(height: context.referH(18)),
     ],
   );
 }
@@ -639,84 +685,120 @@ class _WalletHeaderBalance extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = snapshot.connectionState == ConnectionState.waiting ||
-        snapshot.connectionState == ConnectionState.active;
+    final isLoading =
+        snapshot.connectionState == ConnectionState.waiting ||
+            snapshot.connectionState == ConnectionState.active;
+
     final balance = snapshot.data?.walletBalance ?? '0.00';
-    return Column(
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.bottomCenter,
+      child: Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          'Total Balance',
-          style: _style(
-            context,
-            14,
-            FontWeight.w600,
-            Colors.white.withOpacity(0.85),
+        Padding(
+          padding: EdgeInsets.only(
+            right: context.referW(12),
+          ),
+          child: Text(
+            'Total Balance',
+            textAlign: TextAlign.center,
+            style: _style(
+              context,
+              16,
+              FontWeight.w500,
+              Colors.white.withOpacity(0.85),
+              family: _Fig.font,
+            ),
           ),
         ),
-        SizedBox(height: 14.h),
-        isLoading
-            ? const _BalanceShimmer()
-            : Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Image.asset(
-              FileConstants.coin_3d,
-              width: _Fig.coinHero.w,
-              height: _Fig.coinHero.w,
+
+        SizedBox(
+          height: context.referH(_Fig.balanceLabelGap),
+        ),
+
+        if (isLoading)
+          const _BalanceShimmer()
+        else
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: screenWidth * 0.82,
             ),
-            SizedBox(width: 8.w),
-            ShaderMask(
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (bounds) => const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  _Fig.balanceYellowStart,
-                  _Fig.balanceYellowEnd,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    FileConstants.coinRupeeSmall,
+                    width: context.referW(_Fig.coinHeroW),
+                    height: context.referH(_Fig.coinHeroH),
+                    fit: BoxFit.contain,
+                  ),
+
+                  SizedBox(
+                    width: context.referW(8),
+                  ),
+
+                  ShaderMask(
+                    blendMode: BlendMode.srcIn,
+                    shaderCallback: (bounds) =>
+                        const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            _Fig.balanceYellowStart,
+                            _Fig.balanceYellowEnd,
+                          ],
+                        ).createShader(bounds),
+                    child: Text(
+                      balance,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: _style(
+                        context,
+                        _Fig.balanceFont,
+                        FontWeight.w800,
+                        Colors.white,
+                        family: 'Plus Jakarta Sans',
+                        height: 1.0,
+                      ).copyWith(
+                        shadows: const [
+                          Shadow(
+                            color: Color(0x1A000000),
+                            offset: Offset(0, 8),
+                            blurRadius: 18,
+                          ),
+                          Shadow(
+                            color: Color(0x17000000),
+                            offset: Offset(0, 33),
+                            blurRadius: 33,
+                          ),
+                          Shadow(
+                            color: Color(0x0D000000),
+                            offset: Offset(0, 74),
+                            blurRadius: 45,
+                          ),
+                          Shadow(
+                            color: Color(0x03000000),
+                            offset: Offset(0, 132),
+                            blurRadius: 53,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
-              ).createShader(bounds),
-              child: Text(
-                balance,
-                maxLines: 1,
-                softWrap: false,
-                style: _style(
-                  context,
-                  _Fig.balanceFont,
-                  FontWeight.w800,
-                  Colors.white,
-                  family: 'Plus Jakarta Sans',
-                  height: 1.0,
-                ).copyWith(
-                  shadows: const [
-                    Shadow(
-                      color: Color(0x1A000000),
-                      offset: Offset(0, 8),
-                      blurRadius: 18,
-                    ),
-                    Shadow(
-                      color: Color(0x17000000),
-                      offset: Offset(0, 33),
-                      blurRadius: 33,
-                    ),
-                    Shadow(
-                      color: Color(0x0D000000),
-                      offset: Offset(0, 74),
-                      blurRadius: 45,
-                    ),
-                    Shadow(
-                      color: Color(0x03000000),
-                      offset: Offset(0, 132),
-                      blurRadius: 53,
-                    ),
-                  ],
-                ),
               ),
             ),
-          ],
-        ),
+          ),
       ],
+      ),
     );
   }
 }
@@ -753,20 +835,20 @@ class _BalanceShimmer extends HookWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: _Fig.coinHero.w,
-                height: _Fig.coinHero.w,
+                width: context.referW(_Fig.coinHeroW),
+                height: context.referH(_Fig.coinHeroH),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.25),
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(context.referR(8)),
                 ),
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: context.referW(8)),
               Container(
-                width: 90.w,
-                height: 24.h,
+                width: context.referW(90),
+                height: context.referH(24),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(context.referR(10)),
                 ),
               ),
             ],
@@ -800,6 +882,22 @@ ReferralMilestone? _activeMilestone(List<ReferralMilestone> milestones) {
   final index = milestones.indexWhere((m) => !m.completed);
   if (index == -1) return milestones.last;
   return milestones[index];
+}
+
+/// How far the user is through the active milestone, drawn as an arc on the
+/// next coin (full ring stays on the current step).
+double _nextMilestoneArc(
+  int totalReferrals,
+  List<ReferralMilestone> milestones,
+  int activeIndex,
+) {
+  if (milestones.isEmpty || activeIndex >= milestones.length - 1) return 0;
+  final goal = milestones[activeIndex].targetReferrals;
+  final start =
+      activeIndex == 0 ? 0 : milestones[activeIndex - 1].targetReferrals;
+  final span = goal - start;
+  if (span <= 0) return 0;
+  return ((totalReferrals - start) / span).clamp(0.0, 1.0);
 }
 
 int _remainingReferrals(int totalReferrals, ReferralMilestone milestone) {
@@ -836,112 +934,119 @@ class _RecentReferralRow extends StatelessWidget {
     }
     return value.contains('joined') || value.contains('success');
   }
+
   String get _statusText {
     final value = referral.joinedMessage.trim();
     if (value.isEmpty) return 'Not joined yet';
     return value;
   }
+
   @override
   Widget build(BuildContext context) {
     final joined = _isJoined;
     final dateText = referral.joinedOn.trim();
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 14.h),
+      padding: EdgeInsets.symmetric(vertical: context.referH(14)),
       decoration: showDivider
           ? BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: _Fig.hairline, width: 1.r),
-        ),
-      )
+              border: Border(
+                bottom:
+                    BorderSide(color: _Fig.hairline, width: context.referR(1)),
+              ),
+            )
           : null,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           CircleAvatar(
-            radius: _figmaR(20),
+            radius: context.referR(20),
             backgroundColor: _Fig.avatarBg,
             child: Text(
               _initials(referral.name),
-              style: _style(context, 13, FontWeight.w600, _Fig.orange),
+              style: _style(context, 13, FontWeight.w700, _Fig.orange),
             ),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: context.referW(12)),
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(top: 2.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  referral.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _style(
+                    context,
+                    14,
+                    _Fig.sectionTitleWeight,
+                    const Color(0xFF000000),
+                    family: _Fig.font,
+                    height: 1.2,
+                  ),
+                ),
+                SizedBox(height: context.referH(3)),
+                Text(
+                  _statusText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _style(
+                    context,
+                    11,
+                    FontWeight.w500,
+                    joined ? const Color(0xFF078A36) : const Color(0xFF970D0D),
+                    height: 1.25,
+                  ),
+                ),
+                if (dateText.isNotEmpty) ...[
+                  SizedBox(height: context.referH(4)),
                   Text(
-                    referral.name,
+                    dateText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: _style(
                       context,
-                      13,
-                      FontWeight.w700,
-                      const Color(0xFF080808),
-                      family: _Fig.font,
+                      10,
+                      FontWeight.w400,
+                      const Color(0xFF858585),
+                      height: 1.2,
                     ),
                   ),
-                  SizedBox(height: 3.h),
-                  Text(
-                    _statusText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _style(
-                      context,
-                      11,
-                      FontWeight.w500,
-                      joined
-                          ? const Color(0xFF078A36)
-                          : const Color(0xFF970D0D),
-                    ),
-                  ),
-                  if (dateText.isNotEmpty) ...[
-                    SizedBox(height: 4.h),
-                    Text(
-                      dateText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _style(
-                        context,
-                        10,
-                        FontWeight.w400,
-                        const Color(0xFF858585),
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: context.referW(8)),
           if (joined)
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+              padding: EdgeInsets.symmetric(
+                horizontal: context.referW(10),
+                vertical: context.referH(6),
+              ),
               decoration: const ShapeDecoration(
                 color: _Fig.chipBg,
                 shape: StadiumBorder(),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Image.asset(
                     FileConstants.coin_3d,
-                    width: 15.w,
-                    height: 15.w,
+                    width: context.referW(18),
+                    height: context.referW(18),
+                    fit: BoxFit.contain,
                   ),
-                  SizedBox(width: 5.w),
+                  SizedBox(width: context.referW(6)),
                   Text(
                     '${referral.earnings} eCoins',
                     maxLines: 1,
                     softWrap: false,
                     style: _style(
                       context,
-                      10,
-                      FontWeight.w600,
-                      const Color(0xFF111111),
+                      12,
+                      _Fig.sectionTitleWeight,
+                      const Color(0xFF000000),
+                      height: 1.0,
                     ),
                   ),
                 ],
@@ -949,7 +1054,8 @@ class _RecentReferralRow extends StatelessWidget {
             )
           else
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              padding: EdgeInsets.symmetric(
+                  horizontal: context.referW(10), vertical: context.referH(8)),
               decoration: const ShapeDecoration(
                 color: Color(0xFFFFF0F0),
                 shape: StadiumBorder(),
@@ -972,10 +1078,6 @@ class _RecentReferralRow extends StatelessWidget {
   }
 }
 
-/// Wraps [child] in the Figma orange dotted rounded outline. [radius] is in
-
-/// design units and is scaled once here, together with dot size and spacing.
-
 class _DottedBox extends StatelessWidget {
   const _DottedBox({required this.child, required this.radius});
 
@@ -987,9 +1089,9 @@ class _DottedBox extends StatelessWidget {
     return CustomPaint(
       painter: _DottedRRectPainter(
         color: _Fig.orange,
-        radius: radius.r,
-        dotSize: 1.3.r,
-        spacing: 3.0.r,
+        radius: context.referR(radius),
+        dotSize: context.referR(1.3),
+        spacing: context.referR(3.0),
       ),
       child: child,
     );
@@ -1045,7 +1147,7 @@ class _DottedRRectPainter extends CustomPainter {
   @override
   bool shouldRepaint(_DottedRRectPainter old) =>
       old.color != color ||
-          old.radius != radius ||
-          old.dotSize != dotSize ||
-          old.spacing != spacing;
+      old.radius != radius ||
+      old.dotSize != dotSize ||
+      old.spacing != spacing;
 }

@@ -16,7 +16,6 @@ const String _fontFamily = 'Plus Jakarta Sans';
 
 const Color _ink = Color(0xFF09090B);
 const Color _muted = Color(0xFF71717A);
-const Color _disabledFill = Color(0xFFA1A1AA);
 
 /// Every text on this screen goes through here so each style carries the full
 /// set of properties instead of inheriting gaps from the ambient theme.
@@ -43,6 +42,11 @@ TextStyle _textStyle({
 
 /// Presentation-only Verify OTP step. Every behaviour (verification, resend,
 /// autofill, navigation) is owned by the caller and passed in as callbacks.
+///
+/// Layout (Figma): the Continue button is pinned directly above the keyboard
+/// at all times. The Scaffold body shrinks with the keyboard, so the button
+/// rides on top of it and never jumps when Continue is tapped, validation
+/// runs, or the keyboard opens.
 class OtpVerifyStep extends StatefulWidget {
   const OtpVerifyStep({
     super.key,
@@ -59,7 +63,7 @@ class OtpVerifyStep extends StatefulWidget {
     required this.onChangeNumber,
     this.title = 'Verify OTP',
     this.description,
-    this.buttonLabel = 'Verify',
+    this.buttonLabel = 'Continue',
     this.errorText,
     this.isSubmitting = false,
     this.onOtpChanged,
@@ -79,7 +83,7 @@ class OtpVerifyStep extends StatefulWidget {
   final bool canResend;
   final VoidCallback onResend;
 
-  /// Null keeps the Verify button disabled.
+  /// Null keeps the Continue button disabled.
   final VoidCallback? onVerify;
   final VoidCallback onBack;
   final VoidCallback onChangeNumber;
@@ -99,17 +103,15 @@ class OtpVerifyStep extends StatefulWidget {
   State<OtpVerifyStep> createState() => _OtpVerifyStepState();
 }
 
-class _OtpVerifyStepState extends State<OtpVerifyStep>
-    with WidgetsBindingObserver {
-  /// Hide footer / keep keypad layout while Verify is processing.
-  bool _keepLifted = false;
-  bool _hadKeyboard = false;
+class _OtpVerifyStepState extends State<OtpVerifyStep> {
+  /// Tap recognizer is created once and disposed with the state (the old code
+  /// created a new, never-disposed recognizer on every rebuild).
+  late final TapGestureRecognizer _changeTap = TapGestureRecognizer()
+    ..onTap = () => widget.onChangeNumber();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    widget.otpFocusNode.addListener(_onFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       showAuthKeyboard(widget.otpFocusNode);
@@ -119,12 +121,8 @@ class _OtpVerifyStepState extends State<OtpVerifyStep>
   @override
   void didUpdateWidget(covariant OtpVerifyStep oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.otpFocusNode != widget.otpFocusNode) {
-      oldWidget.otpFocusNode.removeListener(_onFocusChanged);
-      widget.otpFocusNode.addListener(_onFocusChanged);
-    }
+    // While Verify runs keep the keypad up so nothing moves.
     if (!oldWidget.isSubmitting && widget.isSubmitting) {
-      _keepLifted = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !widget.isSubmitting) return;
         showAuthKeyboard(widget.otpFocusNode);
@@ -134,45 +132,8 @@ class _OtpVerifyStepState extends State<OtpVerifyStep>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    widget.otpFocusNode.removeListener(_onFocusChanged);
+    _changeTap.dispose();
     super.dispose();
-  }
-
-  void _onFocusChanged() {
-    if (!mounted) return;
-    if (widget.otpFocusNode.hasFocus) _keepLifted = true;
-    setState(() {});
-  }
-
-  @override
-  void didChangeMetrics() {
-    if (!mounted) return;
-    final inset = View.maybeOf(context)?.viewInsets.bottom ?? 0;
-    if (inset > 0) {
-      _hadKeyboard = true;
-      _keepLifted = true;
-    } else if (_hadKeyboard) {
-      _hadKeyboard = false;
-      if (widget.isSubmitting) {
-        setState(() {});
-        return;
-      }
-      if (widget.otpFocusNode.hasFocus) {
-        widget.otpFocusNode.unfocus();
-      }
-      if (!widget.otpFocusNode.hasFocus) _keepLifted = false;
-      setState(() {});
-    }
-  }
-
-  bool get _lifted {
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0 ||
-        (View.maybeOf(context)?.viewInsets.bottom ?? 0) > 0;
-    return keyboardOpen ||
-        widget.otpFocusNode.hasFocus ||
-        widget.isSubmitting ||
-        _keepLifted;
   }
 
   @override
@@ -181,20 +142,12 @@ class _OtpVerifyStepState extends State<OtpVerifyStep>
       focusNode: widget.otpFocusNode,
       autofocus: true,
       enabled: true,
-      child: AuthPeachMarqueeShell(
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(child: _buildScrollableContent(context)),
-              // Figma: hide Verify while keypad is up; still submit on
-              // [onOtpCompleted]. Keep hidden while verifying so content
-              // does not drop when the inset briefly clears.
-              if (!_lifted)
-                _buildFooter(context)
-              else
-                SizedBox(height: 8.h),
-            ],
-          ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: _buildScrollableContent(context)),
+            _buildFooter(context),
+          ],
         ),
       ),
     );
@@ -202,27 +155,34 @@ class _OtpVerifyStepState extends State<OtpVerifyStep>
 
   Widget _buildFooter(BuildContext context) {
     final enabled = widget.onVerify != null && !widget.isSubmitting;
+    final side = authSidePadding(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        authHorizontalPadding,
-        8.h,
-        authHorizontalPadding,
-        16.h,
+        side,
+        authH(context, 8),
+        side,
+        authH(context, 14),
       ),
-      child: AuthButtonTheme(
-        child: CustomElevatedButton(
-          onPressed: enabled ? widget.onVerify : null,
-          label: widget.isSubmitting ? 'Verifying...' : widget.buttonLabel,
-          uppercaseLabel: false,
-          isLoading: widget.isSubmitting,
-          height: authButtonHeight(context),
-          backgroundColor: enabled ? AppColors.primary : _disabledFill,
-          labelColor: Colors.white,
-          labelStyle: _textStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-            height: 1,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: authContentMaxWidth(context)),
+          child: AuthButtonTheme(
+            child: CustomElevatedButton(
+              onPressed: enabled ? widget.onVerify : null,
+              label: widget.isSubmitting ? 'Verifying...' : widget.buttonLabel,
+              uppercaseLabel: false,
+              isLoading: widget.isSubmitting,
+              height: authButtonHeight(context),
+              backgroundColor:
+                  enabled ? AppColors.primary : authContinueDisabledFill,
+              labelColor: enabled ? Colors.white : authContinueDisabledLabel,
+              labelStyle: _textStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: enabled ? Colors.white : authContinueDisabledLabel,
+                height: 1,
+              ),
+            ),
           ),
         ),
       ),
@@ -230,95 +190,85 @@ class _OtpVerifyStepState extends State<OtpVerifyStep>
   }
 
   Widget _buildScrollableContent(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            authHorizontalPadding,
-            0,
-            authHorizontalPadding,
-            16.h,
+    final side = authSidePadding(context);
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+      padding: EdgeInsets.fromLTRB(side, 0, side, authH(context, 16)),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: authContentMaxWidth(context),
           ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: authContentMaxWidth(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Transform.translate(
+                // Lines the arrow glyph up with the content edge while
+                // keeping the full 48dp tap target.
+                offset: Offset(-authW(context, 8), 0),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  iconSize: authW(context, 24),
+                  color: _ink,
+                  onPressed: widget.onBack,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Transform.translate(
-                    // Lines the arrow glyph up with the content edge while
-                    // keeping the full 48dp tap target.
-                    offset: Offset(-8.w, 0),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      iconSize: 24.r,
-                      color: _ink,
-                      onPressed: widget.onBack,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  Text(
-                    widget.title,
-                    style: _textStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  _buildSubtitle(),
-                  SizedBox(height: 24.h),
-                  Text(
-                    widget.label,
-                    style: _textStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  AuthOtpBoxes(
-                    controller: widget.otpController,
-                    focusNode: widget.otpFocusNode,
-                    shakeController: widget.shakeController,
-                    length: widget.otpLength,
-                    autofocus: true,
-                    // Keep focusable while verifying so layout stays lifted.
-                    enabled: true,
-                    hasError: (widget.errorText?.isNotEmpty ?? false) ||
-                        widget.codeErrorText != null,
-                    onChanged:
-                        widget.isSubmitting ? null : widget.onOtpChanged,
-                    onCompleted:
-                        widget.isSubmitting ? null : widget.onOtpCompleted,
-                  ),
-                  if (widget.errorText != null &&
-                      widget.errorText!.isNotEmpty) ...[
-                    SizedBox(height: 10.h),
-                    Text(
-                      widget.errorText!,
-                      style: _textStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.red,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                  SizedBox(height: 2.h),
-                  AuthOtpTimerRow(
-                    timerText: widget.timerText,
-                    canResend: widget.canResend && !widget.isSubmitting,
-                    onResend: widget.onResend,
-                    errorText: widget.codeErrorText,
-                  ),
-                ],
+              SizedBox(height: authH(context, 16)),
+              Text(
+                widget.title,
+                style: _textStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                ),
               ),
-            ),
+              SizedBox(height: authH(context, 4)),
+              _buildSubtitle(),
+              SizedBox(height: authH(context, 24)),
+              Text(
+                widget.label,
+                style: _textStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: authH(context, 8)),
+              AuthOtpBoxes(
+                controller: widget.otpController,
+                focusNode: widget.otpFocusNode,
+                shakeController: widget.shakeController,
+                length: widget.otpLength,
+                autofocus: true,
+                // Keep focusable while verifying so the keypad stays up.
+                enabled: true,
+                hasError: (widget.errorText?.isNotEmpty ?? false) ||
+                    widget.codeErrorText != null,
+                onChanged: widget.isSubmitting ? null : widget.onOtpChanged,
+                onCompleted: widget.isSubmitting ? null : widget.onOtpCompleted,
+              ),
+              if (widget.errorText != null && widget.errorText!.isNotEmpty) ...[
+                SizedBox(height: authH(context, 10)),
+                Text(
+                  widget.errorText!,
+                  style: _textStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              SizedBox(height: authH(context, 2)),
+              AuthOtpTimerRow(
+                timerText: widget.timerText,
+                canResend: widget.canResend && !widget.isSubmitting,
+                onResend: widget.onResend,
+                errorText: widget.codeErrorText,
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -362,7 +312,7 @@ class _OtpVerifyStepState extends State<OtpVerifyStep>
               height: 1.4,
               decoration: TextDecoration.underline,
             ),
-            recognizer: TapGestureRecognizer()..onTap = widget.onChangeNumber,
+            recognizer: _changeTap,
           ),
         ],
       ),

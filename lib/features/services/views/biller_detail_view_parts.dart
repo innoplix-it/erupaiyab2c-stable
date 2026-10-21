@@ -339,22 +339,42 @@ double? _parseAmountFromPlan(String raw) {
 }
 
 class _MaskedPrefix extends StatelessWidget {
-  const _MaskedPrefix();
+  const _MaskedPrefix({this.creditCard = false});
+
+  final bool creditCard;
 
   @override
   Widget build(BuildContext context) {
     // Figma: grey pill with three masked groups before the last-4 input.
+    final marginV = creditCard
+        ? CreditCardFigmaMetrics.sy(context, 8)
+        : 8.h;
+    final marginH = creditCard
+        ? CreditCardFigmaMetrics.s(context, 8)
+        : 8.w;
+    final padH = creditCard
+        ? CreditCardFigmaMetrics.s(context, 10)
+        : 10.w;
+    final padV = creditCard
+        ? CreditCardFigmaMetrics.sy(context, 8)
+        : 8.h;
+    final radius = creditCard
+        ? CreditCardFigmaMetrics.s(context, 8)
+        : 8.r;
+    final fontSize = creditCard
+        ? CreditCardFigmaMetrics.s(context, 13)
+        : 13.sp;
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8.h, horizontal: 8.w),
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      margin: EdgeInsets.symmetric(vertical: marginV, horizontal: marginH),
+      padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
       decoration: BoxDecoration(
         color: const Color(0xFFF4F4F5),
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(radius),
       ),
       child: Text(
         '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022',
         style: GoogleFonts.plusJakartaSans(
-          fontSize: 13.sp,
+          fontSize: fontSize,
           letterSpacing: 1.0,
           height: 1,
           color: AppColors.textPrimary.withValues(alpha: 0.55),
@@ -473,6 +493,97 @@ String _sanitizePhone(String raw) {
     return digits.substring(digits.length - 10);
   }
   return digits;
+}
+
+String? _resolvedCustomerParamValue({
+  required BillerCustomerParam param,
+  required Map<String, TextEditingController> inputControllers,
+  required bool isCreditCardFlow,
+  required bool isGasCylinder,
+  String? mobilePrefill,
+  String? last4Prefill,
+  String? loggedInMobile,
+}) {
+  final tc = inputControllers[param.paramName];
+  final existing = tc?.text.trim() ?? '';
+  if (existing.isNotEmpty) return existing;
+
+  final isMobileField = _isMobileParam(param.paramName) ||
+      (isCreditCardFlow &&
+          param.dataType.toUpperCase() == 'NUMERIC' &&
+          param.maxLength == 10 &&
+          !_isLastFourParam(param.paramName));
+  final isLastFourField = _isLastFourParam(param.paramName) ||
+      (isCreditCardFlow &&
+          param.dataType.toUpperCase() == 'NUMERIC' &&
+          param.maxLength == 4);
+  final isGasLockedMobile = isGasCylinder && isMobileField;
+
+  if (isGasLockedMobile &&
+      loggedInMobile != null &&
+      loggedInMobile.isNotEmpty) {
+    return _sanitizePhone(loggedInMobile);
+  }
+  if (!isLastFourField &&
+      (isMobileField || _isIdentifierParam(param.paramName, param.dataType))) {
+    final source = (mobilePrefill != null && mobilePrefill.isNotEmpty)
+        ? mobilePrefill
+        : (isCreditCardFlow &&
+                isMobileField &&
+                loggedInMobile != null &&
+                loggedInMobile.isNotEmpty)
+            ? loggedInMobile
+            : null;
+    if (source != null) {
+      return isMobileField ? _sanitizePhone(source) : source;
+    }
+  }
+  if (last4Prefill != null &&
+      last4Prefill.isNotEmpty &&
+      isLastFourField) {
+    final digits = last4Prefill.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.length > 4 ? digits.substring(digits.length - 4) : digits;
+  }
+  return null;
+}
+
+Map<String, String> _customerParamsForAutoFetchBill({
+  required BillerDetail detail,
+  required Map<String, TextEditingController> inputControllers,
+  required bool isCreditCardFlow,
+  required bool isGasCylinder,
+  String? mobilePrefill,
+  String? last4Prefill,
+  String? loggedInMobile,
+}) {
+  final params = <String, String>{};
+  for (final p in detail.customerParams.where((p) => p.visibility)) {
+    final value = _resolvedCustomerParamValue(
+      param: p,
+      inputControllers: inputControllers,
+      isCreditCardFlow: isCreditCardFlow,
+      isGasCylinder: isGasCylinder,
+      mobilePrefill: mobilePrefill,
+      last4Prefill: last4Prefill,
+      loggedInMobile: loggedInMobile,
+    );
+    if (value != null && value.isNotEmpty) {
+      params[p.paramName] = value;
+    }
+  }
+  return params;
+}
+
+bool _hasAllVisibleParamsForAutoFetch({
+  required BillerDetail detail,
+  required Map<String, String> params,
+}) {
+  final visible = detail.customerParams.where((p) => p.visibility).toList();
+  if (visible.isEmpty) return false;
+  for (final p in visible) {
+    if ((params[p.paramName] ?? '').trim().isEmpty) return false;
+  }
+  return true;
 }
 
 Future<String?> _pickContactNumber(

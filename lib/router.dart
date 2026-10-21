@@ -433,6 +433,16 @@ final routerProvider = Provider<GoRouter>(
           builder: (context, state) => const CreditCardMyCardsView(),
         ),
         GoRoute(
+          path: RouteConstants.creditCardPayNow,
+          builder: (context, state) {
+            final extra = state.extra;
+            if (extra is! BillerDetailArgs) {
+              return const CreditCardMyCardsView();
+            }
+            return BillerDetailView(args: extra);
+          },
+        ),
+        GoRoute(
           path: RouteConstants.creditCardPay,
           builder: (context, state) {
             final extra = state.extra as Map<String, dynamic>? ?? const {};

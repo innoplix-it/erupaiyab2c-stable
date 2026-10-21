@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:e_rupaiya/features/refer_and_earn/components/refer_and_earn_app_bar.dart';
+import 'package:e_rupaiya/features/refer_and_earn/components/refer_help_icon_button.dart';
 import 'package:e_rupaiya/features/refer_and_earn/providers/referral_link_provider.dart';
 import 'package:e_rupaiya/features/refer_and_earn/repositories/referral_repository.dart';
 import 'package:e_rupaiya/features/refer_and_earn/views/refer_and_earn_view.dart';
@@ -59,12 +60,17 @@ Future<void> _pumpView(
   required Size size,
   double textScale = 1.0,
   bool linkFails = false,
+  double bottomInset = 0.0,
 }) async {
   const dpr = 2.0;
   tester.view.devicePixelRatio = dpr;
   tester.view.physicalSize = size * dpr;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  if (bottomInset > 0) {
+    tester.view.padding = FakeViewPadding(bottom: bottomInset * dpr);
+    addTearDown(tester.view.resetPadding);
+  }
 
   await tester.pumpWidget(
     ProviderScope(
@@ -172,7 +178,7 @@ void main() {
     expect(find.byType(ReferAndEarnAppBar), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     // Figma help control: white circular badge with "?".
-    expect(find.text('?'), findsOneWidget);
+    expect(find.byType(ReferHelpIconButton), findsOneWidget);
   });
 
   testWidgets(
@@ -199,9 +205,9 @@ void main() {
       expect(walletPill.height, closeTo(54, 1.5));
       // Top pad before wallet ring ≈ 27.
       expect(walletRing.top - panel.top, closeTo(27, 2.0));
-      // Step icon PNG tile 56×56 (no card chrome).
-      expect(stepTile.width, closeTo(56, 1.5));
-      expect(stepTile.height, closeTo(56, 1.5));
+      // Step icon tile 58×58 (Figma).
+      expect(stepTile.width, closeTo(58, 2.0));
+      expect(stepTile.height, closeTo(58, 2.0));
     },
   );
 
@@ -277,5 +283,90 @@ void main() {
     for (final size in _referEarnTestSizes) {
       expect(responsiveTestScreenSizes, contains(size));
     }
+  });
+
+  testWidgets('footer stays pinned while content scrolls independently',
+      (tester) async {
+    const size = Size(360, 640);
+    await _pumpView(tester, size: size);
+
+    final footer = find.byKey(const ValueKey('refer-earn-sticky-footer'));
+    final panel = find.byKey(const ValueKey('refer-earn-panel'));
+    final footerBefore = tester.getRect(footer);
+    final panelTopBefore = tester.getRect(panel).top;
+
+    // Drag the scrolling content region upward.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+    await tester.pumpAndSettle();
+
+    // The shared footer did not move: it is pinned, not part of the scroll.
+    expect(tester.getRect(footer), footerBefore);
+    expect(tester.getRect(footer).bottom, lessThanOrEqualTo(size.height));
+    // The content scrolled independently (panel moved up under the footer).
+    expect(tester.getRect(panel).top, lessThan(panelTopBefore));
+  });
+
+  testWidgets('last content clears the pinned footer when scrolled to end',
+      (tester) async {
+    const size = Size(360, 640);
+    await _pumpView(tester, size: size);
+
+    final footer = find.byKey(const ValueKey('refer-earn-sticky-footer'));
+    final lastCopy = find.textContaining('real value for your everyday');
+    expect(lastCopy, findsOneWidget);
+
+    // Scroll to the very bottom of the content.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+    await tester.pumpAndSettle();
+
+    // Nothing is hidden behind the footer: the final paragraph sits above it.
+    expect(
+      tester.getRect(lastCopy).bottom,
+      lessThanOrEqualTo(tester.getRect(footer).top + 1),
+    );
+  });
+
+  testWidgets('footer respects the bottom safe-area inset', (tester) async {
+    const size = Size(390, 844);
+    const inset = 34.0;
+    await _pumpView(tester, size: size, bottomInset: inset);
+
+    final button = tester.getRect(find.text('Invite Using Whatsapp'));
+    // The share action must sit above the home-indicator inset, never under it.
+    expect(button.bottom, lessThanOrEqualTo(size.height - inset));
+  });
+
+  testWidgets('sticky wallet pill appears on scroll and hides at rest',
+      (tester) async {
+    const size = Size(360, 640);
+    await _pumpView(tester, size: size);
+
+    // At rest only the in-flow panel pill exists (Figma position preserved).
+    expect(find.text('My Wallet & Referrals'), findsOneWidget);
+
+    // Scroll well past the hero: the sticky copy is pinned to the top.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('My Wallet & Referrals'), findsNWidgets(2));
+
+    final appBar = tester.getRect(
+      find.byKey(const ValueKey('refer-earn-sticky-app-bar')),
+    );
+    expect(appBar.top, 0);
+    final tops = find.text('My Wallet & Referrals').evaluate().map(
+          (e) => (e.renderObject! as RenderBox)
+              .localToGlobal(Offset.zero)
+              .dy,
+        );
+    expect(
+      tops.any((t) => t >= appBar.bottom - 1 && t < appBar.bottom + 120),
+      isTrue,
+      reason: 'a wallet pill should sit under the pinned app bar',
+    );
+
+    // Back to the top: the sticky overlay is removed again.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 600));
+    await tester.pumpAndSettle();
+    expect(find.text('My Wallet & Referrals'), findsOneWidget);
   });
 }

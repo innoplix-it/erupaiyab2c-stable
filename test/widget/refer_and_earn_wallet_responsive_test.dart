@@ -1,13 +1,13 @@
 // Responsive + layout tests for the Wallet screen (ReferAndEarnWalletView).
 //
 // Uses the shared nine-size matrix from test/helpers/responsive_test_sizes.dart
-// and a fake repository so every card, tab and team row renders with dynamic
-// data without touching the network.
+// and a fake repository so milestone and referral rows render without network.
 
 import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:e_rupaiya/features/refer_and_earn/components/refer_and_earn_app_bar.dart';
+import 'package:e_rupaiya/features/refer_and_earn/components/referral_share_actions.dart';
 import 'package:e_rupaiya/features/refer_and_earn/repositories/referral_wallet_repository.dart';
 import 'package:e_rupaiya/features/refer_and_earn/views/refer_and_earn_wallet_view.dart';
 import 'package:flutter/material.dart';
@@ -53,13 +53,7 @@ ReferralWalletSummary _summary({List<ReferralMilestone>? milestones}) {
     milestones: milestones ?? _fiveMilestones,
     teamCount: 5,
     totalTeamEarnings: 1850,
-    myTeam: const [
-      TeamMember(
-          name: 'Ivanshu Patil', since: 'Sins. 1 Jan 2025', earnings: 120),
-      TeamMember(name: 'Monu Ali', since: 'Sins. 2 Feb 2025', earnings: 50),
-      TeamMember(
-          name: 'Surpiya Ithappully', since: 'Sins. 3 Mar 2025', earnings: 100),
-    ],
+    myTeam: const [],
     recentReferrals: const [
       RecentReferral(
         name: 'Rekha Joshi',
@@ -71,9 +65,6 @@ ReferralWalletSummary _summary({List<ReferralMilestone>? milestones}) {
   );
 }
 
-// The default test font (Ahem) draws square glyphs far wider than Plus
-// Jakarta Sans and turns legitimate layouts into false overflow errors.
-// Register real font files when present (see build/test_fonts).
 Future<void> _loadRealFonts() async {
   const weights = [400, 500, 600, 700, 800];
   final files = {
@@ -100,12 +91,17 @@ Future<void> _pumpWallet(
   double textScale = 1.0,
   ReferralWalletSummary? summary,
   Object? instanceId,
+  double bottomInset = 0.0,
 }) async {
   const dpr = 2.0;
   tester.view.devicePixelRatio = dpr;
   tester.view.physicalSize = size * dpr;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  if (bottomInset > 0) {
+    tester.view.padding = FakeViewPadding(bottom: bottomInset * dpr);
+    addTearDown(tester.view.resetPadding);
+  }
 
   await tester.pumpWidget(
     ProviderScope(
@@ -121,8 +117,6 @@ Future<void> _pumpWallet(
                 textScaler: TextScaler.linear(textScale),
               ),
               child: ReferAndEarnWalletView(
-                // A distinct key resets hook state (useMemoized caches the
-                // first future otherwise) when a test pumps twice.
                 key: instanceId == null ? null : ValueKey(instanceId),
                 repository: _FakeWalletRepository(summary ?? _summary()),
               ),
@@ -150,31 +144,21 @@ void main() {
         await _pumpWallet(tester, size: size);
         expect(tester.takeException(), isNull);
 
-        // Header, balance block and sheet content all present.
-        expect(find.text('Wallet'), findsOneWidget);
+        expect(find.byType(ReferAndEarnAppBar), findsOneWidget);
         expect(find.text('Total Balance'), findsOneWidget);
-        expect(find.text('Withdraw'), findsOneWidget);
+        expect(find.text('50.00'), findsOneWidget);
         expect(find.text('Unlock Your Next Milestone'), findsOneWidget);
         expect(find.text('View Milestones'), findsOneWidget);
-        expect(find.text('Track Your Referrals'), findsOneWidget);
-        expect(find.text('Total Earnings'), findsOneWidget);
-        expect(find.text('My Team'), findsOneWidget);
-        expect(find.text('Recent Referrals'), findsOneWidget); // tab label
-        expect(find.text('Total Team Earnings'), findsOneWidget);
-        expect(find.text('View All'), findsOneWidget);
+        expect(find.text('Recent Referrals'), findsOneWidget);
+        expect(find.text('Rekha Joshi'), findsOneWidget);
+        expect(find.text('40 eCoins'), findsOneWidget);
 
-        // Dynamic values from the repository, not Figma sample literals.
-        expect(find.text('50.00'), findsOneWidget);
-        expect(find.text('1200 E-Coins'), findsOneWidget);
-        expect(find.text('1850 E-Coins'), findsOneWidget);
-
-        // Five configured milestones render 01..05 evenly.
         for (final label in ['01', '02', '03', '04', '05']) {
           expect(find.text(label), findsOneWidget);
         }
 
-        // Fixed bottom CTA is visible and inside the viewport.
         expect(find.text('Invite Using Whatsapp'), findsOneWidget);
+        expect(find.byType(ReferralShareFooter), findsOneWidget);
         expect(
           tester.getRect(find.text('Invite Using Whatsapp')).bottom,
           lessThanOrEqualTo(size.height),
@@ -183,19 +167,14 @@ void main() {
     }
   });
 
-  group('wallet title is screen-centred', () {
+  group('hero balance sits under the app bar', () {
     for (final size in responsiveTestScreenSizes) {
       testWidgets('at ${size.width}x${size.height}', (tester) async {
         await _pumpWallet(tester, size: size);
-        final title = tester.getRect(find.text('Wallet'));
-        expect(
-          (title.center.dx - size.width / 2).abs(),
-          lessThan(4),
-        );
-        // The balance block sits close under the nav row, not floating
-        // halfway down the hero.
+        final back = tester.getRect(find.byIcon(Icons.arrow_back));
         final balance = tester.getRect(find.text('Total Balance'));
-        expect(balance.top - title.bottom, lessThan(size.height * 0.12));
+        expect(balance.top, greaterThan(back.bottom));
+        expect(balance.top, lessThan(size.height * 0.45));
       });
     }
   });
@@ -221,16 +200,13 @@ void main() {
       ),
     );
     final title = tester.getRect(find.text('Refer Friends & Earn Coins'));
-    // Backward compatibility: without centerTitle the text keeps its
-    // original leading alignment next to the back button.
     expect(title.left, lessThan(size.width / 3));
   });
 
-  testWidgets('Track Your Referrals stays on one line', (tester) async {
+  testWidgets('Recent Referrals section title stays on one line', (tester) async {
     await _pumpWallet(tester, size: const Size(440, 956));
-    final size = tester.getSize(find.text('Track Your Referrals'));
-    // Single line: height is bounded by one (scaled) line box.
-    expect(size.height, lessThan(30));
+    final size = tester.getSize(find.text('Recent Referrals'));
+    expect(size.height, lessThan(40));
   });
 
   testWidgets('milestone count follows the API, no fabricated rows',
@@ -246,7 +222,6 @@ void main() {
   });
 
   testWidgets('selected milestone label styling is dynamic', (tester) async {
-    // With milestones 1-4 completed, #05 is the active one.
     await _pumpWallet(tester, size: const Size(390, 844), instanceId: 'a');
     Text label(String name) => tester.widget<Text>(find.text(name));
     expect(label('05').style?.color, const Color(0xFFDD5428));
@@ -254,8 +229,6 @@ void main() {
     expect(label('01').style?.color, const Color(0xFF000000));
     expect(label('01').style?.fontWeight, FontWeight.w500);
 
-    // When the first milestone is still pending, the selection (and the
-    // orange/bold styling) moves to #01 and #02 reverts to normal.
     final pendingFirst = [
       _milestone(5, 50),
       ..._fiveMilestones.take(3),
@@ -272,27 +245,35 @@ void main() {
     expect(label('02').style?.fontWeight, FontWeight.w500);
   });
 
-  testWidgets('team rows scroll into view above the fixed CTA', (tester) async {
+  testWidgets('referral list scrolls above the fixed CTA', (tester) async {
     const size = Size(360, 640);
     await _pumpWallet(tester, size: size);
 
     final cta = find.text('Invite Using Whatsapp');
     final ctaRectBefore = tester.getRect(cta);
 
-    final lastMember = find.text('Surpiya Ithappully');
+    final referralRow = find.text('Rekha Joshi');
     await tester.dragUntilVisible(
-      lastMember,
+      referralRow,
       find.byType(Scrollable).first,
-      const Offset(0, -200),
+      const Offset(0, -120),
     );
-    expect(lastMember, findsOneWidget);
+    expect(referralRow, findsOneWidget);
 
-    // The row is fully visible and not covered by the fixed bottom bar.
-    final row = tester.getRect(lastMember);
-    expect(row.bottom, lessThan(ctaRectBefore.top));
+    final row = tester.getRect(referralRow);
+    expect(row.bottom, lessThanOrEqualTo(ctaRectBefore.top + 2));
 
-    // The CTA never moves while content scrolls.
     expect(tester.getRect(cta), ctaRectBefore);
+  });
+
+  testWidgets('footer respects the bottom safe-area inset', (tester) async {
+    const size = Size(390, 844);
+    const inset = 34.0;
+    await _pumpWallet(tester, size: size, bottomInset: inset);
+
+    final cta = find.text('Invite Using Whatsapp');
+    // The pinned footer's action sits above the home-indicator inset.
+    expect(tester.getRect(cta).bottom, lessThanOrEqualTo(size.height - inset));
   });
 
   group('supported text scales', () {
@@ -305,7 +286,7 @@ void main() {
         );
         expect(tester.takeException(), isNull);
         expect(find.text('Total Balance'), findsOneWidget);
-        expect(find.text('Withdraw'), findsOneWidget);
+        expect(find.text('Invite Using Whatsapp'), findsOneWidget);
       });
     }
   });

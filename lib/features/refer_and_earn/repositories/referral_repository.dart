@@ -65,10 +65,10 @@ class ReferralLinkResponse {
         : json;
     return ReferralLinkResponse(
       status: root['status'] == true || json['status'] == true,
-      referralCode: (root['referral_code'] ?? json['referral_code'] ?? '')
-          .toString(),
-      referralLink: (root['referral_link'] ?? json['referral_link'] ?? '')
-          .toString(),
+      referralCode:
+          (root['referral_code'] ?? json['referral_code'] ?? '').toString(),
+      referralLink:
+          (root['referral_link'] ?? json['referral_link'] ?? '').toString(),
       rewardCoins: _parseOptionalInt(
         root['reward_coins'] ??
             root['rewardCoins'] ??

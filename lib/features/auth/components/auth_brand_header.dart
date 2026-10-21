@@ -80,7 +80,9 @@ class _AuthBrandHeaderState extends State<AuthBrandHeader>
 
           return SizedBox(
             height: contentHeight,
-            child: ClipRect(
+            child: Opacity(
+              opacity: 0.4,
+              child: ClipRect(
               child: AnimatedBuilder(
                 animation: _animation,
                 builder: (context, child) {
@@ -130,6 +132,7 @@ class _AuthBrandHeaderState extends State<AuthBrandHeader>
                   );
                 },
               ),
+            ),
             ),
           );
         },

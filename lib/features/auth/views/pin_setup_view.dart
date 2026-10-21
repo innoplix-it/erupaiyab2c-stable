@@ -5,7 +5,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/blocking_loading_overlay.dart';
@@ -71,7 +70,7 @@ class PinSetupView extends HookConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.loginPeachCoral,
+      backgroundColor: Colors.white,
       body: BlockingLoadingOverlay(
         isLoading: authState.isSubmitting,
         message: 'Setting your MPIN...',

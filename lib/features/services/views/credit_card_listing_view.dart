@@ -3,7 +3,6 @@
 import 'package:e_rupaiya/constants/file_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -19,7 +18,7 @@ import '../../../widgets/screen_wrapper.dart';
 import '../../../widgets/app_search_bar.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 import '../../profile/controllers/profile_controller.dart';
-import '../components/fetch_provider_metrics.dart';
+import '../components/credit_card/credit_card_figma_metrics.dart';
 import '../components/service_recent_section.dart';
 import '../controllers/biller_detail_controller.dart';
 import '../controllers/biller_listing_controller.dart';
@@ -122,7 +121,7 @@ class CreditCardListingView extends HookConsumerWidget {
               controller: searchController,
               textStyle: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w500,
-                fontSize: 14.sp,
+                fontSize: CreditCardFigmaMetrics.s(context, 14),
                 color: Colors.black,
               ),
               onChanged: (value) => ref
@@ -147,7 +146,16 @@ class CreditCardListingView extends HookConsumerWidget {
                                   .read(
                                       billerListingControllerProvider.notifier)
                                   .fetchBillers(categoryName: categoryName),
-                              child: const Text('Retry'),
+                              child: Text(
+                                'Retry',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: CreditCardFigmaMetrics.s(
+                                    context,
+                                    14,
+                                  ),
+                                ),
+                              ),
                             ),
                           ]
                         : null,
@@ -161,10 +169,10 @@ class CreditCardListingView extends HookConsumerWidget {
                           ? ListView.builder(
                               primary: false,
                               padding: EdgeInsets.fromLTRB(
-                                FetchProviderMetrics.w(24),
-                                FetchProviderMetrics.h(4),
-                                FetchProviderMetrics.w(24),
-                                16.h + MediaQuery.paddingOf(context).bottom,
+                                CreditCardFigmaMetrics.s(context, 24),
+                                CreditCardFigmaMetrics.sy(context, 4),
+                                CreditCardFigmaMetrics.s(context, 24),
+                                CreditCardFigmaMetrics.sy(context, 16) + MediaQuery.paddingOf(context).bottom,
                               ),
                               itemCount: billers.length +
                                   (listingState.isFetchingMore ? 1 : 0),
@@ -204,7 +212,7 @@ class CreditCardListingView extends HookConsumerWidget {
                           : SingleChildScrollView(
                               primary: false,
                               padding: EdgeInsets.only(
-                                bottom: 16.h +
+                                bottom: CreditCardFigmaMetrics.sy(context, 16) +
                                     MediaQuery.paddingOf(context).bottom,
                               ),
                               child: Column(
@@ -213,11 +221,25 @@ class CreditCardListingView extends HookConsumerWidget {
                                   ServiceRecentSection(
                                     recentTransactions: recentTransactions,
                                     onPayNow: openBillerFromRecent,
-                                    onAction: () {},
+                                    serviceCategory: categoryName,
+                                    operatorLogo: true,
+                                    operatorBillers: billers,
+                                    onAction: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => ServiceRecentAllView(
+                                            categoryName: categoryName,
+                                            operatorLogo: true,
+                                            operatorBillers: billers,
+                                            onPayNow: openBillerFromRecent,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   Padding(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: FetchProviderMetrics.w(24),
+                                      horizontal: CreditCardFigmaMetrics.s(context, 24),
                                     ),
                                     child: Column(
                                       crossAxisAlignment:
@@ -233,7 +255,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                                 color: AppColors.textPrimary,
                                               ),
                                         ),
-                                        SizedBox(height: 12.h),
+                                        SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
                                         LayoutBuilder(
                                           builder: (context, constraints) {
                                             const spacing = 12.0;
@@ -285,7 +307,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                           },
                                         ),
                                         if (remaining.isNotEmpty) ...[
-                                          SizedBox(height: 18.h),
+                                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 18)),
                                           Text(
                                             'All Banks',
                                             style: Theme.of(context)
@@ -296,7 +318,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                                   color: AppColors.textPrimary,
                                                 ),
                                           ),
-                                          SizedBox(height: 12.h),
+                                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
                                           Column(
                                             children: [
                                               for (final biller in remaining)
@@ -334,7 +356,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                         ],
                                         if (listingState.isFetchingMore)
                                           const _CreditCardListingFooterSkeleton(),
-                                        SizedBox(height: 12.h),
+                                        SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
                                       ],
                                     ),
                                   ),
@@ -360,27 +382,27 @@ class _BillerGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     // Height is derived from width-scaled children (not a fixed 112 + .h),
     // so tall/wide phones cannot RenderFlex-overflow the Column.
-    final pad = 10.w;
-    final iconSize = 44.r;
-    final gap = 10.w;
-    final textHeight = 32.w;
+    final pad = CreditCardFigmaMetrics.s(context, 10);
+    final iconSize = CreditCardFigmaMetrics.s(context, 44);
+    final gap = CreditCardFigmaMetrics.s(context, 10);
+    final textHeight = CreditCardFigmaMetrics.s(context, 32);
     final tileHeight = pad * 2 + iconSize + gap + textHeight;
-    final logoSize = 38.r;
+    final logoSize = CreditCardFigmaMetrics.s(context, 38);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16.r),
+      borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
       child: Container(
         height: tileHeight,
         padding: EdgeInsets.all(pad),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
           boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
-              blurRadius: 12.r,
-              offset: Offset(0.w, 6.h),
+              blurRadius: CreditCardFigmaMetrics.s(context, 12),
+              offset: Offset(CreditCardFigmaMetrics.s(context, 0), CreditCardFigmaMetrics.sy(context, 6)),
             ),
           ],
         ),
@@ -394,7 +416,7 @@ class _BillerGridTile extends StatelessWidget {
                 iconUrl: biller.iconUrl,
                 size: logoSize,
                 backgroundColor: Colors.white,
-                borderRadius: BorderRadius.circular(14.r),
+                borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 14)),
               ),
             ),
             SizedBox(height: gap),
@@ -429,11 +451,11 @@ class _BillerListTile extends StatelessWidget {
   /// 13sp Plus Jakarta name, square 24 arrow, width-scaled row gap.
   @override
   Widget build(BuildContext context) {
-    final borderWidth = 1.w;
-    final cardSize = FetchProviderMetrics.r(50);
-    final cardPadding = FetchProviderMetrics.r(4);
+    final borderWidth = 1.0;
+    final cardSize = CreditCardFigmaMetrics.s(context, 50);
+    final cardPadding = CreditCardFigmaMetrics.s(context, 4);
     final logoSize = cardSize - 2 * (cardPadding + borderWidth);
-    final arrowSize = FetchProviderMetrics.r(24);
+    final arrowSize = CreditCardFigmaMetrics.s(context, 24);
     // Same Figma row gap rule as Electricity (screen width, not .h).
     final screenWidth = MediaQuery.sizeOf(context).width;
     final rowGap = screenWidth * 20 / 440;
@@ -460,7 +482,7 @@ class _BillerListTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius:
-                      BorderRadius.circular(FetchProviderMetrics.r(16)),
+                      BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
                   border: Border.all(
                     color: AppColors.lightBorder2,
                     width: borderWidth,
@@ -472,23 +494,23 @@ class _BillerListTile extends StatelessWidget {
                   size: logoSize,
                   backgroundColor: Colors.white,
                   borderRadius:
-                      BorderRadius.circular(FetchProviderMetrics.r(12)),
+                      BorderRadius.circular(CreditCardFigmaMetrics.s(context, 12)),
                 ),
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: CreditCardFigmaMetrics.s(context, 10)),
               Expanded(
                 child: Text(
                   displayName,
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w500,
-                    fontSize: 13.sp,
+                    fontSize: CreditCardFigmaMetrics.s(context, 13),
                     height: 1.35,
                     letterSpacing: 0,
                     color: const Color(0xFF000000),
                   ),
                 ),
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: CreditCardFigmaMetrics.s(context, 10)),
               Image.asset(
                 FileConstants.tiltArrow,
                 width: arrowSize,
@@ -581,14 +603,14 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                 height: AppSearchBar.height,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14.r),
+                  borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 14)),
                   border: Border.all(color: AppColors.lightBorder),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                padding: EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 14)),
                 child: Row(
                   children: [
                     const Icon(Icons.search, color: AppColors.textPrimary),
-                    SizedBox(width: 10.w),
+                    SizedBox(width: CreditCardFigmaMetrics.s(context, 10)),
                     Expanded(
                       child: Text(
                         'Search by billers',
@@ -605,10 +627,10 @@ class _CreditCardListingSkeleton extends StatelessWidget {
               child: isSearching
                   ? ListView.builder(
                       padding: EdgeInsets.fromLTRB(
-                        FetchProviderMetrics.w(24),
-                        FetchProviderMetrics.h(4),
-                        FetchProviderMetrics.w(24),
-                        16.h + MediaQuery.paddingOf(context).bottom,
+                        CreditCardFigmaMetrics.s(context, 24),
+                        CreditCardFigmaMetrics.sy(context, 4),
+                        CreditCardFigmaMetrics.s(context, 24),
+                        CreditCardFigmaMetrics.sy(context, 16) + MediaQuery.paddingOf(context).bottom,
                       ),
                       itemCount: _mockBillers.length,
                       itemBuilder: (_, index) => _BillerListTile(
@@ -618,10 +640,10 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                     )
                   : SingleChildScrollView(
                       padding: EdgeInsets.fromLTRB(
-                        FetchProviderMetrics.w(24),
+                        CreditCardFigmaMetrics.s(context, 24),
                         0,
-                        FetchProviderMetrics.w(24),
-                        16.h + MediaQuery.paddingOf(context).bottom,
+                        CreditCardFigmaMetrics.s(context, 24),
+                        CreditCardFigmaMetrics.sy(context, 16) + MediaQuery.paddingOf(context).bottom,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,7 +658,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                                   color: AppColors.textPrimary,
                                 ),
                           ),
-                          SizedBox(height: 12.h),
+                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
                           LayoutBuilder(
                             builder: (context, constraints) {
                               const spacing = 12.0;
@@ -660,7 +682,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                               );
                             },
                           ),
-                          SizedBox(height: 18.h),
+                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 18)),
                           Text(
                             'All Banks',
                             style: Theme.of(context)
@@ -671,7 +693,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                                   color: AppColors.textPrimary,
                                 ),
                           ),
-                          SizedBox(height: 12.h),
+                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
                           for (final biller in _mockBillers)
                             _BillerListTile(biller: biller, onTap: () {}),
                         ],
@@ -695,8 +717,8 @@ class _CreditCardListingFooterSkeleton extends StatelessWidget {
       child: IgnorePointer(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: FetchProviderMetrics.w(24),
-            vertical: 12.h,
+            horizontal: CreditCardFigmaMetrics.s(context, 24),
+            vertical: CreditCardFigmaMetrics.sy(context, 12),
           ),
           child: _BillerListTile(
             biller: Biller(billerId: '1', billerName: 'Loading Credit Card'),
@@ -722,10 +744,10 @@ class _ProviderIconFrame extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      padding: EdgeInsets.all(3.w),
+      padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 3)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18.r),
+        borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 18)),
         border: Border.all(color: AppColors.lightBorder, width: 1),
       ),
       child: child,

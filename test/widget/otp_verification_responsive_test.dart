@@ -27,6 +27,7 @@ import '../helpers/responsive_test_sizes.dart';
 const _otpLength = 4;
 const _focusedBorder = Color(0xFF71717A);
 const _disabledFill = Color(0xFFA1A1AA);
+const _continueDisabledFill = Color(0xFFE3E3E6);
 const _enabledFill = Color(0xFFDD5428);
 const _smsChannel = MethodChannel('sms_autofill');
 

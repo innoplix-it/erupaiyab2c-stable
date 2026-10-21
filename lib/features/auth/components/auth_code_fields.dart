@@ -49,6 +49,10 @@ double _boxWidth(double maxWidth, int length, double gap, double cap) {
 
 /// Grey OTP boxes (white card, #ECECEC border, soft shadow). Typed boxes get
 /// a dark border; once every digit is in, the whole row turns brand orange.
+///
+/// Performance: the [PinTheme]s are built once per layout (not per keystroke);
+/// a keystroke only re-selects between them, and the row is isolated in its
+/// own [RepaintBoundary].
 class AuthOtpBoxes extends StatelessWidget {
   const AuthOtpBoxes({
     super.key,
@@ -79,7 +83,7 @@ class AuthOtpBoxes extends StatelessWidget {
   Widget build(BuildContext context) {
     final boxes = LayoutBuilder(
       builder: (context, constraints) {
-        final gap = 10.w;
+        final gap = authW(context, 10);
         final width = _boxWidth(
           constraints.maxWidth,
           length,
@@ -87,65 +91,74 @@ class AuthOtpBoxes extends StatelessWidget {
           authWidthFraction(context, 58 / 360, min: 44, max: 86),
         );
         final height = authWidthFraction(context, 47 / 360, min: 36, max: 70);
+        final shadowOffset = authH(context, 4);
 
         PinTheme theme(Color borderColor) => PinTheme(
-              width: width,
-              height: height,
-              textStyle: authTextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+          width: width,
+          height: height,
+          textStyle: authTextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12.r,
+                offset: Offset(0, shadowOffset),
               ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 12.r,
-                    offset: Offset(0, 4.h),
-                  ),
-                ],
-              ),
-            );
+            ],
+          ),
+        );
 
-        return ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) {
-            final complete = controller.text.length == length;
-            final boxes = Pinput(
-              controller: controller,
-              focusNode: focusNode,
-              length: length,
-              autofocus: autofocus,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              mainAxisAlignment: MainAxisAlignment.start,
-              separatorBuilder: (_) => SizedBox(width: gap),
-              forceErrorState: hasError,
-              onChanged: onChanged,
-              onCompleted: onCompleted,
-              defaultPinTheme: theme(_otpBorder),
-              focusedPinTheme: theme(authMuted),
-              submittedPinTheme:
-                  theme(complete ? AppColors.primary : _otpFilledBorder),
-              disabledPinTheme:
-                  theme(complete ? AppColors.primary : _otpBorder),
-              errorPinTheme: theme(Colors.red),
-            );
-            return AuthKeyboardOnOpen(
-              focusNode: focusNode,
-              autofocus: autofocus,
-              enabled: enabled,
-              child: boxes,
-            );
-          },
+        // Built once per layout pass.
+        final defaultTheme = theme(_otpBorder);
+        final focusedTheme = theme(authMuted);
+        final filledTheme = theme(_otpFilledBorder);
+        final completeTheme = theme(AppColors.primary);
+        final errorTheme = theme(Colors.red);
+
+        return AuthKeyboardOnOpen(
+          focusNode: focusNode,
+          autofocus: autofocus,
+          enabled: enabled,
+          child: ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) {
+              final complete = controller.text.length == length;
+              return Pinput(
+                controller: controller,
+                focusNode: focusNode,
+                length: length,
+                autofocus: autofocus,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                mainAxisAlignment: MainAxisAlignment.start,
+                separatorBuilder: (_) => SizedBox(width: gap),
+                forceErrorState: hasError,
+                onChanged: onChanged,
+                onCompleted: onCompleted,
+                defaultPinTheme: defaultTheme,
+                focusedPinTheme: focusedTheme,
+                submittedPinTheme: complete ? completeTheme : filledTheme,
+                disabledPinTheme: complete ? completeTheme : defaultTheme,
+                errorPinTheme: errorTheme,
+              );
+            },
+          ),
         );
       },
     );
     final shake = shakeController;
-    return shake == null ? boxes : AuthShake(controller: shake, child: boxes);
+    return RepaintBoundary(
+      child: shake == null
+          ? boxes
+          : AuthShake(controller: shake, child: boxes),
+    );
   }
 }
 
@@ -183,7 +196,7 @@ class AuthPinBoxes extends StatelessWidget {
   /// Widest a box may grow; defaults to the 93px Figma card.
   final double? maxBoxWidth;
 
-  /// Space between boxes; defaults to 10px.
+  /// Space between boxes; defaults to 10px (MediaQuery width based).
   final double? gap;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onCompleted;
@@ -195,7 +208,7 @@ class AuthPinBoxes extends StatelessWidget {
   Widget build(BuildContext context) {
     final boxes = LayoutBuilder(
       builder: (context, constraints) {
-        final gap = this.gap ?? 10.w;
+        final gap = this.gap ?? authW(context, 10);
         final width = _boxWidth(
           constraints.maxWidth,
           length,
@@ -205,6 +218,7 @@ class AuthPinBoxes extends StatelessWidget {
         );
         final height =
             boxHeight ?? authWidthFraction(context, 48 / 360, min: 36, max: 72);
+        final h = MediaQuery.sizeOf(context).height / 690;
 
         PinTheme theme({Color? borderColor, double borderWidth = 1}) =>
             PinTheme(
@@ -225,57 +239,60 @@ class AuthPinBoxes extends StatelessWidget {
                   BoxShadow(
                     color: _pinShadowTint.withValues(alpha: 0.10),
                     blurRadius: 25.r,
-                    offset: Offset(0, 11.h),
+                    offset: Offset(0, 11 * h),
                   ),
                   BoxShadow(
                     color: _pinShadowTint.withValues(alpha: 0.09),
                     blurRadius: 45.r,
-                    offset: Offset(0, 45.h),
+                    offset: Offset(0, 45 * h),
                   ),
                   BoxShadow(
                     color: _pinShadowTint.withValues(alpha: 0.05),
                     blurRadius: 61.r,
-                    offset: Offset(0, 101.h),
+                    offset: Offset(0, 101 * h),
                   ),
                   BoxShadow(
                     color: _pinShadowTint.withValues(alpha: 0.01),
                     blurRadius: 72.r,
-                    offset: Offset(0, 180.h),
+                    offset: Offset(0, 180 * h),
                   ),
                 ],
               ),
             );
 
-        final boxes = Pinput(
-          controller: controller,
-          focusNode: focusNode,
-          length: length,
-          autofocus: autofocus,
-          enabled: enabled,
-          obscureText: obscure,
-          obscuringCharacter: '*',
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          mainAxisAlignment: MainAxisAlignment.start,
-          separatorBuilder: (_) => SizedBox(width: gap),
-          forceErrorState: hasError,
-          onChanged: onChanged,
-          onCompleted: onCompleted,
-          defaultPinTheme: theme(),
-          focusedPinTheme: theme(borderWidth: 1.5),
-          disabledPinTheme: theme(),
-          errorPinTheme: theme(borderColor: Colors.red),
-        );
         return AuthKeyboardOnOpen(
           focusNode: focusNode,
           autofocus: autofocus,
           enabled: enabled,
-          child: boxes,
+          child: Pinput(
+            controller: controller,
+            focusNode: focusNode,
+            length: length,
+            autofocus: autofocus,
+            enabled: enabled,
+            obscureText: obscure,
+            obscuringCharacter: '*',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            mainAxisAlignment: MainAxisAlignment.start,
+            separatorBuilder: (_) => SizedBox(width: gap),
+            forceErrorState: hasError,
+            onChanged: onChanged,
+            onCompleted: onCompleted,
+            defaultPinTheme: theme(),
+            focusedPinTheme: theme(borderWidth: 1.5),
+            disabledPinTheme: theme(),
+            errorPinTheme: theme(borderColor: Colors.red),
+          ),
         );
       },
     );
     final shake = shakeController;
-    return shake == null ? boxes : AuthShake(controller: shake, child: boxes);
+    return RepaintBoundary(
+      child: shake == null
+          ? boxes
+          : AuthShake(controller: shake, child: boxes),
+    );
   }
 }
 
@@ -310,7 +327,10 @@ class AuthVisibilityToggle extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(8.r),
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 2.w),
+            padding: EdgeInsets.symmetric(
+              vertical: authH(context, 8),
+              horizontal: authW(context, 2),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -321,7 +341,7 @@ class AuthVisibilityToggle extends StatelessWidget {
                   size: 17.r * _actionIconScale(context),
                   color: authInk,
                 ),
-                SizedBox(width: 4.w),
+                SizedBox(width: authW(context, 4)),
                 Flexible(
                   child: Text(
                     obscure ? 'Show' : 'Hide',
@@ -352,7 +372,7 @@ class AuthCodeRowError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6.w),
+      padding: EdgeInsets.symmetric(horizontal: authW(context, 6)),
       child: Text(
         text,
         textAlign: TextAlign.center,
@@ -396,7 +416,10 @@ class AuthPinActionsRow extends StatelessWidget {
         onTap: onForgotPin,
         borderRadius: BorderRadius.circular(8.r),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 2.w),
+          padding: EdgeInsets.symmetric(
+            vertical: authH(context, 8),
+            horizontal: authW(context, 2),
+          ),
           child: Text(
             'Forget PIN',
             textAlign: TextAlign.end,
@@ -432,7 +455,7 @@ class AuthPinActionsRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Flexible(child: toggle),
-        SizedBox(width: 12.w),
+        SizedBox(width: authW(context, 12)),
         Flexible(flex: 3, child: forgotPin),
       ],
     );
@@ -492,12 +515,12 @@ class AuthPinRowWithToggle extends StatelessWidget {
             enabled: enabled,
             hasError: hasError,
             maxBoxWidth: authWidthFraction(context, 55 / 360, min: 44, max: 82),
-            gap: 11.w,
+            gap: authW(context, 11),
             onChanged: onChanged,
             onCompleted: onCompleted,
           ),
         ),
-        SizedBox(width: 12.w),
+        SizedBox(width: authW(context, 12)),
         // Same minimum width for Show and Hide keeps stacked rows aligned.
         ConstrainedBox(
           constraints: BoxConstraints(
@@ -532,7 +555,7 @@ class AuthOtpTimerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resendColor =
-        canResend ? authMuted : authMuted.withValues(alpha: 0.4);
+    canResend ? authMuted : authMuted.withValues(alpha: 0.4);
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: _actionRowMaxTextScale,
       child: Builder(
@@ -545,7 +568,7 @@ class AuthOtpTimerRow extends StatelessWidget {
                 width: 11.5.r * iconScale,
                 height: 13.r * iconScale,
               ),
-              SizedBox(width: 6.w),
+              SizedBox(width: authW(context, 6)),
               Text(
                 timerText,
                 style: authTextStyle(
@@ -557,7 +580,7 @@ class AuthOtpTimerRow extends StatelessWidget {
               if (errorText != null && errorText!.isNotEmpty)
                 Expanded(child: AuthCodeRowError(errorText!))
               else ...[
-                SizedBox(width: 12.w),
+                SizedBox(width: authW(context, 12)),
                 const Spacer(),
               ],
               Semantics(
@@ -567,8 +590,10 @@ class AuthOtpTimerRow extends StatelessWidget {
                   onTap: canResend ? onResend : null,
                   borderRadius: BorderRadius.circular(8.r),
                   child: Padding(
-                    padding:
-                        EdgeInsets.symmetric(vertical: 6.h, horizontal: 2.w),
+                    padding: EdgeInsets.symmetric(
+                      vertical: authH(context, 6),
+                      horizontal: authW(context, 2),
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -577,9 +602,9 @@ class AuthOtpTimerRow extends StatelessWidget {
                           width: 18.r * iconScale,
                           height: 18.r * iconScale,
                           colorFilter:
-                              ColorFilter.mode(resendColor, BlendMode.srcIn),
+                          ColorFilter.mode(resendColor, BlendMode.srcIn),
                         ),
-                        SizedBox(width: 2.w),
+                        SizedBox(width: authW(context, 2)),
                         Text(
                           resendLabel,
                           style: authTextStyle(

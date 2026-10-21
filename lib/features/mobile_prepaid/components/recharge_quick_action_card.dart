@@ -3,6 +3,7 @@
 import 'package:e_rupaiya/constants/app_colors.dart';
 import 'package:e_rupaiya/core/barrel_file.dart';
 import 'package:e_rupaiya/features/home/components/quick_action_header_card.dart';
+import 'package:e_rupaiya/features/services/components/credit_card/credit_card_figma_metrics.dart';
 import 'package:e_rupaiya/features/services/components/fetch_provider_metrics.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -18,6 +19,7 @@ class SimpleQuickActionCard extends StatelessWidget {
     this.onAction,
     this.showShadow = true,
     this.operatorStyle = false,
+    this.creditCardStyle = false,
   });
 
   final String title;
@@ -32,6 +34,9 @@ class SimpleQuickActionCard extends StatelessWidget {
   /// Figma operator card (Electricity Pay Now): 50x50 logo box, larger title,
   /// and a card that grows with text instead of a fixed height.
   final bool operatorStyle;
+
+  /// Credit Card Pay Bill / Pay Now provider row (440×956 metrics).
+  final bool creditCardStyle;
 
   /// Figma soft elevation for the Maharashtra / operator card (440 frame):
   /// 0 10 22 #7070701A, 0 41 41 #70707017, 0 91 55 #7070700D,
@@ -72,12 +77,18 @@ class SimpleQuickActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasAction = (actionLabel ?? '').trim().isNotEmpty;
-    final titleText = operatorStyle ? _capitalizeWords(title) : title;
-    final titleSize =
-        operatorStyle ? FetchProviderMetrics.font(14, min: 12) : 13.sp;
+    final useCredit = creditCardStyle;
+    final useOperator = operatorStyle && !useCredit;
+    double ccS(double v) => CreditCardFigmaMetrics.s(context, v);
+    double ccSy(double v) => CreditCardFigmaMetrics.sy(context, v);
+
+    final titleText = useOperator ? _capitalizeWords(title) : title;
+    final titleSize = useCredit
+        ? CreditCardFigmaMetrics.providerTitleFontSize(context)
+        : (useOperator ? FetchProviderMetrics.font(14, min: 12) : 13.sp);
     // Electricity fetched biller name (e.g. Maharashtra State Electricity):
     // Figma weight 500.
-    final titleStyle = operatorStyle
+    final titleStyle = useOperator
         ? GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w500,
             fontSize: titleSize,
@@ -85,78 +96,108 @@ class SimpleQuickActionCard extends StatelessWidget {
             letterSpacing: -0.02 * titleSize,
             color: const Color(0xFF000000),
           )
-        : GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w600,
-            fontSize: titleSize,
-            color: const Color(0xFF000000),
-          );
+        : useCredit
+            ? CreditCardFigmaMetrics.providerTitleStyle(context)
+            : GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w600,
+                fontSize: titleSize,
+                height: 1.2,
+                color: const Color(0xFF000000),
+              );
 
     // Tight height is required: a Container with [alignment] and only
     // minHeight expands to the Row's max cross-axis extent (often the full
     // body height) on the first layout pass — the Change pill looked huge
     // then "shrank" once constraints settled.
-    final changeHeight = operatorStyle ? FetchProviderMetrics.h(28) : 26.h;
-    final changeFont =
-        operatorStyle ? FetchProviderMetrics.font(12, min: 11) : 11.sp;
-    final changeMinWidth =
-        operatorStyle ? FetchProviderMetrics.w(72) : FetchProviderMetrics.w(64);
-    final changeHPad =
-        operatorStyle ? FetchProviderMetrics.w(14) : FetchProviderMetrics.w(12);
+    final changeHeight = useCredit
+        ? CreditCardFigmaMetrics.changeButtonHeight(context)
+        : (useOperator ? FetchProviderMetrics.h(28) : 26.h);
+    final changeFont = useCredit
+        ? CreditCardFigmaMetrics.changeButtonFontSize(context)
+        : (useOperator ? FetchProviderMetrics.font(12, min: 11) : 11.sp);
+    final changeMinWidth = useCredit
+        ? CreditCardFigmaMetrics.changeButtonMinWidth(context)
+        : (useOperator
+            ? FetchProviderMetrics.w(72)
+            : FetchProviderMetrics.w(64));
+    final changeHPad = useCredit
+        ? CreditCardFigmaMetrics.changeButtonHorizontalPad(context)
+        : (useOperator
+            ? FetchProviderMetrics.w(14)
+            : FetchProviderMetrics.w(12));
+    final changeRadius = useCredit
+        ? CreditCardFigmaMetrics.changeButtonRadius(context)
+        : (useOperator ? FetchProviderMetrics.r(20) : 20.r);
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(
-        operatorStyle ? FetchProviderMetrics.r(16) : 22.r,
+        useCredit
+            ? CreditCardFigmaMetrics.providerCardRadius(context)
+            : (useOperator ? FetchProviderMetrics.r(16) : 22.r),
       ),
       child: Container(
         width: double.infinity,
-        height: operatorStyle ? null : 68.h,
-        padding: operatorStyle
-            ? EdgeInsets.symmetric(
-                horizontal: FetchProviderMetrics.w(16),
-                vertical: FetchProviderMetrics.h(15),
-              )
-            : EdgeInsets.symmetric(horizontal: 14.w),
+        height: (useOperator || useCredit) ? null : 68.h,
+        padding: useCredit
+            ? CreditCardFigmaMetrics.providerCardPadding(context)
+            : useOperator
+                ? EdgeInsets.symmetric(
+                    horizontal: FetchProviderMetrics.w(16),
+                    vertical: FetchProviderMetrics.h(15),
+                  )
+                : EdgeInsets.symmetric(horizontal: 14.w),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(
-            operatorStyle ? FetchProviderMetrics.r(16) : 16.r,
+            useCredit
+                ? CreditCardFigmaMetrics.providerCardRadius(context)
+                : (useOperator ? FetchProviderMetrics.r(16) : 16.r),
           ),
           border: Border.all(
-            color:
-                operatorStyle ? const Color(0xFFE2E0E0) : AppColors.lightBorder,
+            color: useOperator
+                ? const Color(0xFFE2E0E0)
+                : AppColors.lightBorder,
             width: 1,
           ),
           boxShadow: showShadow
-              ? (operatorStyle
-                  ? figmaOperatorCardShadows
-                  : [
+              ? (useCredit
+                  ? [
                       BoxShadow(
-                        color: const Color(0x1A707070),
-                        offset: Offset(0, 10.h),
-                        blurRadius: 22.r,
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: ccS(8),
+                        offset: Offset(0, ccSy(2)),
                       ),
-                      BoxShadow(
-                        color: const Color(0x17707070),
-                        offset: Offset(0, 41.h),
-                        blurRadius: 41.r,
-                      ),
-                      BoxShadow(
-                        color: const Color(0x0D707070),
-                        offset: Offset(0, 91.h),
-                        blurRadius: 55.r,
-                      ),
-                      BoxShadow(
-                        color: const Color(0x03707070),
-                        offset: Offset(0, 163.h),
-                        blurRadius: 65.r,
-                      ),
-                      BoxShadow(
-                        color: const Color(0x00707070),
-                        offset: Offset(0, 254.h),
-                        blurRadius: 71.r,
-                      ),
-                    ])
+                    ]
+                  : useOperator
+                      ? figmaOperatorCardShadows
+                      : [
+                          BoxShadow(
+                            color: const Color(0x1A707070),
+                            offset: Offset(0, 10.h),
+                            blurRadius: 22.r,
+                          ),
+                          BoxShadow(
+                            color: const Color(0x17707070),
+                            offset: Offset(0, 41.h),
+                            blurRadius: 41.r,
+                          ),
+                          BoxShadow(
+                            color: const Color(0x0D707070),
+                            offset: Offset(0, 91.h),
+                            blurRadius: 55.r,
+                          ),
+                          BoxShadow(
+                            color: const Color(0x03707070),
+                            offset: Offset(0, 163.h),
+                            blurRadius: 65.r,
+                          ),
+                          BoxShadow(
+                            color: const Color(0x00707070),
+                            offset: Offset(0, 254.h),
+                            blurRadius: 71.r,
+                          ),
+                        ])
               : const [],
         ),
         child: Row(
@@ -164,14 +205,29 @@ class SimpleQuickActionCard extends StatelessWidget {
             SimCardIconContainer(
               asset: leadingAsset,
               url: leadingImageUrl,
-              width: operatorStyle ? FetchProviderMetrics.r(50) : 44.r,
-              height: operatorStyle ? FetchProviderMetrics.r(50) : 44.r,
-              borderRadius: operatorStyle ? FetchProviderMetrics.r(20) : 12.r,
-              padding: operatorStyle ? FetchProviderMetrics.w(10) : 10.w,
-              borderWidth: operatorStyle ? 1 : 0.5,
+              width: useCredit
+                  ? CreditCardFigmaMetrics.providerLogoBox(context)
+                  : (useOperator ? FetchProviderMetrics.r(50) : 44.r),
+              height: useCredit
+                  ? CreditCardFigmaMetrics.providerLogoBox(context)
+                  : (useOperator ? FetchProviderMetrics.r(50) : 44.r),
+              borderRadius: useCredit
+                  ? CreditCardFigmaMetrics.providerLogoRadius(context)
+                  : (useOperator ? FetchProviderMetrics.r(20) : 12.r),
+              padding: useCredit
+                  ? CreditCardFigmaMetrics.providerLogoInnerPad(context)
+                  : (useOperator ? FetchProviderMetrics.w(10) : 10.w),
+              borderWidth: useCredit
+                  ? CreditCardFigmaMetrics.providerLogoBorderWidth(context)
+                  : (useOperator ? 1 : 0.5),
+              borderColor: useCredit
+                  ? CreditCardFigmaMetrics.providerLogoBorderColor
+                  : null,
             ),
             SizedBox(
-              width: operatorStyle ? FetchProviderMetrics.w(10) : 10.w,
+              width: useCredit
+                  ? CreditCardFigmaMetrics.providerGapAfterLogo(context)
+                  : (useOperator ? FetchProviderMetrics.w(10) : 10.w),
             ),
             Expanded(
               child: Column(
@@ -204,7 +260,9 @@ class SimpleQuickActionCard extends StatelessWidget {
             ),
             if (hasAction) ...[
               SizedBox(
-                width: operatorStyle ? FetchProviderMetrics.w(8) : 10.w,
+                width: useCredit
+                    ? CreditCardFigmaMetrics.providerGapBeforeChange(context)
+                    : (useOperator ? FetchProviderMetrics.w(8) : 10.w),
               ),
               // Figma Change pill: fixed height so first-frame Row constraints
               // cannot stretch it; width hugs label with a Figma minWidth.
@@ -220,19 +278,21 @@ class SimpleQuickActionCard extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(
-                        operatorStyle ? FetchProviderMetrics.r(20) : 20.r,
-                      ),
+                      borderRadius: BorderRadius.circular(changeRadius),
                     ),
                     child: Text(
                       actionLabel!,
                       maxLines: 1,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: changeFont,
-                        height: 1,
-                      ),
+                      style: useCredit
+                          ? CreditCardFigmaMetrics.changeButtonLabelStyle(
+                              context,
+                            )
+                          : GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: changeFont,
+                              height: 1,
+                            ),
                     ),
                   ),
                 ),
@@ -255,6 +315,7 @@ class SimCardIconContainer extends StatelessWidget {
     this.borderRadius,
     this.padding,
     this.borderWidth,
+    this.borderColor,
   });
 
   final String? asset;
@@ -264,6 +325,7 @@ class SimCardIconContainer extends StatelessWidget {
   final double? borderRadius;
   final double? padding;
   final double? borderWidth;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +340,7 @@ class SimCardIconContainer extends StatelessWidget {
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
-          color: const Color(0xFFE2E2E2),
+          color: borderColor ?? const Color(0xFFE2E2E2),
           width: stroke,
         ),
       ),

@@ -2,8 +2,8 @@
 
 import 'package:e_rupaiya/constants/file_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -17,6 +17,8 @@ import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../home/controllers/home_controller.dart';
 import '../../home/models/credit_card_item.dart';
+import '../../profile/controllers/profile_controller.dart';
+import '../components/credit_card/credit_card_figma_metrics.dart';
 import '../components/credit_card_my_cards_banner.dart';
 import '../components/credit_card_my_cards_shimmer.dart';
 import '../controllers/biller_detail_controller.dart';
@@ -64,6 +66,15 @@ class CreditCardMyCardsView extends HookConsumerWidget {
       }
     }
 
+    final scrollPad = CreditCardFigmaMetrics.screenPadding(context).copyWith(
+      top: CreditCardFigmaMetrics.sy(context, 12),
+      bottom: CreditCardFigmaMetrics.sy(context, 12),
+    );
+    final bottomPad = CreditCardFigmaMetrics.bottomBarPadding(
+      context,
+      MediaQuery.paddingOf(context).bottom,
+    );
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -86,98 +97,56 @@ class CreditCardMyCardsView extends HookConsumerWidget {
                       ? const CreditCardMyCardsShimmer()
                       : const SizedBox.shrink())
                   : SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
+                      padding: scrollPad,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           CreditCardMyCardsBanner(banners: banners),
-                          SizedBox(height: 14.h),
+                          SizedBox(
+                            height: CreditCardFigmaMetrics.myCardAfterBannerGap(
+                              context,
+                            ),
+                          ),
                           ...cards.asMap().entries.map(
                                 (entry) => Padding(
-                                  padding: EdgeInsets.only(bottom: 14.h),
+                                  padding: EdgeInsets.only(
+                                    bottom:
+                                        CreditCardFigmaMetrics.myCardListGap(
+                                      context,
+                                    ),
+                                  ),
                                   child: CreditCardMyCardTile(
                                     item: entry.value,
-                                    onOpen: () async {
-                                      final item = entry.value;
-                                      final billerName =
-                                          item.billerName?.trim().isNotEmpty ==
-                                                  true
-                                              ? item.billerName!.trim()
-                                              : 'Card';
-                                      final biller = Biller(
-                                        billerId: item.billerId ?? '',
-                                        billerName: billerName,
-                                        icon: item.icon,
-                                      );
-                                      ref
-                                          .read(billerDetailControllerProvider
-                                              .notifier)
-                                          .selectBiller(
-                                            biller,
-                                            categoryName: billerName,
-                                          );
-                                      await context.push(
-                                        RouteConstants.billerDetail,
-                                        extra: BillerDetailArgs(
-                                          biller: biller,
-                                          isCreditCard: true,
-                                          paymentType: billerName,
-                                          mobileNumber: item.registerMobNo,
-                                          cardLast4: item.last4Digit,
-                                        ),
-                                      );
-                                    },
-                                    onPayNow: () async {
-                                      final item = entry.value;
-                                      final billerName =
-                                          item.billerName?.trim().isNotEmpty ==
-                                                  true
-                                              ? item.billerName!.trim()
-                                              : 'Card';
-                                      final biller = Biller(
-                                        billerId: item.billerId ?? '',
-                                        billerName: billerName,
-                                        icon: item.icon,
-                                      );
-                                      ref
-                                          .read(billerDetailControllerProvider
-                                              .notifier)
-                                          .selectBiller(
-                                            biller,
-                                            categoryName: billerName,
-                                          );
-                                      await context.push(
-                                        RouteConstants.billerDetail,
-                                        extra: BillerDetailArgs(
-                                          biller: biller,
-                                          isCreditCard: true,
-                                          paymentType: billerName,
-                                          mobileNumber: item.registerMobNo,
-                                          cardLast4: item.last4Digit,
-                                        ),
-                                      );
-                                    },
+                                    onOpenBills: () => _openCreditCardPayNow(
+                                      context,
+                                      ref,
+                                      entry.value,
+                                    ),
                                     onMenuTap: () =>
                                         _openCardActions(entry.value),
                                   ),
                                 ),
                               ),
-                          SizedBox(height: 8.h),
+                          SizedBox(
+                              height: CreditCardFigmaMetrics.sy(context, 8)),
                         ],
                       ),
                     ),
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
-                child: CustomElevatedButton(
-                  onPressed: () =>
-                      context.push(RouteConstants.creditCardListing),
-                  label: 'Add New Card',
-                  uppercaseLabel: false,
-                  height: 48.h,
+            Padding(
+              padding: bottomPad.copyWith(
+                top: CreditCardFigmaMetrics.sy(context, 12),
+              ),
+              child: CustomElevatedButton(
+                onPressed: () =>
+                    context.push(RouteConstants.creditCardListing),
+                label: 'Add New Card',
+                uppercaseLabel: false,
+                height: CreditCardFigmaMetrics.primaryButtonHeight(context),
+                labelStyle: CreditCardFigmaMetrics.primaryButtonLabelStyle(
+                  context,
                 ),
+                borderRadius: CreditCardFigmaMetrics.s(context, 28),
               ),
             ),
           ],
@@ -191,20 +160,103 @@ class CreditCardMyCardsView extends HookConsumerWidget {
       dialog: _CardActionSheet(item: item),
     );
   }
+
+  /// Card tap and bill row → [RouteConstants.creditCardPayNow]; bill fetch on that screen.
+  static Future<void> _openCreditCardPayNow(
+    BuildContext context,
+    WidgetRef ref,
+    CreditCardItem item,
+  ) async {
+    await ref.read(profileControllerProvider.notifier).fetchProfileIfNeeded();
+    await _pushCreditCardBiller(
+      context,
+      ref,
+      item,
+      route: RouteConstants.creditCardPayNow,
+      autoFetchBill: true,
+      creditCardPayNowEntry: true,
+    );
+  }
+
+  static Future<void> _pushCreditCardBiller(
+    BuildContext context,
+    WidgetRef ref,
+    CreditCardItem item, {
+    required String route,
+    required bool autoFetchBill,
+    bool creditCardPayNowEntry = false,
+  }) async {
+    final profileMobile =
+        ref.read(profileControllerProvider).profile?.mobile.trim() ?? '';
+    final mobile = _resolveCreditCardMobile(item, profileMobile);
+    final last4 = _resolveCreditCardLast4(item);
+
+    final billerName = item.billerName?.trim().isNotEmpty == true
+        ? item.billerName!.trim()
+        : 'Card';
+    final biller = Biller(
+      billerId: item.billerId ?? '',
+      billerName: billerName,
+      icon: item.icon,
+    );
+    ref.read(billerDetailControllerProvider.notifier).reset();
+    ref.read(billerDetailControllerProvider.notifier).selectBiller(
+          biller,
+          categoryName: billerName,
+        );
+    await context.push(
+      route,
+      extra: BillerDetailArgs(
+        biller: biller,
+        isCreditCard: true,
+        paymentType: billerName,
+        mobileNumber: mobile,
+        cardLast4: last4,
+        autoFetchBill: autoFetchBill,
+        autoOpenPaymentSheet: false,
+        creditCardPayNowEntry: creditCardPayNowEntry,
+      ),
+    );
+  }
+
+  static String? _resolveCreditCardMobile(
+    CreditCardItem item,
+    String profileMobile,
+  ) {
+    final registered = (item.registerMobNo ?? '').replaceAll(RegExp(r'\D'), '');
+    if (registered.length >= 10) {
+      return registered.substring(registered.length - 10);
+    }
+    final profileDigits = profileMobile.replaceAll(RegExp(r'\D'), '');
+    if (profileDigits.length >= 10) {
+      return profileDigits.substring(profileDigits.length - 10);
+    }
+    return null;
+  }
+
+  static String? _resolveCreditCardLast4(CreditCardItem item) {
+    final fromField = (item.last4Digit ?? '').replaceAll(RegExp(r'\D'), '');
+    if (fromField.length >= 4) {
+      return fromField.substring(fromField.length - 4);
+    }
+    final masked = (item.maskedIdentifier ?? '').replaceAll(RegExp(r'\D'), '');
+    if (masked.length >= 4) {
+      return masked.substring(masked.length - 4);
+    }
+    return null;
+  }
 }
 
 class CreditCardMyCardTile extends HookWidget {
   const CreditCardMyCardTile({
     super.key,
     required this.item,
-    required this.onOpen,
-    required this.onPayNow,
+    required this.onOpenBills,
     required this.onMenuTap,
   });
 
   final CreditCardItem item;
-  final Future<void> Function() onOpen;
-  final Future<void> Function() onPayNow;
+  final Future<void> Function() onOpenBills;
   final VoidCallback onMenuTap;
 
   @override
@@ -213,6 +265,11 @@ class CreditCardMyCardTile extends HookWidget {
     final bankName = item.billerName?.trim().isNotEmpty == true
         ? item.billerName!.trim()
         : 'Card';
+    final logoUrl = Biller(
+      billerId: item.billerId ?? '',
+      billerName: bankName,
+      icon: item.icon,
+    ).iconUrl;
     final masked = _maskedId(
       item.maskedIdentifier,
       item.last4Digit,
@@ -229,66 +286,112 @@ class CreditCardMyCardTile extends HookWidget {
             ? 'Last Paid On ${DateFormatHelper.formatDisplayDateWithYear(item.lastPaidDate!)}'
             : 'Last Paid');
 
+    Future<void> openBillsScreen() async {
+      if (isPayNowLoading.value) return;
+      isPayNowLoading.value = true;
+      try {
+        await onOpenBills();
+      } finally {
+        if (context.mounted) {
+          isPayNowLoading.value = false;
+        }
+      }
+    }
+
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: () async => onOpen(),
-        borderRadius: BorderRadius.circular(12.r),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: AppColors.lightBorder),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8.r,
-                offset: Offset(0, 2.h),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(
+              CreditCardFigmaMetrics.myCardRadius(context)),
+          border: Border.all(color: AppColors.lightBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: CreditCardFigmaMetrics.myCardShadowBlur(context),
+              offset: Offset(
+                  0, CreditCardFigmaMetrics.myCardShadowOffsetY(context)),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: openBillsScreen,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(
+                    CreditCardFigmaMetrics.myCardRadius(context)),
               ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(14.w, 12.h, 8.w, 12.h),
+              child: Padding(
+                padding: CreditCardFigmaMetrics.myCardHeaderPadding(context),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: Container(
-                        width: 36.r,
-                        height: 36.r,
+                    Container(
+                      width: CreditCardFigmaMetrics.myCardLogoSize(context),
+                      height: CreditCardFigmaMetrics.myCardLogoSize(context),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        alignment: Alignment.center,
-                        child: item.icon?.trim().isNotEmpty == true
+                        borderRadius: BorderRadius.circular(
+                          CreditCardFigmaMetrics.myCardLogoRadius(context),
+                        ),
+                        border: Border.all(
+                          color: CreditCardFigmaMetrics.providerLogoBorderColor,
+                          width: CreditCardFigmaMetrics.providerLogoBorderWidth(
+                              context),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          CreditCardFigmaMetrics.myCardLogoRadius(context),
+                        ),
+                        child: logoUrl != null
                             ? AppNetworkImage(
-                                url: item.icon,
-                                width: 36.r,
-                                height: 36.r,
+                                url: logoUrl,
+                                width:
+                                    CreditCardFigmaMetrics.myCardLogoIconSize(
+                                        context),
+                                height:
+                                    CreditCardFigmaMetrics.myCardLogoIconSize(
+                                        context),
                                 fit: BoxFit.contain,
-                                borderRadius: BorderRadius.circular(8.r),
+                                showShimmer: false,
                                 errorWidget: Image.asset(
                                   FileConstants.credit,
-                                  width: 24.r,
-                                  height: 24.r,
+                                  width:
+                                      CreditCardFigmaMetrics.myCardLogoIconSize(
+                                          context),
+                                  height:
+                                      CreditCardFigmaMetrics.myCardLogoIconSize(
+                                          context),
                                   fit: BoxFit.contain,
                                 ),
                                 placeholder: Image.asset(
                                   FileConstants.credit,
-                                  width: 24.r,
-                                  height: 24.r,
+                                  width:
+                                      CreditCardFigmaMetrics.myCardLogoIconSize(
+                                          context),
+                                  height:
+                                      CreditCardFigmaMetrics.myCardLogoIconSize(
+                                          context),
                                   fit: BoxFit.contain,
                                 ),
                               )
                             : Image.asset(
                                 FileConstants.credit,
-                                width: 24.r,
-                                height: 24.r,
+                                width:
+                                    CreditCardFigmaMetrics.myCardLogoIconSize(
+                                        context),
+                                height:
+                                    CreditCardFigmaMetrics.myCardLogoIconSize(
+                                        context),
                                 fit: BoxFit.contain,
                               ),
                       ),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,46 +400,51 @@ class CreditCardMyCardTile extends HookWidget {
                             bankName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14.sp,
-                                ),
+                            style: CreditCardFigmaMetrics.myCardTitleStyle(
+                                context),
                           ),
-                          SizedBox(height: 2.h),
+                          SizedBox(
+                              height: CreditCardFigmaMetrics.sy(context, 2)),
                           Text(
                             masked,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: const Color(0xFF71717A),
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: CreditCardFigmaMetrics.myCardMaskedStyle(
+                                context),
                           ),
                         ],
                       ),
                     ),
-                    InkWell(
-                      onTap: onMenuTap,
-                      borderRadius: BorderRadius.circular(16.r),
-                      child: Padding(
-                        padding: EdgeInsets.all(6.w),
-                        child: Icon(
-                          Icons.more_vert,
-                          size: 20.sp,
-                          color: AppColors.textPrimary.withOpacity(0.7),
-                        ),
+                    IconButton(
+                      onPressed: onMenuTap,
+                      padding:
+                          EdgeInsets.all(CreditCardFigmaMetrics.s(context, 6)),
+                      constraints: BoxConstraints(
+                        minWidth:
+                            CreditCardFigmaMetrics.myCardMenuTapTarget(context),
+                        minHeight:
+                            CreditCardFigmaMetrics.myCardMenuTapTarget(context),
+                      ),
+                      icon: Icon(
+                        Icons.more_vert,
+                        size:
+                            CreditCardFigmaMetrics.myCardMenuIconSize(context),
+                        color: AppColors.textPrimary.withOpacity(0.7),
                       ),
                     ),
                   ],
                 ),
               ),
-              Divider(height: 1, thickness: 1, color: AppColors.lightBorder),
-              Padding(
-                padding: EdgeInsets.fromLTRB(14.w, 12.h, 12.w, 12.h),
+            ),
+            Divider(height: 1, thickness: 1, color: AppColors.lightBorder),
+            InkWell(
+              onTap: openBillsScreen,
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(
+                    CreditCardFigmaMetrics.myCardRadius(context)),
+              ),
+              child: Padding(
+                padding: CreditCardFigmaMetrics.myCardBillPadding(context),
                 child: Row(
                   children: [
                     Expanded(
@@ -345,56 +453,56 @@ class CreditCardMyCardTile extends HookWidget {
                         children: [
                           Text(
                             _formatAmount(amount),
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16.sp,
-                                ),
+                            style: CreditCardFigmaMetrics.myCardAmountStyle(
+                                context),
                           ),
-                          SizedBox(height: 2.h),
+                          SizedBox(
+                              height: CreditCardFigmaMetrics.sy(context, 2)),
                           Text(
                             dueText,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12.sp,
-                                    ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: CreditCardFigmaMetrics.myCardDueStyle(
+                                context,
+                                isDue: isDue),
                           ),
                         ],
                       ),
                     ),
                     if (isDue)
-                      InkWell(
-                        onTap: isPayNowLoading.value
-                            ? null
-                            : () async {
-                                isPayNowLoading.value = true;
-                                try {
-                                  await onPayNow();
-                                } finally {
-                                  if (context.mounted) {
-                                    isPayNowLoading.value = false;
-                                  }
-                                }
-                              },
-                        borderRadius: BorderRadius.circular(20.r),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 8.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(20.r),
+                      SizedBox(
+                        width:
+                            CreditCardFigmaMetrics.payNowButtonWidth(context),
+                        height:
+                            CreditCardFigmaMetrics.payNowButtonHeight(context),
+                        child: ElevatedButton(
+                          onPressed:
+                              isPayNowLoading.value ? null : openBillsScreen,
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            minimumSize: Size.zero,
+                            fixedSize: CreditCardFigmaMetrics.payNowButtonSize(
+                              context,
+                            ),
+                            padding: EdgeInsets.zero,
+                            backgroundColor:
+                                CreditCardFigmaMetrics.payNowButtonColor,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: CreditCardFigmaMetrics
+                                .payNowButtonColor
+                                .withValues(alpha: 0.6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                CreditCardFigmaMetrics.payNowButtonRadius(
+                                  context,
+                                ),
+                              ),
+                            ),
                           ),
                           child: isPayNowLoading.value
                               ? SizedBox(
-                                  width: 16.sp,
-                                  height: 16.sp,
+                                  width: CreditCardFigmaMetrics.s(context, 14),
+                                  height: CreditCardFigmaMetrics.s(context, 14),
                                   child: const CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -404,22 +512,16 @@ class CreditCardMyCardTile extends HookWidget {
                                 )
                               : Text(
                                   'Pay Now',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelLarge
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13.sp,
-                                      ),
+                                  style: CreditCardFigmaMetrics
+                                      .payNowButtonLabelStyle(context),
                                 ),
                         ),
                       ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -448,6 +550,7 @@ class _CardActionSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
     final bankName = item.billerName?.trim().isNotEmpty == true
         ? item.billerName!.trim()
         : 'Card';
@@ -458,7 +561,7 @@ class _CardActionSheet extends ConsumerWidget {
     );
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 24.h),
+      padding: EdgeInsets.fromLTRB(sx(16), sx(18), sx(16), sx(24)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -473,13 +576,15 @@ class _CardActionSheet extends ConsumerWidget {
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w700,
+                            fontSize: sx(16),
                           ),
                     ),
-                    SizedBox(height: 2.h),
+                    SizedBox(height: sx(2)),
                     Text(
                       masked,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppColors.textPrimary.withOpacity(0.6),
+                            fontSize: sx(12),
                           ),
                     ),
                   ],
@@ -560,17 +665,20 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(sx(16)),
+      ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(22.w, 22.h, 22.w, 16.h),
+        padding: EdgeInsets.fromLTRB(sx(22), sx(22), sx(22), sx(16)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 64.r,
-              height: 64.r,
+              width: sx(64),
+              height: sx(64),
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -579,33 +687,35 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
               child: Icon(
                 Icons.delete_outline,
                 color: AppColors.primary,
-                size: 34.sp,
+                size: sx(34),
               ),
             ),
-            SizedBox(height: 14.h),
+            SizedBox(height: sx(14)),
             Text(
               'Remove Card?',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
+                    fontSize: sx(18),
                   ),
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: sx(8)),
             Text(
               'Are you sure you want to remove this card from recent?',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textPrimary.withOpacity(0.75),
                     height: 1.35,
+                    fontSize: sx(14),
                   ),
             ),
-            SizedBox(height: 18.h),
+            SizedBox(height: sx(18)),
             Row(
               children: [
                 Expanded(
                   child: SizedBox(
-                    height: 40.h,
+                    height: sx(40),
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
@@ -613,38 +723,40 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
                           color: AppColors.textPrimary.withOpacity(0.18),
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(sx(12)),
                         ),
                       ),
                       child: Text(
                         'Cancel',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textPrimary.withOpacity(0.8),
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppColors.textPrimary.withOpacity(0.8),
+                          fontWeight: FontWeight.w700,
+                          fontSize: sx(14),
+                        ),
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 10.w),
+                SizedBox(width: sx(10)),
                 Expanded(
                   child: SizedBox(
-                    height: 40.h,
+                    height: sx(40),
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(sx(12)),
                         ),
                       ),
                       child: Text(
                         'Remove',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: sx(14),
+                        ),
                       ),
                     ),
                   ),
@@ -671,33 +783,38 @@ class _SheetActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double sx(double v) => CreditCardFigmaMetrics.s(context, v);
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
+        padding: EdgeInsets.symmetric(vertical: sx(12)),
         child: Row(
           children: [
             Container(
-              width: 36.w,
-              height: 36.w,
+              width: sx(36),
+              height: sx(36),
               decoration: BoxDecoration(
                 color: AppColors.lightBorder.withOpacity(0.4),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppColors.textPrimary, size: 18.sp),
+              child: Icon(icon, color: AppColors.textPrimary, size: sx(18)),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: sx(12)),
             Expanded(
               child: Text(
                 label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
+                      fontSize: sx(14),
                     ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios,
-                size: 14.sp, color: AppColors.textPrimary.withOpacity(0.5)),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: sx(14),
+              color: AppColors.textPrimary.withOpacity(0.5),
+            ),
           ],
         ),
       ),

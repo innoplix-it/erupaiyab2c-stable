@@ -28,7 +28,11 @@ class ResetMpinView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authControllerProvider);
+    // Only the submitting flag drives this screen; other auth state changes
+    // (pending mobile, error text, ...) no longer rebuild the whole form.
+    final isSubmitting = ref.watch(
+      authControllerProvider.select((state) => state.isSubmitting),
+    );
 
     final otpController = useTextEditingController();
     final newPinController = useTextEditingController();
@@ -50,12 +54,14 @@ class ResetMpinView extends HookConsumerWidget {
       final digits = code.replaceAll(RegExp(r'\D'), '');
       if (digits.isEmpty) return;
       final trimmed =
-          digits.length > _otpLength ? digits.substring(0, _otpLength) : digits;
+      digits.length > _otpLength ? digits.substring(0, _otpLength) : digits;
       otpController.text = trimmed;
       errorText.value = null;
       otpError.value = null;
       if (trimmed.length == _otpLength) {
-        otpFocus.unfocus();
+        // Hand focus straight to the next field. No unfocus() in between, so
+        // the keyboard never closes and reopens (that flicker moved the
+        // layout).
         newPinFocus.requestFocus();
       }
     }
@@ -184,9 +190,11 @@ class ResetMpinView extends HookConsumerWidget {
         '${(remainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(remainingSeconds.value % 60).toString().padLeft(2, '0')}';
 
     return Scaffold(
-      backgroundColor: AppColors.loginPeachCoral,
+      backgroundColor: Colors.white,
+      // The body shrinks with the keypad, so Verify stays on top of it.
+      resizeToAvoidBottomInset: true,
       body: BlockingLoadingOverlay(
-        isLoading: authState.isSubmitting,
+        isLoading: isSubmitting,
         message: loadingMessage.value,
         child: AuthResetMpinStep(
           otpLength: _otpLength,
@@ -201,8 +209,10 @@ class ResetMpinView extends HookConsumerWidget {
           onResend: handleResendOtp,
           resendLabel: isRequestingOtp.value ? 'Sending...' : 'Resend',
           errorText: errorText.value,
-          isSubmitting: authState.isSubmitting,
-          onChanged: (_) => errorText.value = null,
+          isSubmitting: isSubmitting,
+          onChanged: (_) {
+            if (errorText.value != null) errorText.value = null;
+          },
           onOtpCompleted: (_) => newPinFocus.requestFocus(),
           onNewPinCompleted: (_) => confirmPinFocus.requestFocus(),
           onConfirmPinCompleted: (_) => handleVerifyAndContinue(),
@@ -210,7 +220,9 @@ class ResetMpinView extends HookConsumerWidget {
           onBack: () => context.pop(),
           shakeController: otpShake,
           codeErrorText: otpError.value,
-          onOtpChanged: (_) => otpError.value = null,
+          onOtpChanged: (_) {
+            if (otpError.value != null) otpError.value = null;
+          },
         ),
       ),
     );

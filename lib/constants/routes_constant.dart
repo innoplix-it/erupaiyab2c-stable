@@ -30,6 +30,8 @@ class RouteConstants {
   static const String creditCardIntro = '/credit-card';
   static const String creditCardListing = '/credit-card/billers';
   static const String creditCardMyCards = '/credit-card/cards';
+  /// My Cards bill row → Pay Now (bill fetch on that screen).
+  static const String creditCardPayNow = '/credit-card/pay-now';
   static const String creditCardPay = '/credit-card/pay';
   static const String creditCardTransactions = '/credit-card/transactions';
   static const String creditCardTransactionDetail =

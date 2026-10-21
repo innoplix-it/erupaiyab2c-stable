@@ -1,14 +1,7 @@
 import 'package:e_rupaiya/core/barrel_file.dart';
 
 import '../services/referral_share_service.dart';
-
-// The Figma frame is 440 x 956 while ScreenUtil's design size is 360 x 690.
-// Figma pixel values are converted once here and then scaled exactly once by
-// ScreenUtil (never both).
-double _figmaW(double px) => (px * 360 / 440).w;
-double _figmaH(double px) => (px * 690 / 956).h;
-double _figmaR(double px) => (px * 360 / 440).r;
-double _figmaSp(double px) => (px * 360 / 440).sp;
+import '../components/refer_and_earn_figma_metrics.dart';
 
 const Color _kOrange = Color(0xFFDD5428);
 const Color _kSharePink = Color(0xFFF7DCD2);
@@ -19,7 +12,7 @@ class ReferralShareActions extends HookWidget {
   @override
   Widget build(BuildContext context) {
     // Figma: both buttons are 56 high, fully rounded, with a 16 gap.
-    final buttonHeight = _figmaH(56);
+    final buttonHeight = context.referH(56);
 
     return Row(
       children: [
@@ -30,22 +23,22 @@ class ReferralShareActions extends HookWidget {
               height: buttonHeight,
               decoration: BoxDecoration(
                 color: _kOrange,
-                borderRadius: BorderRadius.circular(_figmaR(40)),
+                borderRadius: BorderRadius.circular(context.referR(40)),
               ),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: _figmaW(10)),
+                padding: EdgeInsets.symmetric(horizontal: context.referW(10)),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: _figmaW(24),
-                      height: _figmaW(24),
+                      width: context.referW(24),
+                      height: context.referW(24),
                       child: Image.asset(
                         FileConstants.whatsapp,
                         fit: BoxFit.contain,
                       ),
                     ),
-                    SizedBox(width: _figmaW(10)),
+                    SizedBox(width: context.referW(10)),
                     Flexible(
                       child: Text(
                         'Invite Using Whatsapp',
@@ -53,9 +46,10 @@ class ReferralShareActions extends HookWidget {
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontFamily: 'Plus Jakarta Sans',
                               color: Colors.white,
                               fontWeight: FontWeight.w500,
-                              fontSize: _figmaSp(16),
+                              fontSize: context.referSp(16),
                               letterSpacing: 0,
                             ),
                       ),
@@ -66,7 +60,7 @@ class ReferralShareActions extends HookWidget {
             ),
           ),
         ),
-        SizedBox(width: _figmaW(16)),
+        SizedBox(width: context.referW(16)),
         GestureDetector(
           onTap: () => ReferralShareService.shareAny(context),
           child: Container(
@@ -74,12 +68,12 @@ class ReferralShareActions extends HookWidget {
             width: buttonHeight,
             decoration: BoxDecoration(
               color: _kSharePink,
-              borderRadius: BorderRadius.circular(_figmaR(40)),
+              borderRadius: BorderRadius.circular(context.referR(40)),
             ),
             child: Icon(
               Icons.share_outlined,
               color: _kOrange,
-              size: _figmaR(24),
+              size: context.referR(24),
             ),
           ),
         ),
@@ -101,31 +95,31 @@ class ReferralShareFooter extends StatelessWidget {
 
   final Widget? child;
 
-  static List<BoxShadow> get _shadows => [
+  static List<BoxShadow> _shadows(BuildContext context) => [
         BoxShadow(
           color: const Color(0x1ACFCFCF),
-          offset: Offset(0, -_figmaH(3)),
-          blurRadius: _figmaR(7),
+          offset: Offset(0, -context.referH(3)),
+          blurRadius: context.referR(7),
         ),
         BoxShadow(
           color: const Color(0x17CFCFCF),
-          offset: Offset(0, -_figmaH(13)),
-          blurRadius: _figmaR(13),
+          offset: Offset(0, -context.referH(13)),
+          blurRadius: context.referR(13),
         ),
         BoxShadow(
           color: const Color(0x0DCFCFCF),
-          offset: Offset(0, -_figmaH(29)),
-          blurRadius: _figmaR(17),
+          offset: Offset(0, -context.referH(29)),
+          blurRadius: context.referR(17),
         ),
         BoxShadow(
           color: const Color(0x03CFCFCF),
-          offset: Offset(0, -_figmaH(51)),
-          blurRadius: _figmaR(21),
+          offset: Offset(0, -context.referH(51)),
+          blurRadius: context.referR(21),
         ),
         BoxShadow(
           color: const Color(0x00CFCFCF),
-          offset: Offset(0, -_figmaH(80)),
-          blurRadius: _figmaR(22),
+          offset: Offset(0, -context.referH(80)),
+          blurRadius: context.referR(22),
         ),
       ];
 
@@ -134,20 +128,20 @@ class ReferralShareFooter extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: _shadows,
+        boxShadow: _shadows(context),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
           // Figma footer: ~20 side inset, 56-tall actions, ~20 vertical pad.
           padding: EdgeInsets.fromLTRB(
-            _figmaW(20),
-            _figmaH(20),
-            _figmaW(20),
-            _figmaH(20),
+            context.referW(20),
+            context.referH(20),
+            context.referW(20),
+            context.referH(20),
           ),
           child: SizedBox(
-            height: _figmaH(56),
+            height: context.referH(56),
             child: child ?? const ReferralShareActions(),
           ),
         ),

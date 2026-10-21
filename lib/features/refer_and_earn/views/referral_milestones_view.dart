@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../../../constants/app_colors.dart';
@@ -11,13 +10,7 @@ import '../../../widgets/my_app_bar.dart';
 import '../components/refer_help_icon_button.dart';
 import '../components/referral_share_actions.dart';
 import '../repositories/referral_milestones_repository.dart';
-
-// Figma frame is 440×956; ScreenUtil design size is 360×690. Convert once,
-// then let ScreenUtil scale once.
-double _figmaW(double px) => (px * 360 / 440).w;
-double _figmaH(double px) => (px * 690 / 956).h;
-double _figmaR(double px) => (px * 360 / 440).r;
-double _figmaSp(double px) => (px * 360 / 440).sp;
+import '../components/refer_and_earn_figma_metrics.dart';
 
 const Color _kOrange = Color(0xFFE85427);
 const Color _kTimeline = Color(0xFFF5C4B0);
@@ -58,13 +51,14 @@ class ReferralMilestonesView extends HookWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final media = MediaQuery.of(context);
-          final side = media.size.width < 360 ? _figmaW(16) : _figmaW(20);
+          final side =
+              media.size.width < 360 ? context.referW(16) : context.referW(20);
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               side,
-              _figmaH(16),
+              context.referH(16),
               side,
-              _figmaH(24) + media.padding.bottom,
+              context.referH(24) + media.padding.bottom,
             ),
             child: _buildContent(context, snapshot),
           );
@@ -103,7 +97,7 @@ class _IntroText extends StatelessWidget {
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFF000000),
             fontWeight: FontWeight.w500,
-            fontSize: _figmaSp(16),
+            fontSize: context.referSp(16),
             height: 1.45,
             letterSpacing: 0,
           ),
@@ -117,7 +111,7 @@ Widget _buildContent(
 ) {
   if (snapshot.connectionState == ConnectionState.waiting) {
     return Padding(
-      padding: EdgeInsets.only(top: _figmaH(80)),
+      padding: EdgeInsets.only(top: context.referH(80)),
       child: const Center(
         child: SpinKitCircle(
           color: AppColors.primary,
@@ -131,7 +125,7 @@ Widget _buildContent(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _IntroText(),
-        SizedBox(height: _figmaH(12)),
+        SizedBox(height: context.referH(12)),
         Text(
           'Failed to load milestones. Please try again.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -150,7 +144,7 @@ Widget _buildContent(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const _IntroText(),
-      SizedBox(height: _figmaH(20)),
+      SizedBox(height: context.referH(20)),
       if (items.isEmpty)
         Text(
           'No milestones available yet.',
@@ -196,9 +190,9 @@ class _MilestonesTimeline extends StatelessWidget {
     final screenW = media.size.width;
     // Figma peach rail ≈ 7px on 440 frame (measured vs 30px coin node).
     // Scale with ScreenUtil; slight bump on very narrow phones for visibility.
-    final lineWidth =
-        (screenW < 340 ? _figmaW(6.5) : _figmaW(7)).clamp(5.0, 8.0);
-    final railWidth = _figmaW(30);
+    final lineWidth = (screenW < 340 ? context.referW(6.5) : context.referW(7))
+        .clamp(5.0, 8.0);
+    final railWidth = context.referW(30);
 
     return Column(
       children: List.generate(items.length, (index) {
@@ -233,10 +227,11 @@ class _MilestonesTimeline extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: _figmaW(12)),
+              SizedBox(width: context.referW(12)),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : _figmaH(14)),
+                  padding:
+                      EdgeInsets.only(bottom: isLast ? 0 : context.referH(14)),
                   child: _MilestoneCard(item: items[index]),
                 ),
               ),
@@ -255,7 +250,7 @@ class _TimelineNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = _figmaW(30);
+    final size = context.referW(30);
     return Container(
       key: ringKey,
       width: size,
@@ -267,8 +262,8 @@ class _TimelineNode extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: _figmaR(6),
-            offset: Offset(0, _figmaH(2)),
+            blurRadius: context.referR(6),
+            offset: Offset(0, context.referH(2)),
           ),
         ],
       ),
@@ -292,14 +287,14 @@ class _MilestoneCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        _figmaW(14),
-        _figmaH(14),
-        _figmaW(14),
-        _figmaH(14),
+        context.referW(14),
+        context.referH(14),
+        context.referW(14),
+        context.referH(14),
       ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(_figmaR(14)),
+        borderRadius: BorderRadius.circular(context.referR(14)),
         border: Border.all(color: _kCardBorder),
       ),
       child: Column(
@@ -316,22 +311,22 @@ class _MilestoneCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF000000),
                         fontWeight: FontWeight.w700,
-                        fontSize: _figmaSp(15),
+                        fontSize: context.referSp(15),
                         height: 1.2,
                         letterSpacing: 0,
                       ),
                 ),
               ),
-              SizedBox(width: _figmaW(8)),
+              SizedBox(width: context.referW(8)),
               Image.asset(
                 FileConstants.coinRupeeSmall,
-                width: _figmaW(21),
-                height: _figmaH(20),
+                width: context.referW(21),
+                height: context.referH(20),
               ),
               if (item.reward.isNotEmpty) ...[
-                SizedBox(width: _figmaW(4)),
+                SizedBox(width: context.referW(4)),
                 ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: _figmaW(120)),
+                  constraints: BoxConstraints(maxWidth: context.referW(120)),
                   child: Text(
                     item.reward,
                     maxLines: 1,
@@ -339,7 +334,7 @@ class _MilestoneCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF000000),
                           fontWeight: FontWeight.w500,
-                          fontSize: _figmaSp(13),
+                          fontSize: context.referSp(13),
                           height: 1.0,
                           letterSpacing: 0,
                         ),
@@ -348,9 +343,9 @@ class _MilestoneCard extends StatelessWidget {
               ],
             ],
           ),
-          SizedBox(height: _figmaH(12)),
+          SizedBox(height: context.referH(12)),
           _MilestoneProgressBar(progress: item.progress),
-          SizedBox(height: _figmaH(10)),
+          SizedBox(height: context.referH(10)),
           Row(
             children: [
               Expanded(
@@ -361,13 +356,13 @@ class _MilestoneCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: _kOrange,
                         fontWeight: FontWeight.w500,
-                        fontSize: _figmaSp(13),
+                        fontSize: context.referSp(13),
                         height: 1.2,
                         letterSpacing: 0,
                       ),
                 ),
               ),
-              SizedBox(width: _figmaW(8)),
+              SizedBox(width: context.referW(8)),
               _StatusPill(
                 label: item.statusLabel,
                 completed: item.completed,
@@ -389,7 +384,7 @@ class _MilestoneProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = _figmaH(8);
+    final height = context.referH(8);
     return SizedBox(
       height: height,
       child: LayoutBuilder(
@@ -452,12 +447,12 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: _figmaW(10),
-        vertical: _figmaH(5),
+        horizontal: context.referW(10),
+        vertical: context.referH(5),
       ),
       decoration: BoxDecoration(
         color: completed ? _kPillGreenBg : _kPillGreyBg,
-        borderRadius: BorderRadius.circular(_figmaR(8)),
+        borderRadius: BorderRadius.circular(context.referR(8)),
       ),
       child: Text(
         label,
@@ -466,7 +461,7 @@ class _StatusPill extends StatelessWidget {
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: completed ? _kPillGreenText : _kPillGreyText,
               fontWeight: FontWeight.w600,
-              fontSize: _figmaSp(11),
+              fontSize: context.referSp(11),
               height: 1.1,
               letterSpacing: 0,
             ),

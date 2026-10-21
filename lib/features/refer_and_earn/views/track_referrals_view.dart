@@ -10,43 +10,35 @@ import '../../../constants/file_constants.dart';
 import '../components/refer_and_earn_app_bar.dart';
 import '../components/referral_share_actions.dart';
 import '../repositories/referral_track_repository.dart';
+import '../components/refer_and_earn_figma_metrics.dart';
 
-// The Figma frame for this screen is 440 x 956 while ScreenUtil's design size
-// is 360 x 690. Figma pixel values are converted once here and then scaled
-// exactly once by ScreenUtil (never both), so a 440-wide phone renders the
-// Figma pixel size and every other width scales proportionally.
-double _figmaW(double px) => (px * 360 / 440).w;
-double _figmaH(double px) => (px * 690 / 956).h;
-double _figmaR(double px) => (px * 360 / 440).r;
-
-/// Figma bottom bar shadows (CSS box-shadow, all pointing upwards).
-List<BoxShadow> get _bottomBarShadows => [
-  BoxShadow(
-    color: const Color(0x1ACFCFCF),
-    offset: Offset(0, -_figmaH(3)),
-    blurRadius: _figmaR(7),
-  ),
-  BoxShadow(
-    color: const Color(0x17CFCFCF),
-    offset: Offset(0, -_figmaH(13)),
-    blurRadius: _figmaR(13),
-  ),
-  BoxShadow(
-    color: const Color(0x0DCFCFCF),
-    offset: Offset(0, -_figmaH(29)),
-    blurRadius: _figmaR(17),
-  ),
-  BoxShadow(
-    color: const Color(0x03CFCFCF),
-    offset: Offset(0, -_figmaH(51)),
-    blurRadius: _figmaR(21),
-  ),
-  BoxShadow(
-    color: const Color(0x00CFCFCF),
-    offset: Offset(0, -_figmaH(80)),
-    blurRadius: _figmaR(22),
-  ),
-];
+List<BoxShadow> _bottomBarShadows(BuildContext context) => [
+      BoxShadow(
+        color: const Color(0x1ACFCFCF),
+        offset: Offset(0, -context.referH(3)),
+        blurRadius: context.referR(7),
+      ),
+      BoxShadow(
+        color: const Color(0x17CFCFCF),
+        offset: Offset(0, -context.referH(13)),
+        blurRadius: context.referR(13),
+      ),
+      BoxShadow(
+        color: const Color(0x0DCFCFCF),
+        offset: Offset(0, -context.referH(29)),
+        blurRadius: context.referR(17),
+      ),
+      BoxShadow(
+        color: const Color(0x03CFCFCF),
+        offset: Offset(0, -context.referH(51)),
+        blurRadius: context.referR(21),
+      ),
+      BoxShadow(
+        color: const Color(0x00CFCFCF),
+        offset: Offset(0, -context.referH(80)),
+        blurRadius: context.referR(22),
+      ),
+    ];
 
 class TrackReferralsView extends HookWidget {
   const TrackReferralsView({super.key, this.repository});
@@ -67,19 +59,19 @@ class TrackReferralsView extends HookWidget {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: _bottomBarShadows,
+          boxShadow: _bottomBarShadows(context),
         ),
         child: SafeArea(
           top: false,
           child: Padding(
             padding: EdgeInsets.fromLTRB(
-              _figmaW(16),
-              _figmaH(20),
-              _figmaW(16),
-              _figmaH(20),
+              context.referW(16),
+              context.referH(20),
+              context.referW(16),
+              context.referH(20),
             ),
             child: SizedBox(
-              height: _figmaH(56),
+              height: context.referH(56),
               child: const ReferralShareActions(),
             ),
           ),
@@ -246,11 +238,10 @@ class _ReferralCard extends HookWidget {
                         entry.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
                       ),
                       SizedBox(height: 2.h),
                       Text(
@@ -280,11 +271,10 @@ class _ReferralCard extends HookWidget {
                       entry.tag!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFFE85A2C),
-                                fontWeight: FontWeight.w600,
-                              ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFFE85A2C),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
                   ),
                 ],

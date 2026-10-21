@@ -6,7 +6,6 @@ import 'dart:ui';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -20,8 +19,8 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../constants/storage_keys.dart';
 import '../../../services/logger_service.dart';
-import '../../../services/phone_hint_service.dart';
 import '../../../services/secure_storage_service.dart';
+import '../hooks/use_login_phone_hint.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/auth_brand_header.dart';
@@ -54,7 +53,9 @@ class LoginView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authControllerProvider);
+    final isSubmitting = ref.watch(
+      authControllerProvider.select((state) => state.isSubmitting),
+    );
     final step = useState(_LoginStep.mobile);
     final phoneController = useTextEditingController();
     final mobileFocusNode = useFocusNode();
@@ -127,32 +128,11 @@ class LoginView extends HookConsumerWidget {
       };
     }, const []);
 
-    // The Android phone-number hint sheet hides the keyboard, and the field
-    // keeps focus while it is open, so autofocus alone never reopens it.
-    void showMobileKeyboard() {
-      if (!context.mounted || step.value != _LoginStep.mobile) return;
-      mobileFocusNode.requestFocus();
-      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
-    }
-
-    useEffect(() {
-      Future.microtask(() async {
-        if (phoneController.text.trim().isNotEmpty) return;
-        final hint = await PhoneHintService.getPhoneNumberHint();
-        // User dismissed the hint sheet (X) → stay on the closed login screen.
-        if (hint == null) return;
-        final digits = hint.replaceAll(RegExp(r'\D'), '');
-        if (digits.isEmpty) return;
-        final normalized =
-            digits.length > 10 ? digits.substring(digits.length - 10) : digits;
-        if (normalized.length != 10) return;
-        if (phoneController.text.trim().isNotEmpty) return;
-        phoneController.text = normalized;
-        // Only lift the form / open keyboard after a number was chosen.
-        showMobileKeyboard();
-      });
-      return null;
-    }, const []);
+    final onEmptyPhoneFieldTap = useLoginPhoneHint(
+      phoneController: phoneController,
+      mobileFocusNode: mobileFocusNode,
+      enabled: step.value == _LoginStep.mobile,
+    );
 
     void startOtpTimer() {
       timerRef.value?.cancel();
@@ -175,6 +155,10 @@ class LoginView extends HookConsumerWidget {
       for (final controller in otpControllers) {
         controller.clear();
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted || step.value != _LoginStep.mobile) return;
+        showAuthKeyboard(mobileFocusNode);
+      });
     }
 
     useEffect(() {
@@ -197,13 +181,17 @@ class LoginView extends HookConsumerWidget {
       for (final controller in otpControllers) {
         controller.clear();
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted || step.value != _LoginStep.mobile) return;
+        showAuthKeyboard(mobileFocusNode);
+      });
     }
 
     Future<void> handleMobileContinue() async {
       final phone = phoneController.text.trim();
-      debugPrint('[LoginView] Continue tapped -> mobile=$phone');
+      _debugLog('[LoginView] Continue tapped -> mobile=$phone');
       if (phone.isEmpty || phone.length != 10) {
-        debugPrint('[LoginView] Continue blocked -> invalid mobile');
+        _debugLog('[LoginView] Continue blocked -> invalid mobile');
         AppSnackbar.show('Enter a valid 10-digit mobile number');
         return;
       }
@@ -212,10 +200,10 @@ class LoginView extends HookConsumerWidget {
       final flow = await ref
           .read(authControllerProvider.notifier)
           .checkLogin(mobile: phone);
-      debugPrint('[LoginView] checkLogin completed -> flow=$flow');
+      _debugLog('[LoginView] checkLogin completed -> flow=$flow');
       if (flow == null) {
         final latestState = ref.read(authControllerProvider);
-        debugPrint(
+        _debugLog(
           '[LoginView] checkLogin returned null -> error=${latestState.errorMessage}',
         );
         AppSnackbar.show(
@@ -225,15 +213,10 @@ class LoginView extends HookConsumerWidget {
         return;
       }
       if (flow == AuthFlow.login) {
-        debugPrint('[LoginView] Navigating to PIN step');
+        _debugLog('[LoginView] Navigating to PIN step');
         step.value = _LoginStep.pin;
-        // Keep keypad up across the handoff (Figma: no keyboard drop).
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          showAuthKeyboard(pinFocusNode);
-        });
       } else {
-        debugPrint('[LoginView] Navigating to OTP route -> mobile=$phone');
+        _debugLog('[LoginView] Navigating to OTP route -> mobile=$phone');
         resetToMobile();
         if (!context.mounted) return;
         // Push without unfocusing — keypad stays up into Verify OTP.
@@ -396,7 +379,7 @@ class LoginView extends HookConsumerWidget {
             onResend: remainingSeconds.value == 0 ? handleResendOtp : null,
             timerText: timerText,
             errorMessage: otpErrorText.value,
-            isVerifying: authState.isSubmitting,
+            isVerifying: isSubmitting,
             canResend: remainingSeconds.value == 0,
             onInputChanged: () => otpErrorText.value = null,
           ),
@@ -447,15 +430,21 @@ class LoginView extends HookConsumerWidget {
       );
     }
 
+    final onMobile = step.value == _LoginStep.mobile;
+    final onPin = step.value == _LoginStep.pin;
+    final referralBanner = (referralCode.value?.isNotEmpty ?? false)
+        ? buildReferralBanner()
+        : null;
+
     Widget buildMobileStep() {
       return AuthMobileStep(
         controller: phoneController,
-        isLoading: authState.isSubmitting,
-        onContinue: authState.isSubmitting ? null : handleMobileContinue,
-        referralBanner: (referralCode.value?.isNotEmpty ?? false)
-            ? buildReferralBanner()
-            : null,
+        isLoading: isSubmitting && onMobile,
+        layoutActive: onMobile,
+        onContinue: isSubmitting ? null : handleMobileContinue,
+        referralBanner: referralBanner,
         focusNode: mobileFocusNode,
+        onEmptyPhoneFieldTap: onEmptyPhoneFieldTap,
       );
     }
 
@@ -470,7 +459,8 @@ class LoginView extends HookConsumerWidget {
           if (value.isNotEmpty) pinError.value = null;
         },
         pinLength: _otpLength,
-        isLoading: authState.isSubmitting,
+        isLoading: isSubmitting && onPin,
+        layoutActive: onPin,
         onContinue: handlePinLogin,
         onEditMobile: resetToMobile,
         onForgotPin: () {
@@ -481,9 +471,7 @@ class LoginView extends HookConsumerWidget {
             ),
           );
         },
-        referralBanner: (referralCode.value?.isNotEmpty ?? false)
-            ? buildReferralBanner()
-            : null,
+        referralBanner: referralBanner,
       );
     }
 
@@ -553,15 +541,73 @@ class LoginView extends HookConsumerWidget {
       );
     }
 
-    // The mobile step is laid out full-bleed on the auth artwork, so it takes
-    // over the whole body. PopScope is intentionally skipped here: it already
-    // resolved to `canPop: true` for this step, so it changed nothing.
-    if (step.value == _LoginStep.mobile) {
-      return Scaffold(
-        // Peach Coral top so no white flash behind the full-bleed gradient.
-        backgroundColor: AppColors.loginPeachCoral,
-        resizeToAvoidBottomInset: true,
-        body: buildMobileStep(),
+    Widget buildLoginBody() {
+      if (step.value == _LoginStep.otp) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final headerHeight = constraints.maxHeight * 0.62;
+
+            return Stack(
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      height: headerHeight,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.authBackgroundGradient,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(20.r),
+                          bottomRight: Radius.circular(20.r),
+                        ),
+                      ),
+                    ),
+                    const Expanded(
+                      child: ColoredBox(color: Colors.white),
+                    ),
+                  ],
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: headerHeight,
+                  child: const AuthBrandHeader(),
+                ),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 126,
+                  child: buildContentCard(),
+                ),
+              ],
+            );
+          },
+        );
+      }
+
+      return IndexedStack(
+        index: onPin ? 1 : 0,
+        sizing: StackFit.expand,
+        children: [
+          TickerMode(
+            enabled: onMobile,
+            child: RepaintBoundary(
+              child: buildMobileStep(),
+            ),
+          ),
+          TickerMode(
+            enabled: onPin,
+            child: RepaintBoundary(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  buildPinStep(),
+                  if (isSubmitting && onPin) buildLoggingInOverlay(),
+                ],
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -574,57 +620,13 @@ class LoginView extends HookConsumerWidget {
         }
       },
       child: Scaffold(
-        // Same peach shell as mobile step so the PIN handoff never flashes white.
-        backgroundColor: AppColors.loginPeachCoral,
+        // Body paints the peach gradient. The region under the keyboard
+        // (resizeToAvoidBottomInset) is the Scaffold color — solid
+        // loginPeachCoral (#DD5428) showed as an orange strip. White matches
+        // the form band that sits above the keyboard.
+        backgroundColor: Colors.white,
         resizeToAvoidBottomInset: true,
-        body: step.value == _LoginStep.pin
-            ? Stack(
-                fit: StackFit.expand,
-                children: [
-                  buildPinStep(),
-                  if (authState.isSubmitting) buildLoggingInOverlay(),
-                ],
-              )
-            : LayoutBuilder(
-                builder: (context, constraints) {
-                  final headerHeight = constraints.maxHeight * 0.62;
-
-                  return Stack(
-                    children: [
-                      Column(
-                        children: [
-                          Container(
-                            height: headerHeight,
-                            decoration: BoxDecoration(
-                              gradient: AppColors.authBackgroundGradient,
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(20.r),
-                                bottomRight: Radius.circular(20.r),
-                              ),
-                            ),
-                          ),
-                          const Expanded(
-                            child: ColoredBox(color: Colors.white),
-                          ),
-                        ],
-                      ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: headerHeight,
-                        child: const AuthBrandHeader(),
-                      ),
-                      Positioned(
-                        left: 12,
-                        right: 12,
-                        bottom: 126,
-                        child: buildContentCard(),
-                      ),
-                    ],
-                  );
-                },
-              ),
+        body: buildLoginBody(),
       ),
     );
   }

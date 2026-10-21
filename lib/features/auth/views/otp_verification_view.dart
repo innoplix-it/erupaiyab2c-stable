@@ -34,31 +34,43 @@ class OtpVerificationView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authControllerProvider);
+    final isSubmitting = ref.watch(
+      authControllerProvider.select((state) => state.isSubmitting),
+    );
+    final pendingMobile = ref.watch(
+      authControllerProvider.select((state) => state.pendingMobile),
+    );
     final otpController = useTextEditingController();
     final otpFocusNode = useFocusNode();
     final otpShake = useAuthShakeController();
-    final autoFilledCode = useState<String?>(null);
     final showIdentityVariant = args.temporaryBlockFlowType != null;
     final isDeviceVerificationFlow = args.temporaryBlockFlowType ==
         TemporaryBlockFlowType.deviceVerification;
+    // The per-digit controllers / nodes only exist for the identity variant;
+    // the standard Verify OTP screen no longer allocates 22 unused objects.
     final mobileOtpControllers = useMemoized(
-      () =>
-          List.generate(_identityOtpLength, (_) => TextEditingController()),
-      const [],
+          () => showIdentityVariant
+          ? List.generate(_identityOtpLength, (_) => TextEditingController())
+          : <TextEditingController>[],
+      [showIdentityVariant],
     );
     final mobileOtpFocusNodes = useMemoized(
-      () => List.generate(_identityOtpLength, (_) => FocusNode()),
-      const [],
+          () => showIdentityVariant
+          ? List.generate(_identityOtpLength, (_) => FocusNode())
+          : <FocusNode>[],
+      [showIdentityVariant],
     );
     final emailOtpControllers = useMemoized(
-      () =>
-          List.generate(_identityOtpLength, (_) => TextEditingController()),
-      const [],
+          () => showIdentityVariant
+          ? List.generate(_identityOtpLength, (_) => TextEditingController())
+          : <TextEditingController>[],
+      [showIdentityVariant],
     );
     final emailOtpFocusNodes = useMemoized(
-      () => List.generate(_identityOtpLength, (_) => FocusNode()),
-      const [],
+          () => showIdentityVariant
+          ? List.generate(_identityOtpLength, (_) => FocusNode())
+          : <FocusNode>[],
+      [showIdentityVariant],
     );
     final mobileOtpInput = useTextEditingController();
     final emailOtpInput = useTextEditingController();
@@ -73,7 +85,18 @@ class OtpVerificationView extends HookConsumerWidget {
       }
     }
 
-    useListenable(otpController);
+    // Rebuild the view only when the "all digits entered" flag flips, instead
+    // of on every typed digit (the boxes listen to the controller themselves).
+    final otpComplete = useState(false);
+    useEffect(() {
+      void onOtpText() {
+        final complete = otpController.text.length == _otpLength;
+        if (otpComplete.value != complete) otpComplete.value = complete;
+      }
+
+      otpController.addListener(onOtpText);
+      return () => otpController.removeListener(onOtpText);
+    }, [otpController]);
 
     final remainingSeconds = useState(0);
     final emailRemainingSeconds = useState(59);
@@ -111,11 +134,11 @@ class OtpVerificationView extends HookConsumerWidget {
     Future<void> sendTemporaryBlockOtp({bool showToast = false}) async {
       final message = isDeviceVerificationFlow
           ? await ref.read(authControllerProvider.notifier).sendDeviceOtp(
-                verificationId: args.deviceVerificationId ?? '',
-              )
+        verificationId: args.deviceVerificationId ?? '',
+      )
           : await ref
-              .read(authControllerProvider.notifier)
-              .sendAccountRecoveryOtp();
+          .read(authControllerProvider.notifier)
+          .sendAccountRecoveryOtp();
       if (message != null) {
         remainingSeconds.value = 60;
         emailRemainingSeconds.value = 60;
@@ -160,25 +183,25 @@ class OtpVerificationView extends HookConsumerWidget {
         if (mobileOtp.length < _identityOtpLength ||
             emailOtp.length < _identityOtpLength) {
           errorText.value =
-              'Please enter both $_identityOtpLength-digit OTPs.';
+          'Please enter both $_identityOtpLength-digit OTPs.';
           return;
         }
         errorText.value = null;
         codeError.value = null;
         final message = isDeviceVerificationFlow
             ? await ref.read(authControllerProvider.notifier).verifyDeviceOtp(
-                  verificationId: args.deviceVerificationId ?? '',
-                  mobileOtp: mobileOtp,
-                  emailOtp: emailOtp,
-                )
+          verificationId: args.deviceVerificationId ?? '',
+          mobileOtp: mobileOtp,
+          emailOtp: emailOtp,
+        )
             : (await ref
-                    .read(authControllerProvider.notifier)
-                    .verifyAccountRecoveryOtp(
-                      mobileOtp: mobileOtp,
-                      emailOtp: emailOtp,
-                    ))
-                ? 'success'
-                : null;
+            .read(authControllerProvider.notifier)
+            .verifyAccountRecoveryOtp(
+          mobileOtp: mobileOtp,
+          emailOtp: emailOtp,
+        ))
+            ? 'success'
+            : null;
         if (message != null) {
           if (context.mounted) {
             if ((args.successDialogTitle?.isNotEmpty ?? false) ||
@@ -299,7 +322,7 @@ class OtpVerificationView extends HookConsumerWidget {
         return;
       }
 
-      final resolvedMobile = args.phoneNumber ?? authState.pendingMobile;
+      final resolvedMobile = args.phoneNumber ?? pendingMobile;
       if (resolvedMobile == null || resolvedMobile.isEmpty) {
         AppSnackbar.show('Missing mobile number. Please try again.');
         return;
@@ -339,13 +362,12 @@ class OtpVerificationView extends HookConsumerWidget {
       final digits = code.replaceAll(RegExp(r'\D'), '');
       if (digits.isEmpty) return;
       final trimmed =
-          digits.length > _otpLength ? digits.substring(0, _otpLength) : digits;
+      digits.length > _otpLength ? digits.substring(0, _otpLength) : digits;
       if (kDebugMode) {
         debugPrint('OTP autofill received: $trimmed');
       }
       otpController.text = trimmed;
-      // Keep focus so Verify does not drop the lifted layout.
-      autoFilledCode.value = trimmed;
+      // Keep focus so the keypad (and layout) stay exactly where they are.
       errorText.value = null;
       codeError.value = null;
     }
@@ -410,22 +432,23 @@ class OtpVerificationView extends HookConsumerWidget {
     }, const []);
 
     if (!showIdentityVariant) {
-      final otpComplete = otpController.text.length == _otpLength;
       return Scaffold(
-        backgroundColor: AppColors.loginPeachCoral,
+        backgroundColor: Colors.white,
+        // The body shrinks with the keypad so Continue rides on top of it.
+        resizeToAvoidBottomInset: true,
         body: OtpVerifyStep(
           otpLength: _otpLength,
           otpController: otpController,
           otpFocusNode: otpFocusNode,
-          phoneNumber: args.phoneNumber ?? authState.pendingMobile ?? '',
+          phoneNumber: args.phoneNumber ?? pendingMobile ?? '',
           label: args.heading,
           description: args.description,
           timerText: timerText,
           canResend: remainingSeconds.value == 0,
           onResend: handleResend,
-          onVerify: otpComplete ? handleVerify : null,
-          isSubmitting: authState.isSubmitting,
-          buttonLabel: args.primaryButtonLabel ?? 'Verify',
+          onVerify: otpComplete.value ? handleVerify : null,
+          isSubmitting: isSubmitting,
+          buttonLabel: args.primaryButtonLabel ?? 'Continue',
           errorText: errorText.value,
           codeErrorText: codeError.value,
           onBack: () => context.canPop()
@@ -461,12 +484,12 @@ class OtpVerificationView extends HookConsumerWidget {
         onResendEmail: handleEmailResend,
         onVerify: handleVerify,
         onBack: () => context.pop(),
-        buttonLabel: authState.isSubmitting
+        buttonLabel: isSubmitting
             ? 'Verifying...'
             : (args.primaryButtonLabel ?? 'Verify & Continue'),
         errorText: errorText.value,
         codeErrorText: codeError.value,
-        isSubmitting: authState.isSubmitting,
+        isSubmitting: isSubmitting,
         shakeController: otpShake,
         onMobileOtpChanged: (value) {
           syncOtpDigits(value, mobileOtpControllers);
@@ -523,10 +546,10 @@ class _OtpCustomSuccessDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
-                  ),
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
             ),
             if (message.isNotEmpty) ...[
               SizedBox(height: 12.h),
@@ -534,9 +557,9 @@ class _OtpCustomSuccessDialog extends StatelessWidget {
                 message,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textPrimary.withOpacity(0.72),
-                      height: 1.45,
-                    ),
+                  color: AppColors.textPrimary.withOpacity(0.72),
+                  height: 1.45,
+                ),
               ),
             ],
             SizedBox(height: 22.h),
