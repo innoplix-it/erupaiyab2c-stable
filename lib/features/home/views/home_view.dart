@@ -15,6 +15,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lottie/lottie.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:zo_animated_border/zo_animated_border.dart';
 
 import '../../../config/temporary_block_debug_config.dart';
 import '../../../constants/app_colors.dart';

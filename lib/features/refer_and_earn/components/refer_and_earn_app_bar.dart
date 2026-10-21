@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../constants/file_constants.dart';
-import '../../../constants/routes_constant.dart';
+import '../../../widgets/my_app_bar.dart';
+import 'refer_help_icon_button.dart';
 
 class ReferAndEarnAppBar extends HookWidget {
   const ReferAndEarnAppBar({
@@ -18,7 +18,7 @@ class ReferAndEarnAppBar extends HookWidget {
     this.bottomReserve,
     this.centerTitle = false,
     this.backgroundColor,
-    this.whiteHelpBadge = false,
+    this.skipBackground = false,
     this.hideBottomStrip = false,
   });
 
@@ -49,8 +49,9 @@ class ReferAndEarnAppBar extends HookWidget {
   /// Solid Figma hero fill (e.g. `#084591`). When null, uses [FileConstants.bluebg].
   final Color? backgroundColor;
 
-  /// Figma help control: white circular badge with a tinted `?`.
-  final bool whiteHelpBadge;
+  /// When true, paints no fill so a parent [DecoratedBox] (e.g. wallet dark
+  /// gradient) shows through.
+  final bool skipBackground;
 
   /// When true, skips the white rounded strip (home view draws its own panel).
   final bool hideBottomStrip;
@@ -58,23 +59,23 @@ class ReferAndEarnAppBar extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final barHeight = height ?? 320.h;
-    final helpTint = backgroundColor ?? const Color(0xFF084591);
     return SizedBox(
       height: barHeight,
       child: Stack(
         children: [
-          Positioned.fill(
-            child: backgroundColor != null
-                ? ColoredBox(color: backgroundColor!)
-                : Image.asset(
-                    FileConstants.bluebg,
-                    fit: BoxFit.cover,
-                    cacheWidth: (MediaQuery.sizeOf(context).width *
-                            MediaQuery.devicePixelRatioOf(context))
-                        .round()
-                        .clamp(1, 4096),
-                  ),
-          ),
+          if (!skipBackground)
+            Positioned.fill(
+              child: backgroundColor != null
+                  ? ColoredBox(color: backgroundColor!)
+                  : Image.asset(
+                      FileConstants.bluebg,
+                      fit: BoxFit.cover,
+                      cacheWidth: (MediaQuery.sizeOf(context).width *
+                              MediaQuery.devicePixelRatioOf(context))
+                          .round()
+                          .clamp(1, 4096),
+                    ),
+            ),
           if (!hideBottomStrip)
             Positioned(
               left: 0,
@@ -111,48 +112,15 @@ class ReferAndEarnAppBar extends HookWidget {
                           overflow: TextOverflow.ellipsis,
                           textAlign:
                               centerTitle ? TextAlign.center : TextAlign.start,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              )
-                              .merge(titleStyle),
+                          // Same title text props as common [MyAppBar].
+                          style: MyAppBar.sharedTitleStyle(
+                            context,
+                            color: Colors.white,
+                          )?.merge(titleStyle),
                         ),
                       ),
-                      IconButton(
-                        icon: whiteHelpBadge
-                            ? Builder(
-                                builder: (context) {
-                                  // Figma 440 frame → ScreenUtil 360 design once.
-                                  final badge = (28 * 360 / 440).r;
-                                  final qSize = (16 * 360 / 440).sp;
-                                  return Container(
-                                    width: badge,
-                                    height: badge,
-                                    alignment: Alignment.center,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      '?',
-                                      style: TextStyle(
-                                        color: helpTint,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: qSize,
-                                        height: 1,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                            : const Icon(Icons.help_outline,
-                                color: Colors.white),
-                        onPressed: onHelp ??
-                            () => context.push(RouteConstants.helpSupport),
-                      ),
+                      // Figma white circular `?` (20×20) across Refer & Earn.
+                      ReferHelpIconButton(onPressed: onHelp),
                     ],
                   ),
                 ),

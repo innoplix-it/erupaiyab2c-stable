@@ -12,21 +12,27 @@ import '../components/refer_and_earn_app_bar.dart';
 import '../components/referral_share_actions.dart';
 import '../repositories/referral_wallet_repository.dart';
 import 'referral_milestones_view.dart';
-import 'track_referrals_view.dart';
-import 'withdraw_e_coins_view.dart';
+
 
 // The Figma frame for this screen is 440 x 956 while ScreenUtil's design size
 // is 360 x 690. Figma pixel values are converted once here and then scaled
 // exactly once by ScreenUtil (never both), so a 440-wide phone renders the
 // Figma pixel size and every other width scales proportionally.
+
 double _figmaW(double px) => (px * 360 / 440).w;
+
 double _figmaH(double px) => (px * 690 / 956).h;
+
 double _figmaR(double px) => (px * 360 / 440).r;
 
 /// Figma measurements, expressed in the 360-wide design units used by
+
 /// ScreenUtilInit. Every value is scaled exactly once at the call site
+
 /// (.w horizontal, .h vertical, .r radius/icon, .sp text), so nothing is
+
 /// scaled twice and nothing is a raw pixel value.
+
 class _Fig {
   const _Fig._();
 
@@ -35,13 +41,11 @@ class _Fig {
   // Colours
   static const orange = Color(0xFFDD5428);
   static const navy = Color(0xFF06458F);
-  static const withdrawBlue = Color(0xFF1D4E9E);
-  static const track = Color(0xFFB9B9B9);
+  static const track = Color(0xFFF8D0C5);
   static const ringIdle = Color(0xFFD9D9D9);
   static const hairline = Color(0xFFE6E6E6);
-  static const chipBg = Color(0xFFFDEDE6);
-  static const tabIdle = Color(0xFFEBEBEB);
-  static const avatarBg = Color(0xFFE0E0E0);
+  static const chipBg = Color(0xFFFFEEE9);
+  static const avatarBg = Color(0xFFFCECE7);
 
   // Layout
   static const pageX = 14.0;
@@ -53,30 +57,20 @@ class _Fig {
   // Hero
   static const coinHero = 32.0;
   static const balanceFont = 34.0;
-  static const withdrawFont = 11.5;
+  static const balanceYellowStart = Color(0xFFFBDA3E);
+  static const balanceYellowEnd = Color(0xFFFAD836);
 
   // Milestone card
   static const cardRadius = 16.0;
   static const dot = 25.0;
   static const trackH = 6.0;
-  static const bannerRadius = 8.0;
-
-  // Stat cards / tabs
-  static const statMinH = 55.0;
-  static const statRadius = 12.0;
-  static const tabH = 41.0;
-
-  // Rows
-  static const avatarR = 18.5;
 }
 
 class ReferAndEarnWalletView extends HookWidget {
   const ReferAndEarnWalletView({super.key, this.repository});
-
   /// Injectable for widget tests; production keeps the real repository.
   @visibleForTesting
   final ReferralWalletRepository? repository;
-
   @override
   Widget build(BuildContext context) {
     final reloadToken = useState(0);
@@ -85,8 +79,6 @@ class ReferAndEarnWalletView extends HookWidget {
       [reloadToken.value],
     );
     final snapshot = useFuture(future);
-    final activeTab = useState(_WalletTab.myTeam);
-
     useEffect(() {
       if (!snapshot.hasError) return null;
       Future.microtask(() {
@@ -97,7 +89,6 @@ class ReferAndEarnWalletView extends HookWidget {
       });
       return null;
     }, [snapshot.hasError]);
-
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: Container(
@@ -121,82 +112,90 @@ class ReferAndEarnWalletView extends HookWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            ReferAndEarnAppBar(
-              title: 'Wallet',
-              centerTitle: true,
-              // Status inset + Figma hero (nav row, balance block, Withdraw).
-              height: MediaQuery.paddingOf(context).top + _Fig.heroBelowNav.h,
-              bottomReserve: _Fig.heroReserve.h,
-              body: Column(
-                children: [
-                  // Flexible gaps collapse first when the system text scale
-                  // grows, so the balance block never overflows the hero.
-                  Flexible(child: SizedBox(height: 2.h)),
-                  _WalletHeaderBalance(snapshot: snapshot),
-                  Flexible(child: SizedBox(height: 14.h)),
-                  _WithdrawButton(
-                    onTap: () {
-                      final balance = snapshot.data?.walletBalance ?? '0';
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => WithdrawECoinsView(
-                            walletBalance: balance,
-                          ),
-                        ),
-                      );
-                    },
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final heroHeight =
+              MediaQuery.paddingOf(context).top + _Fig.heroBelowNav.h;
+          final sheetTop = heroHeight - _Fig.sheetLift.h;
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: heroHeight,
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Color(0xFF000000),
+                        Color(0xFF300B00),
+                        Color(0xFF611700),
+                      ],
+                      stops: [0.0, 0.4821, 0.9642],
+                    ),
                   ),
-                ],
-              ),
-            ),
-            Transform.translate(
-              offset: Offset(0, -_Fig.sheetLift.h),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(_Fig.sheetLift.r),
+                  child: ReferAndEarnAppBar(
+                    // The design uses only back/help actions on this row.
+                    title: '',
+                    centerTitle: true,
+                    height: heroHeight,
+                    bottomReserve: _Fig.heroReserve.h,
+                    // Parent DecoratedBox owns the dark Figma gradient.
+                    skipBackground: true,
+                    hideBottomStrip: true,
+                    body: Padding(
+                      padding: EdgeInsets.only(top: 2.h),
+                      child: _WalletHeaderBalance(snapshot: snapshot),
+                    ),
                   ),
                 ),
-                child: RefreshIndicator(
-                  color: AppColors.primary,
-                  onRefresh: () async {
-                    reloadToken.value++;
-                  },
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        _Fig.pageX.w,
-                        _Fig.sheetTop.h,
-                        _Fig.pageX.w,
-                        16.h,
-                      ),
-                      child: _buildBody(
-                        context,
-                        snapshot,
-                        activeTab.value,
-                            (tab) => activeTab.value = tab,
+              ),
+              Positioned(
+                top: sheetTop,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFCFCFC),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(_Fig.sheetLift.r),
+                    ),
+                  ),
+                  child: RefreshIndicator(
+                    color: AppColors.primary,
+                    onRefresh: () async {
+                      reloadToken.value++;
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          _Fig.pageX.w,
+                          _Fig.sheetTop.h,
+                          _Fig.pageX.w,
+                          18.h,
+                        ),
+                        child: _buildBody(context, snapshot),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(height: 8.h),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-enum _WalletTab { myTeam, recentReferrals }
-
 /// Figma bottom bar shadows (CSS box-shadow, all pointing upwards).
+
 List<BoxShadow> get _bottomBarShadows => [
   BoxShadow(
     color: const Color(0x1ACFCFCF),
@@ -242,47 +241,6 @@ TextStyle _style(
     height: height,
     letterSpacing: 0,
   );
-}
-
-class _WithdrawButton extends StatelessWidget {
-  const _WithdrawButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: _Fig.withdrawBlue,
-      shape: const StadiumBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                FileConstants.withdrawIcon,
-                width: 14.w,
-                height: 14.w,
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'Withdraw',
-                style: _style(
-                  context,
-                  _Fig.withdrawFont,
-                  FontWeight.w600,
-                  Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _MilestoneCard extends HookWidget {
@@ -347,7 +305,7 @@ class _MilestoneCard extends HookWidget {
                       child: Text(
                         activeMilestone == null
                             ? 'Refer friends and earn rewards'
-                            : 'Refer ${activeMilestone.targetReferrals} Friends And Get ${activeMilestone.rewardCoins} E-Coins Plus Bonus',
+                            : 'Refer ${activeMilestone.targetReferrals} friends and get ${activeMilestone.rewardCoins} eCoins plus bonus',
                         maxLines: 1,
                         softWrap: false,
                         style: _style(
@@ -401,33 +359,34 @@ class _MilestoneCard extends HookWidget {
             activeIndex: activeIndex,
           ),
           SizedBox(height: 10.h),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-            decoration: BoxDecoration(
-              color: _Fig.orange,
-              borderRadius: BorderRadius.circular(_Fig.bannerRadius.r),
-            ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                activeMilestone == null
-                    ? 'Refer more friends to unlock rewards'
-                    : 'Refer ${_remainingReferrals(totalReferrals, activeMilestone)} More Friends To Unlock Your ${activeMilestone.rewardCoins} E-Coins',
-                maxLines: 1,
-                softWrap: false,
-                // Figma: Plus Jakarta Sans Regular, 100% line height.
-                style: _style(
-                  context,
-                  10,
-                  FontWeight.w400,
-                  Colors.white,
-                  family: 'Plus Jakarta Sans',
-                  height: 1.0,
+          // Icon + text only — no border, no background fill.
+          Row(
+            children: [
+              Image.asset(
+                FileConstants.referMoreFriendsIcon,
+                width: 26.w,
+                height: 20.h,
+                fit: BoxFit.contain,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  activeMilestone == null
+                      ? 'Refer more friends to unlock rewards'
+                      : 'Refer ${_remainingReferrals(totalReferrals, activeMilestone)} more friends to unlock your ${activeMilestone.rewardCoins} eCoins',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: _style(
+                    context,
+                    10,
+                    FontWeight.w600,
+                    const Color(0xFF111111),
+                    family: 'Plus Jakarta Sans',
+                    height: 1.15,
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -466,12 +425,34 @@ class _MilestoneDotRow extends StatelessWidget {
                 left: dot / 2,
                 right: dot / 2,
                 top: (dot - trackH) / 2,
-                child: Container(
-                  height: trackH,
-                  decoration: BoxDecoration(
-                    color: _Fig.track,
-                    borderRadius: BorderRadius.circular(trackH),
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final progress = count <= 1
+                        ? 0.0
+                        : (activeIndex.clamp(0, count - 1) / (count - 1));
+                    return Stack(
+                      children: [
+                        Container(
+                          height: trackH,
+                          decoration: BoxDecoration(
+                            color: _Fig.track,
+                            borderRadius: BorderRadius.circular(trackH),
+                          ),
+                        ),
+                        if (progress > 0)
+                          FractionallySizedBox(
+                            widthFactor: progress,
+                            child: Container(
+                              height: trackH,
+                              decoration: BoxDecoration(
+                                color: _Fig.orange,
+                                borderRadius: BorderRadius.circular(trackH),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
               Row(
@@ -485,7 +466,7 @@ class _MilestoneDotRow extends StatelessWidget {
                         color: Colors.white,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: i == activeIndex
+                          color: i <= activeIndex
                               ? _Fig.orange
                               : _Fig.ringIdle,
                           width: 1.5.w,
@@ -493,9 +474,10 @@ class _MilestoneDotRow extends StatelessWidget {
                       ),
                       child: Center(
                         child: Image.asset(
-                          FileConstants.coin_3d,
-                          width: dot * 0.66,
-                          height: dot * 0.66,
+                          FileConstants.coinRupeeSmall,
+                          width: dot * 0.72,
+                          height: dot * 0.72,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
@@ -513,227 +495,45 @@ class _MilestoneDotRow extends StatelessWidget {
             for (var i = 0; i < count; i++)
               SizedBox(
                 width: dot,
-                child: Text(
-                  labels[i],
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
-                  textAlign: TextAlign.center,
-                  // Figma: active milestone is Plus Jakarta Sans Bold
-                  // #DD5428, inactive are Medium black; styling follows
-                  // whichever milestone is currently selected.
-                  style: _style(
-                    context,
-                    10,
-                    i == activeIndex ? FontWeight.w700 : FontWeight.w500,
-                    i == activeIndex ? _Fig.orange : const Color(0xFF000000),
-                    family: 'Plus Jakarta Sans',
-                    height: 1.0,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      labels[i],
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.visible,
+                      textAlign: TextAlign.center,
+                      // Figma: active milestone is Plus Jakarta Sans Bold
+                      // #DD5428, inactive are Medium black.
+                      style: _style(
+                        context,
+                        10,
+                        i == activeIndex ? FontWeight.w700 : FontWeight.w500,
+                        i == activeIndex
+                            ? _Fig.orange
+                            : const Color(0xFF000000),
+                        family: 'Plus Jakarta Sans',
+                        height: 1.0,
+                      ),
+                    ),
+                    if (i == activeIndex) ...[
+                      SizedBox(height: 2.h),
+                      Container(
+                        width: 14.w,
+                        height: 1.5.h,
+                        decoration: BoxDecoration(
+                          color: _Fig.orange,
+                          borderRadius: BorderRadius.circular(1.r),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _TrackReferralsCard extends StatelessWidget {
-  const _TrackReferralsCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(_Fig.statRadius.r);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: radius,
-      child: Container(
-        constraints: BoxConstraints(minHeight: _Fig.statMinH.h),
-        padding: EdgeInsets.fromLTRB(10.w, 8.h, 10.w, 8.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: radius,
-          border: Border.all(color: AppColors.lightBorder.withOpacity(0.8)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10.r,
-              offset: Offset(0, 5.h),
-            ),
-          ],
-        ),
-        child: Row(
-          // Figma: the arrow sits top-right, level with the small label.
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Track',
-                    maxLines: 1,
-                    style: _style(
-                      context,
-                      10,
-                      FontWeight.w400,
-                      AppColors.textPrimary.withOpacity(0.7),
-                      family: _Fig.font,
-                      height: 1.0,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    'Track Your Referrals',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _style(
-                      context,
-                      12,
-                      FontWeight.w500,
-                      const Color(0xFF000000),
-                      family: _Fig.font,
-                      height: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 4.w),
-            // Slightly larger than before (14 -> 16) and forced to black.
-            // The arrow is a raster/asset image, so it has no stroke-width
-            // property to set; see notes.
-            Image.asset(
-              FileConstants.arrow,
-              width: 16.w,
-              height: 16.w,
-              color: const Color(0xFF000000),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EarningsCard extends StatelessWidget {
-  const _EarningsCard({required this.totalEarnings});
-
-  final int totalEarnings;
-
-  @override
-  Widget build(BuildContext context) {
-    // Figma: white card with a dotted #DD5428 outline.
-    return _DottedBox(
-      radius: _Fig.statRadius,
-      child: Container(
-        constraints: BoxConstraints(minHeight: _Fig.statMinH.h),
-        padding: EdgeInsets.fromLTRB(10.w, 8.h, 10.w, 8.h),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Earnings',
-                    maxLines: 1,
-                    style: _style(
-                      context,
-                      10,
-                      FontWeight.w500,
-                      AppColors.textPrimary.withOpacity(0.7),
-                      family: _Fig.font,
-                      height: 1.0,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    '$totalEarnings E-Coins',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _style(
-                      context,
-                      12,
-                      FontWeight.w500,
-                      const Color(0xFF000000),
-                      family: _Fig.font,
-                      height: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 4.w),
-            Image.asset(
-              FileConstants.coin_3d,
-              width: 30.r,
-              height: 30.r,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SegmentButton extends StatelessWidget {
-  const _SegmentButton({
-    required this.label,
-    required this.active,
-    required this.iconAsset,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final String iconAsset;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = active ? Colors.white : AppColors.textPrimary;
-    return InkWell(
-      onTap: onTap,
-      customBorder: const StadiumBorder(),
-      child: Container(
-        height: _Fig.tabH.h,
-        padding: EdgeInsets.symmetric(horizontal: 8.w),
-        alignment: Alignment.center,
-        decoration: ShapeDecoration(
-          color: active ? _Fig.navy : _Fig.tabIdle,
-          shape: const StadiumBorder(),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              iconAsset,
-              width: 15.w,
-              height: 15.w,
-              color: fg,
-            ),
-            SizedBox(width: 6.w),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: _style(context, 10.5, FontWeight.w600, fg),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -741,256 +541,93 @@ class _SegmentButton extends StatelessWidget {
 Widget _buildBody(
     BuildContext context,
     AsyncSnapshot<ReferralWalletSummary> snapshot,
-    _WalletTab activeTab,
-    ValueChanged<_WalletTab> onTabChanged,
     ) {
   if (snapshot.connectionState == ConnectionState.waiting) {
-    return Center(
-      child: SpinKitCircle(
-        color: AppColors.primary,
-        size: 40.r,
+    return Padding(
+      padding: EdgeInsets.only(top: 40.h),
+      child: Center(
+        child: SpinKitCircle(color: AppColors.primary, size: 40.r),
       ),
     );
   }
   if (snapshot.hasError) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Wallet Summary',
-          style: _style(
-            context,
-            13,
-            FontWeight.w700,
-            AppColors.textPrimary,
-          ),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 28.h),
+      child: Text(
+        'Failed to load wallet summary. Please pull to refresh.',
+        style: _style(
+          context,
+          11,
+          FontWeight.w400,
+          AppColors.textPrimary.withOpacity(0.65),
         ),
-        SizedBox(height: 10.h),
-        Text(
-          'Failed to load wallet summary. Please try again.',
-          style: _style(
-            context,
-            10.5,
-            FontWeight.w400,
-            AppColors.textPrimary.withOpacity(0.6),
-          ),
-        ),
-      ],
+      ),
     );
   }
-
   final data = snapshot.data;
-  final totalEarnings = data?.totalEarnings ?? 0;
-  final teamCount = data?.teamCount ?? 0;
-  final totalTeamEarnings = data?.totalTeamEarnings ?? 0;
+  final totalReferrals = data?.teamCount ?? 0;
   final milestones = data?.milestones ?? const <ReferralMilestone>[];
-  final team = data?.myTeam ?? const <TeamMember>[];
   final recentReferrals = data?.recentReferrals ?? const <RecentReferral>[];
-
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _MilestoneCard(
-        totalReferrals: teamCount,
+        totalReferrals: totalReferrals,
         milestones: milestones,
       ),
-      SizedBox(height: 15.h),
-      // IntrinsicHeight + stretch: both stat cards share the taller one's
-      // height, so they line up like the Figma pair.
-      IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: _TrackReferralsCard(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const TrackReferralsView(),
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: _Fig.pageX.w),
-            Expanded(child: _EarningsCard(totalEarnings: totalEarnings)),
-          ],
+      SizedBox(height: 24.h),
+      Text(
+        'Recent Referrals',
+        style: _style(
+          context,
+          16,
+          FontWeight.w500,
+          const Color(0xFF090909),
+          family: _Fig.font,
+          height: 1.15,
         ),
       ),
-      SizedBox(height: 17.h),
-      // The full-bleed hairline runs behind the two pills, as in Figma.
-      SizedBox(
-        height: _Fig.tabH.h,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: -_Fig.pageX.w,
-              right: -_Fig.pageX.w,
-              top: _Fig.tabH.h / 2,
-              child: Container(height: 1.r, color: _Fig.hairline),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'My Team',
-                    active: activeTab == _WalletTab.myTeam,
-                    iconAsset: FileConstants.myTeam,
-                    onTap: () => onTabChanged(_WalletTab.myTeam),
-                  ),
-                ),
-                SizedBox(width: _Fig.pageX.w),
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Recent Referrals',
-                    active: activeTab == _WalletTab.recentReferrals,
-                    iconAsset: FileConstants.recentReferrals,
-                    onTap: () => onTabChanged(_WalletTab.recentReferrals),
-                  ),
-                ),
-              ],
+      SizedBox(height: 18.h),
+      Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 18.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x10000000),
+              blurRadius: 24.r,
+              offset: Offset(0, 8.h),
             ),
           ],
         ),
-      ),
-      SizedBox(height: 22.h),
-      if (activeTab == _WalletTab.myTeam) ...[
-        Row(
-          // Figma: "View All" sits on the heading line.
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Team Earnings',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _style(
-                      context,
-                      18,
-                      FontWeight.w500,
-                      const Color(0xFF000000),
-                      family: _Fig.font,
-                      height: 1.0,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Image.asset(
-                        FileConstants.coin_3d,
-                        width: 16.w,
-                        height: 16.w,
-                      ),
-                      SizedBox(width: 6.w),
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '$totalTeamEarnings E-Coins',
-                            maxLines: 1,
-                            softWrap: false,
-                            style: _style(
-                              context,
-                              12,
-                              FontWeight.w700,
-                              _Fig.orange,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(left: 8.w),
-              child: Text(
-                'View All',
-                maxLines: 1,
-                textAlign: TextAlign.right,
-                style: _style(
-                  context,
-                  11.5,
-                  FontWeight.w500,
-                  _Fig.orange,
-                  family: _Fig.font,
-                  height: 1.0,
-                ).copyWith(
-                  decoration: TextDecoration.underline,
-                  decorationStyle: TextDecorationStyle.solid,
-                  decorationColor: _Fig.orange,
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 6.h),
-        if (team.isEmpty)
-          Padding(
-            padding: EdgeInsets.only(top: 8.h),
-            child: Text(
-              'No team members yet.',
-              style: _style(
-                context,
-                10.5,
-                FontWeight.w400,
-                AppColors.textPrimary.withOpacity(0.6),
-              ),
-            ),
-          )
-        else
-          ...team.map(
-                (member) => _PersonRow(
-              name: member.name,
-              subtitle: member.since,
-              subtitleColor: AppColors.textPrimary.withOpacity(0.55),
-              earnings: member.earnings,
-            ),
-          ),
-      ] else ...[
-        Text(
-          'Recent Referrals',
-          style: _style(
-            context,
-            13,
-            FontWeight.w800,
-            AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: 6.h),
-        if (recentReferrals.isEmpty)
-          Padding(
-            padding: EdgeInsets.only(top: 8.h),
+        child: recentReferrals.isEmpty
+            ? Padding(
+          padding: EdgeInsets.symmetric(vertical: 24.h),
+          child: Center(
             child: Text(
               'No recent referrals yet.',
               style: _style(
                 context,
-                10.5,
+                11,
                 FontWeight.w400,
                 AppColors.textPrimary.withOpacity(0.6),
               ),
             ),
-          )
-        else
-          ...recentReferrals.map(
-                (referral) => _PersonRow(
-              name: referral.name,
-              subtitle: referral.joinedMessage.isNotEmpty
-                  ? referral.joinedMessage
-                  : referral.joinedOn,
-              subtitleColor: const Color(0xFF1B8E36),
-              earnings: referral.earnings,
-            ),
           ),
-      ],
-      SizedBox(height: 16.h),
+        )
+            : Column(
+          children: [
+            for (var i = 0; i < recentReferrals.length; i++)
+              _RecentReferralRow(
+                referral: recentReferrals[i],
+                showDivider: i != recentReferrals.length - 1,
+              ),
+          ],
+        ),
+      ),
+      SizedBox(height: 18.h),
     ],
   );
 }
@@ -1012,8 +649,8 @@ class _WalletHeaderBalance extends StatelessWidget {
           'Total Balance',
           style: _style(
             context,
-            12,
-            FontWeight.w500,
+            14,
+            FontWeight.w600,
             Colors.white.withOpacity(0.85),
           ),
         ),
@@ -1030,17 +667,51 @@ class _WalletHeaderBalance extends StatelessWidget {
               height: _Fig.coinHero.w,
             ),
             SizedBox(width: 8.w),
-            Text(
-              balance,
-              // Figma: Plus Jakarta Sans ExtraBold, 100% line height,
-              // zero letter spacing.
-              style: _style(
-                context,
-                _Fig.balanceFont,
-                FontWeight.w800,
-                Colors.white,
-                family: 'Plus Jakarta Sans',
-                height: 1.0,
+            ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _Fig.balanceYellowStart,
+                  _Fig.balanceYellowEnd,
+                ],
+              ).createShader(bounds),
+              child: Text(
+                balance,
+                maxLines: 1,
+                softWrap: false,
+                style: _style(
+                  context,
+                  _Fig.balanceFont,
+                  FontWeight.w800,
+                  Colors.white,
+                  family: 'Plus Jakarta Sans',
+                  height: 1.0,
+                ).copyWith(
+                  shadows: const [
+                    Shadow(
+                      color: Color(0x1A000000),
+                      offset: Offset(0, 8),
+                      blurRadius: 18,
+                    ),
+                    Shadow(
+                      color: Color(0x17000000),
+                      offset: Offset(0, 33),
+                      blurRadius: 33,
+                    ),
+                    Shadow(
+                      color: Color(0x0D000000),
+                      offset: Offset(0, 74),
+                      blurRadius: 45,
+                    ),
+                    Shadow(
+                      color: Color(0x03000000),
+                      offset: Offset(0, 132),
+                      blurRadius: 53,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -1146,110 +817,155 @@ String _initials(String name) {
       .toUpperCase();
 }
 
-/// Flat list row used by both tabs: avatar, name + subtitle, earnings pill,
-/// overflow dots, and a hairline divider underneath (Figma team list).
-class _PersonRow extends StatelessWidget {
-  const _PersonRow({
-    required this.name,
-    required this.subtitle,
-    required this.subtitleColor,
-    required this.earnings,
+/// Referral row matching the joined / pending states in the wallet design.
+
+class _RecentReferralRow extends StatelessWidget {
+  const _RecentReferralRow({
+    required this.referral,
+    required this.showDivider,
   });
-
-  final String name;
-  final String subtitle;
-  final Color subtitleColor;
-  final Object earnings;
-
+  final RecentReferral referral;
+  final bool showDivider;
+  bool get _isJoined {
+    final value = referral.joinedMessage.trim().toLowerCase();
+    if (value.isEmpty ||
+        value.contains('not joined') ||
+        value.contains('pending') ||
+        value.contains('not eligible')) {
+      return false;
+    }
+    return value.contains('joined') || value.contains('success');
+  }
+  String get _statusText {
+    final value = referral.joinedMessage.trim();
+    if (value.isEmpty) return 'Not joined yet';
+    return value;
+  }
   @override
   Widget build(BuildContext context) {
+    final joined = _isJoined;
+    final dateText = referral.joinedOn.trim();
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 13.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      padding: EdgeInsets.symmetric(vertical: 14.h),
+      decoration: showDivider
+          ? BoxDecoration(
         border: Border(
           bottom: BorderSide(color: _Fig.hairline, width: 1.r),
         ),
-      ),
+      )
+          : null,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: _Fig.avatarR.r,
+            radius: _figmaR(20),
             backgroundColor: _Fig.avatarBg,
             child: Text(
-              _initials(name),
-              style: _style(
-                context,
-                12,
-                FontWeight.w600,
-                AppColors.textPrimary.withOpacity(0.75),
-              ),
+              _initials(referral.name),
+              style: _style(context, 13, FontWeight.w600, _Fig.orange),
             ),
           ),
-          SizedBox(width: 10.w),
+          SizedBox(width: 12.w),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _style(
-                    context,
-                    11.5,
-                    FontWeight.w700,
-                    AppColors.textPrimary,
-                  ),
-                ),
-                if (subtitle.isNotEmpty) ...[
-                  SizedBox(height: 2.h),
+            child: Padding(
+              padding: EdgeInsets.only(top: 2.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    subtitle,
+                    referral.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: _style(
                       context,
-                      9.5,
+                      13,
+                      FontWeight.w700,
+                      const Color(0xFF080808),
+                      family: _Fig.font,
+                    ),
+                  ),
+                  SizedBox(height: 3.h),
+                  Text(
+                    _statusText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _style(
+                      context,
+                      11,
                       FontWeight.w500,
-                      subtitleColor,
+                      joined
+                          ? const Color(0xFF078A36)
+                          : const Color(0xFF970D0D),
+                    ),
+                  ),
+                  if (dateText.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    Text(
+                      dateText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _style(
+                        context,
+                        10,
+                        FontWeight.w400,
+                        const Color(0xFF858585),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          if (joined)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+              decoration: const ShapeDecoration(
+                color: _Fig.chipBg,
+                shape: StadiumBorder(),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    FileConstants.coin_3d,
+                    width: 15.w,
+                    height: 15.w,
+                  ),
+                  SizedBox(width: 5.w),
+                  Text(
+                    '${referral.earnings} eCoins',
+                    maxLines: 1,
+                    softWrap: false,
+                    style: _style(
+                      context,
+                      10,
+                      FontWeight.w600,
+                      const Color(0xFF111111),
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          SizedBox(width: 6.w),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-            decoration: ShapeDecoration(
-              color: _Fig.chipBg,
-              shape: const StadiumBorder(),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  FileConstants.coin_3d,
-                  width: 15.w,
-                  height: 15.w,
+              ),
+            )
+          else
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              decoration: const ShapeDecoration(
+                color: Color(0xFFFFF0F0),
+                shape: StadiumBorder(),
+              ),
+              child: Text(
+                'Joining Pending',
+                maxLines: 1,
+                softWrap: false,
+                style: _style(
+                  context,
+                  9.5,
+                  FontWeight.w600,
+                  const Color(0xFFD71920),
                 ),
-                SizedBox(width: 6.w),
-                Text(
-                  '$earnings E-Coins',
-                  maxLines: 1,
-                  style: _style(
-                    context,
-                    10,
-                    FontWeight.w500,
-                    AppColors.textPrimary,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          SizedBox(width: 4.w),
-          Icon(Icons.more_vert, size: 18.r, color: Colors.black),
         ],
       ),
     );
@@ -1257,7 +973,9 @@ class _PersonRow extends StatelessWidget {
 }
 
 /// Wraps [child] in the Figma orange dotted rounded outline. [radius] is in
+
 /// design units and is scaled once here, together with dot size and spacing.
+
 class _DottedBox extends StatelessWidget {
   const _DottedBox({required this.child, required this.radius});
 
@@ -1279,7 +997,9 @@ class _DottedBox extends StatelessWidget {
 }
 
 /// Paints evenly spaced round dots along a rounded rectangle. The spacing is
+
 /// adjusted per outline so the dots close the loop without a visible seam.
+
 class _DottedRRectPainter extends CustomPainter {
   const _DottedRRectPainter({
     required this.color,

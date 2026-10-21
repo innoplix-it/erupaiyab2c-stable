@@ -1,5 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,6 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import 'login_services_slider.dart';
 
 /// Plus Jakarta Sans is the app-wide theme font, but every raw [TextStyle] in
 /// the auth steps pins the family explicitly so they stay correct when
@@ -149,6 +152,84 @@ class AuthBackgroundImage extends StatelessWidget {
       fit: BoxFit.cover,
       alignment: Alignment.topCenter,
       opacity: const AlwaysStoppedAnimation(authBackgroundOpacity),
+    );
+  }
+}
+
+/// Peach band + animated [LoginServicesSlider] behind OTP / MPIN form content
+/// (Figma Verify OTP, Create MPIN, Reset MPIN).
+class AuthPeachMarqueeShell extends StatelessWidget {
+  const AuthPeachMarqueeShell({super.key, required this.child});
+
+  final Widget child;
+
+  /// Soft wash so the marquee stays visible behind titles (Figma OTP/PIN).
+  static const LinearGradient _overlayBandGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0x59FFFFFF),
+      Color(0xD9FFFFFF),
+      Color(0xFFFFFFFF),
+    ],
+    stops: [0.0, 0.38, 1.0],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final k = (screenWidth / LoginServicesSlider.figmaFrameWidth)
+        .clamp(0.72, 1.1)
+        .toDouble();
+    final topPad = topInset + 6 * k;
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: AppColors.loginPeachCoralGradient,
+      ),
+      child: LayoutBuilder(
+        builder: (context, viewport) {
+          final available = (viewport.maxHeight - topPad)
+              .clamp(0.0, double.infinity)
+              .toDouble();
+          final natural = LoginServicesSlider.naturalHeight(
+            screenWidth,
+            2,
+            compact: true,
+          );
+          final sliderH = math.min(natural, available * 0.72);
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                top: topPad,
+                left: 0,
+                right: 0,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: sliderH,
+                    minHeight: 0,
+                  ),
+                  child: const LoginServicesSlider(
+                    rowCount: 2,
+                    compact: true,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: _overlayBandGradient,
+                  ),
+                  child: child,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

@@ -1508,62 +1508,78 @@ class _ExploreUtilitiesRow extends StatelessWidget {
   }
 }
 
-class _ReferStrip extends StatelessWidget {
-  const _ReferStrip();
+/// Home refer promo — [FileConstants.referCardSvg] with a moving border on
+/// the "Refer Now" pill (Figma button: x312 y26 w65 h22 rx11 / 392×74).
+class _HomeReferCard extends StatelessWidget {
+  const _HomeReferCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  static const double _figmaW = 392;
+  static const double _figmaH = 74;
+  static const double _btnX = 312;
+  static const double _btnY = 26;
+  static const double _btnW = 65;
+  static const double _btnH = 22;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const ReferAndEarnView(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = width * (_figmaH / _figmaW);
+        final sx = width / _figmaW;
+        final sy = height / _figmaH;
+        final btnLeft = _btnX * sx;
+        final btnTop = _btnY * sy;
+        final btnW = _btnW * sx;
+        final btnH = _btnH * sy;
+        final btnRadius = btnH / 2;
+
+        return GestureDetector(
+          onTap: onTap,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8 * sx),
+                    child: SvgPicture.asset(
+                      FileConstants.referCardSvg,
+                      fit: BoxFit.fill,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                ),
+                // Thin, fast, light shimmer around the SVG "Refer Now" pill.
+                Positioned(
+                  left: btnLeft,
+                  top: btnTop,
+                  width: btnW,
+                  height: btnH,
+                  child: IgnorePointer(
+                    child: ZoSnakeBorder(
+                      animationDuration: const Duration(milliseconds: 2000),
+                      animationCurve: Curves.linear,
+                      borderWidth: 1,
+                      glowOpacity: 0.12,
+                      glowSpread: 1.5,
+                      snakeHeadColor: const Color(0xFFFFF8F5),
+                      snakeTailColor: const Color(0xFFE8C8BC),
+                      snakeTrackColor: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(btnRadius),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.r),
-          image: DecorationImage(
-            image: AssetImage(FileConstants.referBg),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 18.r,
-              width: 18.r,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Image.asset(
-                FileConstants.coin_3d,
-                height: 12.r,
-                width: 12.r,
-                fit: BoxFit.contain,
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: Text(
-                'Refer Your First Friend And Grab 1000 E-Coins',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  textStyle: Theme.of(context).textTheme.bodySmall,
-                  color: Colors.white,
-                  letterSpacing: -0.25,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 10.sp,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -3627,28 +3643,9 @@ class _HomeMainSections extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16.h),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final height = width * 165 / 440;
-              return GestureDetector(
-                onTap: onReferTap,
-                child: SizedBox(
-                  width: width,
-                  height: height,
-                  child: RepaintBoundary(
-                    child: Lottie.asset(
-                      'assets/animations/Referral-banner-smooth-promo.json',
-                      width: width,
-                      height: height,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      repeat: true,
-                    ),
-                  ),
-                ),
-              );
-            },
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: billsMargin),
+            child: _HomeReferCard(onTap: onReferTap),
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(

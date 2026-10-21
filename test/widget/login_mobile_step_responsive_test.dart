@@ -110,7 +110,7 @@ void main() {
         );
 
         expect(find.byType(LoginServicesSlider), findsOneWidget);
-        expect(find.text('Pay Bills & Earn'), findsOneWidget);
+        expect(find.text('Welcome to eRupaiya'), findsOneWidget);
         expect(
           find.text('Enter your mobile number to continue.'),
           findsOneWidget,
@@ -171,7 +171,7 @@ void main() {
             ),
           );
 
-          expect(find.text('Pay Bills & Earn'), findsOneWidget);
+          expect(find.text('Welcome to eRupaiya'), findsOneWidget);
           expect(find.text('Continue'), findsOneWidget);
           expect(tester.takeException(), isNull);
         }
@@ -201,11 +201,21 @@ void main() {
       // Let the crossfade / gradient animations finish.
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.text('Pay Bills & Earn'), findsOneWidget);
+      expect(find.text('Welcome to eRupaiya'), findsOneWidget);
       expect(find.text('Mobile Number'), findsOneWidget);
       expect(find.text('Continue'), findsOneWidget);
       expect(find.text('Terms of Use'), findsOneWidget);
       expect(find.byType(LoginServicesSlider), findsOneWidget);
+
+      // Figma keyboard frame: wordmark + title stay left (not centered).
+      final wordmarkLeft = tester
+          .getTopLeft(find.byKey(const ValueKey('login-erupaiya-wordmark')))
+          .dx;
+      final titleLeft =
+          tester.getTopLeft(find.text('Welcome to eRupaiya')).dx;
+      final k = _k(shrunk);
+      expect(wordmarkLeft, closeTo(20 * k, 2));
+      expect(titleLeft, closeTo(20 * k, 2));
 
       // Compact Figma rows use full labels.
       expect(find.text('Electricity Bill'), findsWidgets);
@@ -231,7 +241,7 @@ void main() {
       // bottom edge (+ small tolerance).
       final sliderBottom =
           tester.getBottomLeft(find.byType(LoginServicesSlider)).dy;
-      final titleTop = tester.getTopLeft(find.text('Pay Bills & Earn')).dy;
+      final titleTop = tester.getTopLeft(find.text('Welcome to eRupaiya')).dy;
       expect(titleTop, lessThan(sliderBottom + 60));
 
       // Footer sits ~24 above the keyboard edge (Figma keyboard frame).
@@ -433,7 +443,7 @@ void main() {
       );
 
       expect(find.byType(LoginServicesSlider), findsOneWidget);
-      expect(find.text('Pay Bills & Earn'), findsOneWidget);
+      expect(find.text('Welcome to eRupaiya'), findsOneWidget);
       expect(find.text('Continue'), findsOneWidget);
       expect(find.text('Terms of Use'), findsOneWidget);
       expect(tester.takeException(), isNull);

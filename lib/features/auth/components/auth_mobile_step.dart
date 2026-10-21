@@ -8,9 +8,10 @@ import 'package:e_rupaiya/features/auth/components/login_services_slider.dart';
 import 'package:e_rupaiya/widgets/custom_elevated_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-/// Login mobile step: Figma "Pay Bills & Earn" layout.
+/// Login mobile step: Figma welcome / mobile number layout.
 ///
 /// Figma frame is 440 wide, so EVERY size here (fonts, gaps, field, button,
 /// margins) is a Figma px value multiplied by [scaleFor] (= width / 440).
@@ -43,7 +44,7 @@ class AuthMobileStep extends StatefulWidget {
   static double scaleFor(double width) =>
       (width / figmaFrameWidth).clamp(0.72, 1.1).toDouble();
 
-  /// Closed (Figma): soft seam into solid white Pay Bills & Earn band.
+  /// Closed (Figma): soft seam into solid white welcome band.
   static const LinearGradient _closedBandGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -65,11 +66,16 @@ class AuthMobileStep extends StatefulWidget {
   );
 
   static const Color _ink = Color(0xFF000000);
+  static const Color _subtitle = Color(0xFF71717A);
   static const Color _continueDisabledFill = Color(0xFFE3E3E6);
   static const Color _continueDisabledLabel = Color(0xFF64646B);
 
+  /// Figma wordmark 158×34.
+  static const double logoWidthDesign = 158;
+  static const double logoHeightDesign = 34;
+
   /// Figma px: logo top -> Terms/Privacy bottom (closed layout).
-  static const double formReserveDesign = 371;
+  static const double formReserveDesign = 340;
 
   /// Figma px: Terms/Privacy bottom -> screen bottom (home indicator incl.).
   static const double closedBottomGapDesign = 51;
@@ -88,7 +94,11 @@ class _AuthMobileStepState extends State<AuthMobileStep>
   late FocusNode _focus;
   bool _ownsFocus = false;
   bool _hadKeyboard = false;
-  bool _focusLostBeforeKeyboard = false;
+
+  /// Once the keypad lifts the form, keep that layout until the user
+  /// deliberately dismisses (tap outside) — Continue/loading must not drop
+  /// the content box.
+  bool _keepLifted = false;
 
   bool get _phoneValid {
     final digits = widget.controller.text.replaceAll(RegExp(r'\D'), '');
@@ -108,6 +118,14 @@ class _AuthMobileStepState extends State<AuthMobileStep>
     if (oldWidget.focusNode != widget.focusNode) {
       _detachFocus();
       _attachFocus();
+    }
+    // Continue → loading: lock lifted layout + keep keypad up.
+    if (!oldWidget.isLoading && widget.isLoading) {
+      _keepLifted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.isLoading) return;
+        showAuthKeyboard(_focus);
+      });
     }
   }
 
@@ -132,42 +150,44 @@ class _AuthMobileStepState extends State<AuthMobileStep>
 
   void _onFocusChanged() {
     if (!mounted) return;
-    final hasFocus = _focus.hasFocus;
-    final inset = View.maybeOf(context)?.viewInsets.bottom ?? 0;
-    // Track if focus was lost while keyboard was still open (user dismissal)
-    if (!hasFocus && inset > 0) {
-      _focusLostBeforeKeyboard = true;
-    } else if (hasFocus && inset == 0) {
-      _focusLostBeforeKeyboard = false;
-    }
+    if (_focus.hasFocus) _keepLifted = true;
     setState(() {});
   }
 
-  /// Keyboard hidden (Android back / iOS dismiss) -> unfocus so the closed
-  /// layout comes back instead of staying in overlay mode. Does not unfocus
-  /// when focus is retained (e.g., phone hint sheet hid the keyboard).
+  /// Keyboard hidden (Android back / iOS dismiss / keyboard X) → unfocus so
+  /// the closed Figma layout returns (same screen as before focus).
   @override
   void didChangeMetrics() {
     if (!mounted) return;
     final inset = View.maybeOf(context)?.viewInsets.bottom ?? 0;
     if (inset > 0) {
       _hadKeyboard = true;
+      _keepLifted = true;
     } else if (_hadKeyboard) {
       _hadKeyboard = false;
-      // Only unfocus if focus was already lost before keyboard hid (user action)
-      // If focus is still retained, an external sheet hid the keyboard
-      if (_focusLostBeforeKeyboard) {
-        _focus.unfocus();
-        _focusLostBeforeKeyboard = false;
+      // Processing Continue: never unfocus / drop the lifted form.
+      if (widget.isLoading) {
+        setState(() {});
+        return;
       }
+      if (_focus.hasFocus) {
+        _focus.unfocus();
+      }
+      if (!_focus.hasFocus) _keepLifted = false;
+      setState(() {});
     }
   }
 
-  void _dismissKeyboard() => FocusManager.instance.primaryFocus?.unfocus();
+  void _dismissKeyboard() {
+    if (widget.isLoading) return;
+    _keepLifted = false;
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final fieldEnabled = !widget.isLoading;
+    // Keep the field focusable while loading so Continue does not drop the
+    // keyboard (Figma: loading on the button, keypad stays up).
     final screenWidth = MediaQuery.sizeOf(context).width;
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
@@ -178,7 +198,7 @@ class _AuthMobileStepState extends State<AuthMobileStep>
     return AuthKeyboardOnOpen(
       focusNode: widget.focusNode,
       autofocus: false,
-      enabled: fieldEnabled,
+      enabled: true,
       child: SizedBox.expand(
         child: LayoutBuilder(
           builder: (context, viewport) {
@@ -192,8 +212,14 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                 .toDouble();
             final shortViewport = available < 420;
 
-            // Keyboard / focus / short viewport lifts the form.
-            final overlay = keyboardOpen || focused || shortViewport;
+            // Keyboard / focus / short viewport / loading lifts the form.
+            // [_keepLifted] holds position while Continue is processing so the
+            // content box does not drop when focus briefly leaves the field.
+            final overlay = keyboardOpen ||
+                focused ||
+                shortViewport ||
+                widget.isLoading ||
+                _keepLifted;
             final rowCount = overlay ? 2 : 4;
 
             final termsBottomGap = overlay
@@ -279,227 +305,267 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                 child: AnimatedPadding(
                                   duration: const Duration(milliseconds: 220),
                                   curve: Curves.easeOut,
-                                  // Figma side margins: 32 closed / 20 keyboard.
-                                  // Terms gap is a dedicated footer SizedBox so
-                                  // scroll overflow cannot eat the inset.
+                                  // Figma side margins: 32 closed / 20 keyboard
+                                  // (MediaQuery width → scaleFor). Full-width
+                                  // + bottomLeft so brand never centers.
                                   padding: EdgeInsets.symmetric(
                                     horizontal: f(overlay ? 20 : 32),
                                   ),
                                   child: Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        maxWidth: authContentMaxWidth(context),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          Expanded(
-                                            child: LayoutBuilder(
-                                              builder: (context, constraints) {
-                                                return SingleChildScrollView(
-                                                  physics:
-                                                      const ClampingScrollPhysics(),
-                                                  child: ConstrainedBox(
-                                                    constraints: BoxConstraints(
-                                                      minHeight:
-                                                          constraints.maxHeight,
-                                                    ),
-                                                    child: Column(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment.end,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .stretch,
-                                                      children: [
-                                                        Center(
-                                                          child: Image.asset(
-                                                            FileConstants
-                                                                .erupaiyaLogo,
+                                    alignment: Alignment.bottomLeft,
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxWidth:
+                                              authContentMaxWidth(context),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            Expanded(
+                                              child: LayoutBuilder(
+                                                builder:
+                                                    (context, constraints) {
+                                                  return SingleChildScrollView(
+                                                    physics:
+                                                        const ClampingScrollPhysics(),
+                                                    child: ConstrainedBox(
+                                                      constraints:
+                                                          BoxConstraints(
+                                                        minHeight: constraints
+                                                            .maxHeight,
+                                                        minWidth: constraints
+                                                            .maxWidth,
+                                                      ),
+                                                      child: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .end,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .stretch,
+                                                        children: [
+                                                          _LoginBrandWordmark(
                                                             width: f(
-                                                              overlay ? 60 : 64,
+                                                              AuthMobileStep
+                                                                  .logoWidthDesign,
                                                             ),
                                                             height: f(
-                                                              overlay ? 60 : 64,
+                                                              AuthMobileStep
+                                                                  .logoHeightDesign,
                                                             ),
-                                                            fit: BoxFit.contain,
                                                           ),
-                                                        ),
-                                                        SizedBox(height: f(12)),
-                                                        Text(
-                                                          'Pay Bills & Earn',
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style: TextStyle(
-                                                            fontSize: f(20),
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                            color:
-                                                                AuthMobileStep
-                                                                    ._ink,
-                                                            height: 1.2,
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: f(10)),
-                                                        Text(
-                                                          'Enter your mobile number to continue.',
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style: TextStyle(
-                                                            fontSize: f(16),
-                                                            fontWeight:
-                                                                FontWeight.w400,
-                                                            color:
-                                                                AuthMobileStep
-                                                                    ._ink,
-                                                            height: 1.3,
-                                                          ),
-                                                        ),
-                                                        if (referralBanner !=
-                                                            null) ...[
                                                           SizedBox(
-                                                              height: f(12)),
-                                                          referralBanner,
-                                                        ],
-                                                        SizedBox(
-                                                          height:
-                                                              referralBanner !=
-                                                                      null
-                                                                  ? f(16)
-                                                                  : f(
-                                                                      overlay
-                                                                          ? 36
-                                                                          : 40,
-                                                                    ),
-                                                        ),
-                                                        Text(
-                                                          'Mobile Number',
-                                                          style: TextStyle(
-                                                            fontSize: f(14),
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                            color:
-                                                                AuthMobileStep
-                                                                    ._ink,
+                                                            height: f(
+                                                              overlay ? 16 : 18,
+                                                            ),
                                                           ),
-                                                        ),
-                                                        SizedBox(height: f(8)),
-                                                        _FigmaMobileField(
-                                                          controller:
-                                                              widget.controller,
-                                                          focusNode: _focus,
-                                                          enabled: fieldEnabled,
-                                                          k: k,
-                                                        ),
-                                                        SizedBox(
-                                                          height: f(
-                                                            overlay ? 12 : 18,
+                                                          Text(
+                                                            'Welcome to eRupaiya',
+                                                            textAlign:
+                                                                TextAlign.start,
+                                                            style: TextStyle(
+                                                              fontSize: f(20),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color:
+                                                                  AuthMobileStep
+                                                                      ._ink,
+                                                              height: 1.2,
+                                                            ),
                                                           ),
-                                                        ),
-                                                        ListenableBuilder(
-                                                          listenable:
-                                                              widget.controller,
-                                                          builder:
-                                                              (context, _) {
-                                                            final canContinue =
-                                                                _phoneValid &&
-                                                                    !widget
-                                                                        .isLoading;
-                                                            return CustomElevatedButton(
-                                                              label: 'Continue',
-                                                              uppercaseLabel:
-                                                                  false,
-                                                              onPressed: canContinue
-                                                                  ? widget
-                                                                      .onContinue
-                                                                  : null,
-                                                              isLoading: widget
+                                                          SizedBox(
+                                                              height: f(8)),
+                                                          Text(
+                                                            'Enter your mobile number to continue.',
+                                                            textAlign:
+                                                                TextAlign.start,
+                                                            style: TextStyle(
+                                                              fontSize: f(14),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w400,
+                                                              color:
+                                                                  AuthMobileStep
+                                                                      ._subtitle,
+                                                              height: 1.35,
+                                                            ),
+                                                          ),
+                                                          if (referralBanner !=
+                                                              null) ...[
+                                                            SizedBox(
+                                                                height: f(12)),
+                                                            SizedBox(
+                                                              width: double
+                                                                  .infinity,
+                                                              child:
+                                                                  referralBanner,
+                                                            ),
+                                                          ],
+                                                          SizedBox(
+                                                            height:
+                                                                referralBanner !=
+                                                                        null
+                                                                    ? f(16)
+                                                                    : f(
+                                                                        overlay
+                                                                            ? 28
+                                                                            : 32,
+                                                                      ),
+                                                          ),
+                                                          Text(
+                                                            'Mobile Number',
+                                                            style: TextStyle(
+                                                              fontSize: f(14),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color:
+                                                                  AuthMobileStep
+                                                                      ._ink,
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                              height: f(8)),
+                                                          SizedBox(
+                                                            width:
+                                                                double.infinity,
+                                                            child:
+                                                                _FigmaMobileField(
+                                                              controller: widget
+                                                                  .controller,
+                                                              focusNode: _focus,
+                                                              // Loading: read-only
+                                                              // so focus/keyboard
+                                                              // stay; edits block.
+                                                              enabled: true,
+                                                              readOnly: widget
                                                                   .isLoading,
-                                                              backgroundColor: canContinue
-                                                                  ? AppColors
-                                                                      .primary
-                                                                  : AuthMobileStep
-                                                                      ._continueDisabledFill,
-                                                              labelColor: canContinue
-                                                                  ? Colors.white
-                                                                  : AuthMobileStep
-                                                                      ._continueDisabledLabel,
-                                                              height: f(50),
-                                                            );
-                                                          },
-                                                        ),
-                                                      ],
+                                                              k: k,
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: f(
+                                                              overlay ? 12 : 18,
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            width:
+                                                                double.infinity,
+                                                            child:
+                                                                ListenableBuilder(
+                                                              listenable: widget
+                                                                  .controller,
+                                                              builder:
+                                                                  (context, _) {
+                                                                final canContinue =
+                                                                    _phoneValid &&
+                                                                        !widget
+                                                                            .isLoading;
+                                                                return CustomElevatedButton(
+                                                                  label:
+                                                                      'Continue',
+                                                                  uppercaseLabel:
+                                                                      false,
+                                                                  onPressed: canContinue
+                                                                      ? widget
+                                                                          .onContinue
+                                                                      : null,
+                                                                  isLoading: widget
+                                                                      .isLoading,
+                                                                  backgroundColor: canContinue
+                                                                      ? AppColors
+                                                                          .primary
+                                                                      : AuthMobileStep
+                                                                          ._continueDisabledFill,
+                                                                  labelColor: canContinue
+                                                                      ? Colors
+                                                                          .white
+                                                                      : AuthMobileStep
+                                                                          ._continueDisabledLabel,
+                                                                  height: f(50),
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              height: f(overlay ? 15 : 18),
+                                            ),
+                                            Text(
+                                              'By continuing, you agree to our',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: f(12),
+                                                fontWeight: FontWeight.w400,
+                                                color: AuthMobileStep._ink,
+                                              ),
+                                            ),
+                                            SizedBox(height: f(2)),
+                                            Wrap(
+                                              alignment: WrapAlignment.center,
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: () => context.push(
+                                                    RouteConstants.termsPrivacy,
+                                                  ),
+                                                  child: Text(
+                                                    'Terms of Use',
+                                                    style: TextStyle(
+                                                      fontSize: f(12),
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      color: AppColors.primary,
+                                                      decoration: TextDecoration
+                                                          .underline,
+                                                      decorationColor:
+                                                          AppColors.primary,
                                                     ),
                                                   ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            height: f(overlay ? 15 : 18),
-                                          ),
-                                          Text(
-                                            'By continuing, you agree to our',
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: f(12),
-                                              fontWeight: FontWeight.w400,
-                                              color: AuthMobileStep._ink,
-                                            ),
-                                          ),
-                                          SizedBox(height: f(2)),
-                                          Wrap(
-                                            alignment: WrapAlignment.center,
-                                            crossAxisAlignment:
-                                                WrapCrossAlignment.center,
-                                            children: [
-                                              GestureDetector(
-                                                onTap: () => context.push(
-                                                  RouteConstants.termsPrivacy,
                                                 ),
-                                                child: Text(
-                                                  'Terms of Use',
+                                                Text(
+                                                  ' & ',
                                                   style: TextStyle(
                                                     fontSize: f(12),
                                                     fontWeight: FontWeight.w400,
-                                                    color: AppColors.primary,
-                                                    decoration: TextDecoration
-                                                        .underline,
-                                                    decorationColor:
-                                                        AppColors.primary,
+                                                    color: AuthMobileStep._ink,
                                                   ),
                                                 ),
-                                              ),
-                                              Text(
-                                                ' & ',
-                                                style: TextStyle(
-                                                  fontSize: f(12),
-                                                  fontWeight: FontWeight.w400,
-                                                  color: AuthMobileStep._ink,
-                                                ),
-                                              ),
-                                              GestureDetector(
-                                                onTap: () => context.push(
-                                                  RouteConstants.privacyPolicy,
-                                                ),
-                                                child: Text(
-                                                  'Privacy Policy',
-                                                  style: TextStyle(
-                                                    fontSize: f(12),
-                                                    fontWeight: FontWeight.w400,
-                                                    color: AppColors.primary,
-                                                    decoration: TextDecoration
-                                                        .underline,
-                                                    decorationColor:
-                                                        AppColors.primary,
+                                                GestureDetector(
+                                                  onTap: () => context.push(
+                                                    RouteConstants
+                                                        .privacyPolicy,
+                                                  ),
+                                                  child: Text(
+                                                    'Privacy Policy',
+                                                    style: TextStyle(
+                                                      fontSize: f(12),
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      color: AppColors.primary,
+                                                      decoration: TextDecoration
+                                                          .underline,
+                                                      decorationColor:
+                                                          AppColors.primary,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(height: termsBottomGap),
-                                        ],
+                                              ],
+                                            ),
+                                            SizedBox(height: termsBottomGap),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -521,6 +587,36 @@ class _AuthMobileStepState extends State<AuthMobileStep>
   }
 }
 
+/// Figma eRupaiya wordmark — flush left (keyboard open / closed).
+class _LoginBrandWordmark extends StatelessWidget {
+  const _LoginBrandWordmark({
+    required this.width,
+    required this.height,
+  });
+
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    // Cap by MediaQuery width so short phones never overflow side gutters.
+    final maxContent = MediaQuery.sizeOf(context).width * 0.7;
+    final w = width > maxContent ? maxContent : width;
+    final h = height * (w / width);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SvgPicture.asset(
+        FileConstants.erupaiyaLogoWordmarkSvg,
+        key: const ValueKey('login-erupaiya-wordmark'),
+        width: w,
+        height: h,
+        fit: BoxFit.contain,
+        alignment: Alignment.centerLeft,
+      ),
+    );
+  }
+}
+
 /// Figma-styled +91 / divider / placeholder field (local to this step).
 /// [k] = Figma px -> dp factor (screen width / 440).
 class _FigmaMobileField extends StatelessWidget {
@@ -529,11 +625,13 @@ class _FigmaMobileField extends StatelessWidget {
     required this.k,
     this.focusNode,
     this.enabled = true,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
   final FocusNode? focusNode;
   final bool enabled;
+  final bool readOnly;
   final double k;
 
   static const Color _ink = Color(0xFF000000);
@@ -570,6 +668,7 @@ class _FigmaMobileField extends StatelessWidget {
               controller: controller,
               focusNode: focusNode,
               enabled: enabled,
+              readOnly: readOnly,
               keyboardType: TextInputType.phone,
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,

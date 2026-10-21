@@ -24,7 +24,7 @@ import 'package:pinput/pinput.dart';
 
 import '../helpers/responsive_test_sizes.dart';
 
-const _otpLength = 6;
+const _otpLength = 4;
 const _focusedBorder = Color(0xFF71717A);
 const _disabledFill = Color(0xFFA1A1AA);
 const _enabledFill = Color(0xFFDD5428);
@@ -165,7 +165,7 @@ void main() {
         .setMockMethodCallHandler(_smsChannel, null);
   });
 
-  group('renders all 6 OTP boxes without overflow across shared sizes', () {
+  group('renders all 4 OTP boxes without overflow across shared sizes', () {
     for (final size in responsiveTestScreenSizes) {
       testWidgets('${size.width}x${size.height}', (tester) async {
         await _pumpOtpView(tester, size: size);
@@ -334,22 +334,22 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('Verify stays disabled until all 6 digits are entered',
+  testWidgets('Verify stays disabled until all 4 digits are entered',
       (tester) async {
     final controller = await _pumpOtpView(tester);
     expect(_verifyButton(tester).onPressed, isNull);
     expect(_verifyButton(tester).backgroundColor, _disabledFill);
 
-    await _typeOtp(tester, '12345');
+    await _typeOtp(tester, '123');
     expect(_verifyButton(tester).onPressed, isNull);
     expect(controller.verifyCalls, isEmpty);
 
     // The failing fake verify puts the field in its error state; clearing the
     // error by editing re-enables the button for a manual retry.
-    await _typeOtp(tester, '123456');
-    expect(controller.verifyCalls, ['123456']);
-    await _typeOtp(tester, '12345');
-    await _typeOtp(tester, '123457');
+    await _typeOtp(tester, '1234');
+    expect(controller.verifyCalls, ['1234']);
+    await _typeOtp(tester, '123');
+    await _typeOtp(tester, '1235');
     expect(_verifyButton(tester).onPressed, isNotNull);
     expect(_verifyButton(tester).backgroundColor, _enabledFill);
     await _unmount(tester);
@@ -357,20 +357,20 @@ void main() {
 
   testWidgets('completing the OTP verifies exactly once', (tester) async {
     final controller = await _pumpOtpView(tester);
-    await _typeOtp(tester, '123456');
+    await _typeOtp(tester, '1234');
     await tester.pump(const Duration(milliseconds: 100));
-    expect(controller.verifyCalls, ['123456']);
+    expect(controller.verifyCalls, ['1234']);
     await _unmount(tester);
   });
 
   testWidgets('pasting a full code fills every box and verifies once',
       (tester) async {
     final controller = await _pumpOtpView(tester);
-    await _typeOtp(tester, '987654');
-    expect(_otpController(tester).text, '987654');
+    await _typeOtp(tester, '9876');
+    expect(_otpController(tester).text, '9876');
     expect(find.text('9'), findsOneWidget);
-    expect(find.text('4'), findsOneWidget);
-    expect(controller.verifyCalls, ['987654']);
+    expect(find.text('6'), findsOneWidget);
+    expect(controller.verifyCalls, ['9876']);
     await _unmount(tester);
   });
 
@@ -380,20 +380,20 @@ void main() {
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
       _smsChannel.name,
       _smsChannel.codec.encodeMethodCall(
-        const MethodCall('smscode', '246810'),
+        const MethodCall('smscode', '2468'),
       ),
       (_) {},
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(_otpController(tester).text, '246810');
-    expect(controller.verifyCalls, ['246810']);
+    expect(_otpController(tester).text, '2468');
+    expect(controller.verifyCalls, ['2468']);
     await _unmount(tester);
   });
 
   testWidgets('verification failure shows the error message', (tester) async {
     await _pumpOtpView(tester, errorMessage: 'Invalid OTP');
-    await _typeOtp(tester, '111111');
+    await _typeOtp(tester, '1111');
     // Shown under the boxes, between the timer and Resend.
     expect(
       find.descendant(
@@ -438,7 +438,7 @@ void main() {
   testWidgets('submitting state shows Verifying and disables the button',
       (tester) async {
     final controller = await _pumpOtpView(tester);
-    await _typeOtp(tester, '12345');
+    await _typeOtp(tester, '123');
     controller.state = controller.state.copyWith(isSubmitting: true);
     await tester.pump();
     expect(find.text('Verifying...'), findsOneWidget);
@@ -476,7 +476,7 @@ void main() {
     final spans = subtitle.children!.cast<TextSpan>();
     final number = spans.firstWhere((s) => s.text == '9876543210 ');
     final change = spans.firstWhere((s) => s.text == 'Change');
-    expect(number.style!.fontWeight, FontWeight.w400);
+    expect(number.style!.fontWeight, FontWeight.w600);
     expect(change.style!.fontWeight, FontWeight.w500);
     for (final span in spans) {
       expect(span.style!.fontFamily, 'Plus Jakarta Sans');
@@ -484,9 +484,10 @@ void main() {
       expect(span.style!.letterSpacing, 0);
     }
 
+    // Timer/Resend icons only (marquee background has its own SVGs).
     final icons = tester
         .widgetList<SvgPicture>(find.descendant(
-          of: find.byType(OtpVerifyStep),
+          of: find.byType(AuthOtpTimerRow),
           matching: find.byType(SvgPicture),
         ))
         .toList();

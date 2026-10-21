@@ -137,21 +137,19 @@ class LoginView extends HookConsumerWidget {
 
     useEffect(() {
       Future.microtask(() async {
-        try {
-          if (phoneController.text.trim().isNotEmpty) return;
-          final hint = await PhoneHintService.getPhoneNumberHint();
-          if (hint == null) return;
-          final digits = hint.replaceAll(RegExp(r'\D'), '');
-          if (digits.isEmpty) return;
-          final normalized = digits.length > 10
-              ? digits.substring(digits.length - 10)
-              : digits;
-          if (normalized.length != 10) return;
-          if (phoneController.text.trim().isNotEmpty) return;
-          phoneController.text = normalized;
-        } finally {
-          showMobileKeyboard();
-        }
+        if (phoneController.text.trim().isNotEmpty) return;
+        final hint = await PhoneHintService.getPhoneNumberHint();
+        // User dismissed the hint sheet (X) → stay on the closed login screen.
+        if (hint == null) return;
+        final digits = hint.replaceAll(RegExp(r'\D'), '');
+        if (digits.isEmpty) return;
+        final normalized =
+            digits.length > 10 ? digits.substring(digits.length - 10) : digits;
+        if (normalized.length != 10) return;
+        if (phoneController.text.trim().isNotEmpty) return;
+        phoneController.text = normalized;
+        // Only lift the form / open keyboard after a number was chosen.
+        showMobileKeyboard();
       });
       return null;
     }, const []);
@@ -229,10 +227,16 @@ class LoginView extends HookConsumerWidget {
       if (flow == AuthFlow.login) {
         debugPrint('[LoginView] Navigating to PIN step');
         step.value = _LoginStep.pin;
+        // Keep keypad up across the handoff (Figma: no keyboard drop).
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          showAuthKeyboard(pinFocusNode);
+        });
       } else {
         debugPrint('[LoginView] Navigating to OTP route -> mobile=$phone');
         resetToMobile();
         if (!context.mounted) return;
+        // Push without unfocusing — keypad stays up into Verify OTP.
         context.push(RouteConstants.otp, extra: phone);
       }
     }
@@ -327,7 +331,7 @@ class LoginView extends HookConsumerWidget {
           otpControllers[i].text = i < trimmed.length ? trimmed[i] : '';
         }
         if (trimmed.length == otpControllers.length) {
-          otpFocusNodes.last.unfocus();
+          // Keep focus so Verify does not drop the lifted layout.
           otpErrorText.value = null;
           Future.microtask(handleOtpVerify);
         }
@@ -570,7 +574,8 @@ class LoginView extends HookConsumerWidget {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        // Same peach shell as mobile step so the PIN handoff never flashes white.
+        backgroundColor: AppColors.loginPeachCoral,
         resizeToAvoidBottomInset: true,
         body: step.value == _LoginStep.pin
             ? Stack(

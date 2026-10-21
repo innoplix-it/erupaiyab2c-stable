@@ -55,6 +55,7 @@ void _debugLog(String message) {
   debugPrint(message);
 }
 
+
 class _UpperCaseTextFormatter extends TextInputFormatter {
   const _UpperCaseTextFormatter();
 

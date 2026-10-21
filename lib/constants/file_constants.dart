@@ -154,6 +154,8 @@ class FileConstants {
       'assets/images/png/home_icon/agent_collection.png';
   static String eChalan = 'assets/images/png/home_icon/e_challan.png';
   static String referBg = 'assets/images/png/home_icon/referBg.png';
+  /// Home page refer promo card (Figma 392×74) with Refer Now CTA.
+  static String referCardSvg = 'assets/images/svg/refer-card.svg';
   static String failedIcon = 'assets/images/svg/failedIcon.svg';
   static String pendingIcon = 'assets/images/svg/pendingIcon.svg';
   static String successIcon = 'assets/images/png/successIcon.png';
@@ -192,6 +194,10 @@ class FileConstants {
   static String education = 'assets/images/png/home_icon/education.png';
   static String rLogo = 'assets/images/png/home_icon/r_logo.png';
   static String erupaiyaLogo = 'assets/images/png/home_icon/erupaiya_logo.png';
+
+  /// Figma login wordmark (icon + eRupaiya™), 158×34.
+  static String erupaiyaLogoWordmarkSvg =
+      'assets/images/svg/erupaiya_logo_wordmark.svg';
   static String loginSliderSvg = 'assets/images/svg/login_slider.svg';
   static String loginElectricityTileSvg =
       'assets/images/svg/login_electricity_tile.svg';
@@ -275,6 +281,11 @@ class FileConstants {
       'assets/images/png/refer_earn/step_3_icon.png';
   static String referStepRewardPng =
       'assets/images/png/refer_earn/step_4_icon.png';
+  static String referInviteFriendsPng =
+      'assets/images/png/refer_earn/invite_friends_icon.png';
+  /// Referral QR outline CTAs (Figma 14×14, #DD5428).
+  static String referQrDownloadSvg = 'assets/images/svg/refer_qr_download.svg';
+  static String referQrShareSvg = 'assets/images/svg/refer_qr_share.svg';
   // How It Works video placeholder play icon (white ring + triangle),
   // intrinsic 62 x 62.
   static String referPlayIconSvg = 'assets/images/svg/refer_play_icon.svg';
@@ -283,6 +294,14 @@ class FileConstants {
   static String referEarnExampleIllustrationSvg =
       'assets/images/svg/refer_earn_example_illustration.svg';
   static String coin_3d = 'assets/images/png/3dcoin.png';
+  /// Rupee gold coin (Figma 21×20), used on referral milestone reward badges.
+  static String coinRupeeSmall =
+      'assets/images/png/refer_earn/coin_rupee_small.png';
+  /// Invite friends glyph (Figma 26×20) for wallet "Refer X more friends" banner.
+  static String referMoreFriendsIcon =
+      'assets/images/png/refer_earn/refer_more_friends_icon.png';
+  /// White circular `?` help icon (Figma 20×20) for Refer & Earn app bars.
+  static String referHelpIconSvg = 'assets/images/svg/refer_help_icon.svg';
   // Partner logos / offer badge (SVG wrapping embedded PNG artwork).
   // Intrinsic sizes: airtel 131 x 20, kotak 100 x 50, zero percent 195 x 130.
   static String airtelLogoSvg = 'assets/images/svg/airtel_logo.svg';

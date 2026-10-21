@@ -31,6 +31,7 @@ const _fakeLink = ReferralLinkResponse(
   status: true,
   referralCode: 'ERU123',
   referralLink: 'https://erupaiya.com/user/ERU123',
+  rewardCoins: 100,
 );
 
 Future<void> _loadRealFonts() async {
@@ -114,7 +115,7 @@ void main() {
         expect(tester.takeException(), isNull);
 
         expect(find.text('One Refer = 100 eCoins'), findsOneWidget);
-        expect(find.text('My Wallet & Referals'), findsOneWidget);
+        expect(find.text('My Wallet & Referrals'), findsOneWidget);
         expect(find.text('How It Works'), findsOneWidget);
         expect(find.text('Invite Your Friends'), findsOneWidget);
         expect(find.text('They join eRupaiya'), findsOneWidget);
@@ -175,7 +176,7 @@ void main() {
   });
 
   testWidgets(
-    'Figma spacing: panel inset 32, wallet h 54, step tile 56 at 440x956',
+    'Figma spacing: panel inset 22, wallet h 54, step tile 56 at 440x956',
     (tester) async {
       const size = Size(440, 956);
       await _pumpView(tester, size: size);
@@ -183,20 +184,22 @@ void main() {
 
       final panel =
           tester.getRect(find.byKey(const ValueKey('refer-earn-panel')));
-      final wallet =
+      final walletRing =
+          tester.getRect(find.byKey(const ValueKey('refer-earn-wallet-ring')));
+      final walletPill =
           tester.getRect(find.byKey(const ValueKey('refer-earn-wallet-pill')));
       final stepTile = tester.getRect(
         find.byKey(const ValueKey('refer-earn-step-tile-1')),
       );
 
-      // Side inset ≈ 32 on the 440 Figma frame (ScreenUtil round-trip).
-      expect(wallet.left - panel.left, closeTo(32, 1.5));
-      expect(panel.right - wallet.right, closeTo(32, 1.5));
+      // Outer ring inset ≈ 22 on the 440 Figma frame.
+      expect(walletRing.left - panel.left, closeTo(22, 1.5));
+      expect(panel.right - walletRing.right, closeTo(22, 1.5));
       // Wallet pill height ≈ 54.
-      expect(wallet.height, closeTo(54, 1.5));
-      // Top pad before wallet ≈ 38.
-      expect(wallet.top - panel.top, closeTo(38, 2.0));
-      // Step icon tile 56×56 (square via width scale).
+      expect(walletPill.height, closeTo(54, 1.5));
+      // Top pad before wallet ring ≈ 27.
+      expect(walletRing.top - panel.top, closeTo(27, 2.0));
+      // Step icon PNG tile 56×56 (no card chrome).
       expect(stepTile.width, closeTo(56, 1.5));
       expect(stepTile.height, closeTo(56, 1.5));
     },
@@ -212,6 +215,61 @@ void main() {
     expect(find.text('Failed to load referral link.'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
     expect(find.byType(QrImageView), findsNothing);
+  });
+
+  testWidgets('hero title uses dynamic rewardCoins from API', (tester) async {
+    const dpr = 2.0;
+    const size = Size(360, 690);
+    tester.view.devicePixelRatio = dpr;
+    tester.view.physicalSize = size * dpr;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          referralLinkProvider.overrideWith(
+            (ref) async => const ReferralLinkResponse(
+              status: true,
+              referralCode: 'X',
+              referralLink: 'https://erupaiya.com/user/X',
+              rewardCoins: 250,
+            ),
+          ),
+        ],
+        child: ScreenUtilInit(
+          designSize: const Size(360, 690),
+          builder: (context, _) => const MaterialApp(
+            home: ReferAndEarnView(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('One Refer = 250 eCoins'), findsOneWidget);
+    expect(find.text('One Refer = 100 eCoins'), findsNothing);
+  });
+
+  testWidgets('QR card uses Figma border and Download/Share alignment',
+      (tester) async {
+    const size = Size(440, 956);
+    await _pumpView(tester, size: size);
+    expect(tester.takeException(), isNull);
+
+    final card = tester.widget<Container>(
+      find.byKey(const ValueKey('refer-earn-qr-card')),
+    );
+    final decoration = card.decoration! as BoxDecoration;
+    final border = decoration.border! as Border;
+    expect(border.top.color, const Color(0xFFF1F1F1));
+    expect(border.top.width, 2);
+
+    final download = tester.getRect(find.text('Download'));
+    final share = tester.getRect(find.text('share'));
+    expect(download.center.dy, closeTo(share.center.dy, 2));
+    expect(share.left, greaterThan(download.right));
   });
 
   testWidgets('canonical helper still includes the nine required sizes',

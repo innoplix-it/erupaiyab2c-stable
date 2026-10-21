@@ -43,7 +43,7 @@ TextStyle _textStyle({
 
 /// Presentation-only Verify OTP step. Every behaviour (verification, resend,
 /// autofill, navigation) is owned by the caller and passed in as callbacks.
-class OtpVerifyStep extends StatelessWidget {
+class OtpVerifyStep extends StatefulWidget {
   const OtpVerifyStep({
     super.key,
     required this.otpLength,
@@ -96,21 +96,136 @@ class OtpVerifyStep extends StatelessWidget {
   final String? codeErrorText;
 
   @override
+  State<OtpVerifyStep> createState() => _OtpVerifyStepState();
+}
+
+class _OtpVerifyStepState extends State<OtpVerifyStep>
+    with WidgetsBindingObserver {
+  /// Hide footer / keep keypad layout while Verify is processing.
+  bool _keepLifted = false;
+  bool _hadKeyboard = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    widget.otpFocusNode.addListener(_onFocusChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showAuthKeyboard(widget.otpFocusNode);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant OtpVerifyStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.otpFocusNode != widget.otpFocusNode) {
+      oldWidget.otpFocusNode.removeListener(_onFocusChanged);
+      widget.otpFocusNode.addListener(_onFocusChanged);
+    }
+    if (!oldWidget.isSubmitting && widget.isSubmitting) {
+      _keepLifted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.isSubmitting) return;
+        showAuthKeyboard(widget.otpFocusNode);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.otpFocusNode.removeListener(_onFocusChanged);
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    if (widget.otpFocusNode.hasFocus) _keepLifted = true;
+    setState(() {});
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    final inset = View.maybeOf(context)?.viewInsets.bottom ?? 0;
+    if (inset > 0) {
+      _hadKeyboard = true;
+      _keepLifted = true;
+    } else if (_hadKeyboard) {
+      _hadKeyboard = false;
+      if (widget.isSubmitting) {
+        setState(() {});
+        return;
+      }
+      if (widget.otpFocusNode.hasFocus) {
+        widget.otpFocusNode.unfocus();
+      }
+      if (!widget.otpFocusNode.hasFocus) _keepLifted = false;
+      setState(() {});
+    }
+  }
+
+  bool get _lifted {
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0 ||
+        (View.maybeOf(context)?.viewInsets.bottom ?? 0) > 0;
+    return keyboardOpen ||
+        widget.otpFocusNode.hasFocus ||
+        widget.isSubmitting ||
+        _keepLifted;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const ColoredBox(color: Colors.white),
-        const AuthBackgroundImage(),
-        SafeArea(
+    return AuthKeyboardOnOpen(
+      focusNode: widget.otpFocusNode,
+      autofocus: true,
+      enabled: true,
+      child: AuthPeachMarqueeShell(
+        child: SafeArea(
           child: Column(
             children: [
               Expanded(child: _buildScrollableContent(context)),
-              _buildFooter(context),
+              // Figma: hide Verify while keypad is up; still submit on
+              // [onOtpCompleted]. Keep hidden while verifying so content
+              // does not drop when the inset briefly clears.
+              if (!_lifted)
+                _buildFooter(context)
+              else
+                SizedBox(height: 8.h),
             ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    final enabled = widget.onVerify != null && !widget.isSubmitting;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        authHorizontalPadding,
+        8.h,
+        authHorizontalPadding,
+        16.h,
+      ),
+      child: AuthButtonTheme(
+        child: CustomElevatedButton(
+          onPressed: enabled ? widget.onVerify : null,
+          label: widget.isSubmitting ? 'Verifying...' : widget.buttonLabel,
+          uppercaseLabel: false,
+          isLoading: widget.isSubmitting,
+          height: authButtonHeight(context),
+          backgroundColor: enabled ? AppColors.primary : _disabledFill,
+          labelColor: Colors.white,
+          labelStyle: _textStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+            height: 1,
+          ),
+        ),
+      ),
     );
   }
 
@@ -140,12 +255,12 @@ class OtpVerifyStep extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back),
                       iconSize: 24.r,
                       color: _ink,
-                      onPressed: onBack,
+                      onPressed: widget.onBack,
                     ),
                   ),
                   SizedBox(height: 16.h),
                   Text(
-                    title,
+                    widget.title,
                     style: _textStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -156,7 +271,7 @@ class OtpVerifyStep extends StatelessWidget {
                   _buildSubtitle(),
                   SizedBox(height: 24.h),
                   Text(
-                    label,
+                    widget.label,
                     style: _textStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -164,20 +279,25 @@ class OtpVerifyStep extends StatelessWidget {
                   ),
                   SizedBox(height: 8.h),
                   AuthOtpBoxes(
-                    controller: otpController,
-                    focusNode: otpFocusNode,
-                    shakeController: shakeController,
-                    length: otpLength,
+                    controller: widget.otpController,
+                    focusNode: widget.otpFocusNode,
+                    shakeController: widget.shakeController,
+                    length: widget.otpLength,
                     autofocus: true,
-                    hasError: (errorText?.isNotEmpty ?? false) ||
-                        codeErrorText != null,
-                    onChanged: onOtpChanged,
-                    onCompleted: onOtpCompleted,
+                    // Keep focusable while verifying so layout stays lifted.
+                    enabled: true,
+                    hasError: (widget.errorText?.isNotEmpty ?? false) ||
+                        widget.codeErrorText != null,
+                    onChanged:
+                        widget.isSubmitting ? null : widget.onOtpChanged,
+                    onCompleted:
+                        widget.isSubmitting ? null : widget.onOtpCompleted,
                   ),
-                  if (errorText != null && errorText!.isNotEmpty) ...[
+                  if (widget.errorText != null &&
+                      widget.errorText!.isNotEmpty) ...[
                     SizedBox(height: 10.h),
                     Text(
-                      errorText!,
+                      widget.errorText!,
                       style: _textStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -188,10 +308,10 @@ class OtpVerifyStep extends StatelessWidget {
                   ],
                   SizedBox(height: 2.h),
                   AuthOtpTimerRow(
-                    timerText: timerText,
-                    canResend: canResend,
-                    onResend: onResend,
-                    errorText: codeErrorText,
+                    timerText: widget.timerText,
+                    canResend: widget.canResend && !widget.isSubmitting,
+                    onResend: widget.onResend,
+                    errorText: widget.codeErrorText,
                   ),
                 ],
               ),
@@ -212,8 +332,8 @@ class OtpVerifyStep extends StatelessWidget {
           height: 1.4,
         ),
         children: [
-          if (description != null)
-            TextSpan(text: '$description ')
+          if (widget.description != null)
+            TextSpan(text: '${widget.description} ')
           else ...[
             TextSpan(
               text: 'Sent to ',
@@ -222,14 +342,13 @@ class OtpVerifyStep extends StatelessWidget {
                 fontWeight: FontWeight.w400,
                 color: _muted,
                 height: 1.4,
-                fontStyle: FontStyle.italic,
               ),
             ),
             TextSpan(
-              text: '$phoneNumber ',
+              text: '${widget.phoneNumber} ',
               style: _textStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w400,
+                fontWeight: FontWeight.w600,
                 height: 1.4,
               ),
             ),
@@ -243,40 +362,9 @@ class OtpVerifyStep extends StatelessWidget {
               height: 1.4,
               decoration: TextDecoration.underline,
             ),
-            recognizer: TapGestureRecognizer()..onTap = onChangeNumber,
+            recognizer: TapGestureRecognizer()..onTap = widget.onChangeNumber,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFooter(BuildContext context) {
-    final enabled = onVerify != null && !isSubmitting;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        authHorizontalPadding,
-        8.h,
-        authHorizontalPadding,
-        16.h,
-      ),
-      child: AuthButtonTheme(
-        child: CustomElevatedButton(
-          onPressed: enabled ? onVerify : null,
-          label: isSubmitting ? 'Verifying...' : buttonLabel,
-          uppercaseLabel: false,
-          isLoading: isSubmitting,
-          // CustomElevatedButton's 28.r radius clamps to a full pill at this
-          // height.
-          height: authButtonHeight(context),
-          backgroundColor: enabled ? AppColors.primary : _disabledFill,
-          labelColor: Colors.white,
-          labelStyle: _textStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-            height: 1,
-          ),
-        ),
       ),
     );
   }

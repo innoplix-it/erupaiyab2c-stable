@@ -73,29 +73,123 @@ class AuthResetMpinStep extends StatefulWidget {
   State<AuthResetMpinStep> createState() => _AuthResetMpinStepState();
 }
 
-class _AuthResetMpinStepState extends State<AuthResetMpinStep> {
+class _AuthResetMpinStepState extends State<AuthResetMpinStep>
+    with WidgetsBindingObserver {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+
+  /// Keeps keypad layout / hides footer while Verify is processing.
+  bool _keepLifted = false;
+  bool _hadKeyboard = false;
 
   bool get _hasError =>
       widget.errorText != null && widget.errorText!.isNotEmpty;
 
+  FocusNode? get _activeFocus =>
+      widget.confirmPinFocusNode ??
+      widget.newPinFocusNode ??
+      widget.otpFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    widget.otpFocusNode?.addListener(_onFocusChanged);
+    widget.newPinFocusNode?.addListener(_onFocusChanged);
+    widget.confirmPinFocusNode?.addListener(_onFocusChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant AuthResetMpinStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.otpFocusNode != widget.otpFocusNode) {
+      oldWidget.otpFocusNode?.removeListener(_onFocusChanged);
+      widget.otpFocusNode?.addListener(_onFocusChanged);
+    }
+    if (oldWidget.newPinFocusNode != widget.newPinFocusNode) {
+      oldWidget.newPinFocusNode?.removeListener(_onFocusChanged);
+      widget.newPinFocusNode?.addListener(_onFocusChanged);
+    }
+    if (oldWidget.confirmPinFocusNode != widget.confirmPinFocusNode) {
+      oldWidget.confirmPinFocusNode?.removeListener(_onFocusChanged);
+      widget.confirmPinFocusNode?.addListener(_onFocusChanged);
+    }
+    if (!oldWidget.isSubmitting && widget.isSubmitting) {
+      _keepLifted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.isSubmitting) return;
+        final focused = FocusManager.instance.primaryFocus;
+        if (focused is FocusNode) {
+          showAuthKeyboard(focused);
+        } else {
+          final node = _activeFocus;
+          if (node != null) showAuthKeyboard(node);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.otpFocusNode?.removeListener(_onFocusChanged);
+    widget.newPinFocusNode?.removeListener(_onFocusChanged);
+    widget.confirmPinFocusNode?.removeListener(_onFocusChanged);
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    final anyFocused = (widget.otpFocusNode?.hasFocus ?? false) ||
+        (widget.newPinFocusNode?.hasFocus ?? false) ||
+        (widget.confirmPinFocusNode?.hasFocus ?? false);
+    if (anyFocused) _keepLifted = true;
+    setState(() {});
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    final inset = View.maybeOf(context)?.viewInsets.bottom ?? 0;
+    if (inset > 0) {
+      _hadKeyboard = true;
+      _keepLifted = true;
+    } else if (_hadKeyboard) {
+      _hadKeyboard = false;
+      if (widget.isSubmitting) {
+        setState(() {});
+        return;
+      }
+      final anyFocused = (widget.otpFocusNode?.hasFocus ?? false) ||
+          (widget.newPinFocusNode?.hasFocus ?? false) ||
+          (widget.confirmPinFocusNode?.hasFocus ?? false);
+      if (!anyFocused) _keepLifted = false;
+      setState(() {});
+    }
+  }
+
+  bool get _lifted {
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0 ||
+        (View.maybeOf(context)?.viewInsets.bottom ?? 0) > 0;
+    final anyFocused = (widget.otpFocusNode?.hasFocus ?? false) ||
+        (widget.newPinFocusNode?.hasFocus ?? false) ||
+        (widget.confirmPinFocusNode?.hasFocus ?? false);
+    return keyboardOpen || anyFocused || widget.isSubmitting || _keepLifted;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const ColoredBox(color: Colors.white),
-        const AuthBackgroundImage(),
-        SafeArea(
-          child: Column(
-            children: [
-              Expanded(child: _buildScrollableContent()),
-              _buildFooter(),
-            ],
-          ),
+    return AuthPeachMarqueeShell(
+      child: SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: _buildScrollableContent()),
+            // Figma Reset MPIN: keypad stays; hide footer CTA while open
+            // or while Verify is processing so content does not drop.
+            if (!_lifted) _buildFooter(),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -156,17 +250,21 @@ class _AuthResetMpinStepState extends State<AuthResetMpinStep> {
                     shakeController: widget.shakeController,
                     length: widget.otpLength,
                     autofocus: true,
-                    enabled: !widget.isSubmitting,
+                    // Keep focusable while submitting so layout stays lifted.
+                    enabled: true,
                     hasError: widget.codeErrorText != null,
-                    onChanged: (value) {
-                      widget.onChanged?.call(value);
-                      widget.onOtpChanged?.call(value);
-                    },
-                    onCompleted: widget.onOtpCompleted,
+                    onChanged: widget.isSubmitting
+                        ? null
+                        : (value) {
+                            widget.onChanged?.call(value);
+                            widget.onOtpChanged?.call(value);
+                          },
+                    onCompleted:
+                        widget.isSubmitting ? null : widget.onOtpCompleted,
                   ),
                   AuthOtpTimerRow(
                     timerText: widget.timerText,
-                    canResend: widget.canResend,
+                    canResend: widget.canResend && !widget.isSubmitting,
                     onResend: widget.onResend,
                     resendLabel: widget.resendLabel,
                     errorText: widget.codeErrorText,
@@ -180,11 +278,15 @@ class _AuthResetMpinStepState extends State<AuthResetMpinStep> {
                     controller: widget.newPinController,
                     focusNode: widget.newPinFocusNode,
                     obscure: _obscureNew,
-                    enabled: !widget.isSubmitting,
+                    enabled: true,
                     hasError: _hasError,
-                    onToggle: () => setState(() => _obscureNew = !_obscureNew),
-                    onChanged: widget.onChanged,
-                    onCompleted: widget.onNewPinCompleted,
+                    onToggle: widget.isSubmitting
+                        ? () {}
+                        : () => setState(() => _obscureNew = !_obscureNew),
+                    onChanged:
+                        widget.isSubmitting ? null : widget.onChanged,
+                    onCompleted:
+                        widget.isSubmitting ? null : widget.onNewPinCompleted,
                   ),
                   SizedBox(height: 12.h),
                   const AuthCodeLabel('Confirm New Pin'),
@@ -193,12 +295,18 @@ class _AuthResetMpinStepState extends State<AuthResetMpinStep> {
                     controller: widget.confirmPinController,
                     focusNode: widget.confirmPinFocusNode,
                     obscure: _obscureConfirm,
-                    enabled: !widget.isSubmitting,
+                    enabled: true,
                     hasError: _hasError,
-                    onToggle: () =>
-                        setState(() => _obscureConfirm = !_obscureConfirm),
-                    onChanged: widget.onChanged,
-                    onCompleted: widget.onConfirmPinCompleted,
+                    onToggle: widget.isSubmitting
+                        ? () {}
+                        : () => setState(
+                              () => _obscureConfirm = !_obscureConfirm,
+                            ),
+                    onChanged:
+                        widget.isSubmitting ? null : widget.onChanged,
+                    onCompleted: widget.isSubmitting
+                        ? null
+                        : widget.onConfirmPinCompleted,
                   ),
                   if (_hasError) ...[
                     SizedBox(height: 12.h),

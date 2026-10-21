@@ -26,7 +26,9 @@ import '../models/otp_verification_args.dart';
 class OtpVerificationView extends HookConsumerWidget {
   const OtpVerificationView({super.key, required this.args});
 
-  static const int _otpLength = 6;
+  /// Figma Verify OTP: 4 boxes. Identity (mobile+email) stays 6.
+  static const int _otpLength = 4;
+  static const int _identityOtpLength = 6;
 
   final OtpVerificationArgs args;
 
@@ -41,19 +43,21 @@ class OtpVerificationView extends HookConsumerWidget {
     final isDeviceVerificationFlow = args.temporaryBlockFlowType ==
         TemporaryBlockFlowType.deviceVerification;
     final mobileOtpControllers = useMemoized(
-      () => List.generate(_otpLength, (_) => TextEditingController()),
+      () =>
+          List.generate(_identityOtpLength, (_) => TextEditingController()),
       const [],
     );
     final mobileOtpFocusNodes = useMemoized(
-      () => List.generate(_otpLength, (_) => FocusNode()),
+      () => List.generate(_identityOtpLength, (_) => FocusNode()),
       const [],
     );
     final emailOtpControllers = useMemoized(
-      () => List.generate(_otpLength, (_) => TextEditingController()),
+      () =>
+          List.generate(_identityOtpLength, (_) => TextEditingController()),
       const [],
     );
     final emailOtpFocusNodes = useMemoized(
-      () => List.generate(_otpLength, (_) => FocusNode()),
+      () => List.generate(_identityOtpLength, (_) => FocusNode()),
       const [],
     );
     final mobileOtpInput = useTextEditingController();
@@ -153,8 +157,10 @@ class OtpVerificationView extends HookConsumerWidget {
       if (showIdentityVariant) {
         final mobileOtp = mobileOtpControllers.map((c) => c.text).join();
         final emailOtp = emailOtpControllers.map((c) => c.text).join();
-        if (mobileOtp.length < _otpLength || emailOtp.length < _otpLength) {
-          errorText.value = 'Please enter both $_otpLength-digit OTPs.';
+        if (mobileOtp.length < _identityOtpLength ||
+            emailOtp.length < _identityOtpLength) {
+          errorText.value =
+              'Please enter both $_identityOtpLength-digit OTPs.';
           return;
         }
         errorText.value = null;
@@ -338,7 +344,7 @@ class OtpVerificationView extends HookConsumerWidget {
         debugPrint('OTP autofill received: $trimmed');
       }
       otpController.text = trimmed;
-      otpFocusNode.unfocus();
+      // Keep focus so Verify does not drop the lifted layout.
       autoFilledCode.value = trimmed;
       errorText.value = null;
       codeError.value = null;
@@ -406,7 +412,7 @@ class OtpVerificationView extends HookConsumerWidget {
     if (!showIdentityVariant) {
       final otpComplete = otpController.text.length == _otpLength;
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.loginPeachCoral,
         body: OtpVerifyStep(
           otpLength: _otpLength,
           otpController: otpController,
@@ -442,7 +448,7 @@ class OtpVerificationView extends HookConsumerWidget {
         title: args.heading,
         description: args.description ??
             'Enter the OTPs sent to your registered mobile number and email address to verify your identity.',
-        otpLength: _otpLength,
+        otpLength: _identityOtpLength,
         mobileOtpController: mobileOtpInput,
         emailOtpController: emailOtpInput,
         mobileOtpFocusNode: mobileOtpInputFocus,

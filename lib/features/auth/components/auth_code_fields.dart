@@ -404,6 +404,8 @@ class AuthPinActionsRow extends StatelessWidget {
             style: authTextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
+              // Figma login PIN: black underlined Forget PIN (not brand orange).
+              color: authInk,
               height: 1.2,
               decoration: TextDecoration.underline,
             ),

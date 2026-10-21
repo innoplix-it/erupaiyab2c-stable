@@ -258,7 +258,9 @@ class AppLockView extends HookConsumerWidget {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: showForgotPin.value
+            ? AppColors.loginPeachCoral
+            : Colors.white,
         body: Stack(
           fit: StackFit.expand,
           children: [

@@ -16,7 +16,8 @@ import '../helpers/responsive_test_sizes.dart';
 
 const _pinLength = 4;
 const _pinBorder = Color(0xFFDD5428);
-const _disabledFill = Color(0xFFA1A1AA);
+// Figma login Continue disabled fill (matches AuthMobileStep / AuthPinStep).
+const _disabledFill = Color(0xFFE3E3E6);
 
 class _Calls {
   int continueTaps = 0;
@@ -35,8 +36,10 @@ Future<(_Calls, TextEditingController)> _pumpPinStep(
   const dpr = 2.0;
   tester.view.devicePixelRatio = dpr;
   tester.view.physicalSize = size * dpr;
+  tester.view.viewInsets = FakeViewPadding(bottom: keyboardInset);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetViewInsets);
 
   final calls = _Calls();
   final pinController = TextEditingController();
@@ -152,7 +155,7 @@ void main() {
         );
         expect(tester.takeException(), isNull);
         expect(
-          tester.getRect(find.text('eRupaiya')).top,
+          tester.getRect(find.text('Welcome to eRupaiya')).top,
           greaterThanOrEqualTo(47),
         );
         expect(
@@ -231,7 +234,7 @@ void main() {
       (tester) async {
     final (calls, _) = await _pumpPinStep(tester);
     await tester.tap(find.text('Forget PIN'));
-    await tester.tap(find.byType(AuthMobileField));
+    await tester.tap(find.text('9876543210'));
     await tester.pump();
     expect(calls.forgotTaps, 1);
     expect(calls.editTaps, 1);

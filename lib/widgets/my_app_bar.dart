@@ -54,16 +54,28 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// the row's own bottom padding (6.h) so nothing overlaps the divider.
   final double bottomTrim;
 
-  /// Typography used by Transaction History and every MyAppBar that does not
-  /// pass [titleStyle]. Color flips to white when [backgroundColor] is set.
-  TextStyle? defaultTitleStyle(BuildContext context) {
+  /// Shared AppBar title typography (Transaction History / MyAppBar default).
+  /// Prefer this over custom title styles in feature modules (e.g. Refer & Earn).
+  static TextStyle? sharedTitleStyle(
+    BuildContext context, {
+    Color? color,
+  }) {
     return Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: backgroundColor == null ? Colors.black : Colors.white,
+          color: color ?? Colors.black,
           fontWeight: FontWeight.w700,
           fontSize: 16,
           letterSpacing: 0.15,
           height: 1.5,
         );
+  }
+
+  /// Typography used by Transaction History and every MyAppBar that does not
+  /// pass [titleStyle]. Color flips to white when [backgroundColor] is set.
+  TextStyle? defaultTitleStyle(BuildContext context) {
+    return sharedTitleStyle(
+      context,
+      color: backgroundColor == null ? Colors.black : Colors.white,
+    );
   }
 
   double get _platformTopPadding {

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
+import '../../../constants/app_colors.dart';
 import '../../../constants/app_error_messages.dart';
 import '../../../services/logger_service.dart';
 import '../../../widgets/app_snackbar.dart';
@@ -183,7 +184,7 @@ class ResetMpinView extends HookConsumerWidget {
         '${(remainingSeconds.value ~/ 60).toString().padLeft(2, '0')}:${(remainingSeconds.value % 60).toString().padLeft(2, '0')}';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.loginPeachCoral,
       body: BlockingLoadingOverlay(
         isLoading: authState.isSubmitting,
         message: loadingMessage.value,

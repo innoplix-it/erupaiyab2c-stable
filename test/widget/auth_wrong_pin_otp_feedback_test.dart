@@ -233,6 +233,7 @@ Future<_FakeAuth> _pump(
       GoRoute(path: _target, builder: (_, __) => view),
       GoRoute(
         path: RouteConstants.home,
+
         builder: (_, __) => const Scaffold(body: Text('home page')),
       ),
       GoRoute(
@@ -270,14 +271,8 @@ Future<_FakeAuth> _pump(
     await _settle(tester);
   }
   if (screen == _Screen.loginPin) {
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(AuthMobileField),
-        matching: find.byType(EditableText),
-      ),
-      '9876543210',
-    );
-    await tester.tap(find.byType(Checkbox));
+    // Figma mobile step: no AuthMobileField / consent checkbox.
+    await tester.enterText(find.byType(EditableText).first, '9876543210');
     await tester.pump();
     await tester.tap(find.byType(CustomElevatedButton));
     await _settle(tester);
@@ -316,8 +311,10 @@ Future<void> _submit(
     case _Screen.appLock:
       await tester.enterText(_codeField(0), '123$attempt');
     case _Screen.verifyOtp:
-      await tester.enterText(_codeField(0), '12345$attempt');
+      // Figma Verify OTP: 4 digits.
+      await tester.enterText(_codeField(0), '123$attempt');
     case _Screen.resetMpin:
+      // Reset MPIN OTP stays 6 digits (Figma).
       await tester.enterText(_codeField(0), '12345$attempt');
       await tester.enterText(_codeField(1), '111$attempt');
       await tester.enterText(_codeField(2), '111$attempt');

@@ -70,14 +70,16 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('LoginView Figma mobile step', () {
-    testWidgets('shows Pay Bills & Earn, slider, and Figma mobile field', (
+    testWidgets('shows Welcome to eRupaiya, slider, and Figma mobile field', (
       tester,
     ) async {
       await _pumpLogin(tester);
 
       expect(find.byType(AuthMobileStep), findsOneWidget);
       expect(find.byType(LoginServicesSlider), findsOneWidget);
-      expect(find.text('Pay Bills & Earn'), findsOneWidget);
+      expect(find.byKey(const ValueKey('login-erupaiya-wordmark')),
+          findsOneWidget);
+      expect(find.text('Welcome to eRupaiya'), findsOneWidget);
       expect(
         find.text('Enter your mobile number to continue.'),
         findsOneWidget,
@@ -119,18 +121,25 @@ void main() {
           .toList();
 
       expect(decorated, isNotEmpty);
-      final gradient = decorated.first.gradient! as LinearGradient;
-      expect(gradient.begin, const Alignment(0.001, -1.2768));
-      expect(gradient.end, const Alignment(-0.001, 0.9242));
-      expect(gradient.colors.first, const Color(0xFFDD5428));
-      expect(gradient.colors.last, const Color(0xFFFFFFFF));
+      final gradients =
+          decorated.map((d) => d.gradient! as LinearGradient).toList();
+      // Full-screen peach→white band from AppColors.loginPeachCoralGradient.
+      expect(
+        gradients.any(
+          (g) =>
+              g.begin == Alignment.topCenter &&
+              g.colors.contains(const Color(0xFFF2AA91)) &&
+              g.colors.contains(const Color(0xFFFFFFFF)),
+        ),
+        isTrue,
+      );
     });
 
     testWidgets('stays within bounds on compact height', (tester) async {
       await _pumpLogin(tester, size: const Size(320, 568));
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Pay Bills & Earn'), findsOneWidget);
+      expect(find.text('Welcome to eRupaiya'), findsOneWidget);
       expect(find.byType(LoginServicesSlider), findsOneWidget);
     });
   });
