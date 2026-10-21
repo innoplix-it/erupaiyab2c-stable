@@ -78,61 +78,49 @@ class _AuthBrandHeaderState extends State<AuthBrandHeader>
           final contentHeight =
               6.h + titlePainter.height + 6.h + subtitlePainter.height;
 
-          return SizedBox(
-            height: contentHeight,
+          Widget block() {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 6.h),
+                _GradientText(text: widget.title, style: heroStyle),
+                SizedBox(height: 6.h),
+                _GradientText(text: widget.subtitle, style: subtitleStyle),
+              ],
+            );
+          }
+
+          // Two copies, rasterised once, then only translated. Rebuilding
+          // the gradient shader every frame was the OTP jank.
+          final loop = RepaintBoundary(
             child: Opacity(
               opacity: 0.4,
-              child: ClipRect(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [block(), block()],
+              ),
+            ),
+          );
+
+          return ClipRect(
+            child: SizedBox(
+              height: contentHeight,
+              width: constraints.maxWidth,
               child: AnimatedBuilder(
                 animation: _animation,
+                child: loop,
                 builder: (context, child) {
-                  return Stack(
-                    children: [
-                      Positioned(
-                        top: -_animation.value * contentHeight,
-                        left: 0,
-                        right: 0,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 6.h),
-                            _GradientText(
-                              text: widget.title,
-                              style: heroStyle,
-                            ),
-                            SizedBox(height: 6.h),
-                            _GradientText(
-                              text: widget.subtitle,
-                              style: subtitleStyle,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Positioned(
-                        top: (1 - _animation.value) * contentHeight,
-                        left: 0,
-                        right: 0,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 6.h),
-                            _GradientText(
-                              text: widget.title,
-                              style: heroStyle,
-                            ),
-                            SizedBox(height: 6.h),
-                            _GradientText(
-                              text: widget.subtitle,
-                              style: subtitleStyle,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  return OverflowBox(
+                    alignment: Alignment.topLeft,
+                    minHeight: 0,
+                    maxHeight: contentHeight * 2,
+                    child: Transform.translate(
+                      offset: Offset(0, -_animation.value * contentHeight),
+                      child: child,
+                    ),
                   );
                 },
               ),
-            ),
             ),
           );
         },

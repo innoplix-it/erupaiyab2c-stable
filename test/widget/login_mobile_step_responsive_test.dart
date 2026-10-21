@@ -569,4 +569,51 @@ void main() {
       }
     });
   });
+
+  testWidgets('Continue keeps the button where it was when the keyboard closes',
+      (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    const keyboard = 280.0;
+    final inset = ValueNotifier<double>(keyboard);
+    addTearDown(inset.dispose);
+
+    await _pumpStep(
+      tester,
+      size: const Size(360, 800),
+      home: ValueListenableBuilder<double>(
+        valueListenable: inset,
+        builder: (context, bottom, _) {
+          final parent = MediaQuery.of(context);
+          return MediaQuery(
+            data: parent.copyWith(viewInsets: EdgeInsets.only(bottom: bottom)),
+            child: Scaffold(
+              resizeToAvoidBottomInset: true,
+              body: AuthMobileStep(
+                controller: controller,
+                isLoading: false,
+                onContinue: () {},
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), '9876543210');
+    await tester.pump();
+    final before = tester.getRect(find.text('Continue')).bottom;
+
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    inset.value = 0;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final after = tester.getRect(find.text('Continue')).bottom;
+    // Stays on the keyboard line. A full drop would land near the screen bottom.
+    expect(after, closeTo(before, 8));
+    expect(after, lessThan(520));
+    expect(tester.takeException(), isNull);
+  });
 }

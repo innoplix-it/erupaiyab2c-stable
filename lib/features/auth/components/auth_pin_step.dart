@@ -93,6 +93,9 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
   bool _keepLifted = false;
 
   double _lastInset = 0;
+  double _heldGap = 0;
+  bool _continueHeld = false;
+  int _continueStamp = 0;
 
   static const Color _ink = Color(0xFF000000);
   static const Color _subtitle = Color(0xFF71717A);
@@ -166,8 +169,8 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
       return;
     }
     if (!_hadKeyboard) return;
+    if (widget.isLoading || _continueHeld) return;
     _hadKeyboard = false;
-    if (widget.isLoading) return;
     if (widget.pinFocusNode.hasFocus) {
       widget.pinFocusNode.unfocus();
     }
@@ -179,10 +182,22 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
     }
   }
 
+  void _onContinuePressed() {
+    _continueStamp = DateTime.now().millisecondsSinceEpoch;
+    _continueHeld = true;
+    _keepLifted = true;
+    _hadKeyboard = true;
+    widget.onContinue();
+    setState(() {});
+  }
+
   void _dismissKeyboard() {
     if (widget.isLoading) return;
+    if (DateTime.now().millisecondsSinceEpoch - _continueStamp < 400) return;
+    _continueHeld = false;
     _keepLifted = false;
     _lastInset = 0;
+    _heldGap = 0;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {});
   }
@@ -197,11 +212,11 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
     double f(double figmaPx) => figmaPx * k;
     final referralBanner = widget.referralBanner;
     final inset = _readKeyboardInset(context);
+    final frozen = widget.isLoading || _continueHeld;
     if (inset > 0) {
       _lastInset = math.max(_lastInset, inset);
     }
-    final holdInset =
-        widget.isLoading ? math.max(0.0, _lastInset - inset) : 0.0;
+    final screenHeight = size.height;
 
     return AuthKeyboardOnOpen(
       focusNode: widget.pinFocusNode,
@@ -210,6 +225,17 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
       child: SizedBox.expand(
         child: LayoutBuilder(
           builder: (context, viewport) {
+            final keyboardGap =
+                math.max(0.0, screenHeight - viewport.maxHeight);
+            if (keyboardGap > 0) {
+              _heldGap = math.max(_heldGap, keyboardGap);
+            }
+            final holdInset = frozen
+                ? math.max(
+                    math.max(0.0, _lastInset - inset),
+                    math.max(0.0, _heldGap - keyboardGap),
+                  )
+                : 0.0;
             final keyboardOpen = inset > 0 || _lastInset > 0;
             final focused = widget.pinFocusNode.hasFocus;
             final bodyHeight = math.max(0.0, viewport.maxHeight - holdInset);
@@ -275,16 +301,15 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                             maxHeight: sliderH,
                             minHeight: 0,
                           ),
-                          child: Opacity(
+                          child: LoginServicesSlider(
+                            rowCount: rowCount,
+                            compact: overlay,
                             opacity: 0.4,
-                            child: LoginServicesSlider(
-                              rowCount: rowCount,
-                              compact: overlay,
-                            ),
                           ),
                         ),
                       ),
                       Positioned.fill(
+                        child: RepaintBoundary(
                         child: Padding(
                           padding: EdgeInsets.only(bottom: holdInset),
                           child: Column(
@@ -304,6 +329,7 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                               ),
                             ],
                           ),
+                        ),
                         ),
                       ),
                     ],
@@ -344,23 +370,22 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
             constraints: BoxConstraints(
               maxWidth: authContentMaxWidth(context),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        physics: const ClampingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                            minWidth: constraints.maxWidth,
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final minH = constraints.maxHeight.isFinite
+                    ? constraints.maxHeight
+                    : 0.0;
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: minH,
+                      minWidth: constraints.maxWidth,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: SvgPicture.asset(
@@ -451,7 +476,7 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                                     : widget.onPinChanged,
                                 onCompleted: widget.isLoading
                                     ? null
-                                    : (_) => widget.onContinue(),
+                                    : (_) => _onContinuePressed(),
                               ),
                               SizedBox(height: f(2)),
                               AuthPinActionsRow(
@@ -463,14 +488,7 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                                     : widget.onForgotPin,
                                 errorText: widget.errorText,
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: f(12)),
+                              SizedBox(height: f(12)),
                 ListenableBuilder(
                   listenable: widget.pinController,
                   builder: (context, _) {
@@ -479,7 +497,7 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                     return CustomElevatedButton(
                       label: 'Continue',
                       uppercaseLabel: false,
-                      onPressed: canContinue ? widget.onContinue : null,
+                      onPressed: canContinue ? _onContinuePressed : null,
                       isLoading: widget.isLoading,
                       backgroundColor: canContinue
                           ? AppColors.primary
@@ -493,7 +511,11 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                 SizedBox(height: f(overlay ? 15 : 18)),
                 _buildTerms(context, k),
                 SizedBox(height: termsBottomGap),
-              ],
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),

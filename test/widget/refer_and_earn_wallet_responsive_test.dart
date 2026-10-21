@@ -209,8 +209,7 @@ void main() {
     expect(size.height, lessThan(40));
   });
 
-  testWidgets('milestone count follows the API, no fabricated rows',
-      (tester) async {
+  testWidgets('milestone row always shows five coins', (tester) async {
     final four = _fiveMilestones.take(4).toList();
     await _pumpWallet(
       tester,
@@ -218,7 +217,7 @@ void main() {
       summary: _summary(milestones: four),
     );
     expect(find.text('04'), findsOneWidget);
-    expect(find.text('05'), findsNothing);
+    expect(find.text('05'), findsOneWidget);
   });
 
   testWidgets('selected milestone label styling is dynamic', (tester) async {

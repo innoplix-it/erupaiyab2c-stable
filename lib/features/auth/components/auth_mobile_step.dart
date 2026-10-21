@@ -121,6 +121,14 @@ class _AuthMobileStepState extends State<AuthMobileStep>
   /// does not fall to the bottom when the keyboard closes during navigation.
   double _lastInset = 0;
 
+  /// Body-height gap while the keypad is open. Continue keeps this as bottom
+  /// padding so the form does not slide to the screen bottom.
+  double _heldGap = 0;
+
+  /// Set on Continue, before loading flips, so the form cannot drop.
+  bool _continueHeld = false;
+  int _continueStamp = 0;
+
   /// Phone-hint sheet hides the IME before we reopen it. Collapsing in that
   /// gap drops the form after autofill, so the drop waits one beat.
   Timer? _dropLiftTimer;
@@ -259,14 +267,14 @@ class _AuthMobileStepState extends State<AuthMobileStep>
     }
     if (!_hadKeyboard) return;
     // Processing Continue or leaving this step: never unfocus / drop the form.
-    if (widget.isLoading || !_routeCurrent) return;
+    if (widget.isLoading || _continueHeld || !_routeCurrent) return;
     // The number sheet closes the keyboard, then we reopen it. Dropping here
     // puts the filled number back at the bottom.
     _dropLiftTimer?.cancel();
     _dropLiftTimer = Timer(const Duration(milliseconds: 400), () {
       if (!mounted || !widget.layoutActive) return;
       if (_readKeyboardInset(context) > 0 || _focus.hasFocus) return;
-      if (widget.isLoading || !_routeCurrent) return;
+      if (widget.isLoading || _continueHeld || !_routeCurrent) return;
       _hadKeyboard = false;
       if (_focus.hasFocus) _focus.unfocus();
       if (_keepLifted) {
@@ -278,12 +286,26 @@ class _AuthMobileStepState extends State<AuthMobileStep>
     });
   }
 
+  void _onContinuePressed() {
+    _dropLiftTimer?.cancel();
+    _continueStamp = DateTime.now().millisecondsSinceEpoch;
+    _continueHeld = true;
+    _keepLifted = true;
+    _hadKeyboard = true;
+    widget.onContinue?.call();
+    setState(() {});
+  }
+
   void _dismissKeyboard() {
     if (widget.isLoading) return;
+    // The Continue tap can also hit this detector. Ignore that same tap.
+    if (DateTime.now().millisecondsSinceEpoch - _continueStamp < 400) return;
     _dropLiftTimer?.cancel();
+    _continueHeld = false;
     _hadKeyboard = false;
     _keepLifted = false;
     _lastInset = 0;
+    _heldGap = 0;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {});
   }
@@ -301,11 +323,11 @@ class _AuthMobileStepState extends State<AuthMobileStep>
 
     // Frozen = Continue is processing or this step is being left. The bottom
     // space the keyboard used to take is kept as padding.
-    final frozen = widget.isLoading || !_routeCurrent;
+    final frozen = widget.isLoading || _continueHeld || !_routeCurrent;
     if (!frozen && inset > 0) {
       _lastInset = math.max(_lastInset, inset);
     }
-    final holdInset = frozen ? math.max(0.0, _lastInset - inset) : 0.0;
+    final screenHeight = size.height;
 
     return AuthKeyboardOnOpen(
       focusNode: widget.focusNode,
@@ -314,6 +336,17 @@ class _AuthMobileStepState extends State<AuthMobileStep>
       child: SizedBox.expand(
         child: LayoutBuilder(
           builder: (context, viewport) {
+            final keyboardGap =
+                math.max(0.0, screenHeight - viewport.maxHeight);
+            if (keyboardGap > 0) {
+              _heldGap = math.max(_heldGap, keyboardGap);
+            }
+            final holdInset = frozen
+                ? math.max(
+                    math.max(0.0, _lastInset - inset),
+                    math.max(0.0, _heldGap - keyboardGap),
+                  )
+                : 0.0;
             final keyboardOpen = inset > 0 || _lastInset > 0;
             final focused = _focus.hasFocus;
 
@@ -386,17 +419,16 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                             maxHeight: sliderH,
                             minHeight: 0,
                           ),
-                          child: Opacity(
+                          child: LoginServicesSlider(
+                            rowCount: rowCount,
+                            compact: overlay,
                             opacity: 0.4,
-                            child: LoginServicesSlider(
-                              rowCount: rowCount,
-                              compact: overlay,
-                            ),
                           ),
                         ),
                       ),
                       // Layer 2: form. Overlay = rise up + translucent band.
                       Positioned.fill(
+                        child: RepaintBoundary(
                         child: Padding(
                           padding: EdgeInsets.only(bottom: holdInset),
                           child: Column(
@@ -417,6 +449,7 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                               ),
                             ],
                           ),
+                        ),
                         ),
                       ),
                     ],
@@ -544,8 +577,9 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                   return CustomElevatedButton(
                                     label: 'Continue',
                                     uppercaseLabel: false,
-                                    onPressed:
-                                        canContinue ? widget.onContinue : null,
+                                    onPressed: canContinue
+                                        ? _onContinuePressed
+                                        : null,
                                     isLoading: widget.isLoading,
                                     backgroundColor: canContinue
                                         ? AppColors.primary

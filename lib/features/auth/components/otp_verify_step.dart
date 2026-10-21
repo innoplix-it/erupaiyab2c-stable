@@ -1,5 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -109,6 +111,17 @@ class _OtpVerifyStepState extends State<OtpVerifyStep> {
   late final TapGestureRecognizer _changeTap = TapGestureRecognizer()
     ..onTap = () => widget.onChangeNumber();
 
+  /// Keyboard gap captured before Continue closes the keypad, so the button
+  /// stays where it was instead of falling to the screen bottom.
+  double _heldGap = 0;
+  bool _continueHeld = false;
+
+  void _onContinue() {
+    _continueHeld = true;
+    widget.onVerify?.call();
+    setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -122,9 +135,12 @@ class _OtpVerifyStepState extends State<OtpVerifyStep> {
   void didUpdateWidget(covariant OtpVerifyStep oldWidget) {
     super.didUpdateWidget(oldWidget);
     // While Verify runs keep the keypad up so nothing moves.
-    if (!oldWidget.isSubmitting && widget.isSubmitting) {
+    final started = !oldWidget.isSubmitting && widget.isSubmitting;
+    final finished = oldWidget.isSubmitting && !widget.isSubmitting;
+    if (started) _continueHeld = true;
+    if (started || finished) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !widget.isSubmitting) return;
+        if (!mounted) return;
         showAuthKeyboard(widget.otpFocusNode);
       });
     }
@@ -138,17 +154,32 @@ class _OtpVerifyStepState extends State<OtpVerifyStep> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
     return AuthKeyboardOnOpen(
       focusNode: widget.otpFocusNode,
       autofocus: true,
       enabled: true,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Expanded(child: _buildScrollableContent(context)),
-            _buildFooter(context),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final keyboardGap =
+              math.max(0.0, screenHeight - constraints.maxHeight);
+          if (keyboardGap > 0) {
+            _heldGap = math.max(_heldGap, keyboardGap);
+          }
+          final stick = widget.isSubmitting || _continueHeld;
+          final hold = stick ? math.max(0.0, _heldGap - keyboardGap) : 0.0;
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: hold),
+              child: Column(
+                children: [
+                  Expanded(child: _buildScrollableContent(context)),
+                  _buildFooter(context),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -168,7 +199,7 @@ class _OtpVerifyStepState extends State<OtpVerifyStep> {
           constraints: BoxConstraints(maxWidth: authContentMaxWidth(context)),
           child: AuthButtonTheme(
             child: CustomElevatedButton(
-              onPressed: enabled ? widget.onVerify : null,
+              onPressed: enabled ? _onContinue : null,
               label: widget.isSubmitting ? 'Verifying...' : widget.buttonLabel,
               uppercaseLabel: false,
               isLoading: widget.isSubmitting,

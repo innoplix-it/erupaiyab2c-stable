@@ -269,7 +269,7 @@ class _MilestoneCard extends HookWidget {
                         style: _style(
                           context,
                           _Fig.milestoneTitle,
-                          FontWeight.w700,
+                          FontWeight.w500,
                           const Color(0xFF000000),
                         ),
                       ),
@@ -336,10 +336,9 @@ class _MilestoneCard extends HookWidget {
             ],
           ),
           SizedBox(height: context.referH(_Fig.milestoneHeaderToTrack)),
-          // Render exactly the milestones the backend configured; 5 is only
-          // the empty-state fallback, never fake rows.
+          // Design row is always 5 coins. Extra API milestones still show.
           _MilestoneDotRow(
-            count: milestones.isNotEmpty ? milestones.length : 5,
+            count: math.max(milestones.length, 5),
             activeIndex: activeIndex,
             nextArc: _nextMilestoneArc(totalReferrals, milestones, activeIndex),
           ),
@@ -372,7 +371,7 @@ class _MilestoneCard extends HookWidget {
                       style: _style(
                         context,
                         _Fig.milestoneBoxFont,
-                        FontWeight.w700,
+                        FontWeight.w500,
                         const Color(0xFF111111),
                         family: 'Plus Jakarta Sans',
                         height: 1.2,

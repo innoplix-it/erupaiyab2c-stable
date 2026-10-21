@@ -33,6 +33,7 @@ class LoginServicesSlider extends StatefulWidget {
     this.compact = false,
     this.speed = 16,
     this.cycleDuration,
+    this.opacity = 1,
   });
 
   /// Optional fixed marquee height. When null, height follows the tile math
@@ -51,6 +52,9 @@ class LoginServicesSlider extends StatefulWidget {
 
   /// No longer used (speed is px/sec now). Kept so old call sites compile.
   final Duration? cycleDuration;
+
+  /// Baked into each row's cached layer (not a per-frame saveLayer).
+  final double opacity;
 
   // ---- Default (keyboard closed) Figma frame: 440 wide ----
   static const double figmaFrameWidth = 440;
@@ -109,6 +113,7 @@ class _LoginServicesSliderState extends State<LoginServicesSlider>
   double _pxPerSecond = 0;
 
   _SliderLayout? _layout;
+  double? _paintedOpacity;
   Widget? _content;
 
   @override
@@ -183,33 +188,21 @@ class _LoginServicesSliderState extends State<LoginServicesSlider>
 
           // Re-create the (expensive) content only when the layout changes.
           // Same instance => Flutter skips rebuilding the tiles entirely.
-          if (_content == null || layout != _layout) {
+          // No cross-fade: keeping two full marquees alive drops frames.
+          final opacity = widget.opacity.clamp(0.0, 1.0).toDouble();
+          if (_content == null ||
+              layout != _layout ||
+              _paintedOpacity != opacity) {
             _layout = layout;
-            _content = KeyedSubtree(
-              key: ValueKey<String>('${layout.compact}-${layout.rows}'),
-              child: _SliderContent(layout: layout, distance: _distance),
+            _paintedOpacity = opacity;
+            _content = _SliderContent(
+              layout: layout,
+              distance: _distance,
+              opacity: opacity,
             );
           }
 
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 240),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeOut,
-            // Previous child must not grow the Stack (otherwise compact→closed
-            // transition reports a Column overflow at the tall closed height).
-            layoutBuilder: (current, previous) => Stack(
-              alignment: Alignment.topLeft,
-              clipBehavior: Clip.hardEdge,
-              children: <Widget>[
-                for (final child in previous)
-                  Positioned.fill(
-                    child: ClipRect(child: child),
-                  ),
-                if (current != null) current,
-              ],
-            ),
-            child: _content!,
-          );
+          return _content!;
         },
       ),
     );
@@ -403,10 +396,15 @@ final List<List<_LoginTileSpec>> _compactRows = [
 
 /// All rows of one layout. Built once per [_SliderLayout].
 class _SliderContent extends StatelessWidget {
-  const _SliderContent({required this.layout, required this.distance});
+  const _SliderContent({
+    required this.layout,
+    required this.distance,
+    required this.opacity,
+  });
 
   final _SliderLayout layout;
   final ValueListenable<double> distance;
+  final double opacity;
 
   // Padding from Figma (top 4, right 10, bottom 4, left 6) on a 100 tile.
   static const double _padTopDesign = 4;
@@ -475,6 +473,7 @@ class _SliderContent extends StatelessWidget {
                       tileFill: _tileFill,
                       labelColor: _labelColor,
                       compact: compact,
+                      opacity: opacity,
                     ),
                   ],
                 ],
@@ -508,6 +507,7 @@ class _MarqueeRow extends StatelessWidget {
     required this.tileFill,
     required this.labelColor,
     required this.compact,
+    required this.opacity,
   });
 
   final ValueListenable<double> distance;
@@ -525,6 +525,7 @@ class _MarqueeRow extends StatelessWidget {
   final Color tileFill;
   final Color labelColor;
   final bool compact;
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
@@ -537,13 +538,12 @@ class _MarqueeRow extends StatelessWidget {
     final count = ((viewWidth + period) / stride).ceil() + 2;
     final rowWidth = count * stride - gap;
 
-    final content = RepaintBoundary(
-      child: OverflowBox(
-        alignment: Alignment.centerLeft,
-        minWidth: 0,
-        maxWidth: rowWidth + 2,
-        minHeight: tileSize,
-        maxHeight: tileSize,
+    // The row is rasterised once at its full width. A clip outside the
+    // transform shows only the viewport. Overflowing a RepaintBoundary
+    // (the old OverflowBox) forced the parent to repaint every frame.
+    final tiles = SizedBox(
+        width: rowWidth,
+        height: tileSize,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -563,20 +563,31 @@ class _MarqueeRow extends StatelessWidget {
             ],
           ],
         ),
-      ),
+    );
+    final content = RepaintBoundary(
+      child: opacity < 1 ? Opacity(opacity: opacity, child: tiles) : tiles,
     );
 
-    return SizedBox(
-      width: viewWidth,
-      height: tileSize,
-      child: AnimatedBuilder(
-        animation: distance,
-        child: content,
-        builder: (context, child) {
-          // Dart `%` is Euclidean: result is always in [0, period).
-          final dx = ((offset - distance.value) % period) - period;
-          return Transform.translate(offset: Offset(dx, 0), child: child);
-        },
+    return ClipRect(
+      child: SizedBox(
+        width: viewWidth,
+        height: tileSize,
+        child: AnimatedBuilder(
+          animation: distance,
+          child: content,
+          builder: (context, child) {
+            // Dart `%` is Euclidean: result is always in [0, period).
+            final dx = ((offset - distance.value) % period) - period;
+            return OverflowBox(
+              alignment: Alignment.centerLeft,
+              minWidth: 0,
+              maxWidth: rowWidth,
+              minHeight: tileSize,
+              maxHeight: tileSize,
+              child: Transform.translate(offset: Offset(dx, 0), child: child),
+            );
+          },
+        ),
       ),
     );
   }
@@ -651,7 +662,10 @@ class _ServiceTile extends StatelessWidget {
                 child: SizedBox(
                   width: artW,
                   height: artH,
-                  child: _TileIcon(spec: spec),
+                  child: _TileIcon(
+                    spec: spec,
+                    cacheExtent: math.max(artW, artH),
+                  ),
                 ),
               ),
               SizedBox(height: labelGap),
@@ -698,9 +712,10 @@ class _ServiceTile extends StatelessWidget {
 }
 
 class _TileIcon extends StatelessWidget {
-  const _TileIcon({required this.spec});
+  const _TileIcon({required this.spec, required this.cacheExtent});
 
   final _LoginTileSpec spec;
+  final double cacheExtent;
 
   @override
   Widget build(BuildContext context) {
@@ -711,10 +726,18 @@ class _TileIcon extends StatelessWidget {
         excludeFromSemantics: true,
       );
     }
+    final px = math.max(
+      1,
+      (cacheExtent * MediaQuery.devicePixelRatioOf(context)).round(),
+    );
     return Image.asset(
       spec.pngAsset!,
       fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
+      // Decode at the on-screen size. Full-resolution + high filter was
+      // expensive the first time each marquee row was rasterised.
+      filterQuality: FilterQuality.medium,
+      cacheWidth: px,
+      cacheHeight: px,
       excludeFromSemantics: true,
     );
   }
