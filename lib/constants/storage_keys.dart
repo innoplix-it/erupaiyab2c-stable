@@ -4,4 +4,7 @@ class StorageKeys {
   static const String locationAccessEnabled = 'locationAccessEnabled';
   static const String themeMode = 'themeMode';
   static const String tempAccessToken = 'tempAccessToken';
+  static const String guestInstallationId = 'guestInstallationId';
+  static const String guestDeviceRegistered = 'guestDeviceRegistered';
+  static const String guestRegisteredFcmToken = 'guestRegisteredFcmToken';
 }

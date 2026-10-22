@@ -36,6 +36,8 @@ class DioInterceptors extends InterceptorsWrapper {
     'access_token',
     'refresh_token',
     'token',
+    'fcm_token',
+    'device_token',
     'authorization',
     'pan',
     'pan_number',

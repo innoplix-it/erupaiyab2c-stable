@@ -68,7 +68,8 @@ class AuthRepository {
           deviceToken.isNotEmpty &&
           deviceToken.toLowerCase() != 'null';
       if (!hasDeviceToken) {
-        logger.error('FCM token unavailable for check-login; continuing without device_token');
+        logger.error(
+            'FCM token unavailable for check-login; continuing without device_token');
       }
 
       final deviceContext = await const LoginDeviceContextService().collect();
@@ -203,6 +204,14 @@ class AuthRepository {
     required String pin,
   }) async {
     try {
+      final installationId =
+          (await _secureStorage.read(key: StorageKeys.guestInstallationId))
+                  ?.trim() ??
+              '';
+      if (installationId.isEmpty) {
+        throw Exception('Missing installation ID.');
+      }
+
       final response = await _dio.post(
         ApiConstants.setPinEndpoint,
         options: Options(
@@ -215,6 +224,7 @@ class AuthRepository {
         data: {
           'post_otp_token': postOtpToken,
           'pin': pin,
+          'installation_id': installationId,
         },
       );
 
@@ -246,7 +256,8 @@ class AuthRepository {
           deviceToken.isNotEmpty &&
           deviceToken.toLowerCase() != 'null';
       if (!hasDeviceToken) {
-        logger.error('FCM token unavailable for login; continuing without device_token');
+        logger.error(
+            'FCM token unavailable for login; continuing without device_token');
       }
 
       final deviceContext = await const LoginDeviceContextService().collect();
@@ -769,7 +780,8 @@ class AuthRepository {
 
       await _secureStorage.write(key: 'accessToken', value: accessToken);
       if (nextRefreshToken != null && nextRefreshToken.isNotEmpty) {
-        await _secureStorage.write(key: 'refreshToken', value: nextRefreshToken);
+        await _secureStorage.write(
+            key: 'refreshToken', value: nextRefreshToken);
       }
       await _secureStorage.write(
         key: 'tokenType',

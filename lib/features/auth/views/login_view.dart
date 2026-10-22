@@ -48,7 +48,8 @@ void _debugLog(String message) {
 class LoginView extends HookConsumerWidget {
   const LoginView({super.key});
 
-  static const int _otpLength = 4;
+  static const int _pinLength = 4;
+  static const int _otpLength = 6;
   static const String _genericErrorMessage = AppErrorMessages.generic;
 
   @override
@@ -458,7 +459,7 @@ class LoginView extends HookConsumerWidget {
         onPinChanged: (value) {
           if (value.isNotEmpty) pinError.value = null;
         },
-        pinLength: _otpLength,
+        pinLength: _pinLength,
         isLoading: isSubmitting && onPin,
         layoutActive: onPin,
         onContinue: handlePinLogin,

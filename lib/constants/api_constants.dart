@@ -33,7 +33,6 @@ class ApiConstants {
       '$baseUrl/api/credit-card-transactions';
   static const String profileEndpoint = '$baseUrl/api/user/profile';
   static const String profileUpdateEndpoint =
-
       '$baseUrl/api/user/profile/update';
   static const String completeProfileEndpoint =
       '$baseUrl/api/user/complete-profile';
@@ -43,6 +42,8 @@ class ApiConstants {
       '$baseUrl/api/user/profile/update-delivery-info';
   static const String profileUpdateDeviceTokenEndpoint =
       '$baseUrl/api/user/profile/update-device-token';
+  static const String guestDeviceRegisterEndpoint =
+      '$baseUrl/api/mobile/device/register';
   static const String profileVerifyContactUpdateEndpoint =
       '$baseUrl/api/user/profile/verify-contact-update';
   static const String educationValidateAmountEndpoint =

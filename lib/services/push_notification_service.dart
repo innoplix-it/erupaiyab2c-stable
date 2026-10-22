@@ -13,6 +13,7 @@ import '../constants/storage_keys.dart';
 import '../config/app_env.dart';
 import '../features/profile/repositories/profile_repository.dart';
 import '../firebase/explicit_firebase_options.dart';
+import 'guest_device_registration.dart';
 import '../utils/utils.dart';
 import '../widgets/k_dialog.dart';
 import 'logger_service.dart';
@@ -57,6 +58,25 @@ class PushNotificationService {
   static bool _uiReady = false;
   static String? _pendingLocation;
   static Object? _pendingExtra;
+  static final GuestDeviceRegistrar _guestRegistrar = GuestDeviceRegistrar(
+    store: const SecureGuestDeviceStore(),
+    isAuthenticated: Utils.checkAuthentication,
+    readFcmToken: _currentFcmToken,
+    devicePlatform: _currentDevicePlatform,
+    register: GuestDeviceRepository().register,
+  );
+
+  static Future<String?> _currentFcmToken() async {
+    final token = _latestToken?.trim();
+    return _isValidToken(token) ? token : null;
+  }
+
+  static String _currentDevicePlatform() {
+    return guestDevicePlatformFor(
+      android: Platform.isAndroid,
+      ios: Platform.isIOS,
+    );
+  }
 
   static String? get latestToken => _latestToken;
 
@@ -64,7 +84,8 @@ class PushNotificationService {
     try {
       await _storage.write(key: StorageKeys.deviceToken, value: token);
     } catch (e, stackTrace) {
-      logger.error('Failed to persist device token', error: e, stackTrace: stackTrace);
+      logger.error('Failed to persist device token',
+          error: e, stackTrace: stackTrace);
     }
   }
 
@@ -93,7 +114,8 @@ class PushNotificationService {
         return _latestToken;
       }
     } catch (e, stackTrace) {
-      logger.error('Failed to read cached device token', error: e, stackTrace: stackTrace);
+      logger.error('Failed to read cached device token',
+          error: e, stackTrace: stackTrace);
     }
 
     try {
@@ -115,7 +137,8 @@ class PushNotificationService {
         return _latestToken;
       }
     } catch (e, stackTrace) {
-      logger.error('Failed to fetch FCM token directly', error: e, stackTrace: stackTrace);
+      logger.error('Failed to fetch FCM token directly',
+          error: e, stackTrace: stackTrace);
     }
 
     final startedAt = DateTime.now();
@@ -197,9 +220,18 @@ class PushNotificationService {
       if (_isValidToken(_latestToken)) {
         await _persistToken(_latestToken!);
       }
+      if (await Utils.checkAuthentication()) {
+        final token = _latestToken;
+        if (_isValidToken(token)) {
+          await _sendTokenToServer(token!.trim());
+        }
+        return;
+      }
+      await _guestRegistrar.registerIfNeeded();
     });
 
     _initialized = true;
+    await _guestRegistrar.registerIfNeeded();
 
     if (requestPermissions) {
       await ensurePermissionsRequested();

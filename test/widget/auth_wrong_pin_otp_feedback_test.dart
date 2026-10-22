@@ -57,7 +57,8 @@ class _FakeProfileController extends ProfileController {
 /// Every check fails with [failureMessage] until [accept] is set.
 class _FakeAuth extends AuthController {
   _FakeAuth()
-      : super(repository: _MockAuthRepository(), shouldCheckInitialAuth: false) {
+      : super(
+            repository: _MockAuthRepository(), shouldCheckInitialAuth: false) {
     state = const AuthState(
       isAuthenticated: false,
       hasTemporaryAccess: false,
@@ -147,8 +148,7 @@ void _mockPlatform() {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   messenger.setMockMethodCallHandler(_secureStorage, (call) async {
-    if (call.method == 'read' &&
-        (call.arguments as Map?)?['key'] == 'mobile') {
+    if (call.method == 'read' && (call.arguments as Map?)?['key'] == 'mobile') {
       return '9876543210';
     }
     return null;
@@ -213,13 +213,13 @@ Future<_FakeAuth> _pump(
   final auth = _FakeAuth();
   final Widget view = viewOverride ??
       switch (screen) {
-    _Screen.loginPin => const LoginView(),
-    _Screen.verifyOtp => const OtpVerificationView(
-        args: OtpVerificationArgs(phoneNumber: '9876543210'),
-      ),
-    _Screen.resetMpin => const ResetMpinView(mobile: '9876543210'),
-    _Screen.appLock => const AppLockView(),
-  };
+        _Screen.loginPin => const LoginView(),
+        _Screen.verifyOtp => const OtpVerificationView(
+            args: OtpVerificationArgs(phoneNumber: '9876543210'),
+          ),
+        _Screen.resetMpin => const ResetMpinView(mobile: '9876543210'),
+        _Screen.appLock => const AppLockView(),
+      };
   // Views that pop on success are pushed over a start page.
   final pushed = screen == _Screen.resetMpin || screen == _Screen.appLock;
   final router = _router = GoRouter(
@@ -233,7 +233,6 @@ Future<_FakeAuth> _pump(
       GoRoute(path: _target, builder: (_, __) => view),
       GoRoute(
         path: RouteConstants.home,
-
         builder: (_, __) => const Scaffold(body: Text('home page')),
       ),
       GoRoute(
@@ -311,8 +310,7 @@ Future<void> _submit(
     case _Screen.appLock:
       await tester.enterText(_codeField(0), '123$attempt');
     case _Screen.verifyOtp:
-      // Figma Verify OTP: 4 digits.
-      await tester.enterText(_codeField(0), '123$attempt');
+      await tester.enterText(_codeField(0), '12345$attempt');
     case _Screen.resetMpin:
       // Reset MPIN OTP stays 6 digits (Figma).
       await tester.enterText(_codeField(0), '12345$attempt');
@@ -371,7 +369,8 @@ void _expectInlineMessage(WidgetTester tester, _Screen screen) {
     start = tester.getRect(
       find.descendant(of: row, matching: find.byType(SvgPicture)).first,
     );
-    end = tester.getRect(find.descendant(of: row, matching: find.text('Resend')));
+    end =
+        tester.getRect(find.descendant(of: row, matching: find.text('Resend')));
   }
   expect(messageRect.left, greaterThanOrEqualTo(start.right - 0.5));
   expect(messageRect.right, lessThanOrEqualTo(end.left + 0.5));
@@ -464,7 +463,8 @@ void main() {
 
       testWidgets('a correct code continues without any feedback',
           (tester) async {
-        final auth = await _pump(tester, screen)..accept = true;
+        final auth = await _pump(tester, screen)
+          ..accept = true;
         final shake = _shake(tester);
         await _submit(tester, screen);
         await _settle(tester);
@@ -558,8 +558,8 @@ void main() {
       expect(find.byType(OtpVerificationView), findsOneWidget);
       expect(find.text('login page'), findsNothing);
       expect(find.text(authInvalidOtpMessage), findsWidgets);
-      expect(find.text('Verification failed. Please login again.'),
-          findsNothing);
+      expect(
+          find.text('Verification failed. Please login again.'), findsNothing);
 
       await submitBoth(tester, attempt: 1);
       await tester.pump(const Duration(seconds: 1));
@@ -584,7 +584,8 @@ void main() {
 
     testWidgets('correct OTP still shows the success dialog and goes to login',
         (tester) async {
-      final auth = await pumpDevice(tester)..accept = true;
+      final auth = await pumpDevice(tester)
+        ..accept = true;
       await submitBoth(tester);
       expect(auth.attempts, hasLength(1));
       expect(_shake(tester).playCount, 0);
@@ -658,8 +659,7 @@ void main() {
       return controller;
     }
 
-    testWidgets('a shake requested mid-shake does not overlap',
-        (tester) async {
+    testWidgets('a shake requested mid-shake does not overlap', (tester) async {
       final controller = await pumpShake(tester);
       controller.shake();
       await tester.pump(const Duration(milliseconds: 100));
