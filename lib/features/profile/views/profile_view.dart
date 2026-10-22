@@ -362,7 +362,8 @@ class _InviteEarnCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          SizedBox(height: 32.h,
+          SizedBox(
+            height: 32.h,
             child: CustomElevatedButton(
               onPressed: onInvite,
               label: 'Invite Now',
@@ -514,7 +515,8 @@ class _ProfileKycStatusCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 10.w),
-                SizedBox(height: 30.h,
+                SizedBox(
+                  height: 30.h,
                   child: ElevatedButton(
                     onPressed: onTap,
                     style: ElevatedButton.styleFrom(
@@ -893,8 +895,11 @@ class UpdateProfileView extends HookConsumerWidget {
     final hasEmailChange = canEdit &&
         !latestProfile.isEmailVerified &&
         currentEmail != initialEmail;
-    final canSave = hasNonEmailChanges && (canEdit || hasCommunicationChange);
-    final hasUnsavedChanges = hasNonEmailChanges || hasEmailChange;
+    final hasPendingImage = pickedImage.value != null;
+    final canSave = hasPendingImage ||
+        (hasNonEmailChanges && (canEdit || hasCommunicationChange));
+    final hasUnsavedChanges =
+        hasNonEmailChanges || hasEmailChange || hasPendingImage;
 
     final selectedTab = useState<int>(0);
     final deliveryScrollController = useScrollController();
@@ -928,7 +933,8 @@ class UpdateProfileView extends HookConsumerWidget {
         );
       } else {
         AppSnackbar.show(
-          state.updateErrorMessage ?? 'Failed to update delivery info.',
+          ref.read(profileControllerProvider).updateErrorMessage ??
+              'Failed to update delivery info.',
           type: AppSnackbarType.error,
         );
       }
@@ -1195,15 +1201,6 @@ class UpdateProfileView extends HookConsumerWidget {
                                                       .pickFromCamera();
                                               if (image == null) return;
                                               pickedImage.value = image;
-                                              final ok = await controller
-                                                  .updateProfileImage(
-                                                image,
-                                              );
-                                              if (ok) {
-                                                await controller.fetchProfile();
-                                              } else {
-                                                pickedImage.value = null;
-                                              }
                                             },
                                             onGallery: () async {
                                               navigatorKey.currentState?.pop();
@@ -1212,15 +1209,6 @@ class UpdateProfileView extends HookConsumerWidget {
                                                       .pickFromGallery();
                                               if (image == null) return;
                                               pickedImage.value = image;
-                                              final ok = await controller
-                                                  .updateProfileImage(
-                                                image,
-                                              );
-                                              if (ok) {
-                                                await controller.fetchProfile();
-                                              } else {
-                                                pickedImage.value = null;
-                                              }
                                             },
                                           ),
                                         );
@@ -1430,7 +1418,8 @@ class UpdateProfileView extends HookConsumerWidget {
                               ? Column(
                                   children: [
                                     Padding(
-                                      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 6.h),
+                                      padding: EdgeInsets.fromLTRB(
+                                          16.w, 4.h, 16.w, 6.h),
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: Text(
@@ -1447,14 +1436,16 @@ class UpdateProfileView extends HookConsumerWidget {
                                     ),
                                     Expanded(
                                       child: BankAccountsSection(
-                                        padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 12.h),
+                                        padding: EdgeInsets.fromLTRB(
+                                            16.w, 0.h, 16.w, 12.h),
                                       ),
                                     ),
                                   ],
                                 )
                               : SingleChildScrollView(
                                   controller: deliveryScrollController,
-                                  padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 90.h),
+                                  padding: EdgeInsets.fromLTRB(
+                                      16.w, 4.h, 16.w, 90.h),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -1635,9 +1626,11 @@ class UpdateProfileView extends HookConsumerWidget {
                               name: name,
                               email: email,
                               address: address,
+                              image: pickedImage.value,
                             );
                             if (!context.mounted) return;
                             if (ok) {
+                              pickedImage.value = null;
                               await controller.fetchProfile();
                               if (!context.mounted) return;
                               final refreshed =
@@ -1654,7 +1647,9 @@ class UpdateProfileView extends HookConsumerWidget {
                               );
                             } else {
                               AppSnackbar.show(
-                                state.updateErrorMessage ??
+                                ref
+                                        .read(profileControllerProvider)
+                                        .updateErrorMessage ??
                                     'Failed to update profile.',
                                 type: AppSnackbarType.error,
                               );

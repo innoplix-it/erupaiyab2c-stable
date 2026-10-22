@@ -104,8 +104,12 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
 
   double _readKeyboardInset(BuildContext context) {
     final fromMediaQuery = MediaQuery.viewInsetsOf(context).bottom;
-    final fromView = View.maybeOf(context)?.viewInsets.bottom ?? 0;
-    return math.max(fromMediaQuery, fromView);
+    final view = View.maybeOf(context);
+    if (view == null) return fromMediaQuery;
+    final dpr = view.devicePixelRatio <= 0 ? 1.0 : view.devicePixelRatio;
+    // View insets are physical pixels. Mixing them with logical dp made the
+    // held gap taller than the screen and crushed the form (37px overflow).
+    return math.max(fromMediaQuery, view.viewInsets.bottom / dpr);
   }
 
   @override
@@ -213,6 +217,7 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
     final referralBanner = widget.referralBanner;
     final inset = _readKeyboardInset(context);
     final frozen = widget.isLoading || _continueHeld;
+    if (_lastInset > size.height) _lastInset = inset;
     if (inset > 0) {
       _lastInset = math.max(_lastInset, inset);
     }
@@ -227,15 +232,16 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
           builder: (context, viewport) {
             final keyboardGap =
                 math.max(0.0, screenHeight - viewport.maxHeight);
-            if (keyboardGap > 0) {
+            // Ignore a collapsed viewport. That reading is the whole screen
+            // and would pin the terms to the top.
+            if (keyboardGap > 0 && keyboardGap < screenHeight * 0.6) {
               _heldGap = math.max(_heldGap, keyboardGap);
             }
-            final holdInset = frozen
-                ? math.max(
-                    math.max(0.0, _lastInset - inset),
-                    math.max(0.0, _heldGap - keyboardGap),
-                  )
-                : 0.0;
+            final rawHold =
+                frozen ? math.max(0.0, _heldGap - keyboardGap) : 0.0;
+            // Keep enough height for the PIN form so the terms never overflow.
+            final maxHold = math.max(0.0, viewport.maxHeight - 320);
+            final holdInset = math.min(rawHold, maxHold);
             final keyboardOpen = inset > 0 || _lastInset > 0;
             final focused = widget.pinFocusNode.hasFocus;
             final bodyHeight = math.max(0.0, viewport.maxHeight - holdInset);
@@ -310,26 +316,26 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                       ),
                       Positioned.fill(
                         child: RepaintBoundary(
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: holdInset),
-                          child: Column(
-                            children: [
-                              AnimatedContainer(
-                                duration: AuthPinStep._anim,
-                                curve: Curves.easeOut,
-                                height: overlay ? 0 : topPad + sliderH,
-                              ),
-                              Expanded(
-                                child: _buildFormBand(
-                                  context,
-                                  k: k,
-                                  overlay: overlay,
-                                  termsBottomGap: termsBottomGap,
+                          child: Padding(
+                            padding: EdgeInsets.only(bottom: holdInset),
+                            child: Column(
+                              children: [
+                                AnimatedContainer(
+                                  duration: AuthPinStep._anim,
+                                  curve: Curves.easeOut,
+                                  height: overlay ? 0 : topPad + sliderH,
                                 ),
-                              ),
-                            ],
+                                Expanded(
+                                  child: _buildFormBand(
+                                    context,
+                                    k: k,
+                                    overlay: overlay,
+                                    termsBottomGap: termsBottomGap,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                         ),
                       ),
                     ],
@@ -377,6 +383,9 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                     : 0.0;
                 return SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
+                  // When the keypad shortens the band, keep the bottom of the
+                  // form (Continue, then the terms) inside the visible area.
+                  reverse: overlay,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: minH,
@@ -386,131 +395,130 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: SvgPicture.asset(
-                                  FileConstants.erupaiyaLogoWordmarkSvg,
-                                  width: f(AuthPinStep.logoWidthDesign),
-                                  height: f(AuthPinStep.logoHeightDesign),
-                                  fit: BoxFit.contain,
-                                  alignment: Alignment.centerLeft,
-                                ),
-                              ),
-                              SizedBox(height: f(overlay ? 16 : 18)),
-                              Text(
-                                'Welcome to eRupaiya',
-                                textAlign: TextAlign.start,
-                                style: TextStyle(
-                                  fontSize: f(20),
-                                  fontWeight: FontWeight.w700,
-                                  color: _ink,
-                                  height: 1.2,
-                                ),
-                              ),
-                              SizedBox(height: f(8)),
-                              Text(
-                                'Enter your PIN to continue.',
-                                textAlign: TextAlign.start,
-                                style: TextStyle(
-                                  fontSize: f(14),
-                                  fontWeight: FontWeight.w400,
-                                  color: _subtitle,
-                                  height: 1.35,
-                                ),
-                              ),
-                              if (referralBanner != null) ...[
-                                SizedBox(height: f(12)),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: referralBanner,
-                                ),
-                              ],
-                              SizedBox(
-                                height: referralBanner != null
-                                    ? f(16)
-                                    : f(overlay ? 14 : 28),
-                              ),
-                              Text(
-                                'Mobile Number',
-                                style: TextStyle(
-                                  fontSize: f(14),
-                                  fontWeight: FontWeight.w700,
-                                  color: _ink,
-                                ),
-                              ),
-                              SizedBox(height: f(8)),
-                              ListenableBuilder(
-                                listenable: widget.mobileController,
-                                builder: (context, _) {
-                                  return _PinStepMobileField(
-                                    controller: widget.mobileController,
-                                    k: k,
-                                    onTap: widget.isLoading
-                                        ? null
-                                        : widget.onEditMobile,
-                                  );
-                                },
-                              ),
-                              SizedBox(height: f(overlay ? 8 : 12)),
-                              Text(
-                                'Enter Pin',
-                                style: TextStyle(
-                                  fontSize: f(14),
-                                  fontWeight: FontWeight.w700,
-                                  color: _ink,
-                                ),
-                              ),
-                              SizedBox(height: f(10)),
-                              AuthPinBoxes(
-                                controller: widget.pinController,
-                                focusNode: widget.pinFocusNode,
-                                shakeController: widget.shakeController,
-                                length: widget.pinLength,
-                                obscure: _obscure,
-                                autofocus: true,
-                                enabled: true,
-                                hasError: widget.errorText != null &&
-                                    widget.errorText!.isNotEmpty,
-                                onChanged: widget.isLoading
-                                    ? null
-                                    : widget.onPinChanged,
-                                onCompleted: widget.isLoading
-                                    ? null
-                                    : (_) => _onContinuePressed(),
-                              ),
-                              SizedBox(height: f(2)),
-                              AuthPinActionsRow(
-                                obscure: _obscure,
-                                onToggle: () =>
-                                    setState(() => _obscure = !_obscure),
-                                onForgotPin: widget.isLoading
-                                    ? null
-                                    : widget.onForgotPin,
-                                errorText: widget.errorText,
-                              ),
-                              SizedBox(height: f(12)),
-                ListenableBuilder(
-                  listenable: widget.pinController,
-                  builder: (context, _) {
-                    final canContinue = !widget.isLoading &&
-                        widget.pinController.text.length == widget.pinLength;
-                    return CustomElevatedButton(
-                      label: 'Continue',
-                      uppercaseLabel: false,
-                      onPressed: canContinue ? _onContinuePressed : null,
-                      isLoading: widget.isLoading,
-                      backgroundColor: canContinue
-                          ? AppColors.primary
-                          : _continueDisabledFill,
-                      labelColor:
-                          canContinue ? Colors.white : _continueDisabledLabel,
-                      height: f(50),
-                    );
-                  },
-                ),
-                SizedBox(height: f(overlay ? 15 : 18)),
-                _buildTerms(context, k),
-                SizedBox(height: termsBottomGap),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: SvgPicture.asset(
+                            FileConstants.erupaiyaLogoWordmarkSvg,
+                            width: f(AuthPinStep.logoWidthDesign),
+                            height: f(AuthPinStep.logoHeightDesign),
+                            fit: BoxFit.contain,
+                            alignment: Alignment.centerLeft,
+                          ),
+                        ),
+                        SizedBox(height: f(overlay ? 16 : 18)),
+                        Text(
+                          'Welcome to eRupaiya',
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            fontSize: f(20),
+                            fontWeight: FontWeight.w700,
+                            color: _ink,
+                            height: 1.2,
+                          ),
+                        ),
+                        SizedBox(height: f(8)),
+                        Text(
+                          'Enter your PIN to continue.',
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            fontSize: f(14),
+                            fontWeight: FontWeight.w400,
+                            color: _subtitle,
+                            height: 1.35,
+                          ),
+                        ),
+                        if (referralBanner != null) ...[
+                          SizedBox(height: f(12)),
+                          SizedBox(
+                            width: double.infinity,
+                            child: referralBanner,
+                          ),
+                        ],
+                        SizedBox(
+                          height: referralBanner != null
+                              ? f(16)
+                              : f(overlay ? 14 : 28),
+                        ),
+                        Text(
+                          'Mobile Number',
+                          style: TextStyle(
+                            fontSize: f(14),
+                            fontWeight: FontWeight.w700,
+                            color: _ink,
+                          ),
+                        ),
+                        SizedBox(height: f(8)),
+                        ListenableBuilder(
+                          listenable: widget.mobileController,
+                          builder: (context, _) {
+                            return _PinStepMobileField(
+                              controller: widget.mobileController,
+                              k: k,
+                              onTap:
+                                  widget.isLoading ? null : widget.onEditMobile,
+                            );
+                          },
+                        ),
+                        SizedBox(height: f(overlay ? 8 : 12)),
+                        Text(
+                          'Enter Pin',
+                          style: TextStyle(
+                            fontSize: f(14),
+                            fontWeight: FontWeight.w700,
+                            color: _ink,
+                          ),
+                        ),
+                        SizedBox(height: f(10)),
+                        AuthPinBoxes(
+                          controller: widget.pinController,
+                          focusNode: widget.pinFocusNode,
+                          shakeController: widget.shakeController,
+                          length: widget.pinLength,
+                          obscure: _obscure,
+                          autofocus: true,
+                          enabled: true,
+                          hasError: widget.errorText != null &&
+                              widget.errorText!.isNotEmpty,
+                          onChanged:
+                              widget.isLoading ? null : widget.onPinChanged,
+                          onCompleted: widget.isLoading
+                              ? null
+                              : (_) => _onContinuePressed(),
+                        ),
+                        SizedBox(height: f(2)),
+                        AuthPinActionsRow(
+                          obscure: _obscure,
+                          onToggle: () => setState(() => _obscure = !_obscure),
+                          onForgotPin:
+                              widget.isLoading ? null : widget.onForgotPin,
+                          errorText: widget.errorText,
+                        ),
+                        SizedBox(height: f(12)),
+                        ListenableBuilder(
+                          listenable: widget.pinController,
+                          builder: (context, _) {
+                            final canContinue = !widget.isLoading &&
+                                widget.pinController.text.length ==
+                                    widget.pinLength;
+                            return CustomElevatedButton(
+                              label: 'Continue',
+                              uppercaseLabel: false,
+                              onPressed:
+                                  canContinue ? _onContinuePressed : null,
+                              isLoading: widget.isLoading,
+                              backgroundColor: canContinue
+                                  ? AppColors.primary
+                                  : _continueDisabledFill,
+                              labelColor: canContinue
+                                  ? Colors.white
+                                  : _continueDisabledLabel,
+                              height: f(50),
+                            );
+                          },
+                        ),
+                        SizedBox(height: f(overlay ? 15 : 18)),
+                        _buildTerms(context, k),
+                        SizedBox(height: termsBottomGap),
                       ],
                     ),
                   ),

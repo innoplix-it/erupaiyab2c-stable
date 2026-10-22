@@ -81,6 +81,7 @@ class ProfileController extends StateNotifier<ProfileState> {
     required String name,
     required String email,
     required String address,
+    File? image,
   }) async {
     state = state.copyWith(isUpdating: true, updateErrorMessage: null);
     try {
@@ -88,6 +89,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         name: name,
         email: email,
         address: address,
+        image: image,
       );
       state = state.copyWith(
         isUpdating: false,

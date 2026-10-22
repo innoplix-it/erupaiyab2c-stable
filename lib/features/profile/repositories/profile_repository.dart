@@ -35,15 +35,20 @@ class ProfileRepository {
     required String name,
     required String email,
     required String address,
+    File? image,
   }) async {
     try {
+      final fields = <String, dynamic>{
+        'name': name,
+        'email': email,
+        'address': address,
+      };
+      if (image != null) {
+        fields['profile_photo'] = await MultipartFile.fromFile(image.path);
+      }
       final response = await _dio.post(
         ApiConstants.profileUpdateEndpoint,
-        data: FormData.fromMap({
-          'name': name,
-          'email': email,
-          'address': address,
-        }),
+        data: FormData.fromMap(fields),
         options: Options(contentType: 'multipart/form-data'),
       );
       final payload = response.data as Map<String, dynamic>?;

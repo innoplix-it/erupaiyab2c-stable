@@ -40,7 +40,7 @@ class OtpVerificationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28.r),
         boxShadow: [
           BoxShadow(
-            color: Color(0x1A000000),
+            color: const Color(0x1A000000),
             blurRadius: 35.r,
             offset: Offset(0.w, 16.h),
           ),
@@ -61,29 +61,43 @@ class OtpVerificationCard extends StatelessWidget {
                   ),
             ),
             SizedBox(height: 16.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(controllers.length, (index) {
-                final isFilled = controllers[index].text.isNotEmpty;
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                  child: OtpDigitBox(
-                    controller: controllers[index],
-                    focusNode: focusNodes[index],
-                    isFilled: isFilled,
-                    isError: hasError,
-                    onChanged: (value) {
-                      onInputChanged?.call();
-                      if (value.isEmpty && index > 0) {
-                        focusNodes[index - 1].requestFocus();
-                      } else if (value.isNotEmpty &&
-                          index < focusNodes.length - 1) {
-                        focusNodes[index + 1].requestFocus();
-                      }
-                    },
-                  ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final screenW = MediaQuery.sizeOf(context).width;
+                final gap = screenW * (8 / 360);
+                final count = controllers.length;
+                final cap = screenW * (48 / 360);
+                final box = count == 0
+                    ? 0.0
+                    : ((constraints.maxWidth - gap * (count - 1)) / count)
+                        .clamp(0.0, cap);
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(count, (index) {
+                    final isFilled = controllers[index].text.isNotEmpty;
+                    return Padding(
+                      padding: EdgeInsets.only(left: index == 0 ? 0 : gap),
+                      child: OtpDigitBox(
+                        controller: controllers[index],
+                        focusNode: focusNodes[index],
+                        width: box,
+                        height: box,
+                        isFilled: isFilled,
+                        isError: hasError,
+                        onChanged: (value) {
+                          onInputChanged?.call();
+                          if (value.isEmpty && index > 0) {
+                            focusNodes[index - 1].requestFocus();
+                          } else if (value.isNotEmpty &&
+                              index < focusNodes.length - 1) {
+                            focusNodes[index + 1].requestFocus();
+                          }
+                        },
+                      ),
+                    );
+                  }),
                 );
-              }),
+              },
             ),
             if (hasError) ...[
               SizedBox(height: 12.h),

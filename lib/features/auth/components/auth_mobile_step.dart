@@ -149,8 +149,10 @@ class _AuthMobileStepState extends State<AuthMobileStep>
 
   double _readKeyboardInset(BuildContext context) {
     final fromMediaQuery = MediaQuery.viewInsetsOf(context).bottom;
-    final fromView = View.maybeOf(context)?.viewInsets.bottom ?? 0;
-    return math.max(fromMediaQuery, fromView);
+    final view = View.maybeOf(context);
+    if (view == null) return fromMediaQuery;
+    final dpr = view.devicePixelRatio <= 0 ? 1.0 : view.devicePixelRatio;
+    return math.max(fromMediaQuery, view.viewInsets.bottom / dpr);
   }
 
   @override
@@ -324,6 +326,7 @@ class _AuthMobileStepState extends State<AuthMobileStep>
     // Frozen = Continue is processing or this step is being left. The bottom
     // space the keyboard used to take is kept as padding.
     final frozen = widget.isLoading || _continueHeld || !_routeCurrent;
+    if (_lastInset > size.height) _lastInset = inset;
     if (!frozen && inset > 0) {
       _lastInset = math.max(_lastInset, inset);
     }
@@ -338,15 +341,13 @@ class _AuthMobileStepState extends State<AuthMobileStep>
           builder: (context, viewport) {
             final keyboardGap =
                 math.max(0.0, screenHeight - viewport.maxHeight);
-            if (keyboardGap > 0) {
+            if (keyboardGap > 0 && keyboardGap < screenHeight * 0.6) {
               _heldGap = math.max(_heldGap, keyboardGap);
             }
-            final holdInset = frozen
-                ? math.max(
-                    math.max(0.0, _lastInset - inset),
-                    math.max(0.0, _heldGap - keyboardGap),
-                  )
-                : 0.0;
+            final rawHold =
+                frozen ? math.max(0.0, _heldGap - keyboardGap) : 0.0;
+            final maxHold = math.max(0.0, viewport.maxHeight - 320);
+            final holdInset = math.min(rawHold, maxHold);
             final keyboardOpen = inset > 0 || _lastInset > 0;
             final focused = _focus.hasFocus;
 

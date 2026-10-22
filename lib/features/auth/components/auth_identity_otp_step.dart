@@ -79,7 +79,7 @@ class AuthIdentityOtpStep extends StatelessWidget {
           child: Column(
             children: [
               Expanded(child: _buildScrollableContent(context)),
-              _buildFooter(),
+              _buildFooter(context),
             ],
           ),
         ),
@@ -90,10 +90,10 @@ class AuthIdentityOtpStep extends StatelessWidget {
   Widget _buildScrollableContent(BuildContext context) {
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-        authHorizontalPadding,
+        authSidePadding(context),
         0,
-        authHorizontalPadding,
-        16.h,
+        authSidePadding(context),
+        authH(context, 16),
       ),
       child: Center(
         child: ConstrainedBox(
@@ -104,7 +104,7 @@ class AuthIdentityOtpStep extends StatelessWidget {
               Transform.translate(
                 // Lines the arrow glyph up with the content edge while
                 // keeping the full 48dp tap target.
-                offset: Offset(-8.w, 0),
+                offset: Offset(-authW(context, 8), 0),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back),
                   iconSize: 24.r,
@@ -112,7 +112,7 @@ class AuthIdentityOtpStep extends StatelessWidget {
                   onPressed: onBack,
                 ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: authH(context, 16)),
               Text(
                 title,
                 style: authTextStyle(
@@ -121,7 +121,7 @@ class AuthIdentityOtpStep extends StatelessWidget {
                   height: 1.3,
                 ),
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: authH(context, 4)),
               Text(
                 description,
                 style: authTextStyle(
@@ -131,9 +131,9 @@ class AuthIdentityOtpStep extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
-              SizedBox(height: 13.h),
+              SizedBox(height: authH(context, 13)),
               const AuthCodeLabel('Mobile OTP'),
-              SizedBox(height: 8.h),
+              SizedBox(height: authH(context, 8)),
               AuthOtpBoxes(
                 controller: mobileOtpController,
                 focusNode: mobileOtpFocusNode,
@@ -151,11 +151,11 @@ class AuthIdentityOtpStep extends StatelessWidget {
                 onResend: onResendMobile,
                 errorText: codeErrorText,
               ),
-              SizedBox(height: 15.h),
+              SizedBox(height: authH(context, 15)),
               const Divider(height: 1, thickness: 1, color: _divider),
-              SizedBox(height: 15.h),
+              SizedBox(height: authH(context, 15)),
               const AuthCodeLabel('Email OTP'),
-              SizedBox(height: 8.h),
+              SizedBox(height: authH(context, 8)),
               AuthOtpBoxes(
                 controller: emailOtpController,
                 focusNode: emailOtpFocusNode,
@@ -172,7 +172,7 @@ class AuthIdentityOtpStep extends StatelessWidget {
                 errorText: codeErrorText,
               ),
               if (errorText?.isNotEmpty ?? false) ...[
-                SizedBox(height: 12.h),
+                SizedBox(height: authH(context, 12)),
                 Text(
                   errorText!,
                   style: authTextStyle(
@@ -190,13 +190,13 @@ class AuthIdentityOtpStep extends StatelessWidget {
     );
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        authHorizontalPadding,
-        8.h,
-        authHorizontalPadding,
-        16.h,
+        authSidePadding(context),
+        authH(context, 8),
+        authSidePadding(context),
+        authH(context, 16),
       ),
       child: AuthPrimaryButton(
         label: buttonLabel,

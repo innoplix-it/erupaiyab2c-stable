@@ -703,7 +703,7 @@ class _WalletHeaderBalance extends StatelessWidget {
             right: context.referW(12),
           ),
           child: Text(
-            'Total Balance',
+            'Available eCoins',
             textAlign: TextAlign.center,
             style: _style(
               context,

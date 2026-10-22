@@ -71,6 +71,8 @@ class PinSetupView extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      // The body shrinks with the keypad, so Verify stays above it.
+      resizeToAvoidBottomInset: true,
       body: BlockingLoadingOverlay(
         isLoading: authState.isSubmitting,
         message: 'Setting your MPIN...',

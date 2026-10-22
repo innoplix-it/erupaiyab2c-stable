@@ -9,12 +9,29 @@ class MockHTTPClient extends Mock implements Dio {}
 
 class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
 
+/// Matches the unauthenticated JSON POST options the repository sends.
+Matcher _publicJsonOptions() {
+  return isA<Options>()
+      .having((options) => options.contentType, 'contentType',
+          Headers.jsonContentType)
+      .having((options) => options.extra?['skipAuth'], 'skipAuth', true)
+      .having(
+        (options) => options.extra?['skipAuthRefresh'],
+        'skipAuthRefresh',
+        true,
+      );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late AuthRepository authRepository;
   late MockHTTPClient mockDioClient;
   late MockFlutterSecureStorage mockSecureStorage;
+
+  setUpAll(() {
+    registerFallbackValue(Options());
+  });
 
   setUp(() {
     mockDioClient = MockHTTPClient();
@@ -37,6 +54,7 @@ void main() {
             'mobile': mobile,
             'otp': otp,
           },
+          options: any(named: 'options', that: _publicJsonOptions()),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -57,6 +75,7 @@ void main() {
             'mobile': mobile,
             'otp': otp,
           },
+          options: any(named: 'options', that: _publicJsonOptions()),
         ),
       ).called(1);
     });
@@ -74,6 +93,7 @@ void main() {
             'mobile': mobile,
             'appHash': appHash,
           },
+          options: any(named: 'options', that: _publicJsonOptions()),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -100,6 +120,7 @@ void main() {
             'mobile': mobile,
             'appHash': appHash,
           },
+          options: any(named: 'options', that: _publicJsonOptions()),
         ),
       ).called(1);
     });
@@ -122,6 +143,7 @@ void main() {
       verify(() => mockSecureStorage.delete(key: 'tokenExpiresAt')).called(1);
       verify(() => mockSecureStorage.delete(key: 'userId')).called(1);
       verify(() => mockSecureStorage.delete(key: 'mobile')).called(1);
+      verify(() => mockSecureStorage.delete(key: 'tempAccessToken')).called(1);
       verifyNoMoreInteractions(mockSecureStorage);
     });
   });

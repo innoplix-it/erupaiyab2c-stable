@@ -7,6 +7,8 @@ class OtpDigitBox extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.onChanged,
+    this.width,
+    this.height,
     this.isError = false,
     this.isFilled = false,
   });
@@ -14,6 +16,8 @@ class OtpDigitBox extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
+  final double? width;
+  final double? height;
   final bool isError;
   final bool isFilled;
 
@@ -25,9 +29,11 @@ class OtpDigitBox extends StatelessWidget {
             ? AppColors.primary
             : const Color(0xFFD9D9D9);
 
+    final screenW = MediaQuery.sizeOf(context).width;
+    final box = screenW * (48 / 360);
     return SizedBox(
-      width: 40.r,
-      height: 40.r,
+      width: width ?? box.clamp(36.0, 56.0),
+      height: height ?? box.clamp(36.0, 56.0),
       child: TextField(
         controller: controller,
         focusNode: focusNode,

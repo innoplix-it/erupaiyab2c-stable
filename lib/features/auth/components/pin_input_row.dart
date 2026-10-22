@@ -23,11 +23,15 @@ class PinInputRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spacing = 8.w;
+        final screenW = MediaQuery.sizeOf(context).width;
+        // Figma gap 8 / 360 and box cap 56 / 360. Never force a minimum
+        // wider than the parent, or a narrow row overflows.
+        final spacing = (screenW * (8 / 360)).clamp(4.0, 12.0);
         final maxWidth = constraints.maxWidth;
         final totalSpacing = spacing * (controllers.length - 1);
-        final boxSize =
-            ((maxWidth - totalSpacing) / controllers.length).clamp(36.w, 56.w);
+        final cap = screenW * (56 / 360);
+        final available = (maxWidth - totalSpacing) / controllers.length;
+        final boxSize = available.clamp(0.0, cap);
         final children = <Widget>[];
         for (var i = 0; i < controllers.length; i++) {
           children.add(

@@ -263,8 +263,8 @@ void main() {
             matching: find.byType(AnimatedContainer),
           );
           expect(boxes, findsNWidgets(_otpLength));
-          expect(tester.getRect(boxes.last).right,
-              lessThanOrEqualTo(size.width));
+          expect(
+              tester.getRect(boxes.last).right, lessThanOrEqualTo(size.width));
           expect(tester.getRect(find.byType(CustomElevatedButton)).bottom,
               lessThanOrEqualTo(size.height));
           await _unmount(tester);
@@ -339,7 +339,7 @@ void main() {
       (tester) async {
     final controller = await _pumpOtpView(tester);
     expect(_verifyButton(tester).onPressed, isNull);
-    expect(_verifyButton(tester).backgroundColor, _disabledFill);
+    expect(_verifyButton(tester).backgroundColor, _continueDisabledFill);
 
     await _typeOtp(tester, '123');
     expect(_verifyButton(tester).onPressed, isNull);
