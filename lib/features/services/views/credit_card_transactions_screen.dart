@@ -69,6 +69,11 @@ class _CreditCardTransactionsScreenState
           MyAppBar(
             title: 'Card Transactions',
             showHelp: true,
+            // Match the common app bar (Transaction History): default title
+            // style + 52x25 Bharat Connect + 20px help icon.
+            bharatConnectWidth: 52,
+            bharatConnectHeight: 25,
+            helpIconSize: 20,
             onBack: () => context.pop(),
           ),
           // Pinned like Transaction History: gap stays under the field while
@@ -83,10 +88,10 @@ class _CreditCardTransactionsScreenState
           ),
           Expanded(
             child: state.isLoading
-                ? const Center(
+                ? Center(
                     child: SpinKitCircle(
                       color: AppColors.primary,
-                      size: 48,
+                      size: MediaQuery.sizeOf(context).width * (48 / 440),
                     ),
                   )
                 : CustomScrollView(
@@ -101,8 +106,11 @@ class _CreditCardTransactionsScreenState
                             (context, index) {
                               final item = items[index];
                               return Padding(
-                                padding:
-                                    EdgeInsets.fromLTRB(CreditCardFigmaMetrics.s(context, 16), CreditCardFigmaMetrics.sy(context, 0), CreditCardFigmaMetrics.s(context, 16), CreditCardFigmaMetrics.sy(context, 12)),
+                                padding: EdgeInsets.fromLTRB(
+                                    CreditCardFigmaMetrics.s(context, 16),
+                                    CreditCardFigmaMetrics.sy(context, 0),
+                                    CreditCardFigmaMetrics.s(context, 16),
+                                    CreditCardFigmaMetrics.sy(context, 12)),
                                 child: _TransactionTile(
                                   item: item,
                                   onTap: () => context.push(
@@ -116,7 +124,8 @@ class _CreditCardTransactionsScreenState
                           ),
                         ),
                       SliverToBoxAdapter(
-                        child: SizedBox(height: CreditCardFigmaMetrics.sy(context, 24)),
+                        child: SizedBox(
+                            height: CreditCardFigmaMetrics.sy(context, 24)),
                       ),
                     ],
                   ),
@@ -142,95 +151,137 @@ class _TransactionTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 16), vertical: CreditCardFigmaMetrics.sy(context, 14)),
+          padding: EdgeInsets.symmetric(
+              horizontal: CreditCardFigmaMetrics.s(context, 16),
+              vertical: CreditCardFigmaMetrics.sy(context, 14)),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
+            borderRadius:
+                BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
             border: Border.all(color: AppColors.lightBorder),
           ),
-          child: Row(
-            children: [
-              Container(
-                height: CreditCardFigmaMetrics.s(context, 42),
-                width: CreditCardFigmaMetrics.s(context, 42),
-                decoration: BoxDecoration(
-                  color: meta.color.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: item.icon.trim().isNotEmpty
-                    ? ClipOval(
-                        child: Image.network(
-                          item.icon,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    height: CreditCardFigmaMetrics.s(context, 42),
+                    width: CreditCardFigmaMetrics.s(context, 42),
+                    decoration: BoxDecoration(
+                      color: meta.color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(
+                        CreditCardFigmaMetrics.s(context, 10),
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    alignment: Alignment.center,
+                    child: item.icon.trim().isNotEmpty
+                        ? Image.network(
+                            item.icon,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.credit_card,
+                              color: meta.color,
+                            ),
+                          )
+                        : Icon(
                             Icons.credit_card,
                             color: meta.color,
                           ),
-                        ),
-                      )
-                    : Icon(
-                        Icons.credit_card,
-                        color: meta.color,
-                      ),
-              ),
-              SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.billerName.isNotEmpty ? item.billerName : 'Card',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    SizedBox(height: CreditCardFigmaMetrics.sy(context, 4)),
-                    Text(
-                      item.transactionTime,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textPrimary.withOpacity(0.6),
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _formatAmount(item.amount),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
                   ),
-                  SizedBox(height: CreditCardFigmaMetrics.sy(context, 6)),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 8), vertical: CreditCardFigmaMetrics.sy(context, 4)),
-                    decoration: BoxDecoration(
-                      color: meta.color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 12)),
+                  SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.billerName.isNotEmpty ? item.billerName : 'Card',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: (Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.fontSize ??
+                                            14) -
+                                        2,
+                                  ),
+                        ),
+                        SizedBox(height: CreditCardFigmaMetrics.sy(context, 4)),
+                        Text(
+                          item.transactionTime,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                color: AppColors.textPrimary.withOpacity(0.6),
+                              ),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      meta.label,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: meta.color,
-                            fontWeight: FontWeight.w600,
+                  ),
+                  SizedBox(width: CreditCardFigmaMetrics.s(context, 8)),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: constraints.maxWidth * 0.45,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          _formatAmount(item.amount),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                        SizedBox(height: CreditCardFigmaMetrics.sy(context, 6)),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: CreditCardFigmaMetrics.s(context, 8),
+                            vertical: CreditCardFigmaMetrics.sy(context, 2),
                           ),
+                          decoration: BoxDecoration(
+                            color: meta.color.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(
+                              CreditCardFigmaMetrics.s(context, 12),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            meta.label,
+                            maxLines: 1,
+                            softWrap: false,
+                            textAlign: TextAlign.center,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: meta.color,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: (Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.fontSize ??
+                                              12) -
+                                          1,
+                                    ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -244,7 +295,9 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 16), vertical: CreditCardFigmaMetrics.sy(context, 24)),
+      padding: EdgeInsets.symmetric(
+          horizontal: CreditCardFigmaMetrics.s(context, 16),
+          vertical: CreditCardFigmaMetrics.sy(context, 24)),
       child: Text(
         'No transactions found',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(

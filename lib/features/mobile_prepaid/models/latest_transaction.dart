@@ -15,6 +15,7 @@ class LatestTransaction extends Biller {
     this.createdAt,
     this.expiresAt,
     this.dueDate,
+    this.lastPaidDate,
     this.transactionTime,
     this.daysLeft,
     this.customerName = '',
@@ -34,6 +35,7 @@ class LatestTransaction extends Biller {
   final String? createdAt;
   final String? expiresAt;
   final String? dueDate;
+  final String? lastPaidDate;
   final String? transactionTime;
   final int? daysLeft;
   final String customerName;
@@ -42,7 +44,8 @@ class LatestTransaction extends Biller {
 
   factory LatestTransaction.fromJson(Map<String, dynamic> json) {
     final Map<String, dynamic>? billerResponse =
-        (json['payload']?['billerResponse'] ?? json['billerResponse']) as Map<String, dynamic>?;
+        (json['payload']?['billerResponse'] ?? json['billerResponse'])
+            as Map<String, dynamic>?;
 
     return LatestTransaction(
       id: (json['id'] ?? '').toString(),
@@ -94,6 +97,15 @@ class LatestTransaction extends Biller {
               json['data']?['due_date'] ??
               json['payload']?['dueDate'] ??
               json['payload']?['due_date'])
+          ?.toString(),
+      lastPaidDate: (billerResponse?['lastPaidDate'] ??
+              billerResponse?['last_paid_date'] ??
+              json['last_paid_date'] ??
+              json['lastPaidDate'] ??
+              json['data']?['last_paid_date'] ??
+              json['data']?['lastPaidDate'] ??
+              json['payload']?['last_paid_date'] ??
+              json['payload']?['lastPaidDate'])
           ?.toString(),
       transactionTime: json['transaction_time']?.toString(),
       daysLeft: _parseDaysLeft(json['days_left'] ?? json['daysLeft']),

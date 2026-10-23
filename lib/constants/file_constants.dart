@@ -19,7 +19,8 @@ class FileConstants {
   static String verificationRed = 'assets/images/png/verification_red.png';
   static String prepaidcard = 'assets/images/png/home_icon/prepaid_card.png';
   static String bharatConnect = 'assets/images/png/bharat_con.png';
-  static String bharatConnectColor = 'assets/images/png/home_icon/bharatconnect_color.png';
+  static String bharatConnectColor =
+      'assets/images/png/home_icon/bharatconnect_color.png';
   static String npci = 'assets/images/png/npci.png';
   static String serverDown = 'assets/images/png/serverDown.png';
   static String upi = 'assets/images/png/upi.png';
@@ -153,6 +154,7 @@ class FileConstants {
       'assets/images/png/home_icon/agent_collection.png';
   static String eChalan = 'assets/images/png/home_icon/e_challan.png';
   static String referBg = 'assets/images/png/home_icon/referBg.png';
+
   /// Home page refer promo card (Figma 392×74) with Refer Now CTA.
   static String referCardSvg = 'assets/images/svg/refer-card.svg';
   static String failedIcon = 'assets/images/svg/failedIcon.svg';
@@ -211,6 +213,14 @@ class FileConstants {
   static String preCard = 'assets/images/png/home_icon/pre_card.png';
   static String resetPinIcon = 'assets/images/png/resetpinIcon.png';
   static String contactLogo = 'assets/images/png/contactLogo.png';
+
+  /// Pay Credit Card Bill mobile field. Source art is 24×28, #DD5428.
+  static String creditCardContactSvg =
+      'assets/images/svg/credit_card_contact.svg';
+
+  /// Last-4 mask pill. Source art is 152×26.
+  static String creditCardLast4MaskSvg =
+      'assets/images/svg/credit_card_last4_mask.svg';
   static String homeBanner1 = 'assets/images/png/home_icon/home_banner1.png';
   static String homeBanner3 = 'assets/images/png/home_icon/home_banner3.png';
   static String homeBanner5 = 'assets/images/png/home_icon/homebanner5.png';
@@ -274,11 +284,12 @@ class FileConstants {
   // How It Works step icons (cropped from Figma welcome (10).png).
   static String referStepInviteSvg =
       'assets/images/svg/refer_earn_step_invite.svg';
+
   /// Step 1 invite artwork (Figma 39×30), raster for reliable rendering.
   static String referStepInvitePng =
       'assets/images/png/refer_earn/step_1_invite_icon.png';
-  static String referStepJoinSvg =
-      'assets/images/svg/refer_earn_step_join.svg';
+  static String referStepJoinSvg = 'assets/images/svg/refer_earn_step_join.svg';
+
   /// Step 2 join artwork (Figma 39×30), raster for reliable rendering.
   static String referStepJoinPng =
       'assets/images/png/refer_earn/step_2_join_icon.png';
@@ -288,6 +299,7 @@ class FileConstants {
       'assets/images/png/refer_earn/step_4_icon.png';
   static String referInviteFriendsPng =
       'assets/images/png/refer_earn/invite_friends_icon.png';
+
   /// Referral QR outline CTAs (Figma 14×14, #DD5428).
   static String referQrDownloadSvg = 'assets/images/svg/refer_qr_download.svg';
   static String referQrShareSvg = 'assets/images/svg/refer_qr_share.svg';
@@ -299,12 +311,15 @@ class FileConstants {
   static String referEarnExampleIllustrationSvg =
       'assets/images/svg/refer_earn_example_illustration.svg';
   static String coin_3d = 'assets/images/png/3dcoin.png';
+
   /// Rupee gold coin (Figma 21×20), used on referral milestone reward badges.
   static String coinRupeeSmall =
       'assets/images/png/refer_earn/coin_rupee_small.png';
+
   /// Invite friends glyph (Figma 26×20) for wallet "Refer X more friends" banner.
   static String referMoreFriendsIcon =
       'assets/images/png/refer_earn/refer_more_friends_icon.png';
+
   /// White circular `?` help icon (Figma 20×20) for Refer & Earn app bars.
   static String referHelpIconSvg = 'assets/images/svg/refer_help_icon.svg';
   // Partner logos / offer badge (SVG wrapping embedded PNG artwork).

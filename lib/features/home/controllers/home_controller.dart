@@ -148,7 +148,8 @@ class HomeController extends StateNotifier<HomeState> {
     return future;
   }
 
-  Future<void> fetchAllQuickActions() => _fetchAllQuickActions(showLoading: true);
+  Future<void> fetchAllQuickActions() =>
+      _fetchAllQuickActions(showLoading: true);
 
   Future<void> _fetchAllQuickActions({required bool showLoading}) async {
     if (showLoading) {
@@ -246,29 +247,51 @@ class HomeController extends StateNotifier<HomeState> {
     );
   }
 
-  Future<bool> removeCreditCard(String maskedIdentifier) async {
-    if (maskedIdentifier.trim().isEmpty) return false;
+  Future<bool>? _removeCreditCardInFlight;
+
+  Future<bool> removeCreditCard(String maskedIdentifier) {
+    final existing = _removeCreditCardInFlight;
+    if (existing != null) return existing;
+    final future = _removeCreditCard(maskedIdentifier);
+    _removeCreditCardInFlight = future;
+    return future.whenComplete(() {
+      if (identical(_removeCreditCardInFlight, future)) {
+        _removeCreditCardInFlight = null;
+      }
+    });
+  }
+
+  Future<bool> _removeCreditCard(String maskedIdentifier) async {
+    final id = maskedIdentifier.trim();
+    if (id.isEmpty) return false;
+    final previousCards = state.creditCardActions;
     state = state.copyWith(isFetchingCreditCards: true);
     try {
-      final ok = await _repository.removeCreditCard(maskedIdentifier);
-      if (ok) {
-        final userId = await Utils.getUserId() ?? '';
-        final data = await _repository.fetchCreditCardActions(userId);
+      final ok = await _repository.removeCreditCard(id);
+      if (!ok) {
         state = state.copyWith(
           isFetchingCreditCards: false,
-          creditCardActions: data,
+          creditCardActions: previousCards,
         );
-      } else {
-        state = state.copyWith(isFetchingCreditCards: false);
+        return false;
       }
-      return ok;
+      final userId = await Utils.getUserId() ?? '';
+      final data = await _repository.fetchCreditCardActions(userId);
+      state = state.copyWith(
+        isFetchingCreditCards: false,
+        creditCardActions: data,
+      );
+      return true;
     } catch (e, stackTrace) {
       logger.error(
         'Failed to remove credit card',
         error: e,
         stackTrace: stackTrace,
       );
-      state = state.copyWith(isFetchingCreditCards: false);
+      state = state.copyWith(
+        isFetchingCreditCards: false,
+        creditCardActions: previousCards,
+      );
       return false;
     }
   }

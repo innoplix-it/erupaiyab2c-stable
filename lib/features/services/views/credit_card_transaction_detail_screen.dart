@@ -56,8 +56,12 @@ class CreditCardTransactionDetailScreen extends StatelessWidget {
         children: [
           MyAppBar(
             title: meta.label,
-            height: CreditCardFigmaMetrics.sy(context, 150),
-            backgroundColor: meta.color,
+            showHelp: true,
+            // Match the common app bar (Transaction History): default title
+            // style + 52x25 Bharat Connect + 20px help icon.
+            bharatConnectWidth: 52,
+            bharatConnectHeight: 25,
+            helpIconSize: 20,
             onBack: () => context.pop(),
           ),
           Expanded(
@@ -66,7 +70,8 @@ class CreditCardTransactionDetailScreen extends StatelessWidget {
                 padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 16)),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 24)),
+                  borderRadius: BorderRadius.circular(
+                      CreditCardFigmaMetrics.s(context, 24)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,32 +121,30 @@ class _SummaryCard extends StatelessWidget {
       padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 12)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
+        borderRadius:
+            BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
         border: Border.all(color: AppColors.lightBorder),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: CreditCardFigmaMetrics.s(context, 12),
-            offset: Offset(CreditCardFigmaMetrics.s(context, 0), CreditCardFigmaMetrics.sy(context, 6)),
-          ),
-        ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            height: CreditCardFigmaMetrics.s(context, 48),
-            width: CreditCardFigmaMetrics.s(context, 48),
+            height: CreditCardFigmaMetrics.s(context, 42),
+            width: CreditCardFigmaMetrics.s(context, 42),
             decoration: BoxDecoration(
-              color: AppColors.lightBorder.withOpacity(0.4),
-              shape: BoxShape.circle,
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(
+                CreditCardFigmaMetrics.s(context, 10),
+              ),
+              border: Border.all(color: AppColors.lightBorder),
             ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
             child: tx.icon.trim().isNotEmpty
-                ? ClipOval(
-                    child: Image.network(
-                      tx.icon,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.credit_card),
-                    ),
+                ? Image.network(
+                    tx.icon,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.credit_card),
                   )
                 : const Icon(Icons.credit_card),
           ),
@@ -157,6 +160,10 @@ class _SummaryCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
+                        fontSize:
+                            (Theme.of(context).textTheme.bodyMedium?.fontSize ??
+                                    14) -
+                                2,
                       ),
                 ),
                 SizedBox(height: CreditCardFigmaMetrics.sy(context, 4)),
@@ -171,17 +178,19 @@ class _SummaryCard extends StatelessWidget {
               ],
             ),
           ),
-          Flexible(
-            child: Text(
-              _formatAmount(tx.amount),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
+          SizedBox(width: CreditCardFigmaMetrics.s(context, 8)),
+          Text(
+            _formatAmount(tx.amount),
+            maxLines: 1,
+            softWrap: false,
+            textAlign: TextAlign.end,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize:
+                      (Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14) -
+                          2,
+                ),
           ),
         ],
       ),
@@ -210,7 +219,8 @@ class _InfoSection extends StatelessWidget {
         SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         ...rows.map(
           (row) => Padding(
-            padding: EdgeInsets.only(bottom: CreditCardFigmaMetrics.sy(context, 8)),
+            padding:
+                EdgeInsets.only(bottom: CreditCardFigmaMetrics.sy(context, 8)),
             child: row,
           ),
         ),
@@ -273,16 +283,16 @@ class _CopyRow extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: CreditCardFigmaMetrics.sy(context, 10)),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withOpacity(0.6),
-                  ),
-            ),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textPrimary.withOpacity(0.6),
+                ),
           ),
-          Flexible(
+          SizedBox(width: CreditCardFigmaMetrics.s(context, 12)),
+          Expanded(
             child: Text(
               value,
               textAlign: TextAlign.end,
@@ -291,6 +301,10 @@ class _CopyRow extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
+                    fontSize: (Theme.of(context).textTheme.bodyMedium
+                                ?.fontSize ??
+                            14) -
+                        2,
                   ),
             ),
           ),

@@ -11,6 +11,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
+import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/processing_overlay.dart';
 import '../../paymentgateway/razorpay_guard.dart';
 import '../../paymentgateway/razorpay_service.dart';
@@ -137,31 +138,15 @@ class EducationFeesPaymentView extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'Select Payment Method',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        actions: [
-          Image.asset(
-            FileConstants.bharatConnectColor,
-            height: 20.h,
-            fit: BoxFit.contain,
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.help_outline, color: AppColors.textPrimary),
-          ),
-        ],
+      appBar: MyAppBar(
+        title: 'Select Payment Method',
+        showHelp: true,
+        fitTitle: true,
+        // Common app bar: 52x25 Bharat Connect + 20px help icon.
+        bharatConnectWidth: 52,
+        bharatConnectHeight: 25,
+        helpIconSize: 20,
+        onBack: () => Navigator.of(context).maybePop(),
       ),
       body: SafeArea(
         top: false,

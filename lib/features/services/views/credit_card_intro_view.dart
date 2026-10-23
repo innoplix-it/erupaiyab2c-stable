@@ -7,6 +7,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../widgets/my_app_bar.dart';
 import '../components/credit_card/credit_card_figma_metrics.dart';
 
 class CreditCardIntroView extends StatelessWidget {
@@ -68,13 +69,10 @@ class CreditCardIntroView extends StatelessWidget {
                             'Add New Card',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            style: MyAppBar.sharedTitleStyle(
+                              context,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         IconButton(

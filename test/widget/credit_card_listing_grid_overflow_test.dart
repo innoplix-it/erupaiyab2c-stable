@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:e_rupaiya/features/home/controllers/home_controller.dart';
+import 'package:e_rupaiya/features/home/models/home_state.dart';
+import 'package:e_rupaiya/features/home/repositories/home_repository.dart';
 import 'package:e_rupaiya/features/mobile_prepaid/models/latest_transaction.dart';
 import 'package:e_rupaiya/features/profile/controllers/profile_controller.dart';
 import 'package:e_rupaiya/features/profile/models/profile_model.dart';
@@ -70,6 +73,15 @@ class _FakeProfileController extends ProfileController {
       ),
     );
   }
+}
+
+class _IdleHomeController extends HomeController {
+  _IdleHomeController() : super(repository: HomeRepository(dio: Dio())) {
+    state = const HomeState(creditCardActions: []);
+  }
+
+  @override
+  Future<void> fetchCreditCardActions() async {}
 }
 
 void main() {
@@ -150,4 +162,72 @@ void main() {
       );
     }
   }
+
+  testWidgets(
+    'Recent card shows Last Paid and Due On at 320x568 with 1.15 text',
+    (tester) async {
+      tester.view.devicePixelRatio = 2;
+      tester.view.physicalSize = const Size(320, 568) * 2;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const txn = LatestTransaction(
+        id: 'cc-1',
+        billerId: '1',
+        paymentType: 'Credit Card',
+        billerName: 'HDFC Bank Credit Card',
+        amount: 1200,
+        status: 'SUCCESS',
+        transactionRef: 'ref-1',
+        serviceNo: '9513',
+        dueDate: '2026-05-06',
+        lastPaidDate: '2026-10-01',
+      );
+
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const CreditCardListingView(),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            billerRepositoryProvider.overrideWithValue(_FakeBillerRepository()),
+            serviceLatestTransactionsProvider.overrideWith(
+              (ref, service) async => const [txn],
+            ),
+            homeControllerProvider.overrideWith((ref) => _IdleHomeController()),
+            profileControllerProvider
+                .overrideWith((ref) => _FakeProfileController()),
+          ],
+          child: ScreenUtilInit(
+            designSize: const Size(360, 690),
+            minTextAdapt: true,
+            splitScreenMode: true,
+            fontSizeResolver: FontSizeResolvers.radius,
+            builder: (context, _) => MaterialApp.router(
+              routerConfig: router,
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: const TextScaler.linear(1.15),
+                ),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ),
+      );
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(find.textContaining('Last Paid On'), findsOneWidget);
+      expect(find.textContaining('Due On'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

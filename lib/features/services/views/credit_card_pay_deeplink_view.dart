@@ -151,6 +151,7 @@ class _CreditCardPayDeeplinkViewState
       backgroundColor: Colors.white,
       appBar: MyAppBar(
         title: 'Credit Card',
+        titleStyle: MyAppBar.sharedTitleStyle(context),
         onBack: () => context.pop(),
         showHelp: false,
         showBharatConnect: false,

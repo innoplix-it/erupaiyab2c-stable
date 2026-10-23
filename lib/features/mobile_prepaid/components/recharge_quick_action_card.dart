@@ -128,6 +128,11 @@ class SimpleQuickActionCard extends StatelessWidget {
     final changeRadius = useCredit
         ? CreditCardFigmaMetrics.changeButtonRadius(context)
         : (useOperator ? FetchProviderMetrics.r(20) : 20.r);
+    final creditLogo = CreditCardFigmaMetrics.providerLogoBox(context);
+    final creditLogoMax = CreditCardFigmaMetrics.providerCardHeight(context) -
+        CreditCardFigmaMetrics.sy(context, 8);
+    final creditLogoBox =
+        creditLogo > creditLogoMax ? creditLogoMax : creditLogo;
 
     return InkWell(
       onTap: onTap,
@@ -138,9 +143,14 @@ class SimpleQuickActionCard extends StatelessWidget {
       ),
       child: Container(
         width: double.infinity,
-        height: (useOperator || useCredit) ? null : 68.h,
+        height: useCredit
+            ? CreditCardFigmaMetrics.providerCardHeight(context)
+            : (useOperator ? null : 68.h),
+        alignment: useCredit ? Alignment.center : null,
         padding: useCredit
-            ? CreditCardFigmaMetrics.providerCardPadding(context)
+            ? EdgeInsets.symmetric(
+                horizontal: CreditCardFigmaMetrics.s(context, 16),
+              )
             : useOperator
                 ? EdgeInsets.symmetric(
                     horizontal: FetchProviderMetrics.w(16),
@@ -155,9 +165,8 @@ class SimpleQuickActionCard extends StatelessWidget {
                 : (useOperator ? FetchProviderMetrics.r(16) : 16.r),
           ),
           border: Border.all(
-            color: useOperator
-                ? const Color(0xFFE2E0E0)
-                : AppColors.lightBorder,
+            color:
+                useOperator ? const Color(0xFFE2E0E0) : AppColors.lightBorder,
             width: 1,
           ),
           boxShadow: showShadow
@@ -206,10 +215,10 @@ class SimpleQuickActionCard extends StatelessWidget {
               asset: leadingAsset,
               url: leadingImageUrl,
               width: useCredit
-                  ? CreditCardFigmaMetrics.providerLogoBox(context)
+                  ? creditLogoBox
                   : (useOperator ? FetchProviderMetrics.r(50) : 44.r),
               height: useCredit
-                  ? CreditCardFigmaMetrics.providerLogoBox(context)
+                  ? creditLogoBox
                   : (useOperator ? FetchProviderMetrics.r(50) : 44.r),
               borderRadius: useCredit
                   ? CreditCardFigmaMetrics.providerLogoRadius(context)

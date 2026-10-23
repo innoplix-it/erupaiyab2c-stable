@@ -16,9 +16,162 @@ import 'login_services_slider.dart';
 /// rendered outside the app theme (widget tests, previews).
 const String authFontFamily = 'Plus Jakarta Sans';
 
-/// Focuses [node] and opens the keyboard. System sheets (biometric prompt,
-/// phone-number hint) hide the keyboard without removing focus, and
-/// requestFocus on an already focused field does not reopen it.
+/// What the login/PIN chrome needs from the keyboard slot.
+///
+/// [overlay] is the lifted layout (keyboard, focus, short body, or loading).
+/// [available] is the body height under the status-bar pad, after any held
+/// keyboard gap. Both stay constant while the keyboard inset is only moving,
+/// so the form widgets are not rebuilt on those frames.
+class AuthKeyboardFrame {
+  const AuthKeyboardFrame({
+    required this.overlay,
+    required this.available,
+    required this.topPad,
+    required this.bottomSafe,
+  });
+
+  final bool overlay;
+  final double available;
+  final double topPad;
+  final double bottomSafe;
+}
+
+/// Lays out the auth background and form against the real body height.
+///
+/// Scaffold shrinks the body while the keyboard opens. This slot reads that
+/// height here, so the parent does not subscribe to inset or padding changes.
+/// The slider and form widget instances are reused until [overlay] or the
+/// closed-layout height actually changes. Keyboard frames only move padding.
+class AuthKeyboardSlot extends StatefulWidget {
+  const AuthKeyboardSlot({
+    super.key,
+    required this.screenHeight,
+    required this.topExtra,
+    required this.frozen,
+    required this.heldGap,
+    required this.lifted,
+    required this.onGap,
+    required this.onOpened,
+    required this.onDismiss,
+    required this.buildSlider,
+    required this.buildForm,
+  });
+
+  final double screenHeight;
+
+  /// Added under the status-bar inset (Figma top pad).
+  final double topExtra;
+  final bool frozen;
+  final double heldGap;
+
+  /// Lift requested by focus, loading, or a keyboard the parent already saw.
+  /// A shrinking body also lifts, without waiting for this flag.
+  final bool lifted;
+  final ValueChanged<double> onGap;
+  final VoidCallback onOpened;
+  final VoidCallback onDismiss;
+  final Widget Function(AuthKeyboardFrame frame) buildSlider;
+  final Widget Function(AuthKeyboardFrame frame) buildForm;
+
+  @override
+  State<AuthKeyboardSlot> createState() => _AuthKeyboardSlotState();
+}
+
+class _AuthKeyboardSlotState extends State<AuthKeyboardSlot> {
+  bool _gapOpen = false;
+  int? _cacheKey;
+  Widget? _slider;
+  Widget? _form;
+
+  @override
+  void didUpdateWidget(covariant AuthKeyboardSlot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Parent state changed (focus, loading, dismiss). Rebuild the chrome
+    // once; pure keyboard-inset frames never reach this method.
+    _cacheKey = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = MediaQuery.paddingOf(context);
+    return LayoutBuilder(
+      builder: (context, viewport) {
+        final keyboardGap =
+            math.max(0.0, widget.screenHeight - viewport.maxHeight);
+        var gap = widget.heldGap;
+        final gapOpen =
+            keyboardGap > 0 && keyboardGap < widget.screenHeight * 0.6;
+        if (gapOpen) {
+          gap = math.max(gap, keyboardGap);
+          if (gap != widget.heldGap) widget.onGap(gap);
+        }
+        if (gapOpen != _gapOpen) {
+          _gapOpen = gapOpen;
+          if (gapOpen && !widget.lifted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) widget.onOpened();
+            });
+          }
+        }
+        final rawHold = widget.frozen ? math.max(0.0, gap - keyboardGap) : 0.0;
+        final maxHold = math.max(0.0, viewport.maxHeight - 320);
+        final holdInset = math.min(rawHold, maxHold);
+        final topPad = padding.top + widget.topExtra;
+        final bodyHeight = math.max(0.0, viewport.maxHeight - holdInset);
+        final available = math.max(0.0, bodyHeight - topPad);
+        final shortViewport = available < 420;
+        final overlay = widget.lifted || shortViewport || gapOpen;
+        // Closed layout sizes the slider from the body. Lifted layout does
+        // not, so intermediate keyboard heights must not rebuild it.
+        final key = Object.hash(overlay, overlay ? 0 : available.round());
+        if (_cacheKey != key || _slider == null || _form == null) {
+          final frame = AuthKeyboardFrame(
+            overlay: overlay,
+            available: available,
+            topPad: topPad,
+            bottomSafe: padding.bottom,
+          );
+          _cacheKey = key;
+          _slider = widget.buildSlider(frame);
+          _form = widget.buildForm(frame);
+        }
+        return SizedBox.expand(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: AppColors.loginPeachCoralGradient,
+            ),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: widget.onDismiss,
+              child: SafeArea(
+                top: false,
+                bottom: false,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Positioned(
+                      top: topPad,
+                      left: 0,
+                      right: 0,
+                      child: _slider!,
+                    ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: holdInset),
+                        child: RepaintBoundary(child: _form!),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 void showAuthKeyboard(FocusNode node) {
   node.requestFocus();
   SystemChannels.textInput.invokeMethod<void>('TextInput.show');
@@ -305,22 +458,22 @@ class AuthStepLayout extends StatelessWidget {
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(side, topGap, side, 0),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
                         maxWidth: authContentMaxWidth(context),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ...children,
-                              // Keeps the last control clear of the pinned
-                              // footer button.
-                          SizedBox(height: authH(context, 24)),
-                            ],
-                          ),
-                        ),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ...children,
+                          // Keeps the last control clear of the pinned
+                          // footer button.
+                          SizedBox(height: authH(context, 24)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
               Padding(
@@ -367,29 +520,29 @@ class AuthBrandRow extends StatelessWidget {
               children: [
                 Text(
                   'eRupaiya',
-            style: TextStyle(
-              fontFamily: authFontFamily,
+                  style: TextStyle(
+                    fontFamily: authFontFamily,
                     fontSize: 18.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
                     height: 1.2,
-              letterSpacing: 0,
-            ),
+                    letterSpacing: 0,
+                  ),
                 ),
                 const SizedBox(width: 1),
                 Text(
                   'TM',
-                style: TextStyle(
+                  style: TextStyle(
                     fontFamily: authFontFamily,
                     fontSize: 6.sp,
-                  fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.textPrimary,
                     height: 1,
                     letterSpacing: 0,
                   ),
                 ),
               ],
-              ),
+            ),
           ),
         ),
       ],
@@ -610,21 +763,21 @@ class AuthPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return AuthButtonTheme(
       child: CustomElevatedButton(
-      onPressed: enabled ? onPressed : null,
-      label: label,
-      uppercaseLabel: false,
-      isLoading: isLoading,
+        onPressed: enabled ? onPressed : null,
+        label: label,
+        uppercaseLabel: false,
+        isLoading: isLoading,
         // No fixed height, so the label never clips at large text scales; the
         // 28.r radius still rounds the 48dp Material height into a full pill.
         backgroundColor: enabled ? AppColors.primary : authContinueDisabledFill,
         labelColor: enabled ? Colors.white : authContinueDisabledLabel,
-      labelStyle: TextStyle(
-        fontFamily: authFontFamily,
-        fontSize: 12.sp,
-        fontWeight: FontWeight.w500,
+        labelStyle: TextStyle(
+          fontFamily: authFontFamily,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w500,
           color: enabled ? Colors.white : authContinueDisabledLabel,
-        height: 1,
-        letterSpacing: 0,
+          height: 1,
+          letterSpacing: 0,
         ),
       ),
     );

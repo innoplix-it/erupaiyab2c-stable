@@ -17,6 +17,8 @@ import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/screen_wrapper.dart';
 import '../../../widgets/app_search_bar.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
+import '../../home/controllers/home_controller.dart';
+import '../../home/models/credit_card_item.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/credit_card/credit_card_figma_metrics.dart';
 import '../components/service_recent_section.dart';
@@ -39,6 +41,8 @@ class CreditCardListingView extends HookConsumerWidget {
     final recentTransactions = ref.watch(
       serviceLatestTransactionsProvider(categoryName),
     );
+    final savedCards = ref.watch(homeControllerProvider).creditCardActions ??
+        const <CreditCardItem>[];
 
     useEffect(() {
       Future.microtask(() {
@@ -46,6 +50,9 @@ class CreditCardListingView extends HookConsumerWidget {
             .read(billerListingControllerProvider.notifier)
             .fetchBillers(categoryName: categoryName, searchQuery: '');
         searchController.clear();
+        if (ref.read(homeControllerProvider).creditCardActions == null) {
+          ref.read(homeControllerProvider.notifier).fetchCreditCardActions();
+        }
       });
       return null;
     }, const []);
@@ -110,6 +117,12 @@ class CreditCardListingView extends HookConsumerWidget {
         children: [
           MyAppBar(
             title: 'Select Your Bank',
+            showHelp: true,
+            // Match the common app bar (Transaction History): default title
+            // style + 52x25 Bharat Connect + 20px help icon.
+            bharatConnectWidth: 52,
+            bharatConnectHeight: 25,
+            helpIconSize: 20,
             onBack: () => context.pop(),
           ),
           Padding(
@@ -172,7 +185,8 @@ class CreditCardListingView extends HookConsumerWidget {
                                 CreditCardFigmaMetrics.s(context, 24),
                                 CreditCardFigmaMetrics.sy(context, 4),
                                 CreditCardFigmaMetrics.s(context, 24),
-                                CreditCardFigmaMetrics.sy(context, 16) + MediaQuery.paddingOf(context).bottom,
+                                CreditCardFigmaMetrics.sy(context, 16) +
+                                    MediaQuery.paddingOf(context).bottom,
                               ),
                               itemCount: billers.length +
                                   (listingState.isFetchingMore ? 1 : 0),
@@ -191,7 +205,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                         )
                                         .selectBiller(
                                           biller,
-                                          categoryName: biller.billerName.trim().isNotEmpty
+                                          categoryName: biller.billerName
+                                                  .trim()
+                                                  .isNotEmpty
                                               ? biller.billerName.trim()
                                               : categoryName,
                                         );
@@ -200,9 +216,10 @@ class CreditCardListingView extends HookConsumerWidget {
                                       extra: BillerDetailArgs(
                                         biller: biller,
                                         isCreditCard: true,
-                                        paymentType: biller.billerName.trim().isNotEmpty
-                                            ? biller.billerName.trim()
-                                            : categoryName,
+                                        paymentType:
+                                            biller.billerName.trim().isNotEmpty
+                                                ? biller.billerName.trim()
+                                                : categoryName,
                                       ),
                                     );
                                   },
@@ -224,6 +241,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                     serviceCategory: categoryName,
                                     operatorLogo: true,
                                     operatorBillers: billers,
+                                    savedCards: savedCards,
                                     onAction: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute<void>(
@@ -231,6 +249,7 @@ class CreditCardListingView extends HookConsumerWidget {
                                             categoryName: categoryName,
                                             operatorLogo: true,
                                             operatorBillers: billers,
+                                            savedCards: savedCards,
                                             onPayNow: openBillerFromRecent,
                                           ),
                                         ),
@@ -239,7 +258,8 @@ class CreditCardListingView extends HookConsumerWidget {
                                   ),
                                   Padding(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: CreditCardFigmaMetrics.s(context, 24),
+                                      horizontal:
+                                          CreditCardFigmaMetrics.s(context, 24),
                                     ),
                                     child: Column(
                                       crossAxisAlignment:
@@ -255,10 +275,16 @@ class CreditCardListingView extends HookConsumerWidget {
                                                 color: AppColors.textPrimary,
                                               ),
                                         ),
-                                        SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
+                                        SizedBox(
+                                            height: CreditCardFigmaMetrics.sy(
+                                                context, 12)),
                                         LayoutBuilder(
                                           builder: (context, constraints) {
-                                            const spacing = 12.0;
+                                            final spacing =
+                                                CreditCardFigmaMetrics.s(
+                                              context,
+                                              12,
+                                            );
                                             const columns = 3;
                                             final tileWidth = (constraints
                                                         .maxWidth -
@@ -281,10 +307,14 @@ class CreditCardListingView extends HookConsumerWidget {
                                                             )
                                                             .selectBiller(
                                                               biller,
-                                                              categoryName:
-                                                                  biller.billerName.trim().isNotEmpty
-                                                                      ? biller.billerName.trim()
-                                                                      : categoryName,
+                                                              categoryName: biller
+                                                                      .billerName
+                                                                      .trim()
+                                                                      .isNotEmpty
+                                                                  ? biller
+                                                                      .billerName
+                                                                      .trim()
+                                                                  : categoryName,
                                                             );
                                                         context.push(
                                                           RouteConstants
@@ -293,10 +323,14 @@ class CreditCardListingView extends HookConsumerWidget {
                                                               BillerDetailArgs(
                                                             biller: biller,
                                                             isCreditCard: true,
-                                                            paymentType:
-                                                                biller.billerName.trim().isNotEmpty
-                                                                    ? biller.billerName.trim()
-                                                                    : categoryName,
+                                                            paymentType: biller
+                                                                    .billerName
+                                                                    .trim()
+                                                                    .isNotEmpty
+                                                                ? biller
+                                                                    .billerName
+                                                                    .trim()
+                                                                : categoryName,
                                                           ),
                                                         );
                                                       },
@@ -307,7 +341,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                           },
                                         ),
                                         if (remaining.isNotEmpty) ...[
-                                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 18)),
+                                          SizedBox(
+                                              height: CreditCardFigmaMetrics.sy(
+                                                  context, 18)),
                                           Text(
                                             'All Banks',
                                             style: Theme.of(context)
@@ -318,7 +354,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                                   color: AppColors.textPrimary,
                                                 ),
                                           ),
-                                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
+                                          SizedBox(
+                                              height: CreditCardFigmaMetrics.sy(
+                                                  context, 12)),
                                           Column(
                                             children: [
                                               for (final biller in remaining)
@@ -332,10 +370,14 @@ class CreditCardListingView extends HookConsumerWidget {
                                                         )
                                                         .selectBiller(
                                                           biller,
-                                                          categoryName:
-                                                              biller.billerName.trim().isNotEmpty
-                                                                  ? biller.billerName.trim()
-                                                                  : categoryName,
+                                                          categoryName: biller
+                                                                  .billerName
+                                                                  .trim()
+                                                                  .isNotEmpty
+                                                              ? biller
+                                                                  .billerName
+                                                                  .trim()
+                                                              : categoryName,
                                                         );
                                                     context.push(
                                                       RouteConstants
@@ -343,10 +385,13 @@ class CreditCardListingView extends HookConsumerWidget {
                                                       extra: BillerDetailArgs(
                                                         biller: biller,
                                                         isCreditCard: true,
-                                                        paymentType:
-                                                            biller.billerName.trim().isNotEmpty
-                                                                ? biller.billerName.trim()
-                                                                : categoryName,
+                                                        paymentType: biller
+                                                                .billerName
+                                                                .trim()
+                                                                .isNotEmpty
+                                                            ? biller.billerName
+                                                                .trim()
+                                                            : categoryName,
                                                       ),
                                                     );
                                                   },
@@ -356,7 +401,9 @@ class CreditCardListingView extends HookConsumerWidget {
                                         ],
                                         if (listingState.isFetchingMore)
                                           const _CreditCardListingFooterSkeleton(),
-                                        SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
+                                        SizedBox(
+                                            height: CreditCardFigmaMetrics.sy(
+                                                context, 12)),
                                       ],
                                     ),
                                   ),
@@ -391,18 +438,21 @@ class _BillerGridTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
+      borderRadius:
+          BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
       child: Container(
         height: tileHeight,
         padding: EdgeInsets.all(pad),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
+          borderRadius:
+              BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
           boxShadow: [
             BoxShadow(
               color: AppColors.cardShadow,
               blurRadius: CreditCardFigmaMetrics.s(context, 12),
-              offset: Offset(CreditCardFigmaMetrics.s(context, 0), CreditCardFigmaMetrics.sy(context, 6)),
+              offset: Offset(CreditCardFigmaMetrics.s(context, 0),
+                  CreditCardFigmaMetrics.sy(context, 6)),
             ),
           ],
         ),
@@ -416,7 +466,8 @@ class _BillerGridTile extends StatelessWidget {
                 iconUrl: biller.iconUrl,
                 size: logoSize,
                 backgroundColor: Colors.white,
-                borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 14)),
+                borderRadius: BorderRadius.circular(
+                    CreditCardFigmaMetrics.s(context, 14)),
               ),
             ),
             SizedBox(height: gap),
@@ -481,8 +532,8 @@ class _BillerListTile extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
+                  borderRadius: BorderRadius.circular(
+                      CreditCardFigmaMetrics.s(context, 16)),
                   border: Border.all(
                     color: AppColors.lightBorder2,
                     width: borderWidth,
@@ -493,8 +544,8 @@ class _BillerListTile extends StatelessWidget {
                   iconUrl: biller.iconUrl,
                   size: logoSize,
                   backgroundColor: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(CreditCardFigmaMetrics.s(context, 12)),
+                  borderRadius: BorderRadius.circular(
+                      CreditCardFigmaMetrics.s(context, 12)),
                 ),
               ),
               SizedBox(width: CreditCardFigmaMetrics.s(context, 10)),
@@ -603,10 +654,12 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                 height: AppSearchBar.height,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 14)),
+                  borderRadius: BorderRadius.circular(
+                      CreditCardFigmaMetrics.s(context, 14)),
                   border: Border.all(color: AppColors.lightBorder),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: CreditCardFigmaMetrics.s(context, 14)),
+                padding: EdgeInsets.symmetric(
+                    horizontal: CreditCardFigmaMetrics.s(context, 14)),
                 child: Row(
                   children: [
                     const Icon(Icons.search, color: AppColors.textPrimary),
@@ -630,7 +683,8 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                         CreditCardFigmaMetrics.s(context, 24),
                         CreditCardFigmaMetrics.sy(context, 4),
                         CreditCardFigmaMetrics.s(context, 24),
-                        CreditCardFigmaMetrics.sy(context, 16) + MediaQuery.paddingOf(context).bottom,
+                        CreditCardFigmaMetrics.sy(context, 16) +
+                            MediaQuery.paddingOf(context).bottom,
                       ),
                       itemCount: _mockBillers.length,
                       itemBuilder: (_, index) => _BillerListTile(
@@ -643,7 +697,8 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                         CreditCardFigmaMetrics.s(context, 24),
                         0,
                         CreditCardFigmaMetrics.s(context, 24),
-                        CreditCardFigmaMetrics.sy(context, 16) + MediaQuery.paddingOf(context).bottom,
+                        CreditCardFigmaMetrics.sy(context, 16) +
+                            MediaQuery.paddingOf(context).bottom,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -658,10 +713,14 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                                   color: AppColors.textPrimary,
                                 ),
                           ),
-                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
+                          SizedBox(
+                              height: CreditCardFigmaMetrics.sy(context, 12)),
                           LayoutBuilder(
                             builder: (context, constraints) {
-                              const spacing = 12.0;
+                              final spacing = CreditCardFigmaMetrics.s(
+                                context,
+                                12,
+                              );
                               const columns = 3;
                               final tileWidth = (constraints.maxWidth -
                                       (spacing * (columns - 1))) /
@@ -682,7 +741,8 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                               );
                             },
                           ),
-                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 18)),
+                          SizedBox(
+                              height: CreditCardFigmaMetrics.sy(context, 18)),
                           Text(
                             'All Banks',
                             style: Theme.of(context)
@@ -693,7 +753,8 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                                   color: AppColors.textPrimary,
                                 ),
                           ),
-                          SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
+                          SizedBox(
+                              height: CreditCardFigmaMetrics.sy(context, 12)),
                           for (final biller in _mockBillers)
                             _BillerListTile(biller: biller, onTap: () {}),
                         ],
@@ -747,7 +808,8 @@ class _ProviderIconFrame extends StatelessWidget {
       padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 3)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(CreditCardFigmaMetrics.s(context, 18)),
+        borderRadius:
+            BorderRadius.circular(CreditCardFigmaMetrics.s(context, 18)),
         border: Border.all(color: AppColors.lightBorder, width: 1),
       ),
       child: child,

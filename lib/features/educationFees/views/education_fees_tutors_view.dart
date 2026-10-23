@@ -122,6 +122,10 @@ class EducationFeesTutorsView extends HookConsumerWidget {
       appBar: MyAppBar(
         title: 'Tutors',
         showHelp: true,
+        // Common app bar: 52x25 Bharat Connect + 20px help icon.
+        bharatConnectWidth: 52,
+        bharatConnectHeight: 25,
+        helpIconSize: 20,
         onBack: () => Navigator.of(context).maybePop(),
       ),
       body: SafeArea(

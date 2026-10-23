@@ -13,6 +13,7 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../widgets/my_app_bar.dart';
 import '../controllers/education_fees_controller.dart';
 import 'education_fees_tutors_view.dart';
 
@@ -112,25 +113,20 @@ class EducationFeesAmountView extends HookConsumerWidget {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: Text(
-            resolvedFeeType,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-          ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-            onPressed: () {
-              suppressAmountSync.value = true;
-              amountController.clear();
-              controller.updateAmountInput('');
-              Navigator.of(context).maybePop();
-            },
-          ),
+        appBar: MyAppBar(
+          title: resolvedFeeType,
+          showHelp: true,
+          fitTitle: true,
+          // Common app bar: 52x25 Bharat Connect + 20px help icon.
+          bharatConnectWidth: 52,
+          bharatConnectHeight: 25,
+          helpIconSize: 20,
+          onBack: () {
+            suppressAmountSync.value = true;
+            amountController.clear();
+            controller.updateAmountInput('');
+            Navigator.of(context).maybePop();
+          },
         ),
         body: SafeArea(
           top: false,

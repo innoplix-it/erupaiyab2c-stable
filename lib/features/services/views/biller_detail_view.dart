@@ -56,7 +56,6 @@ void _debugLog(String message) {
   debugPrint(message);
 }
 
-
 class _UpperCaseTextFormatter extends TextInputFormatter {
   const _UpperCaseTextFormatter();
 
@@ -807,10 +806,15 @@ class BillerDetailView extends HookConsumerWidget {
                                       ? 'Registered Mobile Number'
                                       : param.paramName);
                               final useCreditFieldChrome = isCreditCardFlow;
-                              final ccSx =
-                                  isCreditCardFlow ? ccS(14) : 14.sp;
-                              final fieldRadius =
-                                  isCreditCardFlow ? ccS(12) : 12.r;
+                              final ccSx = isCreditCardFlow ? ccS(14) : 14.sp;
+                              final fieldRadius = isCreditCardFlow
+                                  ? CreditCardFigmaMetrics.billFieldRadius(
+                                      context)
+                                  : 12.r;
+                              final lockCreditFieldHeight = isCreditCardFlow &&
+                                  (isLastFour || isMobile) &&
+                                  (errorText == null ||
+                                      errorText.trim().isEmpty);
                               return Padding(
                                 padding: EdgeInsets.only(
                                   bottom: isCreditCardFlow ? ccSy(14) : 16.h,
@@ -911,9 +915,9 @@ class BillerDetailView extends HookConsumerWidget {
                                             ? BoxDecoration(
                                                 borderRadius:
                                                     BorderRadius.circular(
-                                                  CreditCardFigmaMetrics.s(
+                                                  CreditCardFigmaMetrics
+                                                      .billFieldRadius(
                                                     context,
-                                                    12,
                                                   ),
                                                 ),
                                                 boxShadow: [
@@ -922,7 +926,8 @@ class BillerDetailView extends HookConsumerWidget {
                                                         .withValues(
                                                             alpha: 0.06),
                                                     blurRadius:
-                                                        CreditCardFigmaMetrics.s(
+                                                        CreditCardFigmaMetrics
+                                                            .s(
                                                       context,
                                                       8,
                                                     ),
@@ -937,8 +942,23 @@ class BillerDetailView extends HookConsumerWidget {
                                                 ],
                                               )
                                             : const BoxDecoration(),
-                                        child: TextField(
+                                        child: SizedBox(
+                                          width: double.infinity,
+                                          height: lockCreditFieldHeight
+                                              ? CreditCardFigmaMetrics
+                                                  .billFieldHeight(context)
+                                              : null,
+                                          child: TextField(
                                           controller: tc,
+                                          // A tight height only paints the
+                                          // outline when expands is set.
+                                          expands: lockCreditFieldHeight,
+                                          maxLines: lockCreditFieldHeight
+                                              ? null
+                                              : 1,
+                                          textAlignVertical: isCreditCardFlow
+                                              ? TextAlignVertical.center
+                                              : null,
                                           readOnly: isGasLockedMobile,
                                           enableInteractiveSelection:
                                               !isGasLockedMobile,
@@ -1005,86 +1025,188 @@ class BillerDetailView extends HookConsumerWidget {
                                                   )
                                                 : null,
                                             prefixIcon: isLastFour
-                                                ? _MaskedPrefix(
-                                                    creditCard:
-                                                        isCreditCardFlow,
+                                                ? Padding(
+                                                    padding: EdgeInsets.only(
+                                                      left: isCreditCardFlow
+                                                          ? CreditCardFigmaMetrics
+                                                              .billFieldInnerGap(
+                                                              context,
+                                                            )
+                                                          : 0,
+                                                      right: isCreditCardFlow
+                                                          ? CreditCardFigmaMetrics
+                                                              .billFieldInnerGap(
+                                                              context,
+                                                            )
+                                                          : 0,
+                                                    ),
+                                                    child: _MaskedPrefix(
+                                                      creditCard:
+                                                          isCreditCardFlow,
+                                                    ),
                                                   )
                                                 : null,
                                             suffixIcon: (isMobile &&
                                                     !isGasLockedMobile)
-                                                ? Padding(
-                                                    padding: EdgeInsets.only(
-                                                      right: isCreditCardFlow
-                                                          ? ccS(8)
-                                                          : 8.w,
-                                                    ),
-                                                    child: Material(
-                                                      color: AppColors.primary,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                        isCreditCardFlow
-                                                            ? ccS(8)
-                                                            : 8.r,
-                                                      ),
-                                                      child: InkWell(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(
-                                                          isCreditCardFlow
-                                                              ? ccS(8)
-                                                              : 8.r,
-                                                        ),
-                                                        onTap: () async {
-                                                          final picked =
-                                                              await _pickContactNumber(
+                                                ? isCreditCardFlow
+                                                    ? Padding(
+                                                        padding:
+                                                            EdgeInsets.only(
+                                                          right: CreditCardFigmaMetrics
+                                                              .contactIconRightInset(
                                                             context,
-                                                            permissionService,
-                                                            contactsController:
-                                                                contactsController,
-                                                          );
-                                                          if (picked != null &&
-                                                              picked
-                                                                  .isNotEmpty) {
-                                                            tc?.text = picked;
-                                                          }
-                                                          if (gasPolicyMessage
-                                                                  .value !=
-                                                              null) {
-                                                            gasPolicyMessage
-                                                                .value = null;
-                                                          }
-                                                        },
-                                                        child: SizedBox(
-                                                          width: isCreditCardFlow
-                                                              ? ccS(36)
-                                                              : 36.r,
-                                                          height:
-                                                              isCreditCardFlow
-                                                                  ? ccSy(36)
-                                                                  : 36.r,
-                                                          child: Icon(
-                                                            Icons
-                                                                .contact_page_outlined,
-                                                            color: Colors.white,
-                                                            size:
-                                                                isCreditCardFlow
-                                                                    ? ccS(20)
-                                                                    : 20.r,
                                                           ),
                                                         ),
-                                                      ),
-                                                    ),
-                                                  )
+                                                        child: GestureDetector(
+                                                          behavior:
+                                                              HitTestBehavior
+                                                                  .opaque,
+                                                          onTap: () async {
+                                                            final picked =
+                                                                await _pickContactNumber(
+                                                              context,
+                                                              permissionService,
+                                                              contactsController:
+                                                                  contactsController,
+                                                            );
+                                                            if (picked !=
+                                                                    null &&
+                                                                picked
+                                                                    .isNotEmpty) {
+                                                              tc?.text =
+                                                                  picked;
+                                                            }
+                                                            if (gasPolicyMessage
+                                                                    .value !=
+                                                                null) {
+                                                              gasPolicyMessage
+                                                                      .value =
+                                                                  null;
+                                                            }
+                                                          },
+                                                          child:
+                                                              SvgPicture.asset(
+                                                            FileConstants
+                                                                .creditCardContactSvg,
+                                                            width: CreditCardFigmaMetrics
+                                                                .contactIconWidth(
+                                                              context,
+                                                            ),
+                                                            height: CreditCardFigmaMetrics
+                                                                .contactIconHeight(
+                                                              context,
+                                                            ),
+                                                            fit: BoxFit
+                                                                .contain,
+                                                          ),
+                                                        ),
+                                                      )
+                                                    : Padding(
+                                                        padding:
+                                                            EdgeInsets.only(
+                                                          right: 8.w,
+                                                        ),
+                                                        child: Material(
+                                                          color:
+                                                              AppColors.primary,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                            8.r,
+                                                          ),
+                                                          child: InkWell(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                              8.r,
+                                                            ),
+                                                            onTap: () async {
+                                                              final picked =
+                                                                  await _pickContactNumber(
+                                                                context,
+                                                                permissionService,
+                                                                contactsController:
+                                                                    contactsController,
+                                                              );
+                                                              if (picked !=
+                                                                      null &&
+                                                                  picked
+                                                                      .isNotEmpty) {
+                                                                tc?.text =
+                                                                    picked;
+                                                              }
+                                                              if (gasPolicyMessage
+                                                                      .value !=
+                                                                  null) {
+                                                                gasPolicyMessage
+                                                                        .value =
+                                                                    null;
+                                                              }
+                                                            },
+                                                            child: SizedBox(
+                                                              width: 36.r,
+                                                              height: 36.r,
+                                                              child: Icon(
+                                                                Icons
+                                                                    .contact_page_outlined,
+                                                                color: Colors
+                                                                    .white,
+                                                                size: 20.r,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      )
                                                 : null,
                                             suffixIconConstraints:
                                                 BoxConstraints(
                                               minWidth: isCreditCardFlow
-                                                  ? ccS(44)
+                                                  ? CreditCardFigmaMetrics
+                                                          .contactIconWidth(
+                                                        context,
+                                                      ) +
+                                                      CreditCardFigmaMetrics
+                                                          .contactIconRightInset(
+                                                        context,
+                                                      )
                                                   : 44,
+                                              maxWidth: isCreditCardFlow
+                                                  ? CreditCardFigmaMetrics
+                                                          .contactIconWidth(
+                                                        context,
+                                                      ) +
+                                                      CreditCardFigmaMetrics
+                                                          .contactIconRightInset(
+                                                        context,
+                                                      )
+                                                  : double.infinity,
                                               minHeight: isCreditCardFlow
-                                                  ? ccSy(36)
+                                                  ? 0
                                                   : 36,
+                                              maxHeight: isCreditCardFlow
+                                                  ? CreditCardFigmaMetrics
+                                                      .billFieldHeight(context)
+                                                  : double.infinity,
                                             ),
+                                            prefixIconConstraints:
+                                                isLastFour && isCreditCardFlow
+                                                    ? BoxConstraints(
+                                                        minWidth: 0,
+                                                        maxWidth: CreditCardFigmaMetrics
+                                                                .s(context,
+                                                                    152) +
+                                                            CreditCardFigmaMetrics
+                                                                    .billFieldInnerGap(
+                                                                        context) *
+                                                                2,
+                                                        minHeight: 0,
+                                                        maxHeight:
+                                                            CreditCardFigmaMetrics
+                                                                .billFieldHeight(
+                                                          context,
+                                                        ),
+                                                      )
+                                                    : null,
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(
@@ -1136,19 +1258,30 @@ class BillerDetailView extends HookConsumerWidget {
                                               borderSide: const BorderSide(
                                                   color: Colors.red),
                                             ),
-                                            contentPadding:
-                                                EdgeInsets.symmetric(
-                                              horizontal: isElectricity
-                                                  ? FetchProviderMetrics.w(16)
-                                                  : isCreditCardFlow
-                                                      ? ccS(16)
-                                                      : 16.w,
-                                              vertical: isElectricity
-                                                  ? FetchProviderMetrics.h(16)
-                                                  : isCreditCardFlow
-                                                      ? ccSy(14)
-                                                      : 14.h,
-                                            ),
+                                            isDense: isCreditCardFlow,
+                                            contentPadding: isCreditCardFlow
+                                                ? EdgeInsets.fromLTRB(
+                                                    CreditCardFigmaMetrics
+                                                        .billFieldHorizontalInset(
+                                                        context,
+                                                      ),
+                                                    0,
+                                                    CreditCardFigmaMetrics
+                                                        .billFieldHorizontalInset(
+                                                        context,
+                                                      ),
+                                                    0,
+                                                  )
+                                                : EdgeInsets.symmetric(
+                                                    horizontal: isElectricity
+                                                        ? FetchProviderMetrics
+                                                            .w(16)
+                                                        : 16.w,
+                                                    vertical: isElectricity
+                                                        ? FetchProviderMetrics
+                                                            .h(16)
+                                                        : 14.h,
+                                                  ),
                                           ),
                                           style: (isElectricity ||
                                                   isCreditCardFlow)
@@ -1157,12 +1290,17 @@ class BillerDetailView extends HookConsumerWidget {
                                                   fontSize: isCreditCardFlow
                                                       ? ccS(15)
                                                       : 15.sp,
+                                                  height: isCreditCardFlow
+                                                      ? 1
+                                                      : null,
                                                   color: Colors.black,
-                                                  letterSpacing: isCreditCardFlow
-                                                      ? -0.02 * ccS(15)
-                                                      : -0.02 * 15.sp,
+                                                  letterSpacing:
+                                                      isCreditCardFlow
+                                                          ? -0.02 * ccS(15)
+                                                          : -0.02 * 15.sp,
                                                 )
                                               : null,
+                                        ),
                                         ),
                                       ),
                                   ],
@@ -1759,13 +1897,13 @@ class BillerDetailView extends HookConsumerWidget {
                                   showArrow: false,
                                   uppercaseLabel: false,
                                   height: isCreditCardFlow
-                                      ? CreditCardFigmaMetrics.primaryButtonHeight(
+                                      ? CreditCardFigmaMetrics
+                                          .primaryButtonHeight(
                                           context,
                                         )
                                       : FetchProviderMetrics.h(56),
-                                  borderRadius: isCreditCardFlow
-                                      ? ccS(28)
-                                      : null,
+                                  borderRadius:
+                                      isCreditCardFlow ? ccS(28) : null,
                                   labelStyle: isCreditCardFlow
                                       ? CreditCardFigmaMetrics
                                           .primaryButtonLabelStyle(context)

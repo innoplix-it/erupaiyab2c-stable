@@ -10,6 +10,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
+import '../../../widgets/my_app_bar.dart';
 import '../components/education_account_type_sheet.dart';
 import '../components/education_contact_sheet.dart';
 import '../controllers/education_fees_controller.dart';
@@ -155,20 +156,15 @@ class EducationFeesRecipientView extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'Enter Recipient Details',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
+      appBar: MyAppBar(
+        title: 'Enter Recipient Details',
+        showHelp: true,
+        fitTitle: true,
+        // Common app bar: 52x25 Bharat Connect + 20px help icon.
+        bharatConnectWidth: 52,
+        bharatConnectHeight: 25,
+        helpIconSize: 20,
+        onBack: () => Navigator.of(context).maybePop(),
       ),
       body: SafeArea(
         top: false,
@@ -214,7 +210,8 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                               suffixIcon: state.isCheckingMobile
                                   ? Padding(
                                       padding: EdgeInsets.all(12.r),
-                                      child: SizedBox(height: 18.r,
+                                      child: SizedBox(
+                                        height: 18.r,
                                         width: 18.r,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
@@ -286,7 +283,8 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                         SizedBox(height: 8.h),
                         Row(
                           children: [
-                            SizedBox(height: 14.r,
+                            SizedBox(
+                              height: 14.r,
                               width: 14.r,
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
@@ -412,7 +410,8 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                           SizedBox(height: 8.h),
                           Row(
                             children: [
-                              SizedBox(height: 14.r,
+                              SizedBox(
+                                height: 14.r,
                                 width: 14.r,
                                 child: const CircularProgressIndicator(
                                   strokeWidth: 2,

@@ -169,21 +169,16 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
       }
       return;
     }
-    if (widget.pinFocusNode.hasFocus && (_hadKeyboard || _keepLifted)) {
-      return;
-    }
     if (!_hadKeyboard) return;
     if (widget.isLoading || _continueHeld) return;
     _hadKeyboard = false;
     if (widget.pinFocusNode.hasFocus) {
       widget.pinFocusNode.unfocus();
     }
-    if (!widget.pinFocusNode.hasFocus && _keepLifted) {
-      setState(() {
-        _keepLifted = false;
-        _lastInset = 0;
-      });
-    }
+    setState(() {
+      _keepLifted = false;
+      _lastInset = 0;
+    });
   }
 
   void _onContinuePressed() {
@@ -210,143 +205,125 @@ class _AuthPinStepState extends State<AuthPinStep> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final screenWidth = size.width;
-    final topInset = MediaQuery.paddingOf(context).top;
-    final bottomSafe = MediaQuery.paddingOf(context).bottom;
     final k = AuthPinStep.scaleFor(screenWidth);
     double f(double figmaPx) => figmaPx * k;
     final referralBanner = widget.referralBanner;
-    final inset = _readKeyboardInset(context);
     final frozen = widget.isLoading || _continueHeld;
-    if (_lastInset > size.height) _lastInset = inset;
-    if (inset > 0) {
-      _lastInset = math.max(_lastInset, inset);
-    }
-    final screenHeight = size.height;
+    if (_lastInset > size.height) _lastInset = 0;
+    final lifted = _hadKeyboard ||
+        _lastInset > 0 ||
+        widget.pinFocusNode.hasFocus ||
+        widget.isLoading ||
+        _keepLifted;
 
     return AuthKeyboardOnOpen(
       focusNode: widget.pinFocusNode,
       autofocus: widget.layoutActive,
       enabled: widget.layoutActive,
-      child: SizedBox.expand(
-        child: LayoutBuilder(
-          builder: (context, viewport) {
-            final keyboardGap =
-                math.max(0.0, screenHeight - viewport.maxHeight);
-            // Ignore a collapsed viewport. That reading is the whole screen
-            // and would pin the terms to the top.
-            if (keyboardGap > 0 && keyboardGap < screenHeight * 0.6) {
-              _heldGap = math.max(_heldGap, keyboardGap);
-            }
-            final rawHold =
-                frozen ? math.max(0.0, _heldGap - keyboardGap) : 0.0;
-            // Keep enough height for the PIN form so the terms never overflow.
-            final maxHold = math.max(0.0, viewport.maxHeight - 320);
-            final holdInset = math.min(rawHold, maxHold);
-            final keyboardOpen = inset > 0 || _lastInset > 0;
-            final focused = widget.pinFocusNode.hasFocus;
-            final bodyHeight = math.max(0.0, viewport.maxHeight - holdInset);
-            final topPad = topInset + f(6);
-            final available = math.max(0.0, bodyHeight - topPad);
-            final shortViewport = available < 420;
-            final overlay = keyboardOpen ||
-                focused ||
-                shortViewport ||
-                widget.isLoading ||
-                _keepLifted ||
-                _hadKeyboard;
-            final rowCount = overlay ? 2 : 4;
-            final termsBottomGap = overlay
-                ? f(AuthPinStep.overlayBottomGapDesign)
-                : math.max(
-                    f(AuthPinStep.closedBottomGapDesign),
-                    bottomSafe + f(8),
-                  );
-
-            final double sliderH;
-            if (overlay) {
-              sliderH = LoginServicesSlider.naturalHeight(
-                screenWidth,
-                rowCount,
-                compact: true,
-              );
-            } else {
-              final formReserve = f(AuthPinStep.formReserveDesign) +
-                  termsBottomGap +
-                  (referralBanner != null
-                      ? f(AuthPinStep.referralExtraDesign)
-                      : 0);
-              final budget = (available - formReserve)
-                  .clamp(0.0, available * 0.56)
-                  .toDouble();
-              final natural = LoginServicesSlider.naturalHeight(
-                screenWidth,
-                rowCount,
-              );
-              sliderH = math.min(natural, budget);
-            }
-
-            return DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: AppColors.loginPeachCoralGradient,
+      child: AuthKeyboardSlot(
+        screenHeight: size.height,
+        topExtra: f(6),
+        frozen: frozen,
+        heldGap: _heldGap,
+        lifted: lifted,
+        onGap: (gap) => _heldGap = gap,
+        onOpened: _onKeyboardOpened,
+        onDismiss: _dismissKeyboard,
+        buildSlider: (frame) {
+          final overlay = frame.overlay;
+          return ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: _sliderHeight(
+                f,
+                screenWidth: screenWidth,
+                overlay: overlay,
+                available: frame.available,
+                bottomSafe: frame.bottomSafe,
+                referralBanner: referralBanner,
               ),
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: _dismissKeyboard,
-                child: SafeArea(
-                  top: false,
-                  bottom: false,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Positioned(
-                        top: topPad,
-                        left: 0,
-                        right: 0,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: sliderH,
-                            minHeight: 0,
-                          ),
-                          child: LoginServicesSlider(
-                            rowCount: rowCount,
-                            compact: overlay,
-                            opacity: 0.4,
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: RepaintBoundary(
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: holdInset),
-                            child: Column(
-                              children: [
-                                AnimatedContainer(
-                                  duration: AuthPinStep._anim,
-                                  curve: Curves.easeOut,
-                                  height: overlay ? 0 : topPad + sliderH,
-                                ),
-                                Expanded(
-                                  child: _buildFormBand(
-                                    context,
-                                    k: k,
-                                    overlay: overlay,
-                                    termsBottomGap: termsBottomGap,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              minHeight: 0,
+            ),
+            child: LoginServicesSlider(
+              rowCount: overlay ? 2 : 4,
+              compact: overlay,
+              opacity: overlay ? 0.4 : 1,
+            ),
+          );
+        },
+        buildForm: (frame) {
+          final overlay = frame.overlay;
+          final sliderH = _sliderHeight(
+            f,
+            screenWidth: screenWidth,
+            overlay: overlay,
+            available: frame.available,
+            bottomSafe: frame.bottomSafe,
+            referralBanner: referralBanner,
+          );
+          final termsBottomGap = overlay
+              ? f(AuthPinStep.overlayBottomGapDesign)
+              : math.max(
+                  f(AuthPinStep.closedBottomGapDesign),
+                  frame.bottomSafe + f(8),
+                );
+          return Column(
+            children: [
+              AnimatedContainer(
+                duration: AuthPinStep._anim,
+                curve: Curves.easeOut,
+                height: overlay ? 0 : frame.topPad + sliderH,
+              ),
+              Expanded(
+                child: _buildFormBand(
+                  context,
+                  k: k,
+                  overlay: overlay,
+                  termsBottomGap: termsBottomGap,
                 ),
               ),
-            );
-          },
-        ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  double _sliderHeight(
+    double Function(double) f, {
+    required double screenWidth,
+    required bool overlay,
+    required double available,
+    required double bottomSafe,
+    required Widget? referralBanner,
+  }) {
+    final rowCount = overlay ? 2 : 4;
+    if (overlay) {
+      return LoginServicesSlider.naturalHeight(
+        screenWidth,
+        rowCount,
+        compact: true,
+      );
+    }
+    final termsBottomGap = math.max(
+      f(AuthPinStep.closedBottomGapDesign),
+      bottomSafe + f(8),
+    );
+    final formReserve = f(AuthPinStep.formReserveDesign) +
+        termsBottomGap +
+        (referralBanner != null ? f(AuthPinStep.referralExtraDesign) : 0);
+    final budget =
+        (available - formReserve).clamp(0.0, available * 0.56).toDouble();
+    final natural = LoginServicesSlider.naturalHeight(screenWidth, rowCount);
+    return math.min(natural, budget);
+  }
+
+  void _onKeyboardOpened() {
+    if (!mounted || !widget.layoutActive) return;
+    if (_hadKeyboard && _keepLifted) return;
+    setState(() {
+      _hadKeyboard = true;
+      _keepLifted = true;
+    });
   }
 
   Widget _buildFormBand(

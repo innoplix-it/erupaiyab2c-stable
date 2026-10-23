@@ -345,25 +345,31 @@ class _MaskedPrefix extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Figma: grey pill with three masked groups before the last-4 input.
-    final marginV = creditCard
-        ? CreditCardFigmaMetrics.sy(context, 8)
-        : 8.h;
-    final marginH = creditCard
-        ? CreditCardFigmaMetrics.s(context, 8)
-        : 8.w;
-    final padH = creditCard
-        ? CreditCardFigmaMetrics.s(context, 10)
-        : 10.w;
-    final padV = creditCard
-        ? CreditCardFigmaMetrics.sy(context, 8)
-        : 8.h;
-    final radius = creditCard
-        ? CreditCardFigmaMetrics.s(context, 8)
-        : 8.r;
-    final fontSize = creditCard
-        ? CreditCardFigmaMetrics.s(context, 13)
-        : 13.sp;
+    // Figma: grey pill, three groups of four round dots, then the last-4
+    // digits sit immediately to the right. Text bullets rendered as a
+    // stretched asterisk run, so the credit-card mask is drawn as circles.
+    if (creditCard) {
+      return SvgPicture.asset(
+        FileConstants.creditCardLast4MaskSvg,
+        width: CreditCardFigmaMetrics.s(context, 152),
+        height: CreditCardFigmaMetrics.s(context, 26),
+        fit: BoxFit.fill,
+      );
+    }
+    final marginV = 8.h;
+    final marginH = 8.w;
+    final padH = 10.w;
+    final padV = 8.h;
+    final radius = 8.r;
+    final fontSize = 13.sp;
+    final groupGap = 7.w;
+    final dotStyle = GoogleFonts.plusJakartaSans(
+      fontSize: fontSize,
+      letterSpacing: 1.0,
+      height: 1,
+      color: AppColors.textPrimary.withValues(alpha: 0.55),
+      fontWeight: FontWeight.w600,
+    );
     return Container(
       margin: EdgeInsets.symmetric(vertical: marginV, horizontal: marginH),
       padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
@@ -371,15 +377,14 @@ class _MaskedPrefix extends StatelessWidget {
         color: const Color(0xFFF4F4F5),
         borderRadius: BorderRadius.circular(radius),
       ),
-      child: Text(
-        '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: fontSize,
-          letterSpacing: 1.0,
-          height: 1,
-          color: AppColors.textPrimary.withValues(alpha: 0.55),
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var group = 0; group < 3; group++) ...[
+            if (group > 0) SizedBox(width: groupGap),
+            Text('\u2022\u2022\u2022\u2022', style: dotStyle),
+          ],
+        ],
       ),
     );
   }
@@ -538,9 +543,7 @@ String? _resolvedCustomerParamValue({
       return isMobileField ? _sanitizePhone(source) : source;
     }
   }
-  if (last4Prefill != null &&
-      last4Prefill.isNotEmpty &&
-      isLastFourField) {
+  if (last4Prefill != null && last4Prefill.isNotEmpty && isLastFourField) {
     final digits = last4Prefill.replaceAll(RegExp(r'[^0-9]'), '');
     return digits.length > 4 ? digits.substring(digits.length - 4) : digits;
   }

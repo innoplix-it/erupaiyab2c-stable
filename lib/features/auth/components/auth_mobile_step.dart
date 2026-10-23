@@ -262,29 +262,22 @@ class _AuthMobileStepState extends State<AuthMobileStep>
       }
       return;
     }
-    // resizeToAvoidBottomInset can zero out MediaQuery insets while the
-    // keyboard is still visible — keep overlay while the field is focused.
-    if (_focus.hasFocus && (_hadKeyboard || _keepLifted)) {
-      return;
-    }
     if (!_hadKeyboard) return;
     // Processing Continue or leaving this step: never unfocus / drop the form.
     if (widget.isLoading || _continueHeld || !_routeCurrent) return;
-    // The number sheet closes the keyboard, then we reopen it. Dropping here
-    // puts the filled number back at the bottom.
+    // Keyboard is gone (Android back / dismiss). A short wait ignores a
+    // one-frame inset glitch, then the clear closed background returns.
     _dropLiftTimer?.cancel();
     _dropLiftTimer = Timer(const Duration(milliseconds: 400), () {
       if (!mounted || !widget.layoutActive) return;
-      if (_readKeyboardInset(context) > 0 || _focus.hasFocus) return;
+      if (_readKeyboardInset(context) > 0) return;
       if (widget.isLoading || _continueHeld || !_routeCurrent) return;
       _hadKeyboard = false;
       if (_focus.hasFocus) _focus.unfocus();
-      if (_keepLifted) {
-        setState(() {
-          _keepLifted = false;
-          _lastInset = 0;
-        });
-      }
+      setState(() {
+        _keepLifted = false;
+        _lastInset = 0;
+      });
     });
   }
 
@@ -316,9 +309,6 @@ class _AuthMobileStepState extends State<AuthMobileStep>
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final screenWidth = size.width;
-    final topInset = MediaQuery.paddingOf(context).top;
-    final bottomSafe = MediaQuery.paddingOf(context).bottom;
-    final inset = _readKeyboardInset(context);
     final referralBanner = widget.referralBanner;
     final k = AuthMobileStep.scaleFor(screenWidth);
     double f(double figmaPx) => figmaPx * k;
@@ -326,142 +316,124 @@ class _AuthMobileStepState extends State<AuthMobileStep>
     // Frozen = Continue is processing or this step is being left. The bottom
     // space the keyboard used to take is kept as padding.
     final frozen = widget.isLoading || _continueHeld || !_routeCurrent;
-    if (_lastInset > size.height) _lastInset = inset;
-    if (!frozen && inset > 0) {
-      _lastInset = math.max(_lastInset, inset);
-    }
-    final screenHeight = size.height;
+    if (_lastInset > size.height) _lastInset = 0;
+    final lifted = _hadKeyboard ||
+        _lastInset > 0 ||
+        _focus.hasFocus ||
+        widget.isLoading ||
+        _keepLifted;
 
     return AuthKeyboardOnOpen(
       focusNode: widget.focusNode,
       autofocus: false,
       enabled: widget.layoutActive,
-      child: SizedBox.expand(
-        child: LayoutBuilder(
-          builder: (context, viewport) {
-            final keyboardGap =
-                math.max(0.0, screenHeight - viewport.maxHeight);
-            if (keyboardGap > 0 && keyboardGap < screenHeight * 0.6) {
-              _heldGap = math.max(_heldGap, keyboardGap);
-            }
-            final rawHold =
-                frozen ? math.max(0.0, _heldGap - keyboardGap) : 0.0;
-            final maxHold = math.max(0.0, viewport.maxHeight - 320);
-            final holdInset = math.min(rawHold, maxHold);
-            final keyboardOpen = inset > 0 || _lastInset > 0;
-            final focused = _focus.hasFocus;
-
-            final bodyHeight = math.max(0.0, viewport.maxHeight - holdInset);
-            final topPad = topInset + f(6);
-            final available = math.max(0.0, bodyHeight - topPad);
-            final shortViewport = available < 420;
-
-            // Keyboard / focus / short viewport / loading lifts the form.
-            final overlay = keyboardOpen ||
-                focused ||
-                shortViewport ||
-                widget.isLoading ||
-                _keepLifted ||
-                _hadKeyboard;
-            final rowCount = overlay ? 2 : 4;
-
-            final termsBottomGap = overlay
-                ? f(AuthMobileStep.overlayBottomGapDesign)
-                : math.max(
-                    f(AuthMobileStep.closedBottomGapDesign),
-                    bottomSafe + f(8),
-                  );
-
-            final double sliderH;
-            if (overlay) {
-              sliderH = LoginServicesSlider.naturalHeight(
-                screenWidth,
-                rowCount,
-                compact: true,
-              );
-            } else {
-              final formReserve = f(AuthMobileStep.formReserveDesign) +
-                  termsBottomGap +
-                  (referralBanner != null
-                      ? f(AuthMobileStep.referralExtraDesign)
-                      : 0);
-              // Prefer natural height, but never steal the Terms inset.
-              final budget = (available - formReserve)
-                  .clamp(0.0, available * 0.56)
-                  .toDouble();
-              final natural = LoginServicesSlider.naturalHeight(
-                screenWidth,
-                rowCount,
-              );
-              sliderH = math.min(natural, budget);
-            }
-
-            // Figma CSS: linear-gradient(179.93deg, #DD5428 -13.84%, #FFFFFF 96.21%)
-            return DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: AppColors.loginPeachCoralGradient,
+      child: AuthKeyboardSlot(
+        screenHeight: size.height,
+        topExtra: f(6),
+        frozen: frozen,
+        heldGap: _heldGap,
+        lifted: lifted,
+        onGap: (gap) => _heldGap = gap,
+        onOpened: _onKeyboardOpened,
+        onDismiss: _dismissKeyboard,
+        buildSlider: (frame) {
+          final overlay = frame.overlay;
+          final rowCount = overlay ? 2 : 4;
+          return ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: _sliderHeight(
+                f,
+                screenWidth: screenWidth,
+                overlay: overlay,
+                available: frame.available,
+                bottomSafe: frame.bottomSafe,
+                referralBanner: referralBanner,
               ),
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: _dismissKeyboard,
-                child: SafeArea(
-                  top: false,
-                  bottom: false,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Layer 1: slider stays mounted so marquee never restarts.
-                      Positioned(
-                        top: topPad,
-                        left: 0,
-                        right: 0,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: sliderH,
-                            minHeight: 0,
-                          ),
-                          child: LoginServicesSlider(
-                            rowCount: rowCount,
-                            compact: overlay,
-                            opacity: 0.4,
-                          ),
-                        ),
-                      ),
-                      // Layer 2: form. Overlay = rise up + translucent band.
-                      Positioned.fill(
-                        child: RepaintBoundary(
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: holdInset),
-                          child: Column(
-                            children: [
-                              AnimatedContainer(
-                                duration: AuthMobileStep._anim,
-                                curve: Curves.easeOut,
-                                height: overlay ? 0 : topPad + sliderH,
-                              ),
-                              Expanded(
-                                child: _buildFormBand(
-                                  context,
-                                  k: k,
-                                  overlay: overlay,
-                                  termsBottomGap: termsBottomGap,
-                                  referralBanner: referralBanner,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ),
-                      ),
-                    ],
-                  ),
+              minHeight: 0,
+            ),
+            child: LoginServicesSlider(
+              rowCount: rowCount,
+              compact: overlay,
+              opacity: overlay ? 0.4 : 1,
+            ),
+          );
+        },
+        buildForm: (frame) {
+          final overlay = frame.overlay;
+          final sliderH = _sliderHeight(
+            f,
+            screenWidth: screenWidth,
+            overlay: overlay,
+            available: frame.available,
+            bottomSafe: frame.bottomSafe,
+            referralBanner: referralBanner,
+          );
+          final termsBottomGap = overlay
+              ? f(AuthMobileStep.overlayBottomGapDesign)
+              : math.max(
+                  f(AuthMobileStep.closedBottomGapDesign),
+                  frame.bottomSafe + f(8),
+                );
+          return Column(
+            children: [
+              AnimatedContainer(
+                duration: AuthMobileStep._anim,
+                curve: Curves.easeOut,
+                height: overlay ? 0 : frame.topPad + sliderH,
+              ),
+              Expanded(
+                child: _buildFormBand(
+                  context,
+                  k: k,
+                  overlay: overlay,
+                  termsBottomGap: termsBottomGap,
+                  referralBanner: referralBanner,
                 ),
               ),
-            );
-          },
-        ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  double _sliderHeight(
+    double Function(double) f, {
+    required double screenWidth,
+    required bool overlay,
+    required double available,
+    required double bottomSafe,
+    required Widget? referralBanner,
+  }) {
+    final rowCount = overlay ? 2 : 4;
+    if (overlay) {
+      return LoginServicesSlider.naturalHeight(
+        screenWidth,
+        rowCount,
+        compact: true,
+      );
+    }
+    final termsBottomGap = math.max(
+      f(AuthMobileStep.closedBottomGapDesign),
+      bottomSafe + f(8),
+    );
+    final formReserve = f(AuthMobileStep.formReserveDesign) +
+        termsBottomGap +
+        (referralBanner != null ? f(AuthMobileStep.referralExtraDesign) : 0);
+    final budget =
+        (available - formReserve).clamp(0.0, available * 0.56).toDouble();
+    final natural = LoginServicesSlider.naturalHeight(screenWidth, rowCount);
+    return math.min(natural, budget);
+  }
+
+  void _onKeyboardOpened() {
+    if (!mounted || !widget.layoutActive) return;
+    _dropLiftTimer?.cancel();
+    if (_hadKeyboard && _keepLifted) return;
+    setState(() {
+      _hadKeyboard = true;
+      _keepLifted = true;
+    });
   }
 
   Widget _buildFormBand(
@@ -578,9 +550,8 @@ class _AuthMobileStepState extends State<AuthMobileStep>
                                   return CustomElevatedButton(
                                     label: 'Continue',
                                     uppercaseLabel: false,
-                                    onPressed: canContinue
-                                        ? _onContinuePressed
-                                        : null,
+                                    onPressed:
+                                        canContinue ? _onContinuePressed : null,
                                     isLoading: widget.isLoading,
                                     backgroundColor: canContinue
                                         ? AppColors.primary

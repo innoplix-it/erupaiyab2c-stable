@@ -211,8 +211,7 @@ void main() {
       final wordmarkLeft = tester
           .getTopLeft(find.byKey(const ValueKey('login-erupaiya-wordmark')))
           .dx;
-      final titleLeft =
-          tester.getTopLeft(find.text('Welcome to eRupaiya')).dx;
+      final titleLeft = tester.getTopLeft(find.text('Welcome to eRupaiya')).dx;
       final k = _k(shrunk);
       expect(wordmarkLeft, closeTo(20 * k, 2));
       expect(titleLeft, closeTo(20 * k, 2));
@@ -227,6 +226,7 @@ void main() {
       );
       expect(slider.compact, isTrue);
       expect(slider.rowCount, 2);
+      expect(slider.opacity, 0.4);
 
       final sliderSize = tester.getSize(find.byType(LoginServicesSlider));
       final expectedH = LoginServicesSlider.naturalHeight(
@@ -288,8 +288,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets(
-        'external sheet hiding keyboard keeps overlay layout (phone hint dismissal)',
+    testWidgets('keyboard dismiss restores the clear closed background',
         (tester) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
@@ -305,8 +304,9 @@ void main() {
         ),
       );
 
-      // Focus the field to enter overlay mode
+      // Keyboard open: lifted form, faded background.
       await tester.tap(find.byType(TextField));
+      tester.view.viewInsets = const FakeViewPadding(bottom: 320);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -315,20 +315,20 @@ void main() {
       );
       expect(sliderBefore.compact, isTrue);
       expect(sliderBefore.rowCount, 2);
+      expect(sliderBefore.opacity, 0.4);
 
-      // Simulate external sheet (phone hint) hiding keyboard while focus is retained
+      // Android back hides the keyboard while the field can stay focused.
       tester.view.viewInsets = const FakeViewPadding(bottom: 0);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      // Layout should stay in overlay mode (compact slider)
       final sliderAfter = tester.widget<LoginServicesSlider>(
         find.byType(LoginServicesSlider),
       );
-      expect(sliderAfter.compact, isTrue,
-          reason:
-              'Overlay layout should persist when keyboard hidden by external sheet');
-      expect(sliderAfter.rowCount, 2);
+      expect(sliderAfter.compact, isFalse,
+          reason: 'Back should restore the clear full background');
+      expect(sliderAfter.rowCount, 4);
+      expect(sliderAfter.opacity, 1);
       expect(tester.takeException(), isNull);
 
       // Cleanup
@@ -374,6 +374,7 @@ void main() {
       );
       expect(sliderDismissed.compact, isFalse,
           reason: 'Closed layout should return after user keyboard dismissal');
+      expect(sliderDismissed.opacity, 1);
       expect(tester.takeException(), isNull);
 
       // Cleanup

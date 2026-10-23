@@ -87,6 +87,11 @@ class CreditCardMyCardsView extends HookConsumerWidget {
         appBar: MyAppBar(
           title: 'My Cards',
           showHelp: true,
+          // Match the common app bar (Transaction History): default title
+          // style + 52x25 Bharat Connect + 20px help icon.
+          bharatConnectWidth: 52,
+          bharatConnectHeight: 25,
+          helpIconSize: 20,
           onBack: handleBack,
         ),
         body: Column(
@@ -138,8 +143,7 @@ class CreditCardMyCardsView extends HookConsumerWidget {
                 top: CreditCardFigmaMetrics.sy(context, 12),
               ),
               child: CustomElevatedButton(
-                onPressed: () =>
-                    context.push(RouteConstants.creditCardListing),
+                onPressed: () => context.push(RouteConstants.creditCardListing),
                 label: 'Add New Card',
                 uppercaseLabel: false,
                 height: CreditCardFigmaMetrics.primaryButtonHeight(context),
@@ -618,25 +622,25 @@ class _CardActionSheet extends ConsumerWidget {
             icon: Icons.delete_outline,
             label: 'Remove Card',
             onTap: () async {
-              Navigator.of(context).pop();
               final maskedId = item.maskedIdentifier?.trim() ?? '';
+              final notifier = ref.read(homeControllerProvider.notifier);
+              final host = navigatorKey.currentContext;
+              Navigator.of(context).pop();
               if (maskedId.isEmpty) {
                 AppSnackbar.show('Masked identifier missing.');
                 return;
               }
+              if (host == null || !host.mounted) return;
 
-              final shouldRemove = await showDialog<bool>(
-                context: context,
+              final removed = await showDialog<bool>(
+                context: host,
                 barrierDismissible: false,
-                builder: (_) => const _RemoveCardConfirmDialog(),
+                builder: (_) => _RemoveCardConfirmDialog(
+                  onConfirm: () => notifier.removeCreditCard(maskedId),
+                ),
               );
-              if (shouldRemove != true) return;
-
-              final ok = await ref
-                  .read(homeControllerProvider.notifier)
-                  .removeCreditCard(maskedId);
-              if (!context.mounted) return;
-              if (ok) {
+              if (removed == null || !host.mounted) return;
+              if (removed) {
                 AppSnackbar.show('Card removed successfully.');
               } else {
                 AppSnackbar.show('Failed to remove card. Please try again.');
@@ -660,8 +664,26 @@ class _CardActionSheet extends ConsumerWidget {
   }
 }
 
-class _RemoveCardConfirmDialog extends StatelessWidget {
-  const _RemoveCardConfirmDialog();
+class _RemoveCardConfirmDialog extends StatefulWidget {
+  const _RemoveCardConfirmDialog({required this.onConfirm});
+
+  final Future<bool> Function() onConfirm;
+
+  @override
+  State<_RemoveCardConfirmDialog> createState() =>
+      _RemoveCardConfirmDialogState();
+}
+
+class _RemoveCardConfirmDialogState extends State<_RemoveCardConfirmDialog> {
+  bool _busy = false;
+
+  Future<void> _confirm() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final ok = await widget.onConfirm();
+    if (!mounted) return;
+    Navigator.of(context).pop(ok);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -717,7 +739,8 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
                   child: SizedBox(
                     height: sx(40),
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(false),
+                      onPressed:
+                          _busy ? null : () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
                           color: AppColors.textPrimary.withOpacity(0.18),
@@ -742,7 +765,7 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
                   child: SizedBox(
                     height: sx(40),
                     child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
+                      onPressed: _busy ? null : _confirm,
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
                         backgroundColor: AppColors.primary,
@@ -750,14 +773,23 @@ class _RemoveCardConfirmDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(sx(12)),
                         ),
                       ),
-                      child: Text(
-                        'Remove',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: sx(14),
-                        ),
-                      ),
+                      child: _busy
+                          ? SizedBox(
+                              width: sx(18),
+                              height: sx(18),
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Remove',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: sx(14),
+                              ),
+                            ),
                     ),
                   ),
                 ),

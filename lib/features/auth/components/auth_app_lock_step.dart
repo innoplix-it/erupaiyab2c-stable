@@ -64,8 +64,6 @@ class _AuthAppLockStepState extends State<AuthAppLockStep> {
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Colors.white),
-        // Window sized, so the artwork is not re-scaled by the keyboard.
-        authFixedBackground(context),
         SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -145,7 +143,7 @@ class _AuthAppLockStepState extends State<AuthAppLockStep> {
 
   Widget _buildFingerprint(BuildContext context) {
     final fingerprintSize =
-    authWidthFraction(context, 74 / 360, min: 60, max: 110);
+        authWidthFraction(context, 74 / 360, min: 60, max: 110);
     final h = MediaQuery.sizeOf(context).height / 690;
     return Semantics(
       button: true,

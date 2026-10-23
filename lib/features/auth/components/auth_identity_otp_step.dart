@@ -74,7 +74,6 @@ class AuthIdentityOtpStep extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Colors.white),
-        const AuthBackgroundImage(),
         SafeArea(
           child: Column(
             children: [

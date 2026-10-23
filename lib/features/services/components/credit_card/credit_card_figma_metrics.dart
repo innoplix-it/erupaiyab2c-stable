@@ -65,6 +65,39 @@ abstract final class CreditCardFigmaMetrics {
         vertical: sy(context, 14),
       );
 
+  /// Figma provider row. Crop measures ~87 on the 440 frame.
+  static double providerCardHeight(BuildContext context) => sy(context, 86);
+
+  /// Last 4 and Mobile share one box. On the Figma screen both white fields
+  /// measure 404×55, corner radius 10. Height follows that ratio from the
+  /// laid-out width ([MediaQuery.sizeOf]), so both stay the same on every screen.
+  static const double _billFieldWidthPx = 404;
+  static const double _billFieldHeightPx = 55;
+  static const double _billFieldRadiusPx = 10;
+
+  static double billFieldWidth(BuildContext context) =>
+      MediaQuery.sizeOf(context).width - screenPadding(context).horizontal;
+
+  static double billFieldHeight(BuildContext context) =>
+      billFieldWidth(context) * _billFieldHeightPx / _billFieldWidthPx;
+
+  static double billFieldRadius(BuildContext context) =>
+      billFieldWidth(context) * _billFieldRadiusPx / _billFieldWidthPx;
+
+  static double billFieldHorizontalInset(BuildContext context) =>
+      s(context, 16);
+
+  static double billFieldInnerGap(BuildContext context) => s(context, 8);
+
+  /// Gap between the mobile icon and the field's right edge.
+  static double contactIconRightInset(BuildContext context) => s(context, 12);
+
+  /// Contact mark. Artboard is 24×28; both axes use the width scale so the
+  /// icon does not stretch.
+  static double contactIconWidth(BuildContext context) => s(context, 24);
+
+  static double contactIconHeight(BuildContext context) => s(context, 28);
+
   /// Figma bank logo frame: 50×50, rx 19.5, 30×30 logo inset 10, stroke #E2E2E2.
   static double providerLogoBox(BuildContext context) => s(context, 50);
 
@@ -142,10 +175,12 @@ abstract final class CreditCardFigmaMetrics {
   static double myCardAfterBannerGap(BuildContext context) => sy(context, 14);
 
   static EdgeInsets myCardHeaderPadding(BuildContext context) =>
-      EdgeInsets.fromLTRB(s(context, 14), sy(context, 12), s(context, 8), sy(context, 12));
+      EdgeInsets.fromLTRB(
+          s(context, 14), sy(context, 12), s(context, 8), sy(context, 12));
 
   static EdgeInsets myCardBillPadding(BuildContext context) =>
-      EdgeInsets.fromLTRB(s(context, 14), sy(context, 12), s(context, 12), sy(context, 12));
+      EdgeInsets.fromLTRB(
+          s(context, 14), sy(context, 12), s(context, 12), sy(context, 12));
 
   /// Figma operator mark: 41×41, rx 12.25, 0.5 stroke #E2E2E2.
   static double myCardLogoSize(BuildContext context) => s(context, 41);
@@ -170,7 +205,8 @@ abstract final class CreditCardFigmaMetrics {
 
   static double myCardShadowOffsetY(BuildContext context) => sy(context, 2);
 
-  static double myCardsBannerHeightForWidth(BuildContext context, double width) =>
+  static double myCardsBannerHeightForWidth(
+          BuildContext context, double width) =>
       (width * 120 / 360).clamp(sy(context, 88), sy(context, 140));
 
   static TextStyle myCardTitleStyle(BuildContext context) =>
@@ -197,11 +233,12 @@ abstract final class CreditCardFigmaMetrics {
         height: 1.15,
       );
 
-  static TextStyle myCardDueStyle(BuildContext context, {required bool isDue}) =>
+  static TextStyle myCardDueStyle(BuildContext context,
+          {required bool isDue}) =>
       GoogleFonts.plusJakartaSans(
         fontWeight: FontWeight.w600,
         fontSize: myCardDueSize(context),
-        color: isDue ? const Color(0xFFDB0101) : const Color(0xFFDD5428),
+        color: isDue ? const Color(0xFFD30000) : const Color(0xFF373737),
         height: 1.2,
       );
 }

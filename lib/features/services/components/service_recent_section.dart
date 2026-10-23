@@ -18,6 +18,7 @@ import '../../../utils/error_message_utils.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/screen_wrapper.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
+import '../../home/models/credit_card_item.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 import '../models/biller_model.dart';
 import '../../profile/models/electricity_card_history_scope.dart';
@@ -38,6 +39,7 @@ class ServiceRecentSection extends StatelessWidget {
     this.serviceCategory,
     this.operatorLogo = false,
     this.operatorBillers = const [],
+    this.savedCards = const [],
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
@@ -53,6 +55,10 @@ class ServiceRecentSection extends StatelessWidget {
 
   /// Billers used to fill the operator logo and bank name on credit-card cards.
   final List<Biller> operatorBillers;
+
+  /// Saved credit cards. Recent rows use their last-paid and due dates when
+  /// the latest-transaction payload does not include them.
+  final List<CreditCardItem> savedCards;
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +117,7 @@ class ServiceRecentSection extends StatelessWidget {
               serviceCategory: serviceCategory,
               operatorLogo: operatorLogo,
               operatorBillers: operatorBillers,
+              savedCards: savedCards,
             ),
           ],
         ),
@@ -139,6 +146,7 @@ class ServiceRecentSection extends StatelessWidget {
                 serviceCategory: serviceCategory,
                 operatorLogo: operatorLogo,
                 operatorBillers: operatorBillers,
+                savedCards: savedCards,
               ),
             ],
           ),
@@ -246,6 +254,7 @@ class _RecentRow extends StatelessWidget {
     this.serviceCategory,
     this.operatorLogo = false,
     this.operatorBillers = const [],
+    this.savedCards = const [],
   });
 
   final AsyncValue<List<LatestTransaction>> recentTransactions;
@@ -254,6 +263,7 @@ class _RecentRow extends StatelessWidget {
   final String? serviceCategory;
   final bool operatorLogo;
   final List<Biller> operatorBillers;
+  final List<CreditCardItem> savedCards;
 
   Widget _savedBillersRow(List<Widget> cards) {
     return SingleChildScrollView(
@@ -324,13 +334,21 @@ class _RecentRow extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: display.length,
             separatorBuilder: (_, __) => SizedBox(width: 12.w),
-            itemBuilder: (context, index) => _RecentCard(
-              txn: display[index],
-              onPayNow: () => onPayNow(display[index]),
-              serviceCategory: serviceCategory,
-              operatorLogo: operatorLogo,
-              operatorBillers: operatorBillers,
-            ),
+            itemBuilder: (context, index) {
+              final card = _RecentCard(
+                txn: display[index],
+                onPayNow: () => onPayNow(display[index]),
+                serviceCategory: serviceCategory,
+                operatorLogo: operatorLogo,
+                operatorBillers: operatorBillers,
+                savedCards: savedCards,
+              );
+              // The list cross-axis is tight. Align keeps a one-date card
+              // from stretching into the two-date reserve.
+              return operatorLogo
+                  ? Align(alignment: Alignment.topCenter, child: card)
+                  : card;
+            },
           ),
         );
       },
@@ -463,24 +481,38 @@ class _SavedBillerCardShimmer extends StatelessWidget {
   }
 }
 
-/// Credit-card recent row. Figma gaps: ~11 between name and number,
-/// ~20 above and below the amount block and the Pay Now pill.
+/// Credit-card recent row. Header and both date lines use
+/// [CreditCardFigmaMetrics], including text scale above 1 so Last Paid and
+/// Due On stay inside the horizontal list.
 double _operatorRecentRowHeight(BuildContext context) {
-  final titleBlock = CreditCardFigmaMetrics.myCardTitleSize(context) * 1.2 +
-      CreditCardFigmaMetrics.sy(context, 6) +
-      CreditCardFigmaMetrics.myCardMaskedSize(context) * 1.2;
-  final headerInner = titleBlock > 41.w ? titleBlock : 41.w;
-  final header = 13.w * 2 + headerInner;
-  final pad = CreditCardFigmaMetrics.sy(context, 20);
+  final textScale = MediaQuery.textScalerOf(context).scale(1);
+  final grow = textScale > 1 ? textScale : 1.0;
+  final titleBlock = (CreditCardFigmaMetrics.myCardTitleSize(context) * 1.2 +
+          CreditCardFigmaMetrics.sy(context, 6) +
+          CreditCardFigmaMetrics.myCardMaskedSize(context) * 1.2) *
+      grow;
+  final logo = CreditCardFigmaMetrics.myCardLogoSize(context);
+  final menu = CreditCardFigmaMetrics.myCardMenuIconSize(context) +
+      CreditCardFigmaMetrics.s(context, 4) * 2;
+  final headerInner = titleBlock > logo
+      ? (titleBlock > menu ? titleBlock : menu)
+      : (logo > menu ? logo : menu);
+  final header = CreditCardFigmaMetrics.sy(context, 12) * 2 + headerInner;
+  final pad = CreditCardFigmaMetrics.sy(context, 14);
+  final bottomPad = CreditCardFigmaMetrics.sy(context, 12);
   final buttonBlock =
-      pad + CreditCardFigmaMetrics.payNowButtonHeight(context) + pad;
+      pad + CreditCardFigmaMetrics.payNowButtonHeight(context) + bottomPad;
+  final dueLine = CreditCardFigmaMetrics.myCardDueSize(context) * 1.2 * grow;
+  final gap = CreditCardFigmaMetrics.sy(context, 4);
   final textBlock = pad +
-      CreditCardFigmaMetrics.myCardAmountSize(context) * 1.15 +
-      CreditCardFigmaMetrics.sy(context, 4) +
-      CreditCardFigmaMetrics.myCardDueSize(context) * 1.2 +
-      pad;
+      CreditCardFigmaMetrics.myCardAmountSize(context) * 1.15 * grow +
+      gap +
+      dueLine +
+      gap +
+      dueLine +
+      bottomPad;
   final lower = buttonBlock > textBlock ? buttonBlock : textBlock;
-  return header + 1 + lower + 4;
+  return header + 1 + lower;
 }
 
 class _RecentCardShimmer extends StatelessWidget {
@@ -640,8 +672,8 @@ class _SavedBillerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final billerTitle = txn.billerName.trim();
 
-    final cardWidth = width ??
-        _SavedBillerCard.cardWidth(MediaQuery.sizeOf(context).width);
+    final cardWidth =
+        width ?? _SavedBillerCard.cardWidth(MediaQuery.sizeOf(context).width);
     final titleSize = FetchProviderMetrics.font(13, min: 10.5);
     final bodySize = FetchProviderMetrics.font(11, min: 9.5);
     final subtitleSize = FetchProviderMetrics.font(11, min: 9.5);
@@ -656,8 +688,9 @@ class _SavedBillerCard extends StatelessWidget {
     return ValueListenableBuilder<Map<String, FetchedBillDetails>>(
       valueListenable: fetchedBillCacheNotifier,
       builder: (context, fetchedCache, child) {
-        final cached = fetchedCache['${txn.billerId}_${txn.primaryConsumerNumber}'] ??
-            fetchedCache[txn.billerId];
+        final cached =
+            fetchedCache['${txn.billerId}_${txn.primaryConsumerNumber}'] ??
+                fetchedCache[txn.billerId];
         final accountHolderName = _capitalizeWords(
           (txn.accountHolderName.isNotEmpty
                   ? txn.accountHolderName
@@ -672,7 +705,9 @@ class _SavedBillerCard extends StatelessWidget {
             .trim();
         final rawDueDate = (txn.dueDate != null && txn.dueDate!.isNotEmpty)
             ? txn.dueDate
-            : (cached?.dueDate.isNotEmpty == true ? cached!.dueDate : txn.expiresAt);
+            : (cached?.dueDate.isNotEmpty == true
+                ? cached!.dueDate
+                : txn.expiresAt);
         final dueLabel = _formatDueDate(rawDueDate);
         final lastPaid = _formatWasPaidOn(txn);
         final amountText = '₹${txn.amount.toStringAsFixed(2)}';
@@ -687,7 +722,8 @@ class _SavedBillerCard extends StatelessWidget {
                 width: cardWidth,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(FetchProviderMetrics.r(16)),
+                  borderRadius:
+                      BorderRadius.circular(FetchProviderMetrics.r(16)),
                   border: Border.all(color: const Color(0xFFE2E2E2), width: 1),
                   boxShadow: [
                     BoxShadow(
@@ -715,7 +751,9 @@ class _SavedBillerCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             SimCardIconContainer(
-                              url: txn.icon.trim().isEmpty ? null : txn.icon.trim(),
+                              url: txn.icon.trim().isEmpty
+                                  ? null
+                                  : txn.icon.trim(),
                               width: FetchProviderMetrics.r(40),
                               height: FetchProviderMetrics.r(40),
                               borderRadius: FetchProviderMetrics.r(12),
@@ -794,7 +832,8 @@ class _SavedBillerCard extends StatelessWidget {
                                 serviceCategory: serviceCategory,
                               ),
                               child: Padding(
-                                padding: EdgeInsets.all(FetchProviderMetrics.r(6)),
+                                padding:
+                                    EdgeInsets.all(FetchProviderMetrics.r(6)),
                                 child: const _VerticalDots(),
                               ),
                             ),
@@ -824,7 +863,8 @@ class _SavedBillerCard extends StatelessWidget {
                                   Expanded(
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'AutoPay Active',
@@ -840,7 +880,8 @@ class _SavedBillerCard extends StatelessWidget {
                                         ),
                                         if (lastPaid.isNotEmpty) ...[
                                           SizedBox(
-                                              height: FetchProviderMetrics.h(4)),
+                                              height:
+                                                  FetchProviderMetrics.h(4)),
                                           Text(
                                             lastPaid,
                                             maxLines: 1,
@@ -880,8 +921,9 @@ class _SavedBillerCard extends StatelessWidget {
                                                 18,
                                                 min: 14),
                                             height: 1.2,
-                                            letterSpacing:
-                                                -0.02 * FetchProviderMetrics.font(18, min: 14),
+                                            letterSpacing: -0.02 *
+                                                FetchProviderMetrics.font(18,
+                                                    min: 14),
                                             color: const Color(0xFF000000),
                                           ),
                                         ),
@@ -896,14 +938,13 @@ class _SavedBillerCard extends StatelessWidget {
                                             style: GoogleFonts.plusJakartaSans(
                                               fontWeight: FontWeight.w600,
                                               fontSize:
-                                                  FetchProviderMetrics.font(
-                                                      9.5,
+                                                  FetchProviderMetrics.font(9.5,
                                                       min: 8),
                                               height: 1.1,
-                                              letterSpacing:
-                                                  -0.02 * FetchProviderMetrics.font(9.5, min: 8),
-                                              color:
-                                                  const Color(0xFFD30000),
+                                              letterSpacing: -0.02 *
+                                                  FetchProviderMetrics.font(9.5,
+                                                      min: 8),
+                                              color: const Color(0xFFD30000),
                                             ),
                                           ),
                                         ],
@@ -918,17 +959,20 @@ class _SavedBillerCard extends StatelessWidget {
                                       // used only to clamp to the local
                                       // available width (overflow guard).
                                       final payBtnWidth =
-                                          FetchProviderMetrics.w(88).clamp(
-                                        FetchProviderMetrics.w(74),
-                                        constraints.maxWidth > 0
-                                            ? constraints.maxWidth
-                                            : double.infinity,
-                                      ).toDouble();
+                                          FetchProviderMetrics.w(88)
+                                              .clamp(
+                                                FetchProviderMetrics.w(74),
+                                                constraints.maxWidth > 0
+                                                    ? constraints.maxWidth
+                                                    : double.infinity,
+                                              )
+                                              .toDouble();
                                       final payBtnHeight =
                                           FetchProviderMetrics.h(28);
                                       final payBtnFont =
                                           FetchProviderMetrics.font(11.5,
                                               min: 10);
+
                                       return GestureDetector(
                                         onTap: onPayNow,
                                         child: Container(
@@ -954,8 +998,7 @@ class _SavedBillerCard extends StatelessWidget {
                                                 fontWeight: FontWeight.w500,
                                                 fontSize: payBtnFont,
                                                 height: 1.2,
-                                                color:
-                                                    const Color(0xFFFFFFFF),
+                                                color: const Color(0xFFFFFFFF),
                                               ),
                                             ),
                                           ),
@@ -1043,12 +1086,14 @@ class ServiceRecentAllView extends ConsumerWidget {
     required this.onPayNow,
     this.operatorLogo = false,
     this.operatorBillers = const [],
+    this.savedCards = const [],
   });
 
   final String categoryName;
   final ValueChanged<LatestTransaction> onPayNow;
   final bool operatorLogo;
   final List<Biller> operatorBillers;
+  final List<CreditCardItem> savedCards;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1096,6 +1141,7 @@ class ServiceRecentAllView extends ConsumerWidget {
                 width: double.infinity,
                 operatorLogo: operatorLogo,
                 operatorBillers: operatorBillers,
+                savedCards: savedCards,
                 serviceCategory: categoryName,
                 onPayNow: () => onPayNow(txn),
               );
@@ -1115,8 +1161,8 @@ class _OperatorLogoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final side = 41.w;
-    final radius = 12.25.r;
+    final side = CreditCardFigmaMetrics.myCardLogoSize(context);
+    final radius = CreditCardFigmaMetrics.myCardLogoRadius(context);
     final url = iconUrl.trim();
     final initial = fallbackLabel.trim().isEmpty
         ? ''
@@ -1126,7 +1172,7 @@ class _OperatorLogoTile extends StatelessWidget {
         initial,
         style: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w700,
-          fontSize: 16.sp,
+          fontSize: CreditCardFigmaMetrics.s(context, 16),
           color: AppColors.primary,
         ),
       ),
@@ -1137,13 +1183,16 @@ class _OperatorLogoTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: const Color(0xFFE2E2E2), width: 0.5),
+        border: Border.all(
+          color: CreditCardFigmaMetrics.providerLogoBorderColor,
+          width: CreditCardFigmaMetrics.providerLogoBorderWidth(context),
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: url.isEmpty
           ? fallback
           : Padding(
-              padding: EdgeInsets.all(6.w),
+              padding: EdgeInsets.all(CreditCardFigmaMetrics.s(context, 6)),
               child: AppNetworkImage(
                 url: url,
                 width: side,
@@ -1165,6 +1214,7 @@ class _RecentCard extends StatelessWidget {
     this.serviceCategory,
     this.operatorLogo = false,
     this.operatorBillers = const [],
+    this.savedCards = const [],
     this.width,
   });
 
@@ -1173,6 +1223,7 @@ class _RecentCard extends StatelessWidget {
   final String? serviceCategory;
   final bool operatorLogo;
   final List<Biller> operatorBillers;
+  final List<CreditCardItem> savedCards;
   final double? width;
 
   @override
@@ -1190,8 +1241,9 @@ class _RecentCard extends StatelessWidget {
     return ValueListenableBuilder<Map<String, FetchedBillDetails>>(
       valueListenable: fetchedBillCacheNotifier,
       builder: (context, fetchedCache, child) {
-        final cached = fetchedCache['${txn.billerId}_${txn.primaryConsumerNumber}'] ??
-            fetchedCache[txn.billerId];
+        final cached =
+            fetchedCache['${txn.billerId}_${txn.primaryConsumerNumber}'] ??
+                fetchedCache[txn.billerId];
         final accountHolderName = _capitalizeWords(
           (txn.accountHolderName.isNotEmpty
                   ? txn.accountHolderName
@@ -1204,13 +1256,26 @@ class _RecentCard extends StatelessWidget {
                 ? txn.service_no_full
                 : txn.primaryConsumerNumber)
             .trim();
+        final matchedCard =
+            operatorLogo ? _matchSavedCreditCard(txn, savedCards) : null;
         final rawDueDate = (txn.dueDate != null && txn.dueDate!.isNotEmpty)
             ? txn.dueDate
-            : (cached?.dueDate.isNotEmpty == true ? cached!.dueDate : null);
+            : (cached?.dueDate.isNotEmpty == true
+                ? cached!.dueDate
+                : matchedCard?.dueDate);
         final dueLabel = operatorLogo
             ? _formatCreditDue(rawDueDate)
             : _formatDueDate(rawDueDate);
-        final matched = operatorLogo ? _matchOperatorBiller(txn, operatorBillers) : null;
+        final lastPaidLabel = operatorLogo
+            ? _formatLastPaidOn(_firstFilled([
+                txn.lastPaidDate,
+                matchedCard?.lastPaidDate,
+                txn.transactionTime,
+                txn.createdAt,
+              ]))
+            : '';
+        final matched =
+            operatorLogo ? _matchOperatorBiller(txn, operatorBillers) : null;
         final bankName = (matched?.billerName.trim().isNotEmpty ?? false)
             ? matched!.billerName.trim()
             : title;
@@ -1218,15 +1283,29 @@ class _RecentCard extends StatelessWidget {
         final masked = _maskedCardNumber(consumerNo);
 
         return Container(
-          width: width ?? 280.w,
+          // 342 on the 440 frame is the same carousel width as the old 280
+          // ScreenUtil px on a 360-wide screen.
+          width: width ??
+              (operatorLogo ? CreditCardFigmaMetrics.s(context, 342) : 280.w),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(
+              operatorLogo
+                  ? CreditCardFigmaMetrics.myCardRadius(context)
+                  : 16.r,
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.cardShadow,
-                blurRadius: 12.r,
-                offset: Offset(0.w, 6.h),
+                blurRadius: operatorLogo
+                    ? CreditCardFigmaMetrics.myCardShadowBlur(context)
+                    : 12.r,
+                offset: operatorLogo
+                    ? Offset(
+                        0,
+                        CreditCardFigmaMetrics.myCardShadowOffsetY(context),
+                      )
+                    : Offset(0.w, 6.h),
               ),
             ],
           ),
@@ -1234,7 +1313,9 @@ class _RecentCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: EdgeInsets.all(13.w),
+                padding: operatorLogo
+                    ? CreditCardFigmaMetrics.myCardHeaderPadding(context)
+                    : EdgeInsets.all(13.w),
                 child: Row(
                   children: [
                     operatorLogo
@@ -1266,7 +1347,11 @@ class _RecentCard extends StatelessWidget {
                                     ),
                             ),
                           ),
-                    SizedBox(width: 12.w),
+                    SizedBox(
+                      width: operatorLogo
+                          ? CreditCardFigmaMetrics.s(context, 12)
+                          : 12.w,
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1277,14 +1362,19 @@ class _RecentCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: operatorLogo
-                                ? CreditCardFigmaMetrics.myCardTitleStyle(context)
-                                : Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                ? CreditCardFigmaMetrics.myCardTitleStyle(
+                                    context)
+                                : Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w800,
                                       color: AppColors.textPrimary,
                                     ),
                           ),
                           if (operatorLogo && masked.isNotEmpty) ...[
-                            SizedBox(height: CreditCardFigmaMetrics.sy(context, 6)),
+                            SizedBox(
+                                height: CreditCardFigmaMetrics.sy(context, 6)),
                             Text(
                               masked,
                               maxLines: 1,
@@ -1313,7 +1403,8 @@ class _RecentCard extends StatelessWidget {
                                   Container(
                                     width: 4.r,
                                     height: 4.r,
-                                    margin: EdgeInsets.symmetric(horizontal: 4.w),
+                                    margin:
+                                        EdgeInsets.symmetric(horizontal: 4.w),
                                     decoration: const BoxDecoration(
                                       color: Color(0xFFD9D9D9),
                                       shape: BoxShape.circle,
@@ -1342,10 +1433,18 @@ class _RecentCard extends StatelessWidget {
                         serviceCategory: serviceCategory,
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(4.w),
+                        padding: EdgeInsets.all(
+                          operatorLogo
+                              ? CreditCardFigmaMetrics.s(context, 4)
+                              : 4.w,
+                        ),
                         child: Icon(
                           Icons.more_vert,
-                          color: AppColors.textPrimary.withValues(alpha: 0.45),
+                          size: operatorLogo
+                              ? CreditCardFigmaMetrics.myCardMenuIconSize(
+                                  context)
+                              : null,
+                          color: const Color(0xFF000000),
                         ),
                       ),
                     ),
@@ -1353,14 +1452,15 @@ class _RecentCard extends StatelessWidget {
                 ),
               ),
               Divider(
-                  height: 1, color: AppColors.lightBorder.withValues(alpha: 0.7)),
+                  height: 1,
+                  color: AppColors.lightBorder.withValues(alpha: 0.7)),
               Padding(
                 padding: operatorLogo
                     ? EdgeInsets.fromLTRB(
                         CreditCardFigmaMetrics.s(context, 14),
-                        CreditCardFigmaMetrics.sy(context, 20),
+                        CreditCardFigmaMetrics.sy(context, 14),
                         CreditCardFigmaMetrics.s(context, 12),
-                        CreditCardFigmaMetrics.sy(context, 20),
+                        CreditCardFigmaMetrics.sy(context, 12),
                       )
                     : EdgeInsets.all(14.w),
                 child: Row(
@@ -1376,12 +1476,30 @@ class _RecentCard extends StatelessWidget {
                                 ? _formatInr(amount)
                                 : '₹${amount.toStringAsFixed(2)}',
                             style: operatorLogo
-                                ? CreditCardFigmaMetrics.myCardAmountStyle(context)
-                                : Theme.of(context).textTheme.titleMedium?.copyWith(
+                                ? CreditCardFigmaMetrics.myCardAmountStyle(
+                                    context)
+                                : Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       color: AppColors.textPrimary,
                                     ),
                           ),
+                          if (lastPaidLabel.isNotEmpty) ...[
+                            SizedBox(
+                              height: CreditCardFigmaMetrics.sy(context, 4),
+                            ),
+                            Text(
+                              lastPaidLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: CreditCardFigmaMetrics.myCardDueStyle(
+                                context,
+                                isDue: false,
+                              ),
+                            ),
+                          ],
                           if (dueLabel.isNotEmpty) ...[
                             SizedBox(
                               height: operatorLogo
@@ -1397,7 +1515,10 @@ class _RecentCard extends StatelessWidget {
                                       context,
                                       isDue: true,
                                     )
-                                  : Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  : Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
                                         color: Colors.red.shade600,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -1406,7 +1527,11 @@ class _RecentCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(
+                      width: operatorLogo
+                          ? CreditCardFigmaMetrics.s(context, 12)
+                          : 12.w,
+                    ),
                     operatorLogo
                         ? SizedBox(
                             width: CreditCardFigmaMetrics.payNowButtonWidth(
@@ -1509,6 +1634,48 @@ String _formatWasPaidOn(LatestTransaction txn) {
   return '$amountText Paid On $day$suffix ${months[parsed.month - 1]} ${parsed.year}';
 }
 
+String? _firstFilled(List<String?> values) {
+  for (final value in values) {
+    final text = (value ?? '').trim();
+    if (text.isNotEmpty && text.toLowerCase() != 'null') return text;
+  }
+  return null;
+}
+
+String _formatLastPaidOn(String? raw) {
+  final value = _firstFilled([raw]);
+  if (value == null) return '';
+  return 'Last Paid On ${DateFormatHelper.formatDisplayDateWithYear(value)}';
+}
+
+CreditCardItem? _matchSavedCreditCard(
+  LatestTransaction txn,
+  List<CreditCardItem> cards,
+) {
+  if (cards.isEmpty) return null;
+  final digits = txn.primaryConsumerNumber.replaceAll(RegExp(r'\D'), '');
+  final last4 = digits.length >= 4 ? digits.substring(digits.length - 4) : '';
+  final billerId = txn.billerId.trim().toLowerCase();
+  final sameBiller = <CreditCardItem>[];
+  for (final card in cards) {
+    final cardDigits = '${card.last4Digit ?? ''}${card.maskedIdentifier ?? ''}'
+        .replaceAll(RegExp(r'\D'), '');
+    final cardLast4 = cardDigits.length >= 4
+        ? cardDigits.substring(cardDigits.length - 4)
+        : '';
+    final billerMatches = billerId.isNotEmpty &&
+        (card.billerId ?? '').trim().toLowerCase() == billerId;
+    if (billerMatches) sameBiller.add(card);
+    if (last4.isNotEmpty &&
+        cardLast4 == last4 &&
+        (billerMatches || billerId.isEmpty)) {
+      return card;
+    }
+  }
+  if (sameBiller.length == 1) return sameBiller.first;
+  return null;
+}
+
 String _formatCreditDue(String? raw) {
   final value = (raw ?? '').trim();
   if (value.isEmpty || value.toLowerCase() == 'null') return '';
@@ -1535,12 +1702,32 @@ String _formatDueDate(String? raw, {bool shortMonth = false}) {
   if (value.isEmpty || value.toLowerCase() == 'null') return '';
   final parsed = DateTime.tryParse(value);
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   const shortMonths = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   if (parsed == null) return 'Due On $value';
   final m = (shortMonth ? shortMonths : months)[parsed.month - 1];
@@ -1570,7 +1757,8 @@ String? _operatorIconUrl(String raw) {
 String _maskedCardNumber(String raw) {
   final digits = raw.replaceAll(RegExp(r'\D'), '');
   if (digits.isEmpty) return '';
-  final suffix = digits.length >= 4 ? digits.substring(digits.length - 4) : digits;
+  final suffix =
+      digits.length >= 4 ? digits.substring(digits.length - 4) : digits;
   return 'XXXX$suffix';
 }
 
@@ -1826,7 +2014,8 @@ class _SavedBillerActionSheet extends StatelessWidget {
                             color: const Color(0xFF000000),
                           ),
                         ),
-                        if (customerName.isNotEmpty || consumerNo.isNotEmpty) ...[
+                        if (customerName.isNotEmpty ||
+                            consumerNo.isNotEmpty) ...[
                           SizedBox(height: 4.h),
                           Row(
                             children: [
@@ -1845,7 +2034,8 @@ class _SavedBillerActionSheet extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              if (customerName.isNotEmpty && consumerNo.isNotEmpty)
+                              if (customerName.isNotEmpty &&
+                                  consumerNo.isNotEmpty)
                                 Container(
                                   width: 4.r,
                                   height: 4.r,
