@@ -1,14 +1,11 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../controllers/support_tickets_controller.dart';
@@ -44,28 +41,31 @@ class SupportTicketsScreen extends HookConsumerWidget {
       return null;
     }, [state.errorMessage]);
 
+    final screen = MediaQuery.sizeOf(context);
+    final width = screen.width;
+    double u(double px) => width * (px / _frameW);
+    double v(double px) => screen.height * (px / _frameH);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
           MyAppBar(
             title: 'Tickets',
+            titleStyle: MyAppBar.sharedTitleStyle(context),
             onBack: () => context.pop(),
           ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: controller.fetchTickets,
               child: ListView(
-                padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+                padding: EdgeInsets.fromLTRB(u(28), v(16), u(28), v(24)),
                 children: [
                   Text(
                     'Open Tickets',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    style: _pj(u(16), weight: FontWeight.w700),
                   ),
-                  SizedBox(height: 12.h),
+                  SizedBox(height: u(16)),
                   if (state.isLoading && state.tickets.isEmpty)
                     Skeletonizer(
                       enabled: true,
@@ -74,7 +74,7 @@ class SupportTicketsScreen extends HookConsumerWidget {
                           children: List.generate(
                             6,
                             (index) => Padding(
-                              padding: EdgeInsets.only(bottom: 12.h),
+                              padding: EdgeInsets.only(bottom: u(16)),
                               child: _TicketCard(
                                 ticket: _SupportTicketSkeletons.ticket,
                                 onTap: () {},
@@ -87,22 +87,21 @@ class SupportTicketsScreen extends HookConsumerWidget {
                   else if (state.tickets.isEmpty)
                     Center(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 26.h),
+                        padding: EdgeInsets.symmetric(vertical: v(26)),
                         child: Text(
                           'No tickets found',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                color: AppColors.textPrimary.withOpacity(0.6),
-                              ),
+                          style: _pj(
+                            u(13),
+                            weight: FontWeight.w500,
+                            color: const Color(0xFFADADAD),
+                          ),
                         ),
                       ),
                     )
                   else
                     ...state.tickets.map(
                       (ticket) => Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.only(bottom: u(16)),
                         child: _TicketCard(
                           ticket: ticket,
                           onTap: () => context.push(
@@ -151,17 +150,20 @@ class _TicketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    double u(double px) => width * (px / _frameW);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14.r),
+      borderRadius: BorderRadius.circular(u(12)),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        padding: EdgeInsets.fromLTRB(u(12), u(14), u(12), u(14)),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: AppColors.lightBorder),
+          borderRadius: BorderRadius.circular(u(12)),
+          border: Border.all(color: const Color(0xFFEBEBEB)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
@@ -171,22 +173,23 @@ class _TicketCard extends StatelessWidget {
                     _title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    style: _pj(u(14), weight: FontWeight.w700),
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: u(8)),
                   Text(
                     _subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textPrimary.withOpacity(0.6),
-                          fontWeight: FontWeight.w600,
-                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _pj(
+                      u(12),
+                      weight: FontWeight.w500,
+                      color: const Color(0xFFADADAD),
+                    ),
                   ),
                 ],
               ),
             ),
+            SizedBox(width: u(8)),
             _TicketStatusChip(status: ticket.status),
           ],
         ),
@@ -218,17 +221,10 @@ class _TicketStatusChip extends StatelessWidget {
 
   Color get _color {
     final normalized = status.trim().toLowerCase();
-    if (normalized == 'resolved' || normalized == 'Resolved') {
-      return const Color(0xFF0E8B3E);
-    }
-    if (normalized == 'Reopened' || normalized == 'reopened') {
-      return const Color(0xFFB07B00);
-    }
-    if (normalized == 'Closed' || normalized == 'closed') {
-      return Colors.red;
-    }
-
-    return const Color(0xFFB07B00);
+    if (normalized == 'resolved') return const Color(0xFF058337);
+    if (normalized == 'reopened') return const Color(0xFFB07B00);
+    if (normalized == 'closed') return const Color(0xFFF54237);
+    return const Color(0xFFDAA507);
   }
 
   String get _label {
@@ -240,21 +236,44 @@ class _TicketStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final badgeH = MediaQuery.sizeOf(context).width * (24 / _frameW);
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      key: Key('ticket-status-$_label'),
+      height: badgeH,
+      alignment: Alignment.center,
+      padding: EdgeInsets.symmetric(horizontal: badgeH * (10 / 24)),
       decoration: BoxDecoration(
         color: _color,
-        borderRadius: BorderRadius.circular(10.r),
+        borderRadius: BorderRadius.circular(badgeH * (7 / 24)),
       ),
       child: Text(
         _label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
+        style: _pj(
+          badgeH * (11 / 24),
+          weight: FontWeight.w600,
+          color: Colors.white,
+          height: 1,
+        ),
       ),
     );
   }
+}
+
+const _frameW = 448.0;
+const _frameH = 986.0;
+
+TextStyle _pj(
+  double size, {
+  FontWeight weight = FontWeight.w500,
+  Color color = Colors.black,
+  double height = 1.2,
+}) {
+  return GoogleFonts.plusJakartaSans(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+  );
 }
 
 String _formatDate(String raw) {

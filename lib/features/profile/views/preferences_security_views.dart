@@ -21,6 +21,7 @@ import '../../onboarding/views/language_selection_view.dart';
 import '../controllers/profile_controller.dart';
 import '../controllers/theme_mode_controller.dart';
 import '../repositories/settings_repository.dart';
+import 'delete_account_otp_view.dart';
 
 class PreferencesView extends HookConsumerWidget {
   const PreferencesView({super.key});
@@ -90,20 +91,19 @@ class PreferencesView extends HookConsumerWidget {
         AppSnackbar.show(result.message);
       }
       if (!result.success || !context.mounted) return;
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => _DeleteAccountOtpDialog(
-          repository: repository,
-          onVerified: () async {
-            Navigator.of(context).pop();
-            await ref.read(authControllerProvider.notifier).logout();
-            if (context.mounted) {
-              context.go(RouteConstants.login);
-            }
-          },
+      final verified = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => DeleteAccountOtpView(
+            repository: repository,
+            phoneNumber: profile?.mobile ?? '',
+          ),
         ),
       );
+      if (verified != true) return;
+      await ref.read(authControllerProvider.notifier).logout();
+      if (context.mounted) {
+        context.go(RouteConstants.login);
+      }
     }
 
     return Scaffold(
@@ -724,7 +724,8 @@ class _PermissionTile extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 12.w),
-              SizedBox(height: 24.r,
+              SizedBox(
+                height: 24.r,
                 width: 24.r,
                 child: Checkbox(
                   value: value,
@@ -843,104 +844,6 @@ class _DeleteAccountConfirmDialog extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DeleteAccountOtpDialog extends HookWidget {
-  const _DeleteAccountOtpDialog({
-    required this.repository,
-    required this.onVerified,
-  });
-
-  final SettingsRepository repository;
-  final Future<void> Function() onVerified;
-
-  @override
-  Widget build(BuildContext context) {
-    final otpController = useTextEditingController();
-    final isLoading = useState(false);
-    final errorText = useState<String?>(null);
-
-    Future<void> verifyOtp() async {
-      final otp = otpController.text.trim();
-      if (otp.length < 6) {
-        errorText.value = 'Please enter the 6-digit OTP.';
-        return;
-      }
-      errorText.value = null;
-      isLoading.value = true;
-      final result = await repository.verifyDeleteAccountOtp(otp);
-      isLoading.value = false;
-      if (result.message.isNotEmpty) {
-        AppSnackbar.show(result.message);
-      }
-      if (result.success) {
-        await onVerified();
-      } else {
-        errorText.value =
-            'That OTP is not valid. Please check it and try again.';
-      }
-    }
-
-    return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(22.w, 22.h, 22.w, 16.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Enter OTP',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              'Please enter the 6-digit OTP sent to your registered number.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textPrimary.withOpacity(0.7),
-                    height: 1.4,
-                  ),
-            ),
-            SizedBox(height: 18.h),
-            TextField(
-              controller: otpController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              onChanged: (_) => errorText.value = null,
-              decoration: InputDecoration(
-                counterText: '',
-                hintText: 'OTP',
-                errorText: errorText.value,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              height: 42.h,
-              child: ElevatedButton(
-                onPressed: isLoading.value ? null : verifyOtp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: Text(isLoading.value ? 'Verifying...' : 'Verify OTP'),
-              ),
             ),
           ],
         ),

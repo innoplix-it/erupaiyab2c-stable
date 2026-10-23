@@ -805,13 +805,28 @@ List<TransactionCustomerParam> _resolveHeaderParams(
                 : tx.primaryConsumerNumber);
     final operatorName = billerName.isNotEmpty ? billerName : 'Electricity';
 
+    // Prefer the label the API actually provided in customer_params (e.g.
+    // "Consumer Number"), falling back to the canonical "Consumer No" when no
+    // consumer-labelled param is present.
+    String consumerLabel = 'Consumer No';
+    for (final param in tx.customerParams) {
+      final l = param.label.trim().toLowerCase();
+      if (l.contains('consumer') ||
+          l.contains('ca number') ||
+          l.contains('account') ||
+          l.contains('k no')) {
+        consumerLabel = param.label.trim();
+        break;
+      }
+    }
+
     return [
       TransactionCustomerParam(
         label: 'Payment to',
         value: operatorName,
       ),
       TransactionCustomerParam(
-        label: 'Consumer No',
+        label: consumerLabel,
         value: consumerNo.isNotEmpty
             ? consumerNo
             : (maskedIdentifier.isNotEmpty ? maskedIdentifier : '-'),

@@ -44,6 +44,20 @@ class _CreditCardTransactionsScreenState
   }
 
   @override
+  void didUpdateWidget(covariant CreditCardTransactionsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.maskedIdentifier != widget.maskedIdentifier) {
+      Future.microtask(() {
+        ref
+            .read(creditCardTransactionsControllerProvider.notifier)
+            .fetchTransactions(
+              maskedIdentifier: widget.maskedIdentifier,
+            );
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -57,7 +71,7 @@ class _CreditCardTransactionsScreenState
         ? state.items
         : state.items.where((item) {
             final haystack =
-                '${item.billerName} ${item.paymentStatus} ${item.amount}'
+                '${item.billerName} ${item.paymentStatus} ${item.amount} ${item.paymentTransactionId} ${item.bankReferenceId}'
                     .toLowerCase();
             return haystack.contains(query);
           }).toList();
@@ -87,48 +101,106 @@ class _CreditCardTransactionsScreenState
             ),
           ),
           Expanded(
-            child: state.isLoading
-                ? Center(
-                    child: SpinKitCircle(
-                      color: AppColors.primary,
-                      size: MediaQuery.sizeOf(context).width * (48 / 440),
+            child: _buildContent(context, state, items),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    CreditCardTransactionsState state,
+    List<CreditCardTransaction> items,
+  ) {
+    if (widget.maskedIdentifier.trim().isEmpty) {
+      return const Center(
+        child: _EmptyState(message: 'Masked identifier is missing.'),
+      );
+    }
+
+    if (state.isLoading && state.items.isEmpty) {
+      return Center(
+        child: SpinKitCircle(
+          color: AppColors.primary,
+          size: MediaQuery.sizeOf(context).width * (48 / 440),
+        ),
+      );
+    }
+
+    if (state.errorMessage != null && state.items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: CreditCardFigmaMetrics.s(context, 16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                state.errorMessage!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textPrimary,
                     ),
-                  )
-                : CustomScrollView(
-                    slivers: [
-                      if (items.isEmpty)
-                        const SliverToBoxAdapter(
-                          child: _EmptyState(),
-                        )
-                      else
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final item = items[index];
-                              return Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                    CreditCardFigmaMetrics.s(context, 16),
-                                    CreditCardFigmaMetrics.sy(context, 0),
-                                    CreditCardFigmaMetrics.s(context, 16),
-                                    CreditCardFigmaMetrics.sy(context, 12)),
-                                child: _TransactionTile(
-                                  item: item,
-                                  onTap: () => context.push(
-                                    RouteConstants.creditCardTransactionDetail,
-                                    extra: item,
-                                  ),
-                                ),
-                              );
-                            },
-                            childCount: items.length,
-                          ),
-                        ),
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                            height: CreditCardFigmaMetrics.sy(context, 24)),
+              ),
+              SizedBox(height: CreditCardFigmaMetrics.sy(context, 12)),
+              TextButton(
+                onPressed: () => ref
+                    .read(creditCardTransactionsControllerProvider.notifier)
+                    .fetchTransactions(
+                      maskedIdentifier: widget.maskedIdentifier,
+                    ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => ref
+          .read(creditCardTransactionsControllerProvider.notifier)
+          .fetchTransactions(
+            maskedIdentifier: widget.maskedIdentifier,
+            isRefresh: true,
+          ),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (items.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: _EmptyState(),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = items[index];
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      CreditCardFigmaMetrics.s(context, 16),
+                      CreditCardFigmaMetrics.sy(context, 0),
+                      CreditCardFigmaMetrics.s(context, 16),
+                      CreditCardFigmaMetrics.sy(context, 12),
+                    ),
+                    child: _TransactionTile(
+                      item: item,
+                      onTap: () => context.push(
+                        RouteConstants.creditCardTransactionDetail,
+                        extra: item,
                       ),
-                    ],
-                  ),
+                    ),
+                  );
+                },
+                childCount: items.length,
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: SizedBox(height: CreditCardFigmaMetrics.sy(context, 24)),
           ),
         ],
       ),
@@ -290,19 +362,25 @@ class _TransactionTile extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({this.message = 'No transactions found'});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(
-          horizontal: CreditCardFigmaMetrics.s(context, 16),
-          vertical: CreditCardFigmaMetrics.sy(context, 24)),
-      child: Text(
-        'No transactions found',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textPrimary.withOpacity(0.6),
-            ),
+        horizontal: CreditCardFigmaMetrics.s(context, 16),
+        vertical: CreditCardFigmaMetrics.sy(context, 24),
+      ),
+      child: Center(
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary.withOpacity(0.6),
+              ),
+        ),
       ),
     );
   }

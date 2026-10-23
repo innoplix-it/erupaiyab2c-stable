@@ -1885,6 +1885,21 @@ Future<void> _showSavedBillerActionSheet(
       );
       return;
     }
+    final creditCardHaystack =
+        '${serviceCategory ?? ''} ${txn.paymentType} ${txn.billerName}'
+            .toLowerCase();
+    if (creditCardHaystack.contains('credit card') ||
+        creditCardHaystack.contains('creditcard')) {
+      context.push(
+        RouteConstants.transactions,
+        extra: const {
+          'service': 'Credit Card',
+          'paymentType': 'Credit Card',
+          'creditCardScoped': true,
+        },
+      );
+      return;
+    }
     final filterService = (serviceCategory?.trim().isNotEmpty == true)
         ? serviceCategory!.trim()
         : (txn.paymentType.trim().isNotEmpty

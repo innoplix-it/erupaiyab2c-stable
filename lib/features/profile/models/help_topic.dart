@@ -12,8 +12,15 @@ class HelpTopic {
       id: (json['id'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
-      imageUrl: _nullIfEmpty(json['image']?.toString()),
-      video: _nullIfEmpty(json['video']?.toString()),
+      imageUrl: _nullIfEmpty(
+        json['image']?.toString() ?? json['image_url']?.toString(),
+      ),
+      video: _nullIfEmpty(
+        json['video']?.toString() ??
+            json['video_url']?.toString() ??
+            json['youtube_url']?.toString() ??
+            json['youtube']?.toString(),
+      ),
     );
   }
 
@@ -78,4 +85,3 @@ String? _extractVideoKey(String? raw) {
 
   return null;
 }
-

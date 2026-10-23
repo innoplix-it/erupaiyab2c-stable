@@ -56,20 +56,58 @@ class CreditCardTransactionsResponse {
 
   factory CreditCardTransactionsResponse.fromJson(Map<String, dynamic> json) {
     final data = json['data'];
-    final items = data is List
-        ? data
+    List<CreditCardTransaction> items = <CreditCardTransaction>[];
+    if (data is List) {
+      items = data
+          .whereType<Map<String, dynamic>>()
+          .map(CreditCardTransaction.fromJson)
+          .toList();
+    } else if (data is Map<String, dynamic>) {
+      final list = data['items'] ?? data['transactions'] ?? data['data'];
+      if (list is List) {
+        items = list
             .whereType<Map<String, dynamic>>()
             .map(CreditCardTransaction.fromJson)
-            .toList()
-        : <CreditCardTransaction>[];
-    final pagination = json['pagination'] as Map<String, dynamic>? ?? {};
+            .toList();
+      }
+    }
+
+    final pagination = (json['pagination'] as Map<String, dynamic>?) ??
+        ((data is Map<String, dynamic>)
+            ? (data['pagination'] as Map<String, dynamic>?)
+            : null) ??
+        {};
+
+    int parseInt(dynamic val, int defaultVal) {
+      if (val is int) return val;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? defaultVal;
+      return defaultVal;
+    }
+
+    final currentPage = parseInt(
+      pagination['current_page'] ?? json['current_page'] ?? json['page'],
+      1,
+    );
+    final totalPages = parseInt(
+      pagination['total_pages'] ?? json['total_pages'] ?? json['totalPages'],
+      1,
+    );
+    final totalRecords = parseInt(
+      pagination['total_records'] ??
+          json['total_records'] ??
+          json['totalRecords'] ??
+          json['total'],
+      items.length,
+    );
+
     return CreditCardTransactionsResponse(
       success: json['success'] == true,
       message: json['message']?.toString() ?? '',
       items: items,
-      currentPage: pagination['current_page'] as int? ?? 1,
-      totalPages: pagination['total_pages'] as int? ?? 1,
-      totalRecords: pagination['total_records'] as int? ?? items.length,
+      currentPage: currentPage,
+      totalPages: totalPages,
+      totalRecords: totalRecords,
     );
   }
 

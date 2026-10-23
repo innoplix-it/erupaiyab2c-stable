@@ -81,16 +81,23 @@ class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({
     super.key,
     this.initialServiceFilter,
+    this.initialPaymentTypeFilter,
     this.initialConsumerIdFilter,
     this.initialElectricityCardScoped = false,
+    this.initialCreditCardScoped = false,
   });
 
   final String? initialServiceFilter;
+  final String? initialPaymentTypeFilter;
   final String? initialConsumerIdFilter;
 
   /// True only when opened from an Electricity Saved Biller card
   /// (3 dots -> View History). Generic/main history always uses false.
   final bool initialElectricityCardScoped;
+
+  /// True only when opened from a Credit Card's History action.
+  /// Requests `service=Credit Card` and `payment_type=Credit Card`.
+  final bool initialCreditCardScoped;
 
   @override
   ConsumerState<TransactionHistoryScreen> createState() =>
@@ -120,6 +127,15 @@ class _TransactionHistoryScreenState
         RouteConstants.billerListing,
         extra: ElectricityCardHistoryScope.backFallbackCategory,
       );
+      return;
+    }
+    if (widget.initialCreditCardScoped) {
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop();
+        return;
+      }
+      context.go(RouteConstants.creditCardMyCards);
       return;
     }
     final location = GoRouterState.of(context).matchedLocation;
@@ -157,6 +173,24 @@ class _TransactionHistoryScreenState
         );
         return;
       }
+    }
+    if (widget.initialCreditCardScoped) {
+      final service = widget.initialServiceFilter?.trim();
+      final paymentType = widget.initialPaymentTypeFilter?.trim();
+      Future.microtask(
+        () =>
+            ref.read(transactionHistoryControllerProvider.notifier).applyFilter(
+                  TransactionHistoryFilter(
+                    service: service != null && service.isNotEmpty
+                        ? service
+                        : 'Credit Card',
+                    paymentType: paymentType != null && paymentType.isNotEmpty
+                        ? paymentType
+                        : 'Credit Card',
+                  ),
+                ),
+      );
+      return;
     }
     final filterService = widget.initialServiceFilter?.trim();
     final filterConsumerId = widget.initialConsumerIdFilter?.trim();
@@ -222,10 +256,12 @@ class _TransactionHistoryScreenState
       totalRecords: totalRecords,
     );
     // Pages arrive newest first, so only the oldest loaded month can still
-    // have rows on later pages. It stays hidden until a later page (or the
-    // last page) proves it complete, so no month shows a partial count.
-    final incompleteMonth =
-        hasMore && apiMonthTotal == null ? _trailingMonthKey(items) : null;
+    // have rows on later pages. Electricity and generic history hide that
+    // month until a later page proves it complete. Credit-card history is
+    // already scoped by service=Credit Card, so its loaded rows stay visible.
+    final incompleteMonth = widget.initialCreditCardScoped
+        ? null
+        : (hasMore && apiMonthTotal == null ? _trailingMonthKey(items) : null);
     final visibleSections = incompleteMonth == null
         ? sections
         : sections
@@ -465,6 +501,16 @@ class _TransactionHistoryScreenState
       if (query.isEmpty) return scoped;
       return scoped.where((item) {
         final haystack = '${item.billerName} ${item.paymentType}';
+        return haystack.toLowerCase().contains(query);
+      }).toList(growable: false);
+    }
+    if (widget.initialCreditCardScoped) {
+      final scoped =
+          items.where(_isCreditCardHistoryRow).toList(growable: false);
+      if (query.isEmpty) return scoped;
+      return scoped.where((item) {
+        final haystack =
+            '${item.billerName} ${item.paymentType} ${item.maskedIdentifier}';
         return haystack.toLowerCase().contains(query);
       }).toList(growable: false);
     }
@@ -712,7 +758,11 @@ class _TransactionTile extends StatelessWidget {
     final status = _resolveStatus(item.paymentStatus);
     final amountColor = _amountColor(status);
 
-    final displayPaymentType = _getDisplayPaymentType(item);
+    final creditCardRow = _isCreditCardHistoryRow(item);
+    final bankName = item.billerName.trim();
+    final displayPaymentType = creditCardRow && bankName.isNotEmpty
+        ? bankName
+        : _getDisplayPaymentType(item);
     final recipientDisplay = _getRecipientDisplay(item);
     final consumerNumber = _getConsumerDisplay(item);
     final consumerDisplay =
@@ -783,6 +833,18 @@ class _TransactionTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: _TxnCardText.paymentType(),
                   ),
+                  if (creditCardRow &&
+                      item.paymentType.trim().isNotEmpty &&
+                      item.paymentType.trim().toLowerCase() !=
+                          displayPaymentType.trim().toLowerCase()) ...[
+                    SizedBox(height: _figmaW(6)),
+                    Text(
+                      _capitalizeWords(item.paymentType),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _TxnCardText.recipientName(),
+                    ),
+                  ],
                   if (recipientDisplay.isNotEmpty) ...[
                     SizedBox(height: _figmaW(6)),
                     Text(
@@ -1085,6 +1147,55 @@ DateTime? _requestedMonth(
   return DateTime(int.parse(match[1]!), int.parse(match[2]!));
 }
 
+bool _isCreditCardHistoryRow(TransactionHistoryEntry item) {
+  // Identity uses fields the history model already parses. Customer-param
+  // labels are included only for a positive credit-card signal, because a
+  // credit-card row's "Registered Mobile Number" param would otherwise look
+  // like a mobile recharge.
+  final identity =
+      '${item.paymentType} ${item.billerName} ${item.feeType ?? ''}'
+          .toLowerCase();
+  final paramLabels =
+      item.customerParams.map((param) => param.label).join(' ').toLowerCase();
+  if (_containsCreditCard('$identity $paramLabels')) return true;
+  if (_isDefinitelyNonCreditCardService(identity)) return false;
+  // The request is already `service=Credit Card`. A bank row whose
+  // payment_type/biller_name is only the bank ("HDFC Bank") is still a
+  // credit-card transaction and must stay visible.
+  return true;
+}
+
+bool _containsCreditCard(String value) {
+  return value.contains('credit card') || value.contains('creditcard');
+}
+
+bool _isDefinitelyNonCreditCardService(String haystack) {
+  final value = haystack.trim();
+  if (value.isEmpty) return false;
+  const markers = <String>[
+    'fastag',
+    'mobile',
+    'recharge',
+    'postpaid',
+    'prepaid',
+    'tuition',
+    'tution',
+    'school',
+    'college',
+    'education',
+    'dth',
+    'gas',
+    'water',
+    'broadband',
+    'landline',
+    'insurance',
+    'loan',
+    'electric',
+    'rent',
+  ];
+  return markers.any(value.contains);
+}
+
 /// Month of the oldest dated row loaded so far.
 String? _trailingMonthKey(List<TransactionHistoryEntry> items) {
   for (final item in items.reversed) {
@@ -1299,137 +1410,6 @@ String _getFeeTypeDisplay(TransactionHistoryEntry item) {
     return _formatFeeType(feeType);
   }
   return '';
-}
-
-class _TransactionFilterSheet extends StatefulWidget {
-  const _TransactionFilterSheet({
-    required this.selectedDays,
-    this.selectedLastYears,
-    required this.selectedRange,
-    required this.onSelectDays,
-    required this.onSelectLastYears,
-    required this.onSelectRange,
-  });
-
-  final int selectedDays;
-  final int? selectedLastYears;
-  final DateTimeRange? selectedRange;
-  final ValueChanged<int> onSelectDays;
-  final ValueChanged<int> onSelectLastYears;
-  final ValueChanged<DateTimeRange> onSelectRange;
-
-  @override
-  State<_TransactionFilterSheet> createState() =>
-      _TransactionFilterSheetState();
-}
-
-class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
-  Future<void> _pickRange() async {
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(now.year - 2),
-      lastDate: now,
-      initialDateRange: widget.selectedRange,
-    );
-    if (picked != null) {
-      widget.onSelectRange(picked);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Filters',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-          Divider(color: AppColors.lightBorder.withOpacity(0.7)),
-          _FilterOption(
-            label: 'Last 30 days',
-            selected: widget.selectedRange == null && widget.selectedDays == 30,
-            onTap: () => widget.onSelectDays(30),
-          ),
-          _FilterOption(
-            label: 'Last 60 days',
-            selected: widget.selectedRange == null && widget.selectedDays == 60,
-            onTap: () => widget.onSelectDays(60),
-          ),
-          _FilterOption(
-            label: 'Last 90 days',
-            selected: widget.selectedRange == null && widget.selectedDays == 90,
-            onTap: () => widget.onSelectDays(90),
-          ),
-          _FilterOption(
-            label: 'Last 180 days',
-            selected:
-                widget.selectedRange == null && widget.selectedDays == 180,
-            onTap: () => widget.onSelectDays(180),
-          ),
-          _FilterOption(
-            label: 'Last 4 years',
-            selected: widget.selectedLastYears == 4,
-            onTap: () => widget.onSelectLastYears(4),
-          ),
-          _FilterOption(
-            label: 'Custom date range',
-            selected: widget.selectedRange != null,
-            onTap: _pickRange,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterOption extends StatelessWidget {
-  const _FilterOption({
-    required this.label,
-    required this.onTap,
-    required this.selected,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        label,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-      ),
-      trailing: Icon(
-        selected ? Icons.check_circle : Icons.arrow_forward,
-        color: selected ? AppColors.primary : AppColors.textPrimary,
-      ),
-      onTap: onTap,
-    );
-  }
 }
 
 class _TransactionEmptyState extends StatelessWidget {

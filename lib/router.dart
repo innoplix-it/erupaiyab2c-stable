@@ -1,11 +1,8 @@
 import 'package:e_rupaiya/features/home/views/home_search_view.dart';
 import 'package:e_rupaiya/widgets/processing_overlay.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'config/app_env.dart';
 import 'config/temporary_block_debug_config.dart';
-import 'constants/routes_constant.dart';
 import 'core/barrel_file.dart';
 import 'features/auth/controllers/auth_controller.dart';
 import 'features/auth/models/auth_state.dart';
@@ -84,7 +81,6 @@ import 'features/services/views/credit_card_transaction_detail_screen.dart';
 import 'features/services/views/credit_card_transactions_screen.dart';
 import 'features/spinandear/views/spin_and_win_view.dart';
 import 'features/zero_balance_account/views/choose_your_bank_view.dart';
-import 'services/logger_service.dart';
 import 'services/navigation_interaction_lock.dart';
 import 'widgets/k_dialog.dart';
 import 'widgets/payment_success_flow.dart';
@@ -464,9 +460,20 @@ final routerProvider = Provider<GoRouter>(
         ),
         GoRoute(
           path: RouteConstants.creditCardTransactions,
-          builder: (context, state) => CreditCardTransactionsScreen(
-            maskedIdentifier: state.extra as String? ?? '',
-          ),
+          builder: (context, state) {
+            String maskedId = '';
+            final extra = state.extra;
+            if (extra is String) {
+              maskedId = extra;
+            } else if (extra is Map) {
+              maskedId = extra['maskedIdentifier']?.toString() ??
+                  extra['masked_identifier']?.toString() ??
+                  '';
+            }
+            return CreditCardTransactionsScreen(
+              maskedIdentifier: maskedId,
+            );
+          },
         ),
         GoRoute(
           path: RouteConstants.creditCardTransactionDetail,
@@ -574,13 +581,20 @@ final routerProvider = Provider<GoRouter>(
           builder: (context, state) {
             final extra = state.extra;
             String? serviceFilter;
+            String? paymentTypeFilter;
             String? consumerIdFilter;
             var electricityCardScoped = false;
+            var creditCardScoped = false;
             if (extra is Map<String, dynamic>) {
               final s = extra['service'];
+              final p = extra['paymentType'];
               final c = extra['consumerId'] ?? extra['serviceNoFull'];
-              serviceFilter = s is String && s.trim().isNotEmpty ? s.trim() : null;
-              consumerIdFilter = c is String && c.trim().isNotEmpty ? c.trim() : null;
+              serviceFilter =
+                  s is String && s.trim().isNotEmpty ? s.trim() : null;
+              paymentTypeFilter =
+                  p is String && p.trim().isNotEmpty ? p.trim() : null;
+              consumerIdFilter =
+                  c is String && c.trim().isNotEmpty ? c.trim() : null;
               // Electricity card-scoped View History only (3 dots -> View
               // History on an Electricity saved-biller card). Generic history
               // extras never carry this flag, so generic behavior is untouched.
@@ -594,16 +608,24 @@ final routerProvider = Provider<GoRouter>(
                   consumerIdFilter != null &&
                   consumerIdFilter.isNotEmpty;
               if (electricityCardScoped) {
-                serviceFilter =
-                    ElectricityCardHistoryScope.serviceName;
+                serviceFilter = ElectricityCardHistoryScope.serviceName;
               }
+              creditCardScoped = extra['creditCardScoped'] == true &&
+                  !electricityCardScoped &&
+                  (serviceFilter == null ||
+                      serviceFilter.toLowerCase().contains('credit'));
             } else if (extra is Map) {
               final mapped =
                   extra.map((key, value) => MapEntry(key.toString(), value));
               final s = mapped['service'];
+              final p = mapped['paymentType'];
               final c = mapped['consumerId'] ?? mapped['serviceNoFull'];
-              serviceFilter = s is String && s.trim().isNotEmpty ? s.trim() : null;
-              consumerIdFilter = c is String && c.trim().isNotEmpty ? c.trim() : null;
+              serviceFilter =
+                  s is String && s.trim().isNotEmpty ? s.trim() : null;
+              paymentTypeFilter =
+                  p is String && p.trim().isNotEmpty ? p.trim() : null;
+              consumerIdFilter =
+                  c is String && c.trim().isNotEmpty ? c.trim() : null;
               final scopedFlag = mapped['electricityCardScoped'] == true ||
                   mapped['scope'] == 'electricity-card';
               final serviceOk = serviceFilter == null ||
@@ -614,34 +636,47 @@ final routerProvider = Provider<GoRouter>(
                   consumerIdFilter != null &&
                   consumerIdFilter.isNotEmpty;
               if (electricityCardScoped) {
-                serviceFilter =
-                    ElectricityCardHistoryScope.serviceName;
+                serviceFilter = ElectricityCardHistoryScope.serviceName;
               }
+              creditCardScoped = mapped['creditCardScoped'] == true &&
+                  !electricityCardScoped &&
+                  (serviceFilter == null ||
+                      serviceFilter.toLowerCase().contains('credit'));
             } else if (extra is String) {
               serviceFilter = extra.trim().isNotEmpty ? extra.trim() : null;
             }
+            if (creditCardScoped) {
+              serviceFilter = 'Credit Card';
+              paymentTypeFilter = 'Credit Card';
+            }
             return TransactionHistoryScreen(
               initialServiceFilter: serviceFilter,
+              initialPaymentTypeFilter: paymentTypeFilter,
               initialConsumerIdFilter: consumerIdFilter,
               initialElectricityCardScoped: electricityCardScoped,
+              initialCreditCardScoped: creditCardScoped,
             );
           },
         ),
         GoRoute(
           path: RouteConstants.transactionDetailSuccess,
-          builder: (context, state) => _transactionDetailFromState(context, state),
+          builder: (context, state) =>
+              _transactionDetailFromState(context, state),
         ),
         GoRoute(
           path: RouteConstants.transactionDetailFailed,
-          builder: (context, state) => _transactionDetailFromState(context, state),
+          builder: (context, state) =>
+              _transactionDetailFromState(context, state),
         ),
         GoRoute(
           path: RouteConstants.transactionDetailPending,
-          builder: (context, state) => _transactionDetailFromState(context, state),
+          builder: (context, state) =>
+              _transactionDetailFromState(context, state),
         ),
         GoRoute(
           path: RouteConstants.transactionDetail,
-          builder: (context, state) => _transactionDetailFromState(context, state),
+          builder: (context, state) =>
+              _transactionDetailFromState(context, state),
         ),
         GoRoute(
           path: RouteConstants.notifications,
@@ -871,4 +906,3 @@ TransactionDetailScreen _transactionDetailFromState(
   }
   return TransactionDetailScreen(entry: entry);
 }
-

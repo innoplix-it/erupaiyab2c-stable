@@ -172,6 +172,7 @@ class CreditCardMyCardsView extends HookConsumerWidget {
     CreditCardItem item,
   ) async {
     await ref.read(profileControllerProvider.notifier).fetchProfileIfNeeded();
+    if (!context.mounted) return;
     await _pushCreditCardBiller(
       context,
       ref,
@@ -440,7 +441,8 @@ class CreditCardMyCardTile extends HookWidget {
                 ),
               ),
             ),
-            Divider(height: 1, thickness: 1, color: AppColors.lightBorder),
+            const Divider(
+                height: 1, thickness: 1, color: AppColors.lightBorder),
             InkWell(
               onTap: openBillsScreen,
               borderRadius: BorderRadius.vertical(
@@ -605,10 +607,18 @@ class _CardActionSheet extends ConsumerWidget {
             icon: Icons.history,
             label: 'History',
             onTap: () {
-              final maskedId = item.maskedIdentifier?.trim() ?? '';
+              final rawMasked = item.maskedIdentifier?.trim() ?? '';
+              final last4 =
+                  (item.last4Digit ?? '').replaceAll(RegExp(r'\D'), '').trim();
+              final maskedId = rawMasked.isNotEmpty
+                  ? rawMasked
+                  : (last4.isNotEmpty
+                      ? (last4.startsWith('*') ? last4 : '****$last4')
+                      : '');
+              final router = GoRouter.of(context);
               Navigator.of(context).pop();
               if (maskedId.isNotEmpty) {
-                context.push(
+                router.push(
                   RouteConstants.creditCardTransactions,
                   extra: maskedId,
                 );
