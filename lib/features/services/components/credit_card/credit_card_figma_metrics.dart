@@ -30,13 +30,18 @@ abstract final class CreditCardFigmaMetrics {
       );
 
   static EdgeInsets bottomBarPadding(
-          BuildContext context, double bottomInset) =>
-      EdgeInsets.fromLTRB(
-        s(context, 20),
-        0,
-        s(context, 20),
-        sy(context, 16) + bottomInset,
-      );
+    BuildContext context,
+    double bottomInset,
+  ) {
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final effectiveBottomInset = keyboardOpen ? 0.0 : bottomInset;
+    return EdgeInsets.fromLTRB(
+      s(context, 20),
+      0,
+      s(context, 20),
+      sy(context, 16) + effectiveBottomInset,
+    );
+  }
 
   /// Figma primary CTA height (Proceed / Add New Card).
   static double primaryButtonHeight(BuildContext context) => sy(context, 56);

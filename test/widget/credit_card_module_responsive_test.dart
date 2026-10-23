@@ -22,7 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 const _widths = <double>[320, 360, 375, 390, 414, 440];
-const _scales = <double>[1.0, 1.15];
+const _scales = <double>[0.85, 1.0, 1.15];
 
 CreditCardTransaction _longTx() => const CreditCardTransaction(
       paymentStatus: 'SUCCESS',
@@ -31,7 +31,8 @@ CreditCardTransaction _longTx() => const CreditCardTransaction(
       amount: '30000.00',
       platformFees: '15.50',
       totalAmountCharged: '30015.50',
-      paymentTransactionId: 'TXN-CC-2026-05-06-ABCDEFGHIJKLMNOPQRSTUVWXYZ-998877',
+      paymentTransactionId:
+          'TXN-CC-2026-05-06-ABCDEFGHIJKLMNOPQRSTUVWXYZ-998877',
       bankReferenceId: 'BANKREF-VERY-LONG-REFERENCE-ID-123456789012345',
       transactionTime: '6 May 2026, 05:29 PM',
       method: 'UPI',
@@ -79,6 +80,47 @@ class _FakeCreditCardTransactionsRepository
       currentPage: 1,
       totalPages: 1,
       totalRecords: 1,
+    );
+  }
+}
+
+class _LargeFakeCreditCardTransactionsRepository
+    extends CreditCardTransactionsRepository {
+  _LargeFakeCreditCardTransactionsRepository() : super(dio: Dio());
+
+  @override
+  Future<CreditCardTransactionsResponse> fetchTransactions({
+    required String maskedIdentifier,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    final items = List.generate(
+      50,
+      (i) => CreditCardTransaction(
+        paymentStatus: i % 3 == 0 ? 'SUCCESS' : (i % 3 == 1 ? 'FAILED' : 'PENDING'),
+        billerName: 'Bank ${i + 1} Credit Card',
+        maskedIdentifier: 'XXXX${(i + 1).toString().padLeft(4, '0')}',
+        amount: '${(i + 1) * 1000}.00',
+        platformFees: '15.50',
+        totalAmountCharged: '${(i + 1) * 1000 + 15.50}',
+        paymentTransactionId: 'TXN-$i-ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        bankReferenceId: 'BANKREF-$i-123456789012345',
+        transactionTime: '${i + 1} May 2026, 12:00 PM',
+        method: 'UPI',
+        methodIcon: '',
+        paymentMode: 'UPI',
+        vpa: 'user$i@oksbi',
+        rrn: '123456789012345678',
+        icon: '',
+      ),
+    );
+    return CreditCardTransactionsResponse(
+      success: true,
+      message: '',
+      items: items,
+      currentPage: page,
+      totalPages: 5,
+      totalRecords: 50,
     );
   }
 }
@@ -136,7 +178,8 @@ void main() {
     for (final scale in _scales) {
       final label = '${width.toInt()}px text $scale';
 
-      testWidgets('credit card detail has no overflow at $label', (tester) async {
+      testWidgets('credit card detail has no overflow at $label',
+          (tester) async {
         await pumpSized(
           tester,
           size: Size(width, 800),
@@ -170,7 +213,8 @@ void main() {
               (ref) => _FakeCreditCardTransactionsRepository(),
             ),
           ],
-          home: const CreditCardTransactionsScreen(maskedIdentifier: 'XXXX1234'),
+          home:
+              const CreditCardTransactionsScreen(maskedIdentifier: 'XXXX1234'),
         );
         expect(find.text('Saraswat Co-Operative Bank Ltd Credit Card'),
             findsOneWidget);
@@ -281,4 +325,85 @@ void main() {
       }
     }
   }
+
+  // Landscape orientation tests
+  for (final width in _widths) {
+    for (final scale in _scales) {
+      testWidgets('transactions screen fits landscape ${width.toInt()}px text $scale',
+          (tester) async {
+        await pumpSized(
+          tester,
+          size: Size(width, 400),
+          textScale: scale,
+          overrides: [
+            creditCardTransactionsRepositoryProvider.overrideWith(
+              (ref) => _FakeCreditCardTransactionsRepository(),
+            ),
+          ],
+          home: const CreditCardTransactionsScreen(maskedIdentifier: 'XXXX1234'),
+        );
+        expectNoOverflow(tester);
+      });
+    }
+  }
+
+  // Tablet size tests (>458px width)
+  const tabletWidths = <double>[600, 768, 834, 1024];
+  for (final width in tabletWidths) {
+    for (final scale in _scales) {
+      testWidgets('transactions screen fits tablet ${width.toInt()}px text $scale',
+          (tester) async {
+        await pumpSized(
+          tester,
+          size: Size(width, 900),
+          textScale: scale,
+          overrides: [
+            creditCardTransactionsRepositoryProvider.overrideWith(
+              (ref) => _FakeCreditCardTransactionsRepository(),
+            ),
+          ],
+          home: const CreditCardTransactionsScreen(maskedIdentifier: 'XXXX1234'),
+        );
+        expectNoOverflow(tester);
+      });
+    }
+  }
+
+  // Long card identifier test
+  testWidgets('transactions screen handles very long masked identifier',
+      (tester) async {
+    final longIdRepo = _FakeCreditCardTransactionsRepository();
+    await pumpSized(
+      tester,
+      size: const Size(320, 700),
+      textScale: 1.15,
+      overrides: [
+        creditCardTransactionsRepositoryProvider.overrideWith(
+          (ref) => longIdRepo,
+        ),
+      ],
+      home: const CreditCardTransactionsScreen(
+          maskedIdentifier: 'XXXX123456789012345678901234567890'),
+    );
+    expectNoOverflow(tester);
+  });
+
+  // Large transaction count test (pagination)
+  testWidgets('transactions screen handles large transaction count',
+      (tester) async {
+    await pumpSized(
+      tester,
+      size: const Size(390, 844),
+      textScale: 1.0,
+      overrides: [
+        creditCardTransactionsRepositoryProvider.overrideWith(
+          (ref) => _LargeFakeCreditCardTransactionsRepository(),
+        ),
+      ],
+      home: const CreditCardTransactionsScreen(maskedIdentifier: 'XXXX1234'),
+    );
+    expectNoOverflow(tester);
+    // Verify the screen renders with content
+    expect(find.text('Card Transactions'), findsOneWidget);
+  });
 }

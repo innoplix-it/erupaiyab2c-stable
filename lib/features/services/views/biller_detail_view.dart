@@ -95,7 +95,9 @@ class BillerDetailView extends HookConsumerWidget {
     final contactsController =
         ref.read(contactsCacheControllerProvider.notifier);
     final isCreditCardFlow = args?.isCreditCard ?? false;
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final bottomInset =
+        isKeyboardOpen ? 0.0 : MediaQuery.paddingOf(context).bottom;
     final mobilePrefill = args?.mobileNumber?.trim();
     final last4Prefill = args?.cardLast4?.trim();
     final creditCardPayNowEntry = args?.creditCardPayNowEntry ?? false;

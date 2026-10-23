@@ -566,5 +566,415 @@ void main() {
       }
       expect(find.text('Recovered Card'), findsOneWidget);
     });
+
+    testWidgets(
+        '10: Dynamic Month/Year headers & counts derived from API transaction dates (zero-txn month skipped)',
+        (tester) async {
+      final repo = _MockCreditCardTransactionsRepository();
+      repo.pagesByCard['****DYNAMIC'] = {
+        1: [
+          _tx(
+            id: 'TX-OCT-1',
+            billerName: 'RBL Oct 1',
+            maskedIdentifier: '****DYNAMIC',
+            amount: '100',
+            time: '2026-10-20 10:00:00',
+          ),
+          _tx(
+            id: 'TX-OCT-2',
+            billerName: 'RBL Oct 2',
+            maskedIdentifier: '****DYNAMIC',
+            amount: '200',
+            time: '2026-10-10 11:30:00',
+          ),
+          _tx(
+            id: 'TX-OCT-3',
+            billerName: 'RBL Oct 3',
+            maskedIdentifier: '****DYNAMIC',
+            amount: '300',
+            time: '2026-10-01 09:00:00',
+          ),
+          _tx(
+            id: 'TX-JAN-1',
+            billerName: 'RBL Jan 1',
+            maskedIdentifier: '****DYNAMIC',
+            amount: '400',
+            time: '2026-01-15 15:45:00',
+          ),
+        ],
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          creditCardTransactionsRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _pump(
+        tester,
+        container: container,
+        child:
+            const CreditCardTransactionsScreen(maskedIdentifier: '****DYNAMIC'),
+      );
+
+      // Verify dynamic Month & Year headers
+      expect(find.text('October 2026'), findsOneWidget);
+      expect(find.text('3 Transactions'), findsOneWidget);
+
+      expect(find.text('January 2026'), findsOneWidget);
+      expect(find.text('1 Transaction'), findsOneWidget);
+
+      // Zero-transaction months must NOT be present
+      expect(find.text('February 2026'), findsNothing);
+      expect(find.text('September 2026'), findsNothing);
+      expect(find.text('August 2026'), findsNothing);
+    });
+
+    testWidgets(
+        '11: Multi-page transactions accumulate month count and duplicates do not inflate count',
+        (tester) async {
+      final repo = _MockCreditCardTransactionsRepository();
+      repo.totalPagesByCard['****PAGED'] = 2;
+      repo.pagesByCard['****PAGED'] = {
+        1: [
+          _tx(
+            id: 'TX-P1-1',
+            billerName: 'Item P1-1',
+            maskedIdentifier: '****PAGED',
+            amount: '100',
+            time: '2026-10-22 10:00:00',
+          ),
+          _tx(
+            id: 'TX-P1-2',
+            billerName: 'Item P1-2',
+            maskedIdentifier: '****PAGED',
+            amount: '200',
+            time: '2026-10-20 11:00:00',
+          ),
+        ],
+        2: [
+          // Duplicate of P1-2 (must NOT be counted twice)
+          _tx(
+            id: 'TX-P1-2',
+            billerName: 'Item P1-2',
+            maskedIdentifier: '****PAGED',
+            amount: '200',
+            time: '2026-10-20 11:00:00',
+          ),
+          // New October transaction
+          _tx(
+            id: 'TX-P2-1',
+            billerName: 'Item P2-1',
+            maskedIdentifier: '****PAGED',
+            amount: '300',
+            time: '2026-10-15 12:00:00',
+          ),
+          // New September transaction
+          _tx(
+            id: 'TX-P2-2',
+            billerName: 'Item P2-2',
+            maskedIdentifier: '****PAGED',
+            amount: '400',
+            time: '2026-09-05 14:00:00',
+          ),
+        ],
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          creditCardTransactionsRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _pump(
+        tester,
+        container: container,
+        child:
+            const CreditCardTransactionsScreen(maskedIdentifier: '****PAGED'),
+      );
+
+      // October total: 3 unique items (P1-1, P1-2, P2-1)
+      expect(find.text('October 2026'), findsOneWidget);
+      expect(find.text('3 Transactions'), findsOneWidget);
+
+      // September total: 1 item (P2-2)
+      expect(find.text('September 2026'), findsOneWidget);
+      expect(find.text('1 Transaction'), findsOneWidget);
+    });
+
+    testWidgets(
+        '12: Card isolation ensures RBL and ICICI month groups & counts never leak across cards',
+        (tester) async {
+      final repo = _MockCreditCardTransactionsRepository();
+      repo.pagesByCard['****RBL'] = {
+        1: [
+          _tx(
+            id: 'TX-RBL-1',
+            billerName: 'RBL Card',
+            maskedIdentifier: '****RBL',
+            amount: '100',
+            time: '2026-10-05 10:00:00',
+          ),
+          _tx(
+            id: 'TX-RBL-2',
+            billerName: 'RBL Card',
+            maskedIdentifier: '****RBL',
+            amount: '200',
+            time: '2026-10-15 11:00:00',
+          ),
+        ],
+      };
+      repo.pagesByCard['****ICICI'] = {
+        1: [
+          _tx(
+            id: 'TX-ICICI-1',
+            billerName: 'ICICI Card',
+            maskedIdentifier: '****ICICI',
+            amount: '500',
+            time: '2026-03-12 12:00:00',
+          ),
+        ],
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          creditCardTransactionsRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // 1. View RBL
+      await _pump(
+        tester,
+        container: container,
+        child: const CreditCardTransactionsScreen(maskedIdentifier: '****RBL'),
+      );
+
+      expect(find.text('October 2026'), findsOneWidget);
+      expect(find.text('2 Transactions'), findsOneWidget);
+      expect(find.text('March 2026'), findsNothing);
+
+      // 2. Switch to ICICI
+      await _pump(
+        tester,
+        container: container,
+        child:
+            const CreditCardTransactionsScreen(maskedIdentifier: '****ICICI'),
+      );
+
+      expect(find.text('March 2026'), findsOneWidget);
+      expect(find.text('1 Transaction'), findsOneWidget);
+      expect(find.text('October 2026'), findsNothing);
+      expect(find.text('2 Transactions'), findsNothing);
+    });
+
+    testWidgets('13: Refresh updates month/year groups and counts dynamically',
+        (tester) async {
+      final repo = _MockCreditCardTransactionsRepository();
+      repo.pagesByCard['****REFRESH'] = {
+        1: [
+          _tx(
+            id: 'TX-OLD-OCT',
+            billerName: 'Initial Oct',
+            maskedIdentifier: '****REFRESH',
+            amount: '100',
+            time: '2026-10-01 10:00:00',
+          ),
+        ],
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          creditCardTransactionsRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _pump(
+        tester,
+        container: container,
+        child:
+            const CreditCardTransactionsScreen(maskedIdentifier: '****REFRESH'),
+      );
+
+      expect(find.text('October 2026'), findsOneWidget);
+      expect(find.text('1 Transaction'), findsOneWidget);
+
+      // Backend now has new transaction in November 2026
+      repo.pagesByCard['****REFRESH'] = {
+        1: [
+          _tx(
+            id: 'TX-NEW-NOV',
+            billerName: 'Fresh Nov',
+            maskedIdentifier: '****REFRESH',
+            amount: '350',
+            time: '2026-11-05 16:00:00',
+          ),
+          _tx(
+            id: 'TX-OLD-OCT',
+            billerName: 'Initial Oct',
+            maskedIdentifier: '****REFRESH',
+            amount: '100',
+            time: '2026-10-01 10:00:00',
+          ),
+        ],
+      };
+
+      // Trigger refresh
+      await container
+          .read(creditCardTransactionsControllerProvider.notifier)
+          .fetchTransactions(maskedIdentifier: '****REFRESH', isRefresh: true);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(find.text('November 2026'), findsOneWidget);
+      expect(find.text('October 2026'), findsOneWidget);
+      // Both months have 1 transaction each -> findsNWidgets(2)
+      expect(find.text('1 Transaction'), findsNWidgets(2));
+    });
+
+    testWidgets(
+        '14: Invalid and missing dates gracefully fall back without throwing',
+        (tester) async {
+      final repo = _MockCreditCardTransactionsRepository();
+      repo.pagesByCard['****FALLBACK'] = {
+        1: [
+          _tx(
+            id: 'TX-VALID',
+            billerName: 'Valid Date Item',
+            maskedIdentifier: '****FALLBACK',
+            amount: '100',
+            time: '2026-10-01 10:00:00',
+          ),
+          _tx(
+            id: 'TX-INVALID',
+            billerName: 'Invalid Date Item',
+            maskedIdentifier: '****FALLBACK',
+            amount: '200',
+            time: 'not-a-valid-date-format',
+          ),
+        ],
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          creditCardTransactionsRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _pump(
+        tester,
+        container: container,
+        child: const CreditCardTransactionsScreen(
+            maskedIdentifier: '****FALLBACK'),
+      );
+
+      // October 2026 group
+      expect(find.text('October 2026'), findsOneWidget);
+      expect(find.text('Valid Date Item'), findsOneWidget);
+
+      // Fallback 'Transactions' group
+      expect(find.text('Transactions'), findsOneWidget);
+      expect(find.text('Invalid Date Item'), findsOneWidget);
+    });
+
+    testWidgets(
+        '15: Month/Year/Count share exact text properties with existing history UI, and Failed/Success/Pending badges have uniform size',
+        (tester) async {
+      final repo = _MockCreditCardTransactionsRepository();
+      repo.pagesByCard['****UNIFORM'] = {
+        1: [
+          _tx(
+            id: 'TX-S',
+            billerName: 'RBL Success',
+            maskedIdentifier: '****UNIFORM',
+            amount: '1000',
+            status: 'SUCCESS',
+            time: '2026-10-15 10:00:00',
+          ),
+          _tx(
+            id: 'TX-F',
+            billerName: 'RBL Failed',
+            maskedIdentifier: '****UNIFORM',
+            amount: '2000',
+            status: 'FAILED',
+            time: '2026-10-14 11:00:00',
+          ),
+          _tx(
+            id: 'TX-P',
+            billerName: 'RBL Pending',
+            maskedIdentifier: '****UNIFORM',
+            amount: '3000',
+            status: 'PENDING',
+            time: '2026-10-13 12:00:00',
+          ),
+        ],
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          creditCardTransactionsRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _pump(
+        tester,
+        container: container,
+        child:
+            const CreditCardTransactionsScreen(maskedIdentifier: '****UNIFORM'),
+      );
+
+      // Verify Month title & Count label text styles
+      final titleWidget = tester.widget<Text>(find.text('October 2026'));
+      final countWidget = tester.widget<Text>(find.text('3 Transactions'));
+
+      for (final text in [titleWidget, countWidget]) {
+        expect(text.style!.fontWeight, FontWeight.w600, reason: text.data);
+        expect(text.style!.fontFamily, contains('PlusJakartaSans'),
+            reason: text.data);
+      }
+      expect(titleWidget.style!.fontSize,
+          moreOrLessEquals(countWidget.style!.fontSize!));
+      expect(titleWidget.style!.color, const Color(0xFF000000));
+      expect(countWidget.style!.color, const Color(0xFF7C7C7C));
+
+      // Verify Failed, Success, and Pending badges have identical dimensions
+      final successBadgeFinder = find
+          .ancestor(
+            of: find.text('Success'),
+            matching: find.byType(Container),
+          )
+          .first;
+      final failedBadgeFinder = find
+          .ancestor(
+            of: find.text('Failed'),
+            matching: find.byType(Container),
+          )
+          .first;
+      final pendingBadgeFinder = find
+          .ancestor(
+            of: find.text('Pending'),
+            matching: find.byType(Container),
+          )
+          .first;
+
+      final successSize = tester.getSize(successBadgeFinder);
+      final failedSize = tester.getSize(failedBadgeFinder);
+      final pendingSize = tester.getSize(pendingBadgeFinder);
+
+      expect(
+          successSize.width, moreOrLessEquals(failedSize.width, epsilon: 0.1));
+      expect(successSize.height,
+          moreOrLessEquals(failedSize.height, epsilon: 0.1));
+      expect(
+          successSize.width, moreOrLessEquals(pendingSize.width, epsilon: 0.1));
+      expect(successSize.height,
+          moreOrLessEquals(pendingSize.height, epsilon: 0.1));
+    });
   });
 }

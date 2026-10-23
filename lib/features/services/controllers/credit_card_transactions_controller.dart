@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../models/credit_card_month_section.dart';
 import '../models/credit_card_transaction.dart';
 import '../repositories/credit_card_transactions_repository.dart';
 
@@ -35,6 +36,9 @@ class CreditCardTransactionsState {
   final int totalPages;
   final int totalRecords;
   final String activeMaskedIdentifier;
+
+  List<CreditCardMonthSection> get monthSections =>
+      groupCreditCardTransactionsByMonth(items);
 
   CreditCardTransactionsState copyWith({
     bool? isLoading,
