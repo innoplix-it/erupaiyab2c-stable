@@ -119,8 +119,8 @@ class DeleteAccountOtpView extends HookWidget {
         codeErrorText: codeError.value,
         shakeController: otpShake,
         onBack: () => context.pop(),
-        // No number to change in the delete flow; keep the keypad up.
-        onChangeNumber: () => showAuthKeyboard(otpFocusNode),
+        // No number to change in the delete flow; hides the "Change" link.
+        onChangeNumber: null,
         onOtpChanged: (_) {
           errorText.value = null;
           codeError.value = null;

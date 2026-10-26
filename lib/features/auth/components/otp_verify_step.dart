@@ -88,7 +88,10 @@ class OtpVerifyStep extends StatefulWidget {
   /// Null keeps the Continue button disabled.
   final VoidCallback? onVerify;
   final VoidCallback onBack;
-  final VoidCallback onChangeNumber;
+
+  /// Null hides the underlined "Change" link in the subtitle (flows like
+  /// Delete Account have no number to change).
+  final VoidCallback? onChangeNumber;
   final String buttonLabel;
   final String? errorText;
   final bool isSubmitting;
@@ -109,7 +112,7 @@ class _OtpVerifyStepState extends State<OtpVerifyStep> {
   /// Tap recognizer is created once and disposed with the state (the old code
   /// created a new, never-disposed recognizer on every rebuild).
   late final TapGestureRecognizer _changeTap = TapGestureRecognizer()
-    ..onTap = () => widget.onChangeNumber();
+    ..onTap = () => widget.onChangeNumber?.call();
 
   /// Keyboard gap captured before Continue closes the keypad, so the button
   /// stays where it was instead of falling to the screen bottom.
@@ -334,17 +337,18 @@ class _OtpVerifyStepState extends State<OtpVerifyStep> {
               ),
             ),
           ],
-          TextSpan(
-            text: 'Change',
-            style: _textStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.primary,
-              height: 1.4,
-              decoration: TextDecoration.underline,
+          if (widget.onChangeNumber != null)
+            TextSpan(
+              text: 'Change',
+              style: _textStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.primary,
+                height: 1.4,
+                decoration: TextDecoration.underline,
+              ),
+              recognizer: _changeTap,
             ),
-            recognizer: _changeTap,
-          ),
         ],
       ),
     );
