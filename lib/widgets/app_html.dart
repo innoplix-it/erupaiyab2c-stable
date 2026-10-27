@@ -8,9 +8,31 @@ class AppHtml extends StatelessWidget {
   const AppHtml({
     super.key,
     required this.html,
+    this.urlLauncher,
   });
 
   final String html;
+  final Future<bool> Function(Uri url, {LaunchMode mode})? urlLauncher;
+
+  static Future<void> handleLinkTap(
+    String? url,
+    Future<bool> Function(Uri url, {LaunchMode mode}) launcher,
+  ) async {
+    final raw = url?.trim();
+    if (raw == null || raw.isEmpty) return;
+    final uri = Uri.tryParse(raw);
+    if (uri == null) return;
+    
+    // Allow only HTTPS URLs with a valid host
+    if (uri.scheme != 'https') {
+      return;
+    }
+    if (uri.host.isEmpty) {
+      return;
+    }
+    
+    await launcher(uri, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +80,8 @@ class AppHtml extends StatelessWidget {
         'h3': Style(color: AppColors.textPrimary, fontWeight: FontWeight.w800),
       },
       onLinkTap: (url, _, __) async {
-        final raw = url?.trim();
-        if (raw == null || raw.isEmpty) return;
-        final uri = Uri.tryParse(raw);
-        if (uri == null) return;
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        final launcher = urlLauncher ?? launchUrl;
+        await handleLinkTap(url, launcher);
       },
     );
   }

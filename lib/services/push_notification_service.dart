@@ -96,6 +96,12 @@ class PushNotificationService {
     if (t.toLowerCase() == 'undefined') return false;
     return true;
   }
+  static String? _maskToken(String? token) {
+    if (token == null || token.trim().isEmpty) return null;
+    final t = token.trim();
+    if (t.length <= 8) return '****';
+    return '${t.substring(0, 4)}****${t.substring(t.length - 4)}';
+  }
 
   /// Ensures FCM is initialized and returns a non-empty token when possible.
   /// Some backend flows require `device_token`, so callers can await this
@@ -207,9 +213,9 @@ class PushNotificationService {
         stackTrace: stackTrace,
       );
     }
-    final tokenMessage = 'FCM token: $token';
-    _debugLog(tokenMessage);
-    logger.info(tokenMessage);
+    final maskedToken = _maskToken(token);
+    _debugLog('FCM token: $token');
+    logger.info('FCM token retrieved: ${maskedToken ?? "null"}');
     if (_isValidToken(token)) {
       _latestToken = token!.trim();
       await _persistToken(_latestToken!);
@@ -240,8 +246,8 @@ class PushNotificationService {
 
   static Future<void> ensurePermissionsRequested() async {
     if (_permissionsRequested) return;
-    _permissionsRequested = true;
     await _requestPermissions();
+    _permissionsRequested = true;
   }
 
   static Future<void> _requestPermissions() async {

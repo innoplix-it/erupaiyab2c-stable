@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
+import 'device_id_service.dart';
 import 'dio_service.dart';
 import 'logger_service.dart';
 import 'secure_storage_service.dart';
@@ -20,12 +21,14 @@ class GuestDeviceRegistration {
     required this.devicePlatform,
     required this.fcmToken,
     required this.notificationPermission,
+    this.deviceId,
   });
 
   final String installationId;
   final String devicePlatform;
   final String fcmToken;
   final bool notificationPermission;
+  final String? deviceId;
 }
 
 abstract class GuestDeviceStore {
@@ -62,6 +65,7 @@ class GuestDeviceRepository {
         'device_platform': request.devicePlatform,
         'fcm_token': request.fcmToken,
         'notification_permission': true,
+        // 'device_id': request.deviceId,
       },
       options: Options(
         contentType: Headers.jsonContentType,
@@ -90,15 +94,21 @@ class GuestDeviceRegistrar {
     required this.readFcmToken,
     required this.devicePlatform,
     required this.register,
+    Future<String?> Function()? readDeviceId,
     String Function()? createInstallationId,
-  }) : _createInstallationId = createInstallationId ?? _newInstallationId;
+  })  : _readDeviceId = readDeviceId ?? _defaultDeviceId,
+        _createInstallationId = createInstallationId ?? _newInstallationId;
 
   final GuestDeviceStore store;
   final Future<bool> Function() isAuthenticated;
   final Future<String?> Function() readFcmToken;
   final String Function() devicePlatform;
   final Future<void> Function(GuestDeviceRegistration request) register;
+  final Future<String?> Function() _readDeviceId;
   final String Function() _createInstallationId;
+
+  static Future<String?> _defaultDeviceId() =>
+      const DeviceIdService().getDeviceId();
 
   Future<void>? _inFlight;
 
@@ -131,6 +141,17 @@ class GuestDeviceRegistrar {
       await store.write(StorageKeys.guestInstallationId, installationId);
     }
 
+    String? deviceId;
+    try {
+      deviceId = (await _readDeviceId())?.trim();
+    } catch (e, stackTrace) {
+      logger.error(
+        'Failed to read device id for guest registration',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+
     try {
       await register(
         GuestDeviceRegistration(
@@ -138,6 +159,7 @@ class GuestDeviceRegistrar {
           devicePlatform: devicePlatform(),
           fcmToken: token,
           notificationPermission: true,
+          deviceId: deviceId,
         ),
       );
     } catch (_) {

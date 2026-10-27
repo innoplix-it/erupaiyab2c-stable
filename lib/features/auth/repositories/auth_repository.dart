@@ -262,22 +262,28 @@ class AuthRepository {
 
       final deviceContext = await const LoginDeviceContextService().collect();
 
+      final installationId = await _secureStorage.read(key: StorageKeys.guestInstallationId);
+      final requestPayload = <String, dynamic>{
+        'mobile': mobile,
+        'pin': pin,
+        if (hasDeviceToken) 'device_token': deviceToken,
+        if (installationId != null && installationId.trim().isNotEmpty)
+          'installation_id': installationId.trim(),
+        ...deviceContext,
+      };
+      _debugPrint(
+        'login request -> endpoint=${ApiConstants.loginEndpoint}, payload=$requestPayload',
+      );
       final response = await _dio.post(
         ApiConstants.loginEndpoint,
         options: Options(
           contentType: Headers.jsonContentType,
           extra: const {
-            // Auth is not required for login; avoid attaching stale tokens.
             'skipAuth': true,
             'skipAuthRefresh': true,
           },
         ),
-        data: {
-          'mobile': mobile,
-          'pin': pin,
-          if (hasDeviceToken) 'device_token': deviceToken,
-          ...deviceContext,
-        },
+        data: requestPayload,
       );
 
       final payload = response.data as Map<String, dynamic>?;

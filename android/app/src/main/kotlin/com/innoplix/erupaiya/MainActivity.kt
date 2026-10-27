@@ -185,8 +185,8 @@ class MainActivity: FlutterFragmentActivity() {
         handler.postDelayed(timeoutRunnable, timeoutMs)
         runOnUiThread {
             val webView = WebView(this)
-            webView.settings.javaScriptEnabled = true
-            webView.settings.domStorageEnabled = true
+            webView.settings.javaScriptEnabled = false
+            webView.settings.domStorageEnabled = false
             webView.settings.loadWithOverviewMode = true
             webView.settings.useWideViewPort = true
             webView.webViewClient = object : WebViewClient() {

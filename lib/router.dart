@@ -145,7 +145,7 @@ final routerProvider = Provider<GoRouter>(
           RouteConstants.addPin,
         ];
         final isOnAuthRoute = authRoutes.contains(location);
-        final isReferralRoute = location.startsWith(RouteConstants.referral);
+        final isReferralRoute = location == RouteConstants.referral;
         const temporaryAccessRoutes = [
           RouteConstants.login,
           RouteConstants.temporaryBlockOtp,

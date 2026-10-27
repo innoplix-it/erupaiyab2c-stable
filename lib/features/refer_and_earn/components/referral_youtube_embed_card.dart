@@ -63,6 +63,31 @@ class _ReferralYoutubeEmbedCardState extends State<ReferralYoutubeEmbedCard> {
               setState(() => _isLoading = false);
             }
           },
+          onNavigationRequest: (NavigationRequest request) {
+            // Allow only HTTPS URLs to approved YouTube hosts
+            final uri = Uri.parse(request.url);
+            final scheme = uri.scheme;
+            final host = uri.host;
+            
+            // Require HTTPS scheme
+            if (scheme != 'https') {
+              return NavigationDecision.prevent;
+            }
+            
+            // Allow only approved YouTube hosts
+            if (host == 'www.youtube.com' ||
+                host == 'youtube.com' ||
+                host == 'm.youtube.com' ||
+                host == 'ytimg.com' ||
+                host == 'www.ytimg.com' ||
+                host == 'googlevideo.com' ||
+                host == 'www.googlevideo.com') {
+              return NavigationDecision.navigate;
+            }
+            
+            // Block all other navigation
+            return NavigationDecision.prevent;
+          },
         ),
       )
       ..loadHtmlString(_youtubeEmbedHtml);
