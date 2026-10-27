@@ -33,7 +33,7 @@ import UserNotifications
             result(FlutterMethodNotImplemented)
           }
         }
-        setSecureOverlay(enabled: true)
+        // Remove global overlay - protection is now per-screen via Flutter calls
       }
     }
     GeneratedPluginRegistrant.register(with: self)

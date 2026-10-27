@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
@@ -14,10 +15,11 @@ import '../../../services/location_access_service.dart';
 import '../../../services/secure_storage_service.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../widgets/feature_turn_off_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../auth/views/reset_mpin_view.dart';
-import '../../onboarding/views/language_selection_view.dart';
+// import '../../onboarding/views/language_selection_view.dart';
 import '../controllers/profile_controller.dart';
 import '../controllers/theme_mode_controller.dart';
 import '../repositories/settings_repository.dart';
@@ -110,24 +112,26 @@ class PreferencesView extends HookConsumerWidget {
       backgroundColor: Colors.white,
       appBar: MyAppBar(
         title: 'Preferences',
+        showBharatConnect: false,
+        // showBharatConnect: true,
         onBack: () => context.pop(),
       ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(0.w, 8.h, 0.w, 24.h),
         children: [
-          _SettingsListRow(
-            icon: Icons.translate_outlined,
-            title: 'Language',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const LanguageSelectionView(
-                    isSettingsFlow: true,
-                  ),
-                ),
-              );
-            },
-          ),
+          // _SettingsListRow(
+          //   icon: Icons.translate_outlined,
+          //   title: 'Language',
+          //   onTap: () {
+          //     Navigator.of(context).push(
+          //       MaterialPageRoute<void>(
+          //         builder: (_) => const LanguageSelectionView(
+          //           isSettingsFlow: true,
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
           _SettingsListRow(
             icon: Icons.notifications_none_outlined,
             title: 'Bill Notification',
@@ -259,6 +263,8 @@ class SecurityView extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: MyAppBar(
         title: 'Security',
+        showBharatConnect: false,
+        // showBharatConnect: true,
         onBack: () => context.pop(),
       ),
       body: ListView(
@@ -299,96 +305,269 @@ class PermissionsView extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deviceState = useState(true);
-    final smsSecure = useState(true);
-    final smsReminder = useState(true);
-    final smsSuggestions = useState(true);
-    final contactDetails = useState(true);
+    final screenSize = MediaQuery.sizeOf(context);
+    final availableWidth = screenSize.width;
+
+    // Responsive horizontal margin: ~3.8% of screen width (12-16px)
+    final horizontalMargin = (availableWidth * 0.038).clamp(12.0, 16.0);
+    // Responsive vertical spacing between cards: ~0.85% of screen height (5.5-8px)
+    final cardVerticalSpacing = (screenSize.height * 0.0085).clamp(5.5, 8.0);
+
+    final deviceState = useState(false);
+    final smsRegistration = useState(false);
+    final smsBillReminders = useState(false);
+    final smsTransactionUpdates = useState(false);
+    final smsFinancialSuggestions = useState(false);
+    final camera = useState(false);
+    final registration = useState(false);
+    final location = useState(false);
+    final notifications = useState(false);
+    final contacts = useState(false);
+    final phone = useState(false);
+    final photosAndFiles = useState(false);
 
     useEffect(() {
       Future.microtask(() async {
-        deviceState.value = await _readBool('permission_device_state', true);
-        smsSecure.value = await _readBool('permission_sms_secure', true);
-        smsReminder.value = await _readBool('permission_sms_reminders', true);
-        smsSuggestions.value =
-            await _readBool('permission_sms_suggestions', true);
-        contactDetails.value =
-            await _readBool('permission_contact_details', true);
+        deviceState.value = await _readBool('permission_device_state', false);
+        smsRegistration.value =
+            await _readBool('permission_sms_registration', false);
+        smsBillReminders.value =
+            await _readBool('permission_sms_reminders', false);
+        smsTransactionUpdates.value =
+            await _readBool('permission_sms_transaction_updates', false);
+        smsFinancialSuggestions.value =
+            await _readBool('permission_sms_suggestions', false);
+        camera.value = await _readBool('permission_camera', false);
+        registration.value = await _readBool('permission_registration', false);
+        location.value = await _readBool('permission_location', false);
+        notifications.value =
+            await _readBool('permission_notifications', false);
+        contacts.value = await _readBool('permission_contacts', false);
+        phone.value = await _readBool('permission_phone', false);
+        photosAndFiles.value =
+            await _readBool('permission_photos_files', false);
       });
       return null;
     }, const []);
 
-    Future<void> update(
+    final isDialogShowing = useRef(false);
+
+    Future<bool> update(
         String key, ValueNotifier<bool> state, bool value) async {
-      state.value = value;
-      await _storage.write(key: key, value: value ? '1' : '0');
+      try {
+        await _storage.write(key: key, value: value ? '1' : '0');
+        state.value = value;
+        return true;
+      } catch (e) {
+        debugPrint('Failed to update permission $key: $e');
+        return false;
+      }
+    }
+
+    Future<void> handleToggle(
+      String key,
+      ValueNotifier<bool> state,
+      bool newValue,
+    ) async {
+      if (newValue) {
+        // Checking: direct update without confirmation dialog
+        await update(key, state, true);
+      } else {
+        // Unchecking: show confirmation dialog before updating
+        if (isDialogShowing.value) return;
+        isDialogShowing.value = true;
+        try {
+          final confirmed = await FeatureTurnOffDialog.show(context);
+          if (confirmed) {
+            await update(key, state, false);
+          }
+        } finally {
+          isDialogShowing.value = false;
+        }
+      }
     }
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: MyAppBar(
         title: 'Permissions',
+        showHelp: true,
+        showBharatConnect: false,
         onBack: () => context.pop(),
       ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+        padding: EdgeInsets.fromLTRB(
+          horizontalMargin,
+          (screenSize.height * 0.008).clamp(5.0, 8.0),
+          horizontalMargin,
+          (screenSize.height * 0.030).clamp(18.0, 26.0),
+        ),
         children: [
+          // 1. Device State
           _PermissionGroupCard(
             children: [
               _PermissionTile(
-                title: 'Device State',
-                subtitle: 'Secure UPI Payments',
+                groupTitle: 'Device State',
+                subtitle: 'Secure Payments',
                 description:
-                    'Allow eRupaiya to access and verify your device and SIM details for using UPI payments (as mandated by NPCI).',
+                    'Allow eRupaiya to access and verify your device and SIM details for secure payments, as required.',
                 value: deviceState.value,
-                onChanged: (value) =>
-                    update('permission_device_state', deviceState, value),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          _PermissionGroupCard(
-            children: [
-              _PermissionTile(
-                title: 'SMS',
-                subtitle: 'Secure UPI Payments',
-                description:
-                    'Allow eRupaiya to send SMS (for UPI registration) and read your transactional messages (for OTPs).',
-                value: smsSecure.value,
-                onChanged: (value) =>
-                    update('permission_sms_secure', smsSecure, value),
-              ),
-              _PermissionTile(
-                title: 'Bill Payment Reminders',
-                description:
-                    'Allow access to your text messages to fetch your bills and send timely payment reminders.',
-                value: smsReminder.value,
-                onChanged: (value) =>
-                    update('permission_sms_reminders', smsReminder, value),
-              ),
-              _PermissionTile(
-                title: 'Get Financial Product Suggestions',
-                description:
-                    'Allow us to access SMS data stored on your device and provide personalized financial product recommendations.',
-                value: smsSuggestions.value,
-                onChanged: (value) =>
-                    update('permission_sms_suggestions', smsSuggestions, value),
+                onChanged: (v) =>
+                    handleToggle('permission_device_state', deviceState, v),
                 showDivider: false,
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: cardVerticalSpacing),
+          // 2. SMS
           _PermissionGroupCard(
             children: [
               _PermissionTile(
-                title: 'Address & Contact Details',
-                subtitle: 'Order Delivery by External Merchants',
+                groupTitle: 'SMS',
+                subtitle: 'Registration',
                 description:
-                    'Allow eRupaiya to share your address and contact details with merchant partners for order delivery and service fulfilment.',
-                value: contactDetails.value,
-                onChanged: (value) =>
-                    update('permission_contact_details', contactDetails, value),
+                    'Allow SMS access for registration/KYC and OTP verification, where required.',
+                value: smsRegistration.value,
+                onChanged: (v) => handleToggle(
+                    'permission_sms_registration', smsRegistration, v),
+              ),
+              _PermissionTile(
+                subtitle: 'Bill Payment Reminders',
+                description:
+                    'Allow access to relevant SMS information to identify bills and provide timely payment reminders, with your consent.',
+                value: smsBillReminders.value,
+                onChanged: (v) => handleToggle(
+                    'permission_sms_reminders', smsBillReminders, v),
+              ),
+              _PermissionTile(
+                subtitle: 'Transaction Updates',
+                description:
+                    'Allow access to relevant transaction messages to help track payments, where supported and permitted.',
+                value: smsTransactionUpdates.value,
+                onChanged: (v) => handleToggle(
+                    'permission_sms_transaction_updates',
+                    smsTransactionUpdates,
+                    v),
+              ),
+              _PermissionTile(
+                subtitle: 'Financial Product Suggestions',
+                description:
+                    'Allow access to permitted SMS data to provide personalized financial product recommendations, with your consent.',
+                value: smsFinancialSuggestions.value,
+                onChanged: (v) => handleToggle(
+                    'permission_sms_suggestions', smsFinancialSuggestions, v),
                 showDivider: false,
+              ),
+            ],
+          ),
+          SizedBox(height: cardVerticalSpacing),
+          // 3. Camera
+          _PermissionGroupCard(
+            children: [
+              _PermissionTile(
+                groupTitle: 'Camera',
+                subtitle: 'QR Scanning and KYC Verification',
+                description:
+                    'Allow camera access to scan payment QR codes and capture documents for identity verification.',
+                value: camera.value,
+                onChanged: (v) => handleToggle('permission_camera', camera, v),
+                showDivider: false,
+              ),
+            ],
+          ),
+          SizedBox(height: cardVerticalSpacing),
+          // 4. Registration
+          _PermissionGroupCard(
+            children: [
+              _PermissionTile(
+                groupTitle: 'Registration',
+                subtitle: 'Secure Payments',
+                description:
+                    'Allow access to relevant SMS information to identify bills and provide timely payment reminders, with your consent.',
+                value: registration.value,
+                onChanged: (v) =>
+                    handleToggle('permission_registration', registration, v),
+                showDivider: false,
+              ),
+            ],
+          ),
+          SizedBox(height: cardVerticalSpacing),
+          // 5. Location
+          _PermissionGroupCard(
+            children: [
+              _PermissionTile(
+                groupTitle: 'Location',
+                subtitle: 'Security and Location Based Services',
+                description:
+                    'Allow location access for supported services and security checks, where required.',
+                value: location.value,
+                onChanged: (v) =>
+                    handleToggle('permission_location', location, v),
+                showDivider: false,
+              ),
+            ],
+          ),
+          SizedBox(height: cardVerticalSpacing),
+          // 6. Notifications
+          _PermissionGroupCard(
+            children: [
+              _PermissionTile(
+                groupTitle: 'Notifications',
+                subtitle: 'Payment and Account Alerts',
+                description:
+                    'Allow notifications for payment confirmations, transaction updates, bill reminders and important account alerts.',
+                value: notifications.value,
+                onChanged: (v) =>
+                    handleToggle('permission_notifications', notifications, v),
+                showDivider: false,
+              ),
+            ],
+          ),
+          SizedBox(height: cardVerticalSpacing),
+          // 7. Contacts
+          _PermissionGroupCard(
+            children: [
+              _PermissionTile(
+                groupTitle: 'Contacts',
+                subtitle: 'Contact Selection',
+                description:
+                    'Allow contacts access to select recipients for supported payment or transfer services, where applicable.',
+                value: contacts.value,
+                onChanged: (v) =>
+                    handleToggle('permission_contacts', contacts, v),
+                showDivider: false,
+              ),
+            ],
+          ),
+          SizedBox(height: cardVerticalSpacing),
+          // 8. Phone
+          _PermissionGroupCard(
+            children: [
+              _PermissionTile(
+                groupTitle: 'Phone',
+                subtitle: 'SIM Verification',
+                description:
+                    'Allow required phone and SIM verification for secure UPI registration, where supported.',
+                value: phone.value,
+                onChanged: (v) => handleToggle('permission_phone', phone, v),
+                showDivider: false,
+              ),
+            ],
+          ),
+          SizedBox(height: cardVerticalSpacing),
+          // 9. Photos and Files
+          _PermissionGroupCard(
+            children: [
+              _PermissionTile(
+                groupTitle: 'Photos and Files',
+                subtitle: 'Document Uploads',
+                description:
+                    'Allow access to selected photos and files to upload KYC documents and supporting information.',
+                value: photosAndFiles.value,
+                onChanged: (v) =>
+                    handleToggle('permission_photos_files', photosAndFiles, v),
+                showDivider: false,
+                trailingText: 'See another version',
               ),
             ],
           ),
@@ -648,6 +827,8 @@ class _SettingsListRow extends StatelessWidget {
   }
 }
 
+/// A white permission card with rounded corners and subtle shadow,
+/// matching the Figma screenshot design.
 class _PermissionGroupCard extends StatelessWidget {
   const _PermissionGroupCard({required this.children});
 
@@ -655,38 +836,108 @@ class _PermissionGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    // Card border radius: ~2.2% of screen width (approx 8-9px)
+    final borderRadius = (screenWidth * 0.022).clamp(7.0, 10.0);
+
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
-        borderRadius: BorderRadius.circular(16.r),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: const Color(0xFFEEEEEE),
+          width: 0.6,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
-      child: Column(children: children),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 }
 
+const _checkboxSvgUnchecked =
+    '''<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0.666748 3.86797V13.468C0.666748 14.588 0.666748 15.148 0.884748 15.576C1.07649 15.9523 1.38244 16.2582 1.75875 16.45C2.18575 16.668 2.74575 16.668 3.86375 16.668H13.4697C14.5877 16.668 15.1467 16.668 15.5737 16.45C15.9507 16.258 16.2567 15.952 16.4487 15.576C16.6667 15.148 16.6667 14.59 16.6667 13.472V3.86497C16.6667 2.74697 16.6667 2.18697 16.4487 1.75997C16.2567 1.38351 15.9504 1.07754 15.5737 0.885969C15.1467 0.667969 14.5867 0.667969 13.4667 0.667969H3.86675C2.74675 0.667969 2.18675 0.667969 1.75875 0.885969C1.38244 1.07771 1.07649 1.38366 0.884748 1.75997C0.666748 2.18797 0.666748 2.74797 0.666748 3.86797Z" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="black"/>
+</svg>''';
+
+const _checkboxSvgChecked =
+    '''<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0.666748 3.86797V13.468C0.666748 14.588 0.666748 15.148 0.884748 15.576C1.07649 15.9523 1.38244 16.2582 1.75875 16.45C2.18575 16.668 2.74575 16.668 3.86375 16.668H13.4697C14.5877 16.668 15.1467 16.668 15.5737 16.45C15.9507 16.258 16.2567 15.952 16.4487 15.576C16.6667 15.148 16.6667 14.59 16.6667 13.472V3.86497C16.6667 2.74697 16.6667 2.18697 16.4487 1.75997C16.2567 1.38351 15.9504 1.07754 15.5737 0.885969C15.1467 0.667969 14.5867 0.667969 13.4667 0.667969H3.86675C2.74675 0.667969 2.18675 0.667969 1.75875 0.885969C1.38244 1.07771 1.07649 1.38366 0.884748 1.75997C0.666748 2.18797 0.666748 2.74797 0.666748 3.86797Z" fill="black" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="black"/>
+<path d="M5 9.2L7.5 11.7L13 6.2" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>''';
+
+/// A single permission item inside a [_PermissionGroupCard].
+///
+/// [groupTitle] is the bold section header (e.g. "Device State", "SMS") - 14sp via MediaQuery.
+/// [subtitle] is the semi-bold sub-heading (e.g. "Secure Payments") - 12sp via MediaQuery.
+/// [description] is the description text ("Allow access...") - 10sp via MediaQuery with color #27272A.
+/// An SVG checkbox icon is aligned to the upper-right of each tile.
 class _PermissionTile extends StatelessWidget {
   const _PermissionTile({
-    required this.title,
     required this.description,
     required this.value,
     required this.onChanged,
+    this.groupTitle,
     this.subtitle,
     this.showDivider = true,
+    this.trailingText,
   });
 
-  final String title;
+  /// Bold section title shown above the subtitle (e.g. "Device State").
+  final String? groupTitle;
+
+  /// Semi-bold sub-heading (e.g. "Secure Payments", "Registration").
   final String? subtitle;
+
+  /// Description text that wraps naturally.
   final String description;
+
   final bool value;
   final ValueChanged<bool> onChanged;
   final bool showDivider;
 
+  /// Optional trailing text below description (e.g. "See another version").
+  final String? trailingText;
+
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final screenWidth = screenSize.width;
+
+    // Font sizes using MediaQuery scaling:
+    // 1st line (groupTitle): 14
+    // 2nd line (subtitle): 12
+    // 3rd line (description - "Allow access..."): 10
+    final textScaleRatio = (screenWidth / 390.0).clamp(0.85, 1.2);
+    final firstLineFontSize = (14.0 * textScaleRatio).clamp(12.0, 16.0);
+    final secondLineFontSize = (12.0 * textScaleRatio).clamp(10.5, 14.0);
+    final thirdLineFontSize = (10.0 * textScaleRatio).clamp(8.5, 12.0);
+
+    // Compact internal card padding: ~3.3% horizontal (~12-13px), ~0.9% vertical (~7-8px)
+    final tilePaddingH = (screenWidth * 0.033).clamp(11.0, 14.0);
+    final tilePaddingV = (screenSize.height * 0.009).clamp(6.5, 8.5);
+    // Gap between text column and checkbox: ~2.5% of screen width (~9-10px)
+    final textCheckboxGap = (screenWidth * 0.025).clamp(8.0, 11.0);
+
     return Padding(
-      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 0.h),
+      padding: EdgeInsets.fromLTRB(
+        tilePaddingH,
+        tilePaddingV,
+        tilePaddingH,
+        0,
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,56 +946,80 @@ class _PermissionTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                    ),
-                    if (subtitle != null) ...[
-                      SizedBox(height: 4.h),
-                      Text(
-                        subtitle!,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
+                    if (groupTitle != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Text(
+                          groupTitle!,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF09090B),
+                                    fontSize: firstLineFontSize,
+                                    letterSpacing: -0.1,
+                                  ),
+                        ),
                       ),
-                    ],
-                    SizedBox(height: 4.h),
+                    if (subtitle != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Text(
+                          subtitle!,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF18181B),
+                                    fontSize: secondLineFontSize,
+                                    letterSpacing: -0.05,
+                                  ),
+                        ),
+                      ),
                     Text(
                       description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textPrimary.withOpacity(0.78),
-                            height: 1.45,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF27272A),
+                            height: 1.3,
+                            fontSize: thirdLineFontSize,
                           ),
                     ),
+                    if (trailingText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          trailingText!,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: const Color(0xFF71717A),
+                                    height: 1.3,
+                                    fontSize: thirdLineFontSize,
+                                  ),
+                        ),
+                      ),
                   ],
                 ),
               ),
-              SizedBox(width: 12.w),
-              SizedBox(
-                height: 24.r,
-                width: 24.r,
-                child: Checkbox(
-                  value: value,
-                  onChanged: (next) => onChanged(next ?? false),
-                  activeColor: Colors.black,
-                  checkColor: Colors.white,
-                  side: const BorderSide(color: Colors.black, width: 1.2),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(2.r),
+              SizedBox(width: textCheckboxGap),
+              // SVG Checkbox matching user-provided spec
+              GestureDetector(
+                onTap: () => onChanged(!value),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 1.0),
+                  child: SvgPicture.string(
+                    value ? _checkboxSvgChecked : _checkboxSvgUnchecked,
+                    width: 18,
+                    height: 18,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: tilePaddingV),
           if (showDivider)
-            Divider(
+            const Divider(
               height: 1,
-              color: Colors.black.withOpacity(0.08),
+              thickness: 0.5,
+              color: Color(0xFFEEEEEE),
             ),
         ],
       ),

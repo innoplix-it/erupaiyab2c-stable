@@ -13,7 +13,7 @@ import '../../../widgets/custom_elevated_button.dart';
 import '../controllers/education_fees_controller.dart';
 import '../models/education_fees_responses.dart';
 
-class EducationAddCardSheet extends StatelessWidget {
+class EducationAddCardSheet extends HookConsumerWidget {
   const EducationAddCardSheet({
     super.key,
     required this.amount,
@@ -26,7 +26,7 @@ class EducationAddCardSheet extends StatelessWidget {
   final VoidCallback onContinue;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SafeArea(
       top: false,
       child: Padding(

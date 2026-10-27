@@ -1,7 +1,5 @@
-// import 'package:e_rupaiya/services/screen_security_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,9 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import 'config/app_env.dart';
 import 'features/profile/controllers/theme_mode_controller.dart';
 import 'features/developer_mode/controllers/developer_mode_guard.dart';
-// import 'package:no_screenshot/no_screenshot.dart';
 
 import 'router.dart';
 import 'services/app_lock_service.dart';
@@ -20,6 +18,7 @@ import 'services/location_service.dart';
 import 'services/logger_service.dart';
 import 'services/navigation_interaction_lock.dart';
 import 'services/push_notification_service.dart';
+import 'services/screen_security_service.dart';
 import 'widgets/app_snackbar.dart';
 
 Future<void> main() async {
@@ -28,7 +27,6 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
   FlutterNativeSplash.preserve(widgetsBinding: binding);
-  // NoScreenshot.instance.screenshotOff();
   // Kick off the Developer Options app-lock probe before the first frame so
   // the router guard has a resolved state as early as possible.
   DeveloperModeGuard.instance.recheck();
@@ -39,13 +37,6 @@ Future<void> main() async {
   );
 
   Future.microtask(() async {
-    try {
-      if (!dotenv.isInitialized) {
-        await dotenv.load(fileName: '.env');
-      }
-    } catch (e, stackTrace) {
-      logger.error('Failed to load .env', error: e, stackTrace: stackTrace);
-    }
     try {
       await PushNotificationService.initialize(requestPermissions: false);
     } catch (e, stackTrace) {
@@ -92,7 +83,8 @@ class MyApp extends HookConsumerWidget {
     }, const []);
     useEffect(() {
       appLockService.init();
-      // ScreenSecurityService.enableSecure();
+      // Initialize centralized screenshot protection based on AppEnv configuration
+      ScreenSecurityService.initialize();
       return appLockService.dispose;
     }, const []);
     useEffect(() {

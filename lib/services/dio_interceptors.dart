@@ -356,24 +356,6 @@ class DioInterceptors extends InterceptorsWrapper {
       } else {
         _showAppError(AppErrorMessages.sessionRefreshFailed);
       }
-    } else if (err.response?.statusCode == 404) {
-      _showAppError(AppErrorMessages.sessionExpired);
-      final context = navigatorKey.currentContext;
-      if (context != null) {
-        try {
-          await ProviderScope.containerOf(context)
-              .read(authControllerProvider.notifier)
-              .logout();
-        } catch (_) {
-          await _clearSession();
-        }
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          context.go(RouteConstants.login);
-        });
-      } else {
-        await _clearSession();
-      }
     } else if (err.error is CertificateNotVerifiedException ||
         err.error is CertificateCouldNotBeVerifiedException) {
       _showAppError(AppErrorMessages.secureConnection);

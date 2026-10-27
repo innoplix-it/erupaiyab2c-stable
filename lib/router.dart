@@ -2,6 +2,7 @@ import 'package:e_rupaiya/features/home/views/home_search_view.dart';
 import 'package:e_rupaiya/widgets/processing_overlay.dart';
 import 'package:go_router/go_router.dart';
 import 'config/app_env.dart';
+import 'services/screen_security_service.dart';
 import 'config/temporary_block_debug_config.dart';
 import 'core/barrel_file.dart';
 import 'features/auth/controllers/auth_controller.dart';
@@ -91,7 +92,10 @@ final routerProvider = Provider<GoRouter>(
         ref.watch(navigationInteractionLockProvider);
     final router = GoRouter(
       navigatorKey: navigatorKey,
-      observers: [navigationInteractionLock],
+      observers: [
+        navigationInteractionLock,
+        ScreenSecurityService.createRouteObserver(),
+      ],
       // Re-evaluate the redirect whenever the Developer Options lock changes
       // (startup probe resolution, resume re-check, Close/Open Settings).
       refreshListenable: DeveloperModeGuard.instance,

@@ -59,16 +59,6 @@ class MainActivity: FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         super.onCreate(savedInstanceState)
-//        val isDebuggable =
-//            (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-//        if (!isDebuggable) {
-//            window.setFlags(
-//                WindowManager.LayoutParams.FLAG_SECURE,
-//                WindowManager.LayoutParams.FLAG_SECURE
-//            )
-//        } else {
-//            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-//        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
