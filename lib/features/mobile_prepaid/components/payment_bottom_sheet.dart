@@ -51,10 +51,14 @@ void _openPaymentResultFlow(
     _PaymentOutcome.pending => 'PENDING',
     _PaymentOutcome.failure || _PaymentOutcome.insufficient => 'FAILED',
   };
+  final isFailure = outcome == _PaymentOutcome.failure ||
+      outcome == _PaymentOutcome.insufficient;
+  final statusOverride = isFailure ? 'FAILED' : null;
   final entry = rechargeStatus != null
       ? buildPaymentFlowTransactionEntryFromRechargeStatus(
           status: rechargeStatus,
           fallbackStatus: fallbackStatus,
+          statusOverride: statusOverride,
           fallbackPaymentType: (paymentTypeOverride?.trim().isNotEmpty ?? false)
               ? paymentTypeOverride!.trim()
               : 'BILLPAY',
@@ -66,6 +70,7 @@ void _openPaymentResultFlow(
       : buildPaymentFlowTransactionEntryFromPrepaidStatus(
           status: prepaidStatus,
           fallbackStatus: fallbackStatus,
+          statusOverride: statusOverride,
           fallbackPaymentType: (paymentTypeOverride?.trim().isNotEmpty ?? false)
               ? paymentTypeOverride!.trim()
               : 'Mobile Prepaid',
@@ -88,8 +93,6 @@ void _openPaymentResultFlow(
     });
   }
 
-  final isFailure = outcome == _PaymentOutcome.failure ||
-      outcome == _PaymentOutcome.insufficient;
   void Function(BuildContext) onContinue = isFailure
       ? (screenContext) {
           Navigator.of(screenContext).pop();
@@ -215,11 +218,13 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     required double amount,
     required String billerName,
     required String fallbackMessage,
+    bool isGatewayFailure = false,
   }) async {
     final controller = ref.read(billerDetailControllerProvider.notifier);
     final wait = await _runWithVerificationLoader(
       () => controller.verifyPayAllServicesStatus(
         transactionRef: transactionRef,
+        pollIfProcessing: !isGatewayFailure,
       ),
     );
     if (!mounted) return;
@@ -232,15 +237,18 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     final latestState = ref.read(billerDetailControllerProvider);
     final status = wait.value;
     final normalized = (status?.status ?? '').trim().toUpperCase();
-    final outcome = wait.timedOut
-        ? _PaymentOutcome.pending
-        : (normalized == 'SUCCESS'
-            ? _PaymentOutcome.success
-            : (normalized == 'PENDING' ||
-                    normalized == 'PROCESSING' ||
-                    normalized.isEmpty
-                ? _PaymentOutcome.pending
-                : _PaymentOutcome.failure));
+    final _PaymentOutcome outcome;
+    if (normalized == 'SUCCESS') {
+      outcome = _PaymentOutcome.success;
+    } else if (wait.timedOut || status == null) {
+      outcome = _PaymentOutcome.pending;
+    } else if (normalized == 'PENDING' || normalized == 'PROCESSING') {
+      outcome = _PaymentOutcome.pending;
+    } else if (isGatewayFailure || normalized == 'FAILED') {
+      outcome = _PaymentOutcome.failure;
+    } else {
+      outcome = _PaymentOutcome.pending;
+    }
     final txId = (status?.transactionId.trim().isNotEmpty == true)
         ? status!.transactionId.trim()
         : transactionRef;
@@ -303,6 +311,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
           billerName: billerName,
           fallbackMessage:
               message.isEmpty ? 'Payment failed. Please try again.' : message,
+          isGatewayFailure: true,
         );
       },
       onExternalWallet: (_) async {
@@ -971,16 +980,24 @@ class _PrepaidPaymentBottomSheetState
         final wait = await _runWithVerificationLoader(() async {
           await ref
               .read(mobilePrepaidControllerProvider.notifier)
-              .verifyRechargeStatus(transactionRef: transactionRef);
+              .verifyRechargeStatus(
+                transactionRef: transactionRef,
+                pollIfProcessing: false,
+              );
         });
         if (!mounted) return;
         final latestState = ref.read(mobilePrepaidControllerProvider);
         final verified = latestState.verifiedTransaction;
-        final outcome = _prepaidOutcome(
-          timedOut: wait.timedOut,
-          verified: verified,
-          nullIsFailure: true,
-        );
+        final _PaymentOutcome outcome;
+        if (verified?.isSuccess == true) {
+          outcome = _PaymentOutcome.success;
+        } else if (wait.timedOut || verified == null) {
+          outcome = _PaymentOutcome.pending;
+        } else if (verified.isPending || verified.isProcessing) {
+          outcome = _PaymentOutcome.pending;
+        } else {
+          outcome = _PaymentOutcome.failure;
+        }
         final resolvedTxId =
             (latestState.rechargeTransactionId ?? '').isNotEmpty
                 ? latestState.rechargeTransactionId!

@@ -63,6 +63,7 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
   Future<PrepaidTransactionStatus> _fetchRechargeStatusWithProcessingPoll({
     required String transactionId,
     PollingDeadline? deadline,
+    bool pollIfProcessing = true,
   }) async {
     final effectiveDeadline = deadline ?? PollingDeadline.realtime(paymentProcessingDuration);
     
@@ -72,7 +73,7 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
           deadline: effectiveDeadline,
           initialStatus: null,
         );
-    if (!verified.isProcessing) return verified;
+    if (!pollIfProcessing || !verified.isProcessing) return verified;
 
     while (verified.isProcessing) {
       // Check deadline before starting another request
@@ -545,6 +546,7 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
   Future<void> verifyRechargeStatus({
     required String transactionRef,
     @visibleForTesting PollingDeadline? deadline,
+    bool pollIfProcessing = true,
   }) async {
     state = state.copyWith(
       isRecharging: true,
@@ -559,6 +561,7 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
       final verified = await _fetchRechargeStatusWithProcessingPoll(
         transactionId: transactionRef,
         deadline: deadline,
+        pollIfProcessing: pollIfProcessing,
       );
       final effectiveSuccess = verified.isSuccess;
       final isPendingOrProcessing = verified.isPending || verified.isProcessing;

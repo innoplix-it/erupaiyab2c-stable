@@ -100,8 +100,7 @@ class KycVerificationView extends HookConsumerWidget {
 
     Future<void> verifyPan() async {
       final pan = panController.text.trim().toUpperCase();
-      final panRegExp = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
-      if (!panRegExp.hasMatch(pan)) {
+      if (!isValidPanFormat(pan)) {
         AppSnackbar.show('Please enter a valid PAN number.');
         return;
       }
@@ -135,7 +134,7 @@ class KycVerificationView extends HookConsumerWidget {
 
     Future<void> sendAadhaarOtp() async {
       final aadhaar = aadhaarController.text.replaceAll(RegExp(r'\s+'), '');
-      if (aadhaar.length != 12) {
+      if (!isValidAadhaarNumber(aadhaar)) {
         AppSnackbar.show('Please enter a valid 12 digit Aadhaar number.');
         return;
       }

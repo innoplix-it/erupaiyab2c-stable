@@ -69,6 +69,7 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
   Future<RechargeStatusResult> _fetchStatusWithProcessingPoll({
     required String transactionRef,
     PollingDeadline? deadline,
+    bool pollIfProcessing = true,
   }) async {
     final effectiveDeadline = deadline ?? PollingDeadline.realtime(paymentProcessingDuration);
     
@@ -78,7 +79,7 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
           deadline: effectiveDeadline,
           initialStatus: null,
         );
-    if (!status.isProcessing) return status;
+    if (!pollIfProcessing || !status.isProcessing) return status;
 
     while (status.isProcessing) {
       // Check deadline before starting another request
@@ -409,11 +410,15 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
   Future<RechargeStatusResult?> verifyPayAllServicesStatus({
     required String transactionRef,
     @visibleForTesting PollingDeadline? deadline,
+    bool pollIfProcessing = true,
   }) async {
     state = state.copyWith(isPayingBill: true, payErrorMessage: null);
     try {
-      final status =
-          await _fetchStatusWithProcessingPoll(transactionRef: transactionRef, deadline: deadline);
+      final status = await _fetchStatusWithProcessingPoll(
+        transactionRef: transactionRef,
+        deadline: deadline,
+        pollIfProcessing: pollIfProcessing,
+      );
       state = state.copyWith(
         isPayingBill: false,
         isPaymentInFlight: false,

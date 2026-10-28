@@ -18,7 +18,9 @@ import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/education_payment_sheets.dart';
 import '../controllers/education_fees_controller.dart';
+import '../helpers/education_payment_reconcile.dart';
 import '../models/education_fees_responses.dart';
+
 
 class EducationFeesTutorsView extends HookConsumerWidget {
   const EducationFeesTutorsView({
@@ -100,16 +102,22 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                   'paymentId': paymentId,
                 });
               },
-              onFailure: (message) {
+              onFailure: (message) async {
                 if (processingNavigationStarted.value) return;
                 processingNavigationStarted.value = true;
-                openEducationPaymentProcessing({
-                  'transactionRefId': order.transactionRefId,
-                  'paymentType': feeType ?? 'Education Fees',
-                  'recipientName': tutor.name,
-                  'maskedAccount': tutor.accountMasked,
-                  'fallbackAmount': payable.toStringAsFixed(2),
-                });
+                // A gateway-confirmed failure (user cancelled, card declined,
+                // etc.) should NOT start the 60-second polling loop.
+                // Instead, do a single-shot backend reconciliation and
+                // navigate to the correct status screen immediately.
+                await reconcileEducationPaymentOnFailure(
+                  context: context,
+                  repository: repository,
+                  transactionRefId: order.transactionRefId,
+                  paymentType: feeType ?? 'Education Fees',
+                  recipientName: tutor.name,
+                  maskedAccount: tutor.accountMasked,
+                  fallbackAmount: payable.toStringAsFixed(2),
+                );
               },
             );
           },

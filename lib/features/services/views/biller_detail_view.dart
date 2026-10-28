@@ -1636,6 +1636,7 @@ class BillerDetailView extends HookConsumerWidget {
 
                                               Future<void> verifyAndShowResult({
                                                 required String fallbackMessage,
+                                                bool isGatewayFailure = false,
                                               }) async {
                                                 if (!context.mounted) return;
                                                 final wait =
@@ -1644,6 +1645,8 @@ class BillerDetailView extends HookConsumerWidget {
                                                       .verifyPayAllServicesStatus(
                                                     transactionRef:
                                                         order.transactionRef,
+                                                    pollIfProcessing:
+                                                        !isGatewayFailure,
                                                   ),
                                                 );
                                                 if (!context.mounted) return;
@@ -1653,15 +1656,31 @@ class BillerDetailView extends HookConsumerWidget {
                                                         .trim()
                                                         .toUpperCase() ??
                                                     '');
-                                                final fallbackStatus =
-                                                    normalized.isNotEmpty
-                                                        ? normalized
-                                                        : 'PENDING';
+                                                final isSuccess =
+                                                    normalized == 'SUCCESS';
+                                                final String finalStatus;
+                                                if (isSuccess) {
+                                                  finalStatus = 'SUCCESS';
+                                                } else if (wait.timedOut || status == null) {
+                                                  finalStatus = 'PENDING';
+                                                } else if (normalized == 'PENDING' || normalized == 'PROCESSING') {
+                                                  finalStatus = normalized;
+                                                } else if (isGatewayFailure || normalized == 'FAILED') {
+                                                  finalStatus = 'FAILED';
+                                                } else {
+                                                  finalStatus = normalized.isNotEmpty
+                                                      ? normalized
+                                                      : 'PENDING';
+                                                }
                                                 final entry =
                                                     buildPaymentFlowTransactionEntryFromRechargeStatus(
                                                   status: status,
                                                   fallbackStatus:
-                                                      fallbackStatus,
+                                                      finalStatus,
+                                                  statusOverride:
+                                                      finalStatus == 'FAILED'
+                                                          ? 'FAILED'
+                                                          : null,
                                                   fallbackPaymentType: args
                                                           ?.paymentType ??
                                                       detail.billerCategoryName,
@@ -1675,9 +1694,7 @@ class BillerDetailView extends HookConsumerWidget {
                                                       args?.mobileNumber,
                                                 );
 
-                                                final isSuccess =
-                                                    normalized == 'SUCCESS';
-                                                if (isSuccess) {
+                                                                                                if (isSuccess) {
                                                   final paymentName = (args
                                                                   ?.paymentType
                                                                   ?.trim()
@@ -1753,6 +1770,7 @@ class BillerDetailView extends HookConsumerWidget {
                                                             .isEmpty
                                                         ? 'Payment failed. Please try again.'
                                                         : message,
+                                                    isGatewayFailure: true,
                                                   );
                                                 },
                                                 onExternalWallet: (_) async {

@@ -18,7 +18,9 @@ import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/education_payment_sheets.dart';
 import '../controllers/education_fees_controller.dart';
+import '../helpers/education_payment_reconcile.dart';
 import '../models/education_fees_responses.dart';
+
 
 class EducationFeesPaymentView extends HookConsumerWidget {
   const EducationFeesPaymentView({super.key});
@@ -145,16 +147,22 @@ class EducationFeesPaymentView extends HookConsumerWidget {
                   'paymentId': paymentId,
                 });
               },
-              onFailure: (message) {
+              onFailure: (message) async {
                 if (processingNavigationStarted.value) return;
                 processingNavigationStarted.value = true;
-                openEducationPaymentProcessing({
-                  'transactionRefId': order.transactionRefId,
-                  'paymentType': state.feeType ?? 'Education Fees',
-                  'recipientName': state.recipientName,
-                  'maskedAccount': _maskAccount(state.accountNumber),
-                  'fallbackAmount': payable.toStringAsFixed(2),
-                });
+                // A gateway-confirmed failure (user cancelled, card declined,
+                // etc.) should NOT start the 60-second polling loop.
+                // Instead, do a single-shot backend reconciliation and
+                // navigate to the correct status screen immediately.
+                await reconcileEducationPaymentOnFailure(
+                  context: context,
+                  repository: repository,
+                  transactionRefId: order.transactionRefId,
+                  paymentType: state.feeType ?? 'Education Fees',
+                  recipientName: state.recipientName,
+                  maskedAccount: _maskAccount(state.accountNumber),
+                  fallbackAmount: payable.toStringAsFixed(2),
+                );
               },
             );
           },
@@ -537,3 +545,4 @@ double _parseAmount(String value) {
   final amount = double.tryParse(value.replaceAll(RegExp(r'\D'), '')) ?? 0;
   return amount.toDouble();
 }
+

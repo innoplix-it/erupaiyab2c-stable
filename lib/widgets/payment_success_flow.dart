@@ -662,15 +662,17 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromRechargeStatus({
   String? fallbackTransactionTime,
   String? fallbackServiceNo,
   String? fallbackServiceNoFull,
+  String? statusOverride,
 }) {
   final raw = _flattenStatusPayload(status?.raw);
-  final statusCode = _readFirstNonEmpty(
-    raw,
-    ['payment_status', 'status'],
-    fallback: status?.status.trim().isNotEmpty == true
-        ? status!.status.trim()
-        : fallbackStatus,
-  );
+  final statusCode = statusOverride ??
+      _readFirstNonEmpty(
+        raw,
+        ['payment_status', 'status'],
+        fallback: status?.status.trim().isNotEmpty == true
+            ? status!.status.trim()
+            : fallbackStatus,
+      );
   final paymentType = _readFirstNonEmpty(
     raw,
     ['payment_type', 'category_name'],
@@ -813,6 +815,7 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromPrepaidStatus({
   required double fallbackAmount,
   required String fallbackTransactionId,
   String? fallbackTransactionTime,
+  String? statusOverride,
 }) {
   final raw = _flattenStatusPayload(status?.raw);
   final amount = _readFirstNonEmpty(
@@ -879,13 +882,14 @@ TransactionHistoryEntry buildPaymentFlowTransactionEntryFromPrepaidStatus({
   );
 
   return TransactionHistoryEntry(
-    paymentStatus: _readFirstNonEmpty(
-      raw,
-      ['payment_status', 'status'],
-      fallback: status?.status.trim().isNotEmpty == true
-          ? status!.status.trim()
-          : fallbackStatus,
-    ),
+    paymentStatus: statusOverride ??
+        _readFirstNonEmpty(
+          raw,
+          ['payment_status', 'status'],
+          fallback: status?.status.trim().isNotEmpty == true
+              ? status!.status.trim()
+              : fallbackStatus,
+        ),
     paymentType: paymentType,
     billerName: operatorName,
     maskedIdentifier: maskedIdentifier,

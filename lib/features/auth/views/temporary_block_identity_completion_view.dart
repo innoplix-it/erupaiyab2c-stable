@@ -8,6 +8,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../helpers/kyc_helpers.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/grey_text_form_field.dart';
@@ -33,13 +34,12 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
     Future<void> handleContinue() async {
       final pan = panController.text.trim().toUpperCase();
       final aadhaar = aadhaarController.text.replaceAll(RegExp(r'\s+'), '');
-      final panRegExp = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$');
 
-      if (!panRegExp.hasMatch(pan)) {
+      if (!isValidPanFormat(pan)) {
         AppSnackbar.show('Please enter a valid PAN number.');
         return;
       }
-      if (aadhaar.length != 12 || int.tryParse(aadhaar) == null) {
+      if (!isValidAadhaarNumber(aadhaar)) {
         AppSnackbar.show('Please enter a valid 12 digit Aadhaar number.');
         return;
       }

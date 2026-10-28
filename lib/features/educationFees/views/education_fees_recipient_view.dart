@@ -8,6 +8,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../helpers/kyc_helpers.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
@@ -120,7 +121,9 @@ class EducationFeesRecipientView extends HookConsumerWidget {
       }
       final name = state.recipientName.trim();
       final pan = state.pan.trim().toUpperCase();
-      if (name.isEmpty || pan.isEmpty || pan.length != 10) {
+      // Only verify once the PAN is complete and well formed; a partial or
+      // malformed number must never reach the API.
+      if (name.isEmpty || !isValidPanFormat(pan)) {
         lastVerifiedPanKey.value = null;
         return null;
       }

@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../utils/error_message_utils.dart';
+import '../../../helpers/kyc_helpers.dart';
 import '../../../services/push_notification_service.dart';
 import '../models/education_account_type.dart';
 import '../models/education_fees_state.dart';
@@ -24,6 +25,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
 
   final EducationFeesRepository _repository;
 
+  /// Identifies the newest PAN verification so responses for numbers the user
+  /// has already edited away from are discarded instead of being shown.
+  int _panVerifyRequestId = 0;
+
   String _normalizeMobile(String input) {
     final digits = input.replaceAll(RegExp(r'\D'), '');
     if (digits.length > 10 && digits.startsWith('91')) {
@@ -33,6 +38,9 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   }
 
   void reset() {
+    // Invalidate any in-flight PAN verification so a late response cannot
+    // write state after the flow has been cleared.
+    _panVerifyRequestId++;
     state = const EducationFeesState();
   }
 
@@ -190,10 +198,18 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     );
   }
 
+  /// Verifies the recipient PAN.
+  ///
+  /// The request is only allowed once the PAN is complete and well formed, so
+  /// a partially typed or malformed number never reaches the backend. Only the
+  /// most recent request may update the state, so a slow response for a
+  /// previous value can never be shown against the current one.
   Future<void> verifyPan() async {
     final name = state.recipientName.trim();
     final pan = state.pan.trim().toUpperCase();
-    if (name.isEmpty || pan.isEmpty) return;
+    if (name.isEmpty || !isValidPanFormat(pan)) return;
+
+    final requestId = ++_panVerifyRequestId;
     state = state.copyWith(
       isVerifyingPan: true,
       panErrorMessage: null,
@@ -206,6 +222,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         pan: pan,
         deviceId: (deviceId == null || deviceId.isEmpty) ? '' : deviceId,
       );
+      if (requestId != _panVerifyRequestId) return;
       if (response.status) {
         state = state.copyWith(
           isVerifyingPan: false,
@@ -221,6 +238,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         );
       }
     } catch (e) {
+      if (requestId != _panVerifyRequestId) return;
       state = state.copyWith(
         isVerifyingPan: false,
         panVerified: false,
