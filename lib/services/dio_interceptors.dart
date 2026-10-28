@@ -45,9 +45,33 @@ class DioInterceptors extends InterceptorsWrapper {
     'aadhaar_number',
     'aadhar',
     'aadhar_number',
+    'mobile',
+    'mobile_number',
+    'phone',
+    'phonenumber',
+    'contact',
+    'email',
+    'email_address',
+    'emailaddress',
+    'accountno',
+    'account_no',
+    'account_number',
+    'ifsc',
+    'ifsc_code',
+    'cardnumber',
+    'card_no',
+    'card_number',
+    'cvv',
+    'cvv_number',
+    'cvvcode',
+    'upi',
+    'upi_id',
+    'vpa',
+    'virtual_payment_address',
   };
 
-  Map<String, dynamic> _redactHeaders(Map<String, dynamic> headers) {
+  @visibleForTesting
+  Map<String, dynamic> redactHeaders(Map<String, dynamic> headers) {
     final redacted = <String, dynamic>{};
     headers.forEach((key, value) {
       final lower = key.toLowerCase();
@@ -76,7 +100,8 @@ class DioInterceptors extends InterceptorsWrapper {
     }
   }
 
-  Object? _redactBody(Object? value) {
+  @visibleForTesting
+  Object? redactBody(Object? value) {
     if (value is Map) {
       final redacted = <String, dynamic>{};
       value.forEach((key, dynamic nestedValue) {
@@ -84,13 +109,13 @@ class DioInterceptors extends InterceptorsWrapper {
         if (_sensitiveKeys.contains(keyText.toLowerCase())) {
           redacted[keyText] = '<redacted>';
         } else {
-          redacted[keyText] = _redactBody(nestedValue);
+          redacted[keyText] = redactBody(nestedValue);
         }
       });
       return redacted;
     }
     if (value is List) {
-      return value.map(_redactBody).toList(growable: false);
+      return value.map(redactBody).toList(growable: false);
     }
     return value;
   }
@@ -261,10 +286,10 @@ class DioInterceptors extends InterceptorsWrapper {
     }
 
     final url = options.uri.toString();
-    final safeHeaders = _redactHeaders(options.headers);
-    final payload = _truncate(_stringify(_redactBody(options.data)));
+    final safeHeaders = redactHeaders(options.headers);
+    final payload = _truncate(_stringify(redactBody(options.data)));
     final query = options.queryParameters.isNotEmpty
-        ? _truncate(_stringify(_redactBody(options.queryParameters)))
+        ? _truncate(_stringify(redactBody(options.queryParameters)))
         : '';
 
     logger.info('Request: ${options.method} $url');
@@ -287,7 +312,7 @@ class DioInterceptors extends InterceptorsWrapper {
     ResponseInterceptorHandler handler,
   ) {
     final url = response.requestOptions.uri.toString();
-    final dataText = _truncate(_stringify(_redactBody(response.data)));
+    final dataText = _truncate(_stringify(redactBody(response.data)));
     logger.info('Response: ${response.statusCode} $url');
     if (AppEnv.enableNetworkPayloadLogs) {
       _debugLog(
@@ -305,7 +330,7 @@ class DioInterceptors extends InterceptorsWrapper {
   ) async {
     final url = err.requestOptions.uri.toString();
     final status = err.response?.statusCode;
-    final dataText = _truncate(_stringify(_redactBody(err.response?.data)));
+    final dataText = _truncate(_stringify(redactBody(err.response?.data)));
     if (AppEnv.enableNetworkPayloadLogs) {
       _debugLog(
         'ERROR ${status ?? '-'} $url\n${err.message ?? ''}'

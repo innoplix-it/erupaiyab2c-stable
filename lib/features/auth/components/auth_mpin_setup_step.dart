@@ -108,6 +108,7 @@ class _AuthMpinSetupStepState extends State<AuthMpinSetupStep> {
                       iconSize: 24.r,
                       color: _ink,
                       onPressed: widget.onBack,
+                      tooltip: 'Back',
                     ),
                   ),
                   SizedBox(height: authH(context, 16)),
@@ -139,6 +140,8 @@ class _AuthMpinSetupStepState extends State<AuthMpinSetupStep> {
                     autofocus: true,
                     enabled: true,
                     hasError: _hasError,
+                    semanticsLabel: 'New PIN',
+                    semanticsHint: 'Enter your new 4-digit PIN',
                     onToggle: widget.isSubmitting
                         ? () {}
                         : () => setState(() => _obscureNew = !_obscureNew),
@@ -155,6 +158,8 @@ class _AuthMpinSetupStepState extends State<AuthMpinSetupStep> {
                     obscure: _obscureConfirm,
                     enabled: true,
                     hasError: _hasError,
+                    semanticsLabel: 'Confirm PIN',
+                    semanticsHint: 'Re-enter your PIN to confirm',
                     onToggle: widget.isSubmitting
                         ? () {}
                         : () => setState(

@@ -39,6 +39,7 @@ class AuthController extends StateNotifier<AuthState> {
   final AuthRepository _repository;
 
   void _debugPrint(String message) {
+    if (!kDebugMode) return;
     debugPrint('[AuthController] $message');
   }
 

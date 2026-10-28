@@ -61,11 +61,16 @@ class PinInputRow extends StatelessWidget {
             children.add(SizedBox(width: spacing));
           }
         }
-        return SizedBox(
-          width: double.infinity,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: children,
+        return Semantics(
+          label: 'PIN entry',
+          hint: 'Enter your ${controllers.length}-digit PIN',
+          textField: true,
+          child: SizedBox(
+            width: double.infinity,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: children,
+            ),
           ),
         );
       },

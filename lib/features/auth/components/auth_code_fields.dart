@@ -129,24 +129,29 @@ class AuthOtpBoxes extends StatelessWidget {
             listenable: controller,
             builder: (context, _) {
               final complete = controller.text.length == length;
-              return Pinput(
-                controller: controller,
-                focusNode: focusNode,
-                length: length,
-                autofocus: autofocus,
-                enabled: enabled,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                mainAxisAlignment: MainAxisAlignment.start,
-                separatorBuilder: (_) => SizedBox(width: gap),
-                forceErrorState: hasError,
-                onChanged: onChanged,
-                onCompleted: onCompleted,
-                defaultPinTheme: defaultTheme,
-                focusedPinTheme: focusedTheme,
-                submittedPinTheme: complete ? completeTheme : filledTheme,
-                disabledPinTheme: complete ? completeTheme : defaultTheme,
-                errorPinTheme: errorTheme,
+              return Semantics(
+                label: 'OTP entry',
+                hint: 'Enter your OTP',
+                textField: true,
+                child: Pinput(
+                  controller: controller,
+                  focusNode: focusNode,
+                  length: length,
+                  autofocus: autofocus,
+                  enabled: enabled,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  separatorBuilder: (_) => SizedBox(width: gap),
+                  forceErrorState: hasError,
+                  onChanged: onChanged,
+                  onCompleted: onCompleted,
+                  defaultPinTheme: defaultTheme,
+                  focusedPinTheme: focusedTheme,
+                  submittedPinTheme: complete ? completeTheme : filledTheme,
+                  disabledPinTheme: complete ? completeTheme : defaultTheme,
+                  errorPinTheme: errorTheme,
+                ),
               );
             },
           ),
@@ -180,6 +185,8 @@ class AuthPinBoxes extends StatelessWidget {
     this.onChanged,
     this.onCompleted,
     this.shakeController,
+    this.semanticsLabel,
+    this.semanticsHint,
   });
 
   final TextEditingController controller;
@@ -203,6 +210,15 @@ class AuthPinBoxes extends StatelessWidget {
 
   /// Jiggles the boxes after a failed PIN check.
   final AuthShakeController? shakeController;
+
+  /// Optional screen-reader label override. Defaults to `'PIN entry'`; pass a
+  /// distinct value when two PIN rows appear together (e.g. MPIN setup's
+  /// "New PIN" vs "Confirm PIN") so TalkBack/VoiceOver does not announce both
+  /// fields identically.
+  final String? semanticsLabel;
+
+  /// Optional screen-reader hint override. Defaults to `'Enter your PIN'`.
+  final String? semanticsHint;
 
   @override
   Widget build(BuildContext context) {
@@ -264,25 +280,30 @@ class AuthPinBoxes extends StatelessWidget {
           focusNode: focusNode,
           autofocus: autofocus,
           enabled: enabled,
-          child: Pinput(
-            controller: controller,
-            focusNode: focusNode,
-            length: length,
-            autofocus: autofocus,
-            enabled: enabled,
-            obscureText: obscure,
-            obscuringCharacter: '*',
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            mainAxisAlignment: MainAxisAlignment.start,
-            separatorBuilder: (_) => SizedBox(width: gap),
-            forceErrorState: hasError,
-            onChanged: onChanged,
-            onCompleted: onCompleted,
-            defaultPinTheme: theme(),
-            focusedPinTheme: theme(borderWidth: 1.5),
-            disabledPinTheme: theme(),
-            errorPinTheme: theme(borderColor: Colors.red),
+          child: Semantics(
+            label: semanticsLabel ?? 'PIN entry',
+            hint: semanticsHint ?? 'Enter your PIN',
+            textField: true,
+            child: Pinput(
+              controller: controller,
+              focusNode: focusNode,
+              length: length,
+              autofocus: autofocus,
+              enabled: enabled,
+              obscureText: obscure,
+              obscuringCharacter: '*',
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              mainAxisAlignment: MainAxisAlignment.start,
+              separatorBuilder: (_) => SizedBox(width: gap),
+              forceErrorState: hasError,
+              onChanged: onChanged,
+              onCompleted: onCompleted,
+              defaultPinTheme: theme(),
+              focusedPinTheme: theme(borderWidth: 1.5),
+              disabledPinTheme: theme(),
+              errorPinTheme: theme(borderColor: Colors.red),
+            ),
           ),
         );
       },
@@ -323,37 +344,41 @@ class AuthVisibilityToggle extends StatelessWidget {
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: _actionRowMaxTextScale,
       child: Builder(
-        builder: (context) => InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8.r),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: authH(context, 8),
-              horizontal: authW(context, 2),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  obscure
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  size: 17.r * _actionIconScale(context),
-                  color: authInk,
-                ),
-                SizedBox(width: authW(context, 4)),
-                Flexible(
-                  child: Text(
-                    obscure ? 'Show' : 'Hide',
-                    overflow: TextOverflow.ellipsis,
-                    style: authTextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 1,
+        builder: (context) => Semantics(
+          button: true,
+          label: obscure ? 'Show PIN' : 'Hide PIN',
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8.r),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: authH(context, 8),
+                horizontal: authW(context, 2),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    obscure
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: 17.r * _actionIconScale(context),
+                    color: authInk,
+                  ),
+                  SizedBox(width: authW(context, 4)),
+                  Flexible(
+                    child: Text(
+                      obscure ? 'Show' : 'Hide',
+                      overflow: TextOverflow.ellipsis,
+                      style: authTextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        height: 1,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -490,6 +515,8 @@ class AuthPinRowWithToggle extends StatelessWidget {
     this.hasError = false,
     this.onChanged,
     this.onCompleted,
+    this.semanticsLabel,
+    this.semanticsHint,
   });
 
   final TextEditingController controller;
@@ -501,6 +528,11 @@ class AuthPinRowWithToggle extends StatelessWidget {
   final bool hasError;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onCompleted;
+
+  /// Forwarded to [AuthPinBoxes] so callers can distinguish two PIN rows that
+  /// would otherwise both announce as `PIN entry`.
+  final String? semanticsLabel;
+  final String? semanticsHint;
 
   @override
   Widget build(BuildContext context) {
@@ -518,6 +550,8 @@ class AuthPinRowWithToggle extends StatelessWidget {
             gap: authW(context, 11),
             onChanged: onChanged,
             onCompleted: onCompleted,
+            semanticsLabel: semanticsLabel,
+            semanticsHint: semanticsHint,
           ),
         ),
         SizedBox(width: authW(context, 12)),

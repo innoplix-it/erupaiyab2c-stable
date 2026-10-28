@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../widgets/app_network_image.dart';
 import '../../../widgets/k_dialog.dart';
 import '../models/plan_item.dart';
 import 'plan_details_sheet.dart';
@@ -426,12 +427,12 @@ class _BenefitIconAvatar extends StatelessWidget {
                 color: Colors.grey.shade200,
                 child: Icon(Icons.card_giftcard, size: 14.sp),
               )
-            : Image.network(
-                benefit.image!,
+            : AppNetworkImage(
+                url: benefit.image!,
                 width: 26.r,
                 height: 26.r,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorWidget: Container(
                   color: Colors.grey.shade200,
                   child: Icon(Icons.image, size: 14.sp),
                 ),

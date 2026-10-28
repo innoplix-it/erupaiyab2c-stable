@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../widgets/app_network_image.dart';
 import '../models/plan_item.dart';
 
 String extractPlanDataValue(PlanItem plan) {
@@ -309,10 +310,12 @@ class _BenefitLeadingIcon extends StatelessWidget {
         color: Colors.grey.shade100,
         child: benefit.image == null
             ? Icon(Icons.card_giftcard, size: 24.sp, color: AppColors.primary)
-            : Image.network(
-                benefit.image!,
+            : AppNetworkImage(
+                url: benefit.image!,
+                width: 48.r,
+                height: 48.r,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(
+                errorWidget: Icon(
                   Icons.image,
                   size: 24.sp,
                   color: AppColors.primary,

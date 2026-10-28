@@ -11,6 +11,7 @@ class BillerDetailState {
     this.isFetchingDetail = false,
     this.isFetchingBill = false,
     this.isPayingBill = false,
+    this.isPaymentInFlight = false,
     this.billResponse,
     this.customerParamsInput,
     this.payResponse,
@@ -26,6 +27,7 @@ class BillerDetailState {
   final bool isFetchingDetail;
   final bool isFetchingBill;
   final bool isPayingBill;
+  final bool isPaymentInFlight;
   final BillResponse? billResponse;
   final Map<String, String>? customerParamsInput;
   final BillPayResponse? payResponse;
@@ -43,6 +45,7 @@ class BillerDetailState {
     bool? isFetchingDetail,
     bool? isFetchingBill,
     bool? isPayingBill,
+    bool? isPaymentInFlight,
     Object? billResponse = _sentinel,
     Object? customerParamsInput = _sentinel,
     Object? payResponse = _sentinel,
@@ -64,6 +67,7 @@ class BillerDetailState {
       isFetchingDetail: isFetchingDetail ?? this.isFetchingDetail,
       isFetchingBill: isFetchingBill ?? this.isFetchingBill,
       isPayingBill: isPayingBill ?? this.isPayingBill,
+      isPaymentInFlight: isPaymentInFlight ?? this.isPaymentInFlight,
       billResponse: billResponse == _sentinel
           ? this.billResponse
           : billResponse as BillResponse?,

@@ -416,12 +416,15 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                   ),
                 ),
                 SizedBox(width: 8.w),
-                Text(
-                  '\u20B9 ${widget.amount.toStringAsFixed(0)}',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16.sp,
-                    color: AppColors.textPrimary,
+                Semantics(
+                  label: 'Payment amount ${widget.amount.toStringAsFixed(0)} rupees',
+                  child: Text(
+                    '\u20B9 ${widget.amount.toStringAsFixed(0)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ],
@@ -466,27 +469,35 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                 padding: EdgeInsets.symmetric(vertical: 12.h),
                 child: Row(
                   children: [
-                    Text(
-                      '\u20B9 ${remainingAmount.toStringAsFixed(0)}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 24.sp,
-                        color: AppColors.textPrimary,
+                    Semantics(
+                      label: 'Payable amount ${remainingAmount.toStringAsFixed(0)} rupees',
+                      child: Text(
+                        '\u20B9 ${remainingAmount.toStringAsFixed(0)}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 24.sp,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                     const Spacer(),
-                    CustomElevatedButton(
-                      onPressed: isPaying
-                          ? null
-                          : () => _onPayPressed(
-                                detailState: detailState,
-                                remainingAmount: remainingAmount,
-                              ),
+                    Semantics(
+                      button: true,
                       label: buttonLabel,
-                      isLoading: isPaying,
-                      showArrow: false,
-                      uppercaseLabel: true,
-                      width: null,
+                      enabled: !isPaying,
+                      child: CustomElevatedButton(
+                        onPressed: isPaying
+                            ? null
+                            : () => _onPayPressed(
+                                  detailState: detailState,
+                                  remainingAmount: remainingAmount,
+                                ),
+                        label: buttonLabel,
+                        isLoading: isPaying,
+                        showArrow: false,
+                        uppercaseLabel: true,
+                        width: null,
+                      ),
                     ),
                   ],
                 ),
@@ -553,7 +564,7 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                 ],
               ),
               SizedBox(height: 10.h),
-              Divider(height: 1, color: AppColors.lightBorder),
+              const Divider(height: 1, color: AppColors.lightBorder),
               SizedBox(height: 12.h),
               Flexible(
                 child: SingleChildScrollView(
@@ -585,12 +596,15 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                                     ),
                                   ),
                                 ),
-                                Text(
-                                  '₹${widget.amount.toStringAsFixed(0)}',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14.sp,
-                                    color: AppColors.textPrimary,
+                                Semantics(
+                                  label: 'Bill amount ${widget.amount.toStringAsFixed(0)} rupees',
+                                  child: Text(
+                                    '₹${widget.amount.toStringAsFixed(0)}',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14.sp,
+                                      color: AppColors.textPrimary,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -771,18 +785,23 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
                 ),
               ),
               SizedBox(height: 12.h),
-              CustomElevatedButton(
-                onPressed: isPaying
-                    ? null
-                    : () => _onPayPressed(
-                          detailState: detailState,
-                          remainingAmount: remainingAmount,
-                        ),
+              Semantics(
+                button: true,
                 label: payLabel,
-                isLoading: isPaying,
-                showArrow: false,
-                uppercaseLabel: true,
-                height: 48.h,
+                enabled: !isPaying,
+                child: CustomElevatedButton(
+                  onPressed: isPaying
+                      ? null
+                      : () => _onPayPressed(
+                            detailState: detailState,
+                            remainingAmount: remainingAmount,
+                          ),
+                  label: payLabel,
+                  isLoading: isPaying,
+                  showArrow: false,
+                  uppercaseLabel: true,
+                  height: 48.h,
+                ),
               ),
             ],
           ),

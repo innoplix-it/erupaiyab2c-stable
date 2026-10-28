@@ -245,6 +245,7 @@ class _OtpVerifyStepState extends State<OtpVerifyStep> {
                   iconSize: authW(context, 24),
                   color: _ink,
                   onPressed: widget.onBack,
+                  tooltip: 'Back',
                 ),
               ),
               SizedBox(height: authH(context, 16)),

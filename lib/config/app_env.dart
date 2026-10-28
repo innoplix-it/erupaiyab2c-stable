@@ -1,9 +1,9 @@
 class AppEnv {
   AppEnv._();
 
-  static const bool isProduction = false;
+  static const bool isProduction = true;
 
-  static const bool isDeveloperModeCheckEnabled = false;
+  static const bool isDeveloperModeCheckEnabled = true;
 
   static const bool enableScreenshotProtection = true;
 

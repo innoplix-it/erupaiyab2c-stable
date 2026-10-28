@@ -572,47 +572,60 @@ class _PinStepMobileField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    // Screen-reader affordance: the field looks like text but is a tap-to-edit
+    // button. Publish one merged node (button + value + hint) and hide the
+    // child `Text` nodes so TalkBack/VoiceOver does not announce the digits
+    // twice.
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: 'Mobile number',
+      value: controller.text,
+      hint: 'Change mobile number',
+      excludeSemantics: true,
       onTap: onTap,
-      child: Container(
-        height: 56 * k,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16 * k),
-          border: Border.all(color: const Color(0xFFE4E4E7)),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 20 * k),
-        alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Text(
-              '+91',
-              style: TextStyle(
-                fontSize: 14 * k,
-                fontWeight: FontWeight.w500,
-                color: _ink,
-              ),
-            ),
-            SizedBox(width: 10 * k),
-            Container(
-              width: 1,
-              height: 24 * k,
-              color: const Color(0xFFE4E4E7),
-            ),
-            SizedBox(width: 10 * k),
-            Expanded(
-              child: Text(
-                controller.text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 56 * k,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16 * k),
+            border: Border.all(color: const Color(0xFFE4E4E7)),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 20 * k),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Text(
+                '+91',
                 style: TextStyle(
                   fontSize: 14 * k,
                   fontWeight: FontWeight.w500,
                   color: _ink,
                 ),
               ),
-            ),
-          ],
+              SizedBox(width: 10 * k),
+              Container(
+                width: 1,
+                height: 24 * k,
+                color: const Color(0xFFE4E4E7),
+              ),
+              SizedBox(width: 10 * k),
+              Expanded(
+                child: Text(
+                  controller.text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14 * k,
+                    fontWeight: FontWeight.w500,
+                    color: _ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

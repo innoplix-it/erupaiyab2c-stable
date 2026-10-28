@@ -5,11 +5,10 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import '../components/credit_card/credit_card_figma_metrics.dart';
-
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../widgets/app_network_image.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/app_search_bar.dart';
 import '../controllers/credit_card_transactions_controller.dart';
@@ -319,10 +318,10 @@ class _TransactionTile extends StatelessWidget {
                     clipBehavior: Clip.antiAlias,
                     alignment: Alignment.center,
                     child: item.icon.trim().isNotEmpty
-                        ? Image.network(
-                            item.icon,
+                        ? AppNetworkImage(
+                            url: item.icon,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
+                            errorWidget: Icon(
                               Icons.credit_card,
                               color: meta.color,
                             ),

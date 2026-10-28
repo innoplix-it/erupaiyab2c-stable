@@ -1,5 +1,5 @@
 import '../config/app_env.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
 LoggerService get logger => LoggerService.I;
@@ -24,7 +24,7 @@ class LoggerService {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    if (!AppEnv.enableLogs) return;
+    if (!AppEnv.enableLogs || !kDebugMode) return;
     _logger.d(message, time: time, error: error, stackTrace: stackTrace);
   }
 
@@ -34,7 +34,7 @@ class LoggerService {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    if (!AppEnv.enableLogs) return;
+    if (!AppEnv.enableLogs || !kDebugMode) return;
     _logger.e(message, time: time, error: error, stackTrace: stackTrace);
   }
 
@@ -44,7 +44,7 @@ class LoggerService {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    if (!AppEnv.enableLogs) return;
+    if (!AppEnv.enableLogs || !kDebugMode) return;
     _logger.i(message, time: time, error: error, stackTrace: stackTrace);
   }
 
@@ -54,7 +54,7 @@ class LoggerService {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    if (!AppEnv.enableLogs) return;
+    if (!AppEnv.enableLogs || !kDebugMode) return;
     _logger.w(message, time: time, error: error, stackTrace: stackTrace);
   }
 }

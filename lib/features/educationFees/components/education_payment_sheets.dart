@@ -391,7 +391,7 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
             ),
             SizedBox(height: 14.h),
             CustomElevatedButton(
-              onPressed: (isLoading.value || isPaying.value)
+              onPressed: (isLoading.value || isPaying.value || current == null || error.value != null)
                   ? null
                   : () async {
                       if (isPaying.value) return;
@@ -401,7 +401,9 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
                     },
               label: isPaying.value
                   ? 'Processing...'
-                  : 'Pay ₹${payable.toStringAsFixed(2)}',
+                  : (current == null || error.value != null)
+                      ? 'Unavailable'
+                      : 'Pay ₹${payable.toStringAsFixed(2)}',
               uppercaseLabel: false,
               showArrow: false,
               height: 42.h,

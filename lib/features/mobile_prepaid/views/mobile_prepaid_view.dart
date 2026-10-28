@@ -21,6 +21,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../services/permission_service.dart';
+import '../../../widgets/app_network_image.dart';
 import '../../../widgets/contacts_permission_card.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';

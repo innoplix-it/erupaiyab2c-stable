@@ -1958,12 +1958,12 @@ class _OperatorLogo extends StatelessWidget {
                 fit: BoxFit.contain,
                 placeholderBuilder: (_) => _logoPlaceholder(),
               )
-            : Image.network(
-                iconUrl,
+            : AppNetworkImage(
+                url: iconUrl,
                 width: 24.r,
                 height: 24.r,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => _logoPlaceholder(),
+                errorWidget: _logoPlaceholder(),
               ),
       ),
     );

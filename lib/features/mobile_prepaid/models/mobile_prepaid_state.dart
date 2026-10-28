@@ -10,6 +10,7 @@ class MobilePrepaidState {
     this.isRefreshingPlans = false,
     this.isFetchingMorePlans = false,
     this.isRecharging = false,
+    this.isPaymentInFlight = false,
     this.mobile = '',
     this.operatorInfo,
     this.plansByCategory = const {},
@@ -38,6 +39,7 @@ class MobilePrepaidState {
   final bool isRefreshingPlans;
   final bool isFetchingMorePlans;
   final bool isRecharging;
+  final bool isPaymentInFlight;
   final String mobile;
   final OperatorInfo? operatorInfo;
   final Map<String, List<PlanItem>> plansByCategory;
@@ -97,6 +99,7 @@ class MobilePrepaidState {
     bool? isRefreshingPlans,
     bool? isFetchingMorePlans,
     bool? isRecharging,
+    bool? isPaymentInFlight,
     String? mobile,
     OperatorInfo? operatorInfo,
     Map<String, List<PlanItem>>? plansByCategory,
@@ -125,6 +128,7 @@ class MobilePrepaidState {
       isRefreshingPlans: isRefreshingPlans ?? this.isRefreshingPlans,
       isFetchingMorePlans: isFetchingMorePlans ?? this.isFetchingMorePlans,
       isRecharging: isRecharging ?? this.isRecharging,
+      isPaymentInFlight: isPaymentInFlight ?? this.isPaymentInFlight,
       mobile: mobile ?? this.mobile,
       operatorInfo: operatorInfo ?? this.operatorInfo,
       plansByCategory: plansByCategory ?? this.plansByCategory,

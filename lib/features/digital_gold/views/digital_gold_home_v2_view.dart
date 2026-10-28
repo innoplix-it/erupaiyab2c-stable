@@ -10,6 +10,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../widgets/app_network_image.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/digital_gold_title_live_bar.dart';
 import '../models/digital_gold_dashboard.dart';
@@ -717,12 +718,12 @@ class _GoldPriceCard extends StatelessWidget {
             height: 60.h,
             child: data.graphImageUrl.trim().isEmpty
                 ? const SizedBox.shrink()
-                : Image.network(
-                    data.graphImageUrl,
+                : AppNetworkImage(
+                    url: data.graphImageUrl,
+                    width: 150.w,
+                    height: 60.h,
                     fit: BoxFit.contain,
-                    alignment: Alignment.centerRight,
-                    gaplessPlayback: true,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    errorWidget: const SizedBox.shrink(),
                   ),
           ),
         ],
@@ -1077,24 +1078,16 @@ class _QuickActionNetworkTile extends StatelessWidget {
           children: [
             SizedBox(width: 30.w,
               height: 30.w,
-              child: Image.network(
-                imageUrl,
+              child: AppNetworkImage(
+                url: imageUrl,
+                width: 30.w,
+                height: 30.w,
                 fit: BoxFit.contain,
-                gaplessPlayback: true,
-                errorBuilder: (_, __, ___) => Icon(
+                errorWidget: Icon(
                   Icons.image_not_supported_outlined,
                   size: 20.r,
                   color: AppColors.textPrimary.withOpacity(0.45),
                 ),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.lightBorder.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
-                  );
-                },
               ),
             ),
             SizedBox(height: 6.h),

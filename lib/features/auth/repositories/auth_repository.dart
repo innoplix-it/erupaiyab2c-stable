@@ -25,6 +25,7 @@ class AuthRepository {
   FlutterSecureStorage get secureStorage => _secureStorage;
 
   void _debugPrint(String message) {
+    if (!kDebugMode) return;
     debugPrint('[AuthRepository] $message');
   }
 

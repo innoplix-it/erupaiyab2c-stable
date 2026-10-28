@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_error_messages.dart';
 import '../../../services/logger_service.dart';
 import '../../../utils/error_message_utils.dart';
+import '../../../utils/polling_deadline.dart';
+import '../../../widgets/payment_processing_loader.dart';
 import '../../home/models/banner_model.dart';
 import '../models/latest_transaction.dart';
 import '../models/mobile_prepaid_state.dart';
@@ -59,17 +62,131 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
 
   Future<PrepaidTransactionStatus> _fetchRechargeStatusWithProcessingPoll({
     required String transactionId,
+    PollingDeadline? deadline,
   }) async {
+    final effectiveDeadline = deadline ?? PollingDeadline.realtime(paymentProcessingDuration);
+    
     PrepaidTransactionStatus verified =
-        await _repository.fetchRechargeStatus(transactionId: transactionId);
+        await _fetchStatusWithDeadline(
+          transactionId: transactionId,
+          deadline: effectiveDeadline,
+          initialStatus: null,
+        );
     if (!verified.isProcessing) return verified;
 
     while (verified.isProcessing) {
-      await Future.delayed(_processingPollInterval);
-      verified =
-          await _repository.fetchRechargeStatus(transactionId: transactionId);
+      // Check deadline before starting another request
+      if (effectiveDeadline.isExceeded) {
+        logger.info(
+          'Recharge status polling deadline exceeded for $transactionId',
+        );
+        break;
+      }
+
+      // Wait for poll interval, but respect remaining deadline
+      final remaining = effectiveDeadline.remaining;
+      final delayDuration = _processingPollInterval < remaining
+          ? _processingPollInterval
+          : remaining;
+      
+      if (delayDuration > Duration.zero) {
+        await effectiveDeadline.delay(delayDuration);
+      }
+
+      // Check deadline again after delay before making request
+      if (effectiveDeadline.isExceeded) {
+        logger.info(
+          'Recharge status polling deadline exceeded for $transactionId after delay',
+        );
+        break;
+      }
+
+      verified = await _fetchStatusWithDeadline(
+        transactionId: transactionId,
+        deadline: effectiveDeadline,
+        initialStatus: verified,
+      );
     }
     return verified;
+  }
+
+  Future<PrepaidTransactionStatus> _fetchStatusWithDeadline({
+    required String transactionId,
+    required PollingDeadline deadline,
+    required PrepaidTransactionStatus? initialStatus,
+  }) async {
+    if (deadline.isExceeded) {
+      logger.info(
+        'Recharge status fetch skipped: deadline already exceeded for $transactionId',
+      );
+      return initialStatus ??
+          PrepaidTransactionStatus(
+            status: 'PROCESSING',
+            message: '',
+            amount: '0.00',
+            operatorName: '',
+            mobile: '',
+            paymentMode: '',
+            walletAmount: '0.00',
+            razorpayAmount: '0.00',
+            transactionId: transactionId,
+            updatedAt: DateTime.now().toIso8601String(),
+            raw: {},
+          );
+    }
+
+    // Race the repository request against the remaining deadline
+    final remaining = deadline.remaining;
+    if (remaining <= Duration.zero) {
+      return initialStatus ??
+          PrepaidTransactionStatus(
+            status: 'PROCESSING',
+            message: '',
+            amount: '0.00',
+            operatorName: '',
+            mobile: '',
+            paymentMode: '',
+            walletAmount: '0.00',
+            razorpayAmount: '0.00',
+            transactionId: transactionId,
+            updatedAt: DateTime.now().toIso8601String(),
+            raw: {},
+          );
+    }
+
+    try {
+      // Use Future.any to race the request against a timeout
+      final result = await Future.any<Object?>([
+        _repository.fetchRechargeStatus(transactionId: transactionId),
+        deadline.delay(remaining).then((_) => null),
+      ]);
+      
+      if (result == null) {
+        // Timeout won - return the last known status or PROCESSING
+        logger.info(
+          'Recharge status fetch timed out for $transactionId after ${remaining.inMilliseconds}ms',
+        );
+        return initialStatus ??
+            PrepaidTransactionStatus(
+              status: 'PROCESSING',
+              message: '',
+              amount: '0.00',
+              operatorName: '',
+              mobile: '',
+              paymentMode: '',
+              walletAmount: '0.00',
+              razorpayAmount: '0.00',
+              transactionId: transactionId,
+              updatedAt: DateTime.now().toIso8601String(),
+              raw: {},
+            );
+      }
+      
+      return result as PrepaidTransactionStatus;
+    } catch (e) {
+      // If the request throws, rethrow - this is a genuine error, not a timeout
+      rethrow;
+    }
   }
 
   void reset() {
@@ -374,8 +491,15 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
       return null;
     }
 
+    // Single-flight guard: prevent duplicate payment attempts
+    if (state.isPaymentInFlight) {
+      logger.info('Payment already in flight, ignoring duplicate create-order request');
+      return null;
+    }
+
     state = state.copyWith(
       isRecharging: true,
+      isPaymentInFlight: true,
       errorMessage: null,
       rechargeMessage: null,
       rechargeStatus: null,
@@ -391,9 +515,11 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
         operatorName: state.operatorInfo!.operatorName,
         useWallet: useWallet,
       );
+      // Keep isPaymentInFlight true until verification completes
       state = state.copyWith(isRecharging: false);
       if (!order.isSuccess) {
         state = state.copyWith(
+          isPaymentInFlight: false,
           errorMessage: order.message.isNotEmpty
               ? order.message
               : 'Failed to create order. Please try again.',
@@ -409,13 +535,17 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
       );
       state = state.copyWith(
         isRecharging: false,
+        isPaymentInFlight: false,
         errorMessage: _errorMessageFromException(e),
       );
       return null;
     }
   }
 
-  Future<void> verifyRechargeStatus({required String transactionRef}) async {
+  Future<void> verifyRechargeStatus({
+    required String transactionRef,
+    @visibleForTesting PollingDeadline? deadline,
+  }) async {
     state = state.copyWith(
       isRecharging: true,
       errorMessage: null,
@@ -428,12 +558,14 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
     try {
       final verified = await _fetchRechargeStatusWithProcessingPoll(
         transactionId: transactionRef,
+        deadline: deadline,
       );
       final effectiveSuccess = verified.isSuccess;
       final isPendingOrProcessing = verified.isPending || verified.isProcessing;
       final effectiveMessage = verified.message.trim();
       state = state.copyWith(
         isRecharging: false,
+        isPaymentInFlight: false,
         rechargeStatus: verified.status,
         rechargeTransactionId: verified.transactionId.isNotEmpty
             ? verified.transactionId
@@ -455,6 +587,7 @@ class MobilePrepaidController extends StateNotifier<MobilePrepaidState> {
       );
       state = state.copyWith(
         isRecharging: false,
+        isPaymentInFlight: false,
         errorMessage: _errorMessageFromException(e),
       );
     }

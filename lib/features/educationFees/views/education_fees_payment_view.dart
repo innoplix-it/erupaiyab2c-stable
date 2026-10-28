@@ -38,6 +38,8 @@ class EducationFeesPaymentView extends HookConsumerWidget {
     final selectedCard = useState<EducationCard?>(null);
     final processingNavigationStarted = useRef(false);
     final paymentSummary = useState<EducationPaymentSummaryData?>(null);
+    final summaryError = useState<String?>(null);
+    final isFetchingSummary = useState(false);
     final cardsAsync = useMemoized(
       () => repository.fetchCardList(),
       [repository],
@@ -49,19 +51,43 @@ class EducationFeesPaymentView extends HookConsumerWidget {
 
     useEffect(() {
       Future.microtask(() async {
+        isFetchingSummary.value = true;
+        summaryError.value = null;
         try {
           final response = await repository.fetchPaymentSummary(
             amount: amount.round(),
           );
           if (response.status && response.data != null) {
             paymentSummary.value = response.data;
+          } else {
+            summaryError.value = response.message ?? 'Failed to fetch payment summary.';
           }
-        } catch (_) {}
+        } catch (e) {
+          summaryError.value = 'Failed to fetch payment summary. Please try again.';
+        } finally {
+          isFetchingSummary.value = false;
+        }
       });
       return null;
     }, [amount]);
 
     void openSummary() {
+      if (summaryError.value != null) {
+        AppSnackbar.show(
+          summaryError.value!,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+        return;
+      }
+      if (paymentSummary.value == null) {
+        AppSnackbar.show(
+          'Payment summary is not available. Please wait or try again.',
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+        return;
+      }
       KDialog.instance.openSheet(
         dialog: EducationPaymentSummarySheet(
           amount: amount,

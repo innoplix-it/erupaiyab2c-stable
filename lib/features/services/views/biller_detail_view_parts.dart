@@ -198,13 +198,17 @@ class _SubscriptionSummaryCard extends StatelessWidget {
                     ),
               ),
               const Spacer(),
-              Text(
-                amountText,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 24.sp,
-                    ),
+              Semantics(
+                label: 'Amount to pay: $amountText',
+                value: amountText,
+                child: Text(
+                  amountText,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 24.sp,
+                      ),
+                ),
               ),
             ],
           ),
@@ -3029,23 +3033,27 @@ class AutoPayBottomSheet extends HookConsumerWidget {
 
             // ── CTA: Pay & Set AutoPay ──
             LayoutBuilder(
-              builder: (context, btnConstraints) => CustomElevatedButton(
-                onPressed: onPayAndSetAutoPay,
+              builder: (context, btnConstraints) => Semantics(
+                button: true,
                 label: ctaLabel,
-                showArrow: false,
-                uppercaseLabel: false,
-                width: btnConstraints.maxWidth
-                    .clamp(
-                      FetchProviderMetrics.w(74),
-                      btnConstraints.maxWidth,
-                    )
-                    .toDouble(),
-                height: FetchProviderMetrics.h(56),
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                  height: 1.0,
+                child: CustomElevatedButton(
+                  onPressed: onPayAndSetAutoPay,
+                  label: ctaLabel,
+                  showArrow: false,
+                  uppercaseLabel: false,
+                  width: btnConstraints.maxWidth
+                      .clamp(
+                        FetchProviderMetrics.w(74),
+                        btnConstraints.maxWidth,
+                      )
+                      .toDouble(),
+                  height: FetchProviderMetrics.h(56),
+                  labelStyle: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16.sp,
+                    color: Colors.white,
+                    height: 1.0,
+                  ),
                 ),
               ),
             ),

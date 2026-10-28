@@ -3,6 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../services/logger_service.dart';
 import '../../../utils/error_message_utils.dart';
+import '../../../utils/polling_deadline.dart';
+import '../../../widgets/payment_processing_loader.dart';
 import '../../mobile_prepaid/models/latest_transaction.dart';
 import '../models/biller_detail_model.dart';
 import '../models/biller_detail_state.dart';
@@ -66,17 +68,113 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
 
   Future<RechargeStatusResult> _fetchStatusWithProcessingPoll({
     required String transactionRef,
+    PollingDeadline? deadline,
   }) async {
+    final effectiveDeadline = deadline ?? PollingDeadline.realtime(paymentProcessingDuration);
+    
     RechargeStatusResult status =
-        await _repository.fetchRechargeStatus(transactionId: transactionRef);
+        await _fetchStatusWithDeadline(
+          transactionRef: transactionRef,
+          deadline: effectiveDeadline,
+          initialStatus: null,
+        );
     if (!status.isProcessing) return status;
 
     while (status.isProcessing) {
-      await Future.delayed(_processingPollInterval);
-      status =
-          await _repository.fetchRechargeStatus(transactionId: transactionRef);
+      // Check deadline before starting another request
+      if (effectiveDeadline.isExceeded) {
+        logger.info(
+          'Payment status polling deadline exceeded for $transactionRef',
+        );
+        break;
+      }
+
+      // Wait for poll interval, but respect remaining deadline
+      final remaining = effectiveDeadline.remaining;
+      final delayDuration = _processingPollInterval < remaining
+          ? _processingPollInterval
+          : remaining;
+      
+      if (delayDuration > Duration.zero) {
+        await effectiveDeadline.delay(delayDuration);
+      }
+
+      // Check deadline again after delay before making request
+      if (effectiveDeadline.isExceeded) {
+        logger.info(
+          'Payment status polling deadline exceeded for $transactionRef after delay',
+        );
+        break;
+      }
+
+      status = await _fetchStatusWithDeadline(
+        transactionRef: transactionRef,
+        deadline: effectiveDeadline,
+        initialStatus: status,
+      );
     }
     return status;
+  }
+
+  Future<RechargeStatusResult> _fetchStatusWithDeadline({
+    required String transactionRef,
+    required PollingDeadline deadline,
+    required RechargeStatusResult? initialStatus,
+  }) async {
+    if (deadline.isExceeded) {
+      logger.info(
+        'Payment status fetch skipped: deadline already exceeded for $transactionRef',
+      );
+      return initialStatus ??
+          RechargeStatusResult(
+            status: 'PROCESSING',
+            message: '',
+            transactionId: transactionRef,
+            updatedAt: DateTime.now().toIso8601String(),
+            raw: {},
+          );
+    }
+
+    // Race the repository request against the remaining deadline
+    final remaining = deadline.remaining;
+    if (remaining <= Duration.zero) {
+      return initialStatus ??
+          RechargeStatusResult(
+            status: 'PROCESSING',
+            message: '',
+            transactionId: transactionRef,
+            updatedAt: DateTime.now().toIso8601String(),
+            raw: {},
+          );
+    }
+
+    try {
+      // Use Future.any to race the request against a timeout
+      final result = await Future.any<Object?>([
+        _repository.fetchRechargeStatus(transactionId: transactionRef),
+        deadline.delay(remaining).then((_) => null),
+      ]);
+      
+      if (result == null) {
+        // Timeout won - return the last known status or PROCESSING
+        logger.info(
+          'Payment status fetch timed out for $transactionRef after ${remaining.inMilliseconds}ms',
+        );
+        return initialStatus ??
+            RechargeStatusResult(
+              status: 'PROCESSING',
+              message: '',
+              transactionId: transactionRef,
+              updatedAt: DateTime.now().toIso8601String(),
+              raw: {},
+            );
+      }
+      
+      return result as RechargeStatusResult;
+    } catch (e) {
+      // If the request throws, rethrow - this is a genuine error, not a timeout
+      rethrow;
+    }
   }
 
   Map<String, String> _withServiceNameIfNeeded({
@@ -247,8 +345,15 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
     final customerParams = state.customerParamsInput ?? {};
     if (biller == null || detail == null || bill == null) return null;
 
+    // Single-flight guard: prevent duplicate payment attempts
+    if (state.isPaymentInFlight) {
+      logger.info('Payment already in flight, ignoring duplicate create-order request');
+      return null;
+    }
+
     state = state.copyWith(
       isPayingBill: true,
+      isPaymentInFlight: true,
       payErrorMessage: null,
       payResponse: null,
     );
@@ -274,9 +379,11 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
         accountHolderName: bill.accountHolderName,
         dueDate: bill.dueDate,
       );
+      // Keep isPaymentInFlight true until verification completes
       state = state.copyWith(isPayingBill: false);
       if (!order.isSuccess) {
         state = state.copyWith(
+          isPaymentInFlight: false,
           payErrorMessage: order.message.isNotEmpty
               ? order.message
               : 'Failed to create order. Please try again.',
@@ -292,6 +399,7 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
       );
       state = state.copyWith(
         isPayingBill: false,
+        isPaymentInFlight: false,
         payErrorMessage: 'Failed to create order. Please try again.',
       );
       return null;
@@ -300,12 +408,16 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
 
   Future<RechargeStatusResult?> verifyPayAllServicesStatus({
     required String transactionRef,
+    @visibleForTesting PollingDeadline? deadline,
   }) async {
     state = state.copyWith(isPayingBill: true, payErrorMessage: null);
     try {
       final status =
-          await _fetchStatusWithProcessingPoll(transactionRef: transactionRef);
-      state = state.copyWith(isPayingBill: false);
+          await _fetchStatusWithProcessingPoll(transactionRef: transactionRef, deadline: deadline);
+      state = state.copyWith(
+        isPayingBill: false,
+        isPaymentInFlight: false,
+      );
       return status;
     } catch (e, stackTrace) {
       logger.error(
@@ -315,6 +427,7 @@ class BillerDetailController extends StateNotifier<BillerDetailState> {
       );
       state = state.copyWith(
         isPayingBill: false,
+        isPaymentInFlight: false,
         payErrorMessage: 'Unable to verify payment status. Please try again.',
       );
       return null;

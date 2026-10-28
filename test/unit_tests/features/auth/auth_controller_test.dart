@@ -1,6 +1,9 @@
+import 'package:e_rupaiya/constants/storage_keys.dart';
 import 'package:e_rupaiya/features/auth/controllers/auth_controller.dart';
+import 'package:e_rupaiya/features/auth/models/auth_login_result.dart';
 import 'package:e_rupaiya/features/auth/models/auth_state.dart';
 import 'package:e_rupaiya/features/auth/repositories/auth_repository.dart';
+import 'package:e_rupaiya/features/refer_and_earn/repositories/referral_repository.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -8,6 +11,8 @@ import 'package:mocktail/mocktail.dart';
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
+
+class MockReferralRepository extends Mock implements ReferralRepository {}
 
 void main() {
   late MockAuthRepository mockRepository;
@@ -100,6 +105,85 @@ void main() {
           appHash: any(named: 'appHash'),
         ),
       );
+    });
+  });
+
+  group('AuthController - AUD-018 Pending Referral Handling', () {
+    test('login calls _handlePendingReferral on success', () async {
+      when(() => mockSecureStorage.read(key: 'mobile'))
+          .thenAnswer((_) async => '9552529513');
+      when(() => mockRepository.login(mobile: any(named: 'mobile'), pin: any(named: 'pin')))
+          .thenAnswer((_) async => AuthLoginResult.success());
+      when(() => mockSecureStorage.read(key: StorageKeys.pendingReferralCode))
+          .thenAnswer((_) async => null);
+      when(() => mockSecureStorage.read(key: 'userId'))
+          .thenAnswer((_) async => 'user123');
+
+      await controller.login(mobile: '9552529513', pin: '1234');
+
+      verify(() => mockSecureStorage.read(key: StorageKeys.pendingReferralCode)).called(1);
+    });
+
+    test('setPin calls _handlePendingReferral on success', () async {
+      controller.state = const AuthState(
+        isAuthenticated: false,
+        hasTemporaryAccess: false,
+        isLoading: false,
+        isSubmitting: false,
+        postOtpToken: 'testToken',
+      );
+      when(() => mockRepository.setPin(postOtpToken: any(named: 'postOtpToken'), pin: any(named: 'pin')))
+          .thenAnswer((_) async => 'Success');
+      when(() => mockSecureStorage.read(key: StorageKeys.pendingReferralCode))
+          .thenAnswer((_) async => null);
+      when(() => mockSecureStorage.read(key: 'userId'))
+          .thenAnswer((_) async => 'user123');
+
+      await controller.setPin(pin: '1234');
+
+      verify(() => mockSecureStorage.read(key: StorageKeys.pendingReferralCode)).called(1);
+    });
+
+    test('_handlePendingReferral skips when no pending code exists', () async {
+      when(() => mockSecureStorage.read(key: StorageKeys.pendingReferralCode))
+          .thenAnswer((_) async => null);
+      when(() => mockSecureStorage.read(key: 'userId'))
+          .thenAnswer((_) async => 'user123');
+
+      await controller.login(mobile: '9552529513', pin: '1234');
+
+      verifyNever(() => MockReferralRepository().registerReferral(
+        newUserId: any(named: 'newUserId'),
+        referralCode: any(named: 'referralCode'),
+      ));
+    });
+
+    test('_handlePendingReferral skips when pending code is empty', () async {
+      when(() => mockSecureStorage.read(key: StorageKeys.pendingReferralCode))
+          .thenAnswer((_) async => '');
+      when(() => mockSecureStorage.read(key: 'userId'))
+          .thenAnswer((_) async => 'user123');
+
+      await controller.login(mobile: '9552529513', pin: '1234');
+
+      verifyNever(() => MockReferralRepository().registerReferral(
+        newUserId: any(named: 'newUserId'),
+        referralCode: any(named: 'referralCode'),
+      ));
+    });
+
+    test('_handlePendingReferral skips when userId is missing', () async {
+      when(() => mockSecureStorage.read(key: StorageKeys.pendingReferralCode))
+          .thenAnswer((_) async => 'TEST_CODE');
+      when(() => mockSecureStorage.read(key: 'userId'))
+          .thenAnswer((_) async => null);
+
+      await controller.login(mobile: '9552529513', pin: '1234');
+
+      verifyNever(() => MockReferralRepository().registerReferral(
+        newUserId: any(named: 'newUserId'),
+        referralCode: any(named: 'referralCode'),
+      ));
     });
   });
 }
