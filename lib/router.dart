@@ -33,6 +33,7 @@ import 'features/digital_gold/views/digital_gold_view.dart';
 import 'features/educationFees/views/education_fees_amount_view.dart';
 import 'features/educationFees/views/education_fees_payment_view.dart';
 import 'features/educationFees/views/education_fees_recipient_view.dart';
+import 'features/educationFees/views/education_search_recipient_view.dart';
 import 'features/educationFees/views/education_payment_thank_you_view.dart';
 import 'features/home/components/zero_balance_account_popup_view.dart';
 import 'features/home/views/home_view.dart';
@@ -354,6 +355,10 @@ final routerProvider = Provider<GoRouter>(
         GoRoute(
           path: RouteConstants.educationFeesRecipient,
           builder: (context, state) => const EducationFeesRecipientView(),
+        ),
+        GoRoute(
+          path: RouteConstants.educationSearchRecipient,
+          builder: (context, state) => const EducationSearchRecipientView(),
         ),
         GoRoute(
           path: RouteConstants.educationFeesPayment,

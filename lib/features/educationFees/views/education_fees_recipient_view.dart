@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -12,9 +13,10 @@ import '../../../helpers/kyc_helpers.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../../../widgets/pan_aadhaar_input_fields.dart';
 import '../components/education_account_type_sheet.dart';
-import '../components/education_contact_sheet.dart';
 import '../controllers/education_fees_controller.dart';
+import '../education_fees_typography.dart';
 import '../models/education_account_type.dart';
 import '../models/education_fees_state.dart';
 
@@ -137,15 +139,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
     }, [state.recipientName, state.pan, state.showRecipientFields]);
 
     void openContacts() {
-      KDialog.instance.openSheet(
-        dialog: EducationContactSheet(
-          onSelect: (mobile) {
-            mobileController.text = mobile;
-            controller.updateMobileInput(mobile);
-            controller.checkMobile();
-          },
-        ),
-      );
+      context.push(RouteConstants.educationSearchRecipient);
     }
 
     void openAccountTypeSheet() {
@@ -157,13 +151,15 @@ class EducationFeesRecipientView extends HookConsumerWidget {
       );
     }
 
-    return Scaffold(
+    return EducationFeesTheme(
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: MyAppBar(
         title: 'Enter Recipient Details',
         showHelp: true,
+        showDivider: false,
         fitTitle: true,
-        // Common app bar: 52x25 Bharat Connect + 20px help icon.
+        titleStyle: MyAppBar.sharedTitleStyle(context),
         bharatConnectWidth: 52,
         bharatConnectHeight: 25,
         helpIconSize: 20,
@@ -276,9 +272,8 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                       SizedBox(height: 14.h),
                       const _Label(text: 'PAN Details'),
                       SizedBox(height: 8.h),
-                      TextField(
+                      PanInputField(
                         controller: panController,
-                        textCapitalization: TextCapitalization.characters,
                         decoration: _inputDecoration('Enter PAN'),
                         onChanged: controller.updatePan,
                       ),
@@ -532,6 +527,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -556,7 +552,7 @@ class _Label extends StatelessWidget {
 InputDecoration _inputDecoration(String hint) {
   return InputDecoration(
     hintText: hint.isEmpty ? null : hint,
-    hintStyle: TextStyle(
+    hintStyle: GoogleFonts.plusJakartaSans(
       color: AppColors.textPrimary.withOpacity(0.4),
     ),
     filled: true,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +8,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../helpers/kyc_helpers.dart';
+import '../../../helpers/kyc_input_formatters.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/grey_text_form_field.dart';
@@ -30,6 +30,21 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
     final aadhaarController = useTextEditingController(
       text: '',
     );
+    final panKeyboardSegment = useState(
+      panKeyboardSegmentForLength(panController.text.length),
+    );
+
+    useEffect(() {
+      void syncPanKeyboard() {
+        final next = panKeyboardSegmentForLength(panController.text.length);
+        if (next != panKeyboardSegment.value) {
+          panKeyboardSegment.value = next;
+        }
+      }
+
+      panController.addListener(syncPanKeyboard);
+      return () => panController.removeListener(syncPanKeyboard);
+    }, [panController]);
 
     Future<void> handleContinue() async {
       final pan = panController.text.trim().toUpperCase();
@@ -150,12 +165,17 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
             ),
             SizedBox(height: 6.h),
             GreyTextFormField(
+              key: ValueKey('recovery_pan_kb_${panKeyboardSegment.value}'),
               controller: panController,
               enabled: true,
               autofocus: true,
               height: fieldHeight,
               hintText: 'ABCDE1234F',
               centerText: false,
+              keyboardType:
+                  panKeyboardTypeForLength(panController.text.length),
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: const [PanInputFormatter()],
             ),
             SizedBox(height: 14.h),
             Text(
@@ -175,7 +195,7 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
               centerText: false,
               maxLength: 14,
               inputFormatters: const [
-                _AadhaarInputFormatter(),
+                AadhaarInputFormatter(),
               ],
             ),
             SizedBox(height: 12.h),
@@ -210,33 +230,6 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _AadhaarInputFormatter extends TextInputFormatter {
-  const _AadhaarInputFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final trimmed = digits.length > 12 ? digits.substring(0, 12) : digits;
-
-    final buffer = StringBuffer();
-    for (var index = 0; index < trimmed.length; index++) {
-      if (index > 0 && index % 4 == 0) {
-        buffer.write(' ');
-      }
-      buffer.write(trimmed[index]);
-    }
-
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

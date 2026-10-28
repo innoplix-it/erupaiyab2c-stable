@@ -22,6 +22,8 @@ class RouteConstants {
   static const String savedBillers = '/billers/saved';
   static const String educationFeesAmount = '/education-fees';
   static const String educationFeesRecipient = '/education-fees/recipient';
+  static const String educationSearchRecipient =
+      '/education-fees/search-recipient';
   static const String educationFeesPayment = '/education-fees/payment';
   static const String paymentProcessing = '/education-fees/payment-processing';
   static const String educationPaymentThankYou =

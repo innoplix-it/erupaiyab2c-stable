@@ -441,6 +441,31 @@ class FileConstants {
   static String houseRentBanner = 'assets/images/houseRentBanner.png';
   static String shopRentBanner = 'assets/images/shopRentBanner.png';
   static String amountBanner = 'assets/images/amountBanner.png';
+  static String tuitionFeeHeroSvg =
+      'assets/images/svg/education/tuition_fee_hero.svg';
+  static String tuitionFeeCapSvg =
+      'assets/images/svg/education/tuition_fee_cap.svg';
+  static String rupeeAmountSvg = 'assets/images/svg/education/rupee_amount.svg';
+  static String addTutorBadgeSvg =
+      'assets/images/svg/education/add_tutor_badge.svg';
+  static String tutorVerifiedBadgeSvg =
+      'assets/images/svg/education/tutor_verified_badge.svg';
+  static String tutorListAvatarSvg =
+      'assets/images/svg/education/tutor_list_avatar.svg';
+  static String educationSearchIconSvg =
+      'assets/images/svg/education/education_search_icon.svg';
+  static String tutorRequestBadgeSvg =
+      'assets/images/svg/education/tutor_request_badge.svg';
+  static String erupaiyaVerifyingCircleSvg =
+      'assets/images/svg/education/erupaiya_verifying_circle.svg';
+  static String erupaiyaVerifyingRupeeArcSvg =
+      'assets/images/svg/education/erupaiya_verifying_rupee_arc.svg';
+  static String erupaiyaVerifyingLogoSvg =
+      'assets/images/svg/education/erupaiya_verifying_logo.svg';
+  static String educationInvestmentBannerPng =
+      'assets/images/png/Investment Banner.png';
+  static String tutorTimerIconSvg =
+      'assets/images/svg/education/tutor_timer_icon.svg';
   static String thankYouScreenBanner =
       'assets/images/png/thankyouscreenbanner.png';
 

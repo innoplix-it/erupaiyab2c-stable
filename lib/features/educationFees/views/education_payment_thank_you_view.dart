@@ -10,6 +10,7 @@ import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/payment_success_flow.dart';
+import '../education_fees_typography.dart';
 
 class EducationPaymentThankYouView extends StatefulWidget {
   const EducationPaymentThankYouView({
@@ -74,7 +75,8 @@ class _EducationPaymentThankYouViewState
       fit: BoxFit.cover,
     );
 
-    return MediaQuery(
+    return EducationFeesTheme(
+      child: MediaQuery(
       // Keep header safe against huge accessibility font sizes.
       data: mq.copyWith(
         textScaler: mq.textScaler.clamp(
@@ -278,6 +280,7 @@ class _EducationPaymentThankYouViewState
             ],
           ),
         ),
+      ),
       ),
     );
   }

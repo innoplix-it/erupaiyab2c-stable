@@ -77,6 +77,7 @@ flutter:
     - assets/images/
     - assets/images/svg/
     - assets/images/svg/services/
+    - assets/images/svg/education/
     - assets/images/png/
     - assets/images/png/home_icon/
     - assets/images/png/digital_gold_silver/

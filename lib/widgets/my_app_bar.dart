@@ -22,6 +22,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.helpIconSize,
     this.fitTitle = false,
     this.bottomTrim = 0,
+    this.showDivider = true,
   });
 
   final String title;
@@ -54,6 +55,9 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// the row's own bottom padding (6.h) so nothing overlaps the divider.
   final double bottomTrim;
 
+  /// Hairline under the toolbar row. Education Fees screens set this to false.
+  final bool showDivider;
+
   /// Shared AppBar title typography (Transaction History / MyAppBar default).
   /// Prefer this over custom title styles in feature modules (e.g. Refer & Earn).
   static TextStyle? sharedTitleStyle(
@@ -72,9 +76,11 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Typography used by Transaction History and every MyAppBar that does not
   /// pass [titleStyle]. Color flips to white when [backgroundColor] is set.
   TextStyle? defaultTitleStyle(BuildContext context) {
+    final bg = backgroundColor ?? Colors.white;
+    final dark = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark;
     return sharedTitleStyle(
       context,
-      color: backgroundColor == null ? Colors.black : Colors.white,
+      color: dark ? Colors.white : Colors.black,
     );
   }
 
@@ -87,7 +93,11 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(
-        height ?? (_platformTopPadding + kToolbarHeight - bottomTrim + 1),
+        height ??
+            (_platformTopPadding +
+                kToolbarHeight -
+                bottomTrim +
+                (showDivider ? 1 : 0)),
       );
 
   @override
@@ -99,8 +109,8 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
             .copyWith(statusBarColor: bgColor);
     final topPadding = MediaQuery.paddingOf(context).top;
-    final resolvedHeight =
-        height ?? (topPadding + kToolbarHeight - bottomTrim + 1);
+    final resolvedHeight = height ??
+        (topPadding + kToolbarHeight - bottomTrim + (showDivider ? 1 : 0));
     // Old design (kept for reference)
     // return SizedBox(
     //   height: height,
@@ -209,9 +219,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                         IconButton(
                           icon: Icon(
                             Icons.arrow_back,
-                            color: backgroundColor == null
-                                ? Colors.black
-                                : Colors.white,
+                            color: isDark ? Colors.white : Colors.black,
                           ),
                           onPressed:
                               onBack ?? () => Navigator.of(context).maybePop(),
@@ -262,9 +270,9 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                             icon: Icon(
                               Icons.help_outline,
                               size: helpIconSize?.w,
-                              color: backgroundColor == null
-                                  ? const Color(0xFF000000)
-                                  : Colors.white,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF000000),
                             ),
                           ),
                       ],
@@ -272,11 +280,12 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
               ),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: Colors.black.withValues(alpha: 0.08),
-              ),
+              if (showDivider)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Colors.black.withValues(alpha: 0.08),
+                ),
             ],
           ),
         ),

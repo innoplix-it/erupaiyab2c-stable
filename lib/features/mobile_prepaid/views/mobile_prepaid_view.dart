@@ -1,7 +1,5 @@
 // ignore_for_file: deprecated_member_use
-
 import 'dart:async';
-
 import 'package:e_rupaiya/features/mobile_prepaid/components/recharge_quick_action_card.dart';
 import 'package:e_rupaiya/features/mobile_prepaid/models/mobile_prepaid_state.dart';
 import 'package:e_rupaiya/widgets/app_search_bar.dart';
@@ -16,7 +14,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';

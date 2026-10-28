@@ -1,15 +1,16 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/app_snackbar.dart';
-import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../../../widgets/processing_overlay.dart';
@@ -19,8 +20,24 @@ import '../../profile/controllers/profile_controller.dart';
 import '../components/education_payment_sheets.dart';
 import '../controllers/education_fees_controller.dart';
 import '../helpers/education_payment_reconcile.dart';
+import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
 
+/// Shared mint gradient (same as Tuition Fee amount screen).
+const LinearGradient _kTutorsMintGradient = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFFB5FFDA), Color(0xFFFFFFFF)],
+  stops: [0.0, 0.6631],
+);
+
+const double _kFigmaW = 448.0;
+const double _kMaxContentW = 560.0;
+
+double _unit(BuildContext context) {
+  final w = MediaQuery.sizeOf(context).width;
+  return w.clamp(320.0, _kMaxContentW) / _kFigmaW;
+}
 
 class EducationFeesTutorsView extends HookConsumerWidget {
   const EducationFeesTutorsView({
@@ -35,6 +52,8 @@ class EducationFeesTutorsView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(educationFeesRepositoryProvider);
+    final searchController = useTextEditingController();
+    final query = useState('');
     useEffect(() {
       Future.microtask(
         () =>
@@ -42,8 +61,22 @@ class EducationFeesTutorsView extends HookConsumerWidget {
       );
       return null;
     }, const []);
-    final expandedIndex = useState<int?>(null);
     final processingNavigationStarted = useRef(false);
+
+    final filtered = useMemoized(() {
+      final q = query.value.trim().toLowerCase();
+      if (q.isEmpty) return tutors;
+      return tutors.where((t) {
+        final name = t.name.toLowerCase();
+        final mobile = t.mobile.toLowerCase();
+        final account = t.accountMasked.toLowerCase();
+        final type = t.accountType.toLowerCase();
+        return name.contains(q) ||
+            mobile.contains(q) ||
+            account.contains(q) ||
+            type.contains(q);
+      }).toList();
+    }, [tutors, query.value]);
 
     void openSummary(EducationBeneficiary tutor) {
       KDialog.instance.openSheet(
@@ -105,10 +138,6 @@ class EducationFeesTutorsView extends HookConsumerWidget {
               onFailure: (message) async {
                 if (processingNavigationStarted.value) return;
                 processingNavigationStarted.value = true;
-                // A gateway-confirmed failure (user cancelled, card declined,
-                // etc.) should NOT start the 60-second polling loop.
-                // Instead, do a single-shot backend reconciliation and
-                // navigate to the correct status screen immediately.
                 await reconcileEducationPaymentOnFailure(
                   context: context,
                   repository: repository,
@@ -125,206 +154,344 @@ class EducationFeesTutorsView extends HookConsumerWidget {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: MyAppBar(
-        title: 'Tutors',
-        showHelp: true,
-        // Common app bar: 52x25 Bharat Connect + 20px help icon.
-        bharatConnectWidth: 52,
-        bharatConnectHeight: 25,
-        helpIconSize: 20,
-        onBack: () => Navigator.of(context).maybePop(),
-      ),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
-                itemCount: tutors.length,
-                separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                itemBuilder: (context, index) {
-                  final tutor = tutors[index];
-                  final name = tutor.name.isEmpty
-                      ? _fallbackTutorName(tutor)
-                      : tutor.name;
-                  final isExpanded = expandedIndex.value == index;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 12.h,
+    final u = _unit(context);
+    final inset = 18 * u;
+    const heroCirclePx = 138.0;
+    final circle = heroCirclePx * u;
+    final scale = circle / heroCirclePx;
+
+    return EducationFeesTheme(
+      child: Scaffold(
+        backgroundColor: const Color(0xFFB5FFDA),
+        appBar: MyAppBar(
+          title: 'Tutors',
+          showHelp: true,
+          showBharatConnect: false,
+          showDivider: false,
+          fitTitle: true,
+          titleStyle: MyAppBar.sharedTitleStyle(context),
+          backgroundColor: const Color(0xFFB5FFDA),
+          helpIconSize: 20 * u,
+          onBack: () => Navigator.of(context).maybePop(),
+        ),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(gradient: _kTutorsMintGradient),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      24 * u,
+                      inset,
+                      20 * u,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14.r),
-                      border: Border.all(color: AppColors.lightBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 10.r,
-                          offset: Offset(0.w, 6.h),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.person_outline,
-                                color: Colors.black),
-                            SizedBox(width: 10.w),
-                            Expanded(
-                              child: Text(
-                                name,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            SizedBox(
-                              height: 30.h,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  expandedIndex.value =
-                                      isExpanded ? null : index;
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18.r),
-                                  ),
-                                  elevation: 0,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 14.w,
-                                    vertical: 6.h,
-                                  ),
-                                ),
-                                child: Text(
-                                  isExpanded ? 'Hide Details' : 'View Details',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (isExpanded) ...[
-                          SizedBox(height: 12.h),
-                          InkWell(
-                            onTap: () => openSummary(tutor),
-                            borderRadius: BorderRadius.circular(12.r),
-                            child: Column(
+                    children: [
+                      Center(
+                        child: SizedBox(
+                          width: circle,
+                          height: circle,
+                          child: ClipOval(
+                            child: Stack(
+                              clipBehavior: Clip.hardEdge,
                               children: [
-                                _DetailRow(
-                                  label: 'PAN Details',
-                                  value: tutor.panMasked.isEmpty
-                                      ? '-'
-                                      : tutor.panMasked,
-                                ),
-                                _DetailRow(
-                                  label: 'Account Number',
-                                  value: tutor.accountMasked.isEmpty
-                                      ? '-'
-                                      : tutor.accountMasked,
-                                ),
-                                _DetailRow(
-                                  label: 'IFSC Code',
-                                  value: tutor.ifsc.isEmpty ? '-' : tutor.ifsc,
-                                ),
-                                SizedBox(height: 6.h),
-                                SizedBox(height: 12.h),
-                                CustomElevatedButton(
-                                  onPressed: () => openSummary(tutor),
-                                  label: 'Pay ₹${amount.toStringAsFixed(0)}',
-                                  uppercaseLabel: false,
-                                  showArrow: false,
-                                  height: 36.h,
-                                  width: 135.w,
+                                Positioned(
+                                  left: -29 * scale,
+                                  top: -6 * scale,
+                                  width: 196 * scale,
+                                  height: 244 * scale,
+                                  child: SvgPicture.asset(
+                                    FileConstants.tuitionFeeHeroSvg,
+                                    width: 196 * scale,
+                                    height: 244 * scale,
+                                    fit: BoxFit.fill,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      ),
+                      SizedBox(height: 18 * u),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12 * u),
+                        child: Text(
+                          'Select tutor to pay tuition fees \n via credit card',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                            fontSize: 18 * u,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16 * u),
+                      AppSearchBar(
+                        hintText: 'Search contacts / tutors',
+                        controller: searchController,
+                        onChanged: (value) => query.value = value,
+                        showSearchIcon: false,
+                        barHeight: 54 * u,
+                        barCornerRadius: 12 * u,
+                        hintFontSize: 14 * u,
+                        textStyle: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14 * u,
+                          color: Colors.black,
+                        ),
+                        prefixIcon: Padding(
+                          padding: EdgeInsets.only(left: 14 * u, right: 4 * u),
+                          child: SvgPicture.asset(
+                            FileConstants.educationSearchIconSvg,
+                            width: 18 * u,
+                            height: 18 * u,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        trailing: Padding(
+                          padding: EdgeInsets.only(right: 10 * u),
+                          child: GestureDetector(
+                            onTap: () => context.push(
+                                  RouteConstants.educationSearchRecipient,
+                                ),
+                            child: SvgPicture.asset(
+                              FileConstants.addTutorBadgeSvg,
+                              height: 31 * u,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 26 * u),
+                      Text(
+                        'MY TUTORS',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF71717A),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.8,
+                          fontSize: 11 * u,
+                          height: 1.9,
+                        ),
+                      ),
+                      SizedBox(height: 8 * u),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32 * u),
+                          child: Text(
+                            query.value.trim().isEmpty
+                                ? 'No tutors found.'
+                                : 'No tutors match your search.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: const Color(0xFF71717A),
+                                  fontSize: 14 * u,
+                                ),
+                          ),
+                        )
+                      else
+                        ...List.generate(filtered.length, (index) {
+                          final tutor = filtered[index];
+                          final name = tutor.name.isEmpty
+                              ? _fallbackTutorName(tutor)
+                              : tutor.name;
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 10 * u),
+                            child: _TutorCard(
+                              unit: u,
+                              name: name,
+                              subject: _subjectLabel(tutor),
+                              onViewAndPay: () => openSummary(tutor),
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 20.h),
-              child: CustomElevatedButton(
-                onPressed: () =>
-                    context.push(RouteConstants.educationFeesRecipient),
-                label: '+ Add New',
-                uppercaseLabel: false,
-                showArrow: false,
-                height: 48.h,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.showDivider = true,
+class _TutorCard extends StatelessWidget {
+  const _TutorCard({
+    required this.unit,
+    required this.name,
+    required this.subject,
+    required this.onViewAndPay,
   });
 
-  final String label;
-  final String value;
-  final bool showDivider;
+  final double unit;
+  final String name;
+  final String? subject;
+  final VoidCallback onViewAndPay;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textPrimary.withOpacity(0.65),
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                value,
-                textAlign: TextAlign.right,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ),
-          ],
-        ),
-        if (showDivider) ...[
-          SizedBox(height: 8.h),
-          const Divider(color: AppColors.lightBorder, height: 1),
-          SizedBox(height: 8.h),
+    final u = unit;
+    final initials = _initialsFor(name);
+    return Container(
+      padding: EdgeInsets.fromLTRB(12 * u, 14 * u, 12 * u, 14 * u),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16 * u),
+        border: Border.all(color: const Color(0xFFD7D7D7), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x0F000000),
+            blurRadius: 12 * u,
+            offset: Offset(0, 4 * u),
+          ),
         ],
-      ],
+      ),
+      child: Row(
+        children: [
+          _TutorAvatar(initials: initials, unit: u),
+          SizedBox(width: 12 * u),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                    fontSize: 14 * u,
+                    height: 1.2,
+                  ),
+                ),
+                if (subject != null && subject!.isNotEmpty) ...[
+                  SizedBox(height: 5 * u),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8 * u,
+                      vertical: 2 * u,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12 * u),
+                      border: Border.all(
+                        color: const Color(0xFFE4E4E7),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      subject!,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF52525B),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11 * u,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          SizedBox(width: 6 * u),
+          SizedBox(
+            height: 32 * u,
+            child: ElevatedButton(
+              onPressed: onViewAndPay,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDD5428),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: EdgeInsets.symmetric(horizontal: 10 * u),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16 * u),
+                ),
+              ),
+              child: Text(
+                'View & Pay',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12 * u,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
+
+class _TutorAvatar extends StatelessWidget {
+  const _TutorAvatar({
+    required this.initials,
+    required this.unit,
+  });
+
+  final String initials;
+  final double unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = unit;
+    final size = 48 * u;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          SvgPicture.asset(
+            FileConstants.tutorListAvatarSvg,
+            width: size,
+            height: size,
+            fit: BoxFit.contain,
+          ),
+          Text(
+            initials,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700,
+              color: Colors.black,
+              fontSize: 15 * u,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _initialsFor(String name) {
+  final parts =
+      name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return '?';
+  if (parts.length == 1) {
+    final p = parts.first;
+    return p.length >= 2 ? p.substring(0, 2).toUpperCase() : p.toUpperCase();
+  }
+  return (parts.first[0] + parts.last[0]).toUpperCase();
+}
+
+String? _subjectLabel(EducationBeneficiary tutor) {
+  final raw = tutor.accountType.trim();
+  if (raw.isEmpty) return null;
+  // Backend account_type — show as a short subject/tag under the name.
+  if (raw.length == 1) return raw.toUpperCase();
+  return raw[0].toUpperCase() + raw.substring(1);
 }
 
 String _fallbackTutorName(EducationBeneficiary tutor) {

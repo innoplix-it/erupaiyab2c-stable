@@ -22,6 +22,8 @@ class GreyTextFormField extends StatelessWidget {
     this.maxLength,
     this.inputFormatters,
     this.autofocus = false,
+    this.keyboardType,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   final TextEditingController controller;
@@ -37,6 +39,8 @@ class GreyTextFormField extends StatelessWidget {
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
   final bool autofocus;
+  final TextInputType? keyboardType;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +78,9 @@ class GreyTextFormField extends StatelessWidget {
         enabled: enabled,
         autofocus: autofocus,
         controller: controller,
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        keyboardType:
+            keyboardType ?? (isNumber ? TextInputType.number : TextInputType.text),
+        textCapitalization: textCapitalization,
         maxLength: maxLength ?? (isNumber ? 10 : null),
         inputFormatters: inputFormatters ??
             (isNumber

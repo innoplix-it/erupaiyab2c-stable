@@ -4,6 +4,7 @@ import '../../../utils/error_message_utils.dart';
 import '../../../helpers/kyc_helpers.dart';
 import '../../../services/push_notification_service.dart';
 import '../models/education_account_type.dart';
+import '../models/education_fees_responses.dart';
 import '../models/education_fees_state.dart';
 import '../repositories/education_fees_repository.dart';
 
@@ -28,6 +29,13 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   /// Identifies the newest PAN verification so responses for numbers the user
   /// has already edited away from are discarded instead of being shown.
   int _panVerifyRequestId = 0;
+
+  /// Discards stale [checkMobile] responses when the user edits the mobile number.
+  int _checkMobileRequestId = 0;
+
+  static const String unregisteredMobileMessage =
+      'This mobile number is not registered with eRupaiya. '
+      'Ask the recipient to register before you add them as a tutor.';
 
   String _normalizeMobile(String input) {
     final digits = input.replaceAll(RegExp(r'\D'), '');
@@ -56,6 +64,30 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     );
   }
 
+  /// Reads the backend min/max caption. Does not accept or reject an amount.
+  Future<void> prefetchAmountLimits() async {
+    try {
+      final response = await _repository.validateAmount(0);
+      final message = response.message?.trim();
+      final messageIsLimit = message != null &&
+          message.toLowerCase().contains('min') &&
+          message.toLowerCase().contains('max');
+      final hint = response.limitHint ?? (messageIsLimit ? message : null);
+      if (response.minAmount == null &&
+          response.maxAmount == null &&
+          (hint == null || hint.isEmpty)) {
+        return;
+      }
+      state = state.copyWith(
+        minAmount: response.minAmount ?? state.minAmount,
+        maxAmount: response.maxAmount ?? state.maxAmount,
+        amountLimitHint: hint ?? state.amountLimitHint,
+      );
+    } catch (_) {
+      // Caption is display-only; ignore prefetch failures.
+    }
+  }
+
   Future<bool> validateAmount() async {
     final raw = state.amountInput.trim();
     final amount = int.tryParse(raw.replaceAll(RegExp(r'\D'), '')) ?? 0;
@@ -67,6 +99,9 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
           isValidatingAmount: false,
           amountValidated: true,
           amountErrorMessage: null,
+          minAmount: response.minAmount ?? state.minAmount,
+          maxAmount: response.maxAmount ?? state.maxAmount,
+          amountLimitHint: response.limitHint ?? state.amountLimitHint,
         );
         return true;
       }
@@ -74,6 +109,9 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         isValidatingAmount: false,
         amountValidated: false,
         amountErrorMessage: response.message ?? 'Invalid amount.',
+        minAmount: response.minAmount ?? state.minAmount,
+        maxAmount: response.maxAmount ?? state.maxAmount,
+        amountLimitHint: response.limitHint ?? state.amountLimitHint,
       );
       return false;
     } catch (e) {
@@ -91,6 +129,9 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
 
   void updateMobileInput(String value) {
     final normalized = _normalizeMobile(value);
+    if (normalized != state.mobileInput) {
+      _checkMobileRequestId++;
+    }
     state = state.copyWith(
       mobileInput: normalized,
       mobileErrorMessage: null,
@@ -113,40 +154,78 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
+  /// Saved-tutor record for [mobile], used to show the backend `account_masked`
+  /// on the tutor request screen. Returns null when the number is not a saved
+  /// tutor or the lookup fails, so callers can keep their own fallback.
+  Future<EducationBeneficiary?> findBeneficiaryByMobile(String mobile) async {
+    final digits =
+        _normalizeMobile(mobile).replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 10) return null;
+    try {
+      final response = await _repository.fetchBeneficiaries();
+      if (!response.status) return null;
+      for (final beneficiary in response.beneficiaries) {
+        final candidate =
+            _normalizeMobile(beneficiary.mobile).replaceAll(RegExp(r'\D'), '');
+        if (candidate == digits) return beneficiary;
+      }
+      return null;
+    } catch (_) {
+      // Display-only lookup; a failure must not block the request flow.
+      return null;
+    }
+  }
+
   Future<void> checkMobile() async {
     final digits =
         _normalizeMobile(state.mobileInput).replaceAll(RegExp(r'\D'), '');
     if (digits.length != 10) return;
+
+    final requestId = ++_checkMobileRequestId;
     state = state.copyWith(
       isCheckingMobile: true,
       mobileErrorMessage: null,
+      showRecipientFields: false,
     );
     try {
       final response = await _repository.checkMobile(digits);
-      if (response.status) {
+      if (requestId != _checkMobileRequestId) return;
+      if (_normalizeMobile(state.mobileInput).replaceAll(RegExp(r'\D'), '') !=
+          digits) {
+        return;
+      }
+
+      if (response.confirmsRegisteredUser) {
         state = state.copyWith(
           isCheckingMobile: false,
           showRecipientFields: true,
           mobileErrorMessage: null,
         );
-      } else {
-        state = state.copyWith(
-          isCheckingMobile: false,
-          showRecipientFields: false,
-          mobileErrorMessage: response.message ?? 'Mobile verification failed.',
-          recipientName: '',
-          pan: '',
-          isVerifyingPan: false,
-          panVerified: false,
-          panErrorMessage: null,
-          accountType: EducationAccountType.none,
-          accountNumber: '',
-          ifsc: '',
-          bankVerified: false,
-          bankErrorMessage: null,
-        );
+        return;
       }
+
+      final notRegistered =
+          response.status && !response.exists;
+      state = state.copyWith(
+        isCheckingMobile: false,
+        showRecipientFields: false,
+        mobileErrorMessage: notRegistered
+            ? (response.message ?? unregisteredMobileMessage)
+            : (response.message ??
+                'Unable to verify this mobile number. Please try again.'),
+        recipientName: '',
+        pan: '',
+        isVerifyingPan: false,
+        panVerified: false,
+        panErrorMessage: null,
+        accountType: EducationAccountType.none,
+        accountNumber: '',
+        ifsc: '',
+        bankVerified: false,
+        bankErrorMessage: null,
+      );
     } catch (e) {
+      if (requestId != _checkMobileRequestId) return;
       state = state.copyWith(
         isCheckingMobile: false,
         showRecipientFields: false,
@@ -321,6 +400,14 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   }
 
   Future<bool> saveBeneficiary() async {
+    if (!state.showRecipientFields) {
+      state = state.copyWith(
+        saveErrorMessage:
+            state.mobileErrorMessage ??
+                'Please verify the recipient mobile number first.',
+      );
+      return false;
+    }
     if (!state.panVerified) {
       state = state.copyWith(
         saveErrorMessage: 'Please verify PAN details.',

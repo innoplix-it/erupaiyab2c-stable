@@ -17,6 +17,7 @@ import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../../../widgets/pan_aadhaar_input_fields.dart';
 import '../../auth/components/pin_input_row.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../../refer_and_earn/components/referral_share_actions.dart';
@@ -932,9 +933,8 @@ class _PanLogoRow extends HookWidget {
                 ),
           ),
           SizedBox(height: 6.h),
-          TextField(
+          PanInputField(
             controller: controller,
-            textCapitalization: TextCapitalization.characters,
             decoration: _inputDecoration('ABCDE1234E'),
           ),
         ],
@@ -977,9 +977,8 @@ class _AadhaarLogoRow extends HookWidget {
                 ),
           ),
           SizedBox(height: 6.h),
-          TextField(
+          AadhaarInputField(
             controller: controller,
-            keyboardType: TextInputType.number,
             decoration: _inputDecoration('1234 5678 9012'),
           ),
         ],

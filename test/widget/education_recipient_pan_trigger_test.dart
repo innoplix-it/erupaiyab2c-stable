@@ -25,7 +25,7 @@ class _FakeEducationRepository extends EducationFeesRepository {
 
   @override
   Future<EducationCheckMobileResponse> checkMobile(String mobile) async {
-    return const EducationCheckMobileResponse(status: true, exists: false);
+    return const EducationCheckMobileResponse(status: true, exists: true);
   }
 
   @override
@@ -118,7 +118,9 @@ void main() {
     await tester.enterText(_field(1), 'Ravi Kumar');
     await tester.pump();
 
-    for (final pan in ['ABCDEFGHIJ', '1234567890', 'ABCDE12345F']) {
+    // The PAN formatter drops non-conforming characters, so these strings stay
+    // complete-but-invalid (or empty) rather than truncating to a valid PAN.
+    for (final pan in ['ABCDEFGHIJ', '1234567890', 'ABCD12345E']) {
       await tester.enterText(_field(2), pan);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));

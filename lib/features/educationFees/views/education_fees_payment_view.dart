@@ -12,13 +12,11 @@ import '../../../constants/file_constants.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
-import '../../../widgets/processing_overlay.dart';
-import '../../paymentgateway/razorpay_guard.dart';
-import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../components/education_payment_sheets.dart';
 import '../controllers/education_fees_controller.dart';
-import '../helpers/education_payment_reconcile.dart';
+import '../education_fees_typography.dart';
+import '../helpers/education_pay_now.dart';
 import '../models/education_fees_responses.dart';
 
 
@@ -38,7 +36,6 @@ class EducationFeesPaymentView extends HookConsumerWidget {
     }, const []);
     final amount = _parseAmount(state.amountInput);
     final selectedCard = useState<EducationCard?>(null);
-    final processingNavigationStarted = useRef(false);
     final paymentSummary = useState<EducationPaymentSummaryData?>(null);
     final summaryError = useState<String?>(null);
     final isFetchingSummary = useState(false);
@@ -94,89 +91,27 @@ class EducationFeesPaymentView extends HookConsumerWidget {
         dialog: EducationPaymentSummarySheet(
           amount: amount,
           initialSummary: paymentSummary.value,
-          onPayNow: (payable) async {
-            if (!await RazorpayGuard.ensureProfileReadyAndNotPaused(ref)) {
-              return;
-            }
-            EducationCreateOrderResponse order;
-            try {
-              order = await repository.createOrder(
-                recipientName: state.recipientName,
-                accountNo: state.accountNumber,
-                ifsc: state.ifsc,
-                amount: amount,
-                feeType: state.feeType,
-              );
-            } catch (e) {
-              AppSnackbar.show(
-                'Failed to create order. Please try again.',
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
-              );
-              return;
-            }
-
-            if (!order.status || order.orderId.isEmpty || order.key.isEmpty) {
-              AppSnackbar.show(
-                order.message.isNotEmpty
-                    ? order.message
-                    : 'Failed to create order. Please try again.',
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
-              );
-              return;
-            }
-
-            await RazorpayService.instance.openCheckout(
-              amount: payable,
-              name: state.recipientName.isEmpty
-                  ? 'Education Fees'
-                  : state.recipientName,
-              description: 'Tuition fee payment',
-              orderId: order.orderId,
-              keyOverride: order.key,
-              onSuccess: (paymentId) {
-                if (processingNavigationStarted.value) return;
-                processingNavigationStarted.value = true;
-                openEducationPaymentProcessing({
-                  'transactionRefId': order.transactionRefId,
-                  'paymentType': state.feeType ?? 'Education Fees',
-                  'recipientName': state.recipientName,
-                  'maskedAccount': _maskAccount(state.accountNumber),
-                  'fallbackAmount': payable.toStringAsFixed(2),
-                  'paymentId': paymentId,
-                });
-              },
-              onFailure: (message) async {
-                if (processingNavigationStarted.value) return;
-                processingNavigationStarted.value = true;
-                // A gateway-confirmed failure (user cancelled, card declined,
-                // etc.) should NOT start the 60-second polling loop.
-                // Instead, do a single-shot backend reconciliation and
-                // navigate to the correct status screen immediately.
-                await reconcileEducationPaymentOnFailure(
-                  context: context,
-                  repository: repository,
-                  transactionRefId: order.transactionRefId,
-                  paymentType: state.feeType ?? 'Education Fees',
-                  recipientName: state.recipientName,
-                  maskedAccount: _maskAccount(state.accountNumber),
-                  fallbackAmount: payable.toStringAsFixed(2),
-                );
-              },
-            );
-          },
+          onPayNow: (payable) => runEducationPayNow(
+            context: context,
+            ref: ref,
+            repository: repository,
+            state: state,
+            amount: amount,
+            payable: payable,
+          ),
         ),
       );
     }
 
-    return Scaffold(
+    return EducationFeesTheme(
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: MyAppBar(
         title: 'Select Payment Method',
         showHelp: true,
+        showDivider: false,
         fitTitle: true,
-        // Common app bar: 52x25 Bharat Connect + 20px help icon.
+        titleStyle: MyAppBar.sharedTitleStyle(context),
         bharatConnectWidth: 52,
         bharatConnectHeight: 25,
         helpIconSize: 20,
@@ -236,6 +171,7 @@ class EducationFeesPaymentView extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

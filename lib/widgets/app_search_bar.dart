@@ -23,10 +23,14 @@ class AppSearchBar extends StatelessWidget {
     this.textInputAction,
     this.inputFormatters,
     this.showSearchIcon = true,
+    this.prefixIcon,
     this.prefixText,
     this.prefixStyle,
     this.trailing,
     this.textStyle,
+    this.barHeight,
+    this.barCornerRadius,
+    this.hintFontSize,
   });
 
   final String hintText;
@@ -38,6 +42,16 @@ class AppSearchBar extends StatelessWidget {
   final TextInputAction? textInputAction;
   final List<TextInputFormatter>? inputFormatters;
   final bool showSearchIcon;
+
+  /// Grey search icon replacement (e.g. Education Tutors screen).
+  final Widget? prefixIcon;
+
+  /// Overrides default [height] when set (e.g. MediaQuery-scaled layouts).
+  final double? barHeight;
+
+  final double? barCornerRadius;
+
+  final double? hintFontSize;
 
   /// Fixed text shown before the input, e.g. a "+91 " country code.
   final String? prefixText;
@@ -76,9 +90,10 @@ class AppSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fieldHeight = height;
-    final radius = BorderRadius.circular(_r(12));
-    final hintSize = (14 * 360 / 440).sp.clamp(12.0, 14.0).toDouble();
+    final fieldHeight = barHeight ?? height;
+    final radius = BorderRadius.circular(barCornerRadius ?? _r(12));
+    final hintSize =
+        hintFontSize ?? (14 * 360 / 440).sp.clamp(12.0, 14.0).toDouble();
     final textStyle = this.textStyle ??
         GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w500,
@@ -130,17 +145,19 @@ class AppSearchBar extends StatelessWidget {
                 prefixText: prefixText,
                 prefixStyle: prefixStyle ??
                     textStyle.copyWith(fontWeight: FontWeight.w700),
-                prefixIcon: showSearchIcon
-                    ? SearchBarLeadingIcon(fieldHeight: fieldHeight)
-                    : SizedBox(width: 16.w),
-                prefixIconConstraints: showSearchIcon
-                    ? SearchBarLeadingIcon.constraints(fieldHeight: fieldHeight)
-                    : BoxConstraints(minWidth: 16.w),
+                prefixIcon: prefixIcon ??
+                    (showSearchIcon
+                        ? SearchBarLeadingIcon(fieldHeight: fieldHeight)
+                        : SizedBox(width: 16.w)),
+                prefixIconConstraints: prefixIcon != null
+                    ? BoxConstraints(minHeight: fieldHeight)
+                    : showSearchIcon
+                        ? SearchBarLeadingIcon.constraints(
+                            fieldHeight: fieldHeight,
+                          )
+                        : BoxConstraints(minWidth: 16.w),
                 suffixIcon: trailing != null
-                    ? Padding(
-                        padding: EdgeInsets.only(right: 6.w),
-                        child: trailing,
-                      )
+                    ? trailing
                     : value.text.isNotEmpty
                         ? IconButton(
                             icon: Icon(Icons.clear, size: 20.sp),

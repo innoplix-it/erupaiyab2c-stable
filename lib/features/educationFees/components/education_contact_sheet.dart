@@ -6,8 +6,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
 import '../../../services/permission_service.dart';
+import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/search_textfield.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
 
@@ -38,15 +43,36 @@ String normalizeEducationMobile(String input) {
   return digits;
 }
 
+String educationContactDisplayPhone(String phone) {
+  final normalized = normalizeEducationMobile(phone);
+  if (normalized.length == 10) {
+    return '+91$normalized';
+  }
+  return phone;
+}
+
+typedef EducationContactPickedHandler = void Function(
+  String mobile,
+  String displayName,
+);
+
 class EducationContactSheet extends HookConsumerWidget {
   const EducationContactSheet({
     super.key,
     required this.onSelect,
+    this.onContactPicked,
+    this.closeOnSelect = true,
+    this.searchHint = 'Search contacts',
     this.matchInviteContactAvatarStyle = false,
+    this.searchRecipientLayout = false,
   });
 
   final ValueChanged<String> onSelect;
+  final EducationContactPickedHandler? onContactPicked;
+  final bool closeOnSelect;
+  final String searchHint;
   final bool matchInviteContactAvatarStyle;
+  final bool searchRecipientLayout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,13 +149,24 @@ class EducationContactSheet extends HookConsumerWidget {
       }
     }
 
+    final onPickContact = (String mobile, String displayName) {
+      if (onContactPicked != null) {
+        onContactPicked!(mobile, displayName);
+      } else {
+        onSelect(mobile);
+      }
+      if (closeOnSelect) {
+        Navigator.of(context).maybePop();
+      }
+    };
+
     return SafeArea(
       top: false,
       child: Container(
         padding: EdgeInsets.only(
           left: 16.w,
           right: 16.w,
-          top: 12.h,
+          top: searchRecipientLayout ? 8.h : 12.h,
           bottom: 16.h,
         ),
         child: hasPermission.value
@@ -146,11 +183,10 @@ class EducationContactSheet extends HookConsumerWidget {
                   visibleCount.value =
                       (visibleCount.value + 100).clamp(0, 999999);
                 },
-                onSelect: (value) {
-                  onSelect(value);
-                  Navigator.of(context).maybePop();
-                },
+                searchHint: searchHint,
+                onSelect: onPickContact,
                 matchInviteContactAvatarStyle: matchInviteContactAvatarStyle,
+                searchRecipientLayout: searchRecipientLayout,
               )
             : _PermissionEmptyState(onAllow: handleRequestPermission),
       ),
@@ -236,7 +272,9 @@ class _ContactsListSection extends StatelessWidget {
     required this.onQueryChange,
     required this.onLoadMore,
     required this.onSelect,
+    required this.searchHint,
     required this.matchInviteContactAvatarStyle,
+    required this.searchRecipientLayout,
   });
 
   final bool isLoading;
@@ -245,11 +283,77 @@ class _ContactsListSection extends StatelessWidget {
   final TextEditingController contactSearchController;
   final ValueChanged<String> onQueryChange;
   final VoidCallback onLoadMore;
-  final ValueChanged<String> onSelect;
+  final void Function(String mobile, String displayName) onSelect;
+  final String searchHint;
   final bool matchInviteContactAvatarStyle;
+  final bool searchRecipientLayout;
+
+  Widget _buildContactBody(BuildContext context) {
+    if (isLoading) {
+      return const Center(
+        child: SpinKitCircle(
+          color: AppColors.primary,
+          size: 48,
+        ),
+      );
+    }
+    if (contacts.isEmpty) {
+      return Center(
+        child: Text(
+          'No contacts found',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary.withOpacity(0.6),
+              ),
+        ),
+      );
+    }
+    return _ContactsList(
+      contacts: contacts,
+      visibleCount: visibleCount,
+      onSelect: onSelect,
+      matchInviteContactAvatarStyle: matchInviteContactAvatarStyle,
+      searchRecipientLayout: searchRecipientLayout,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (searchRecipientLayout) {
+      return NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.pixels >=
+              notification.metrics.maxScrollExtent - 200) {
+            onLoadMore();
+          }
+          return false;
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppSearchBar(
+              // Common bar styling (same defaults as the credit card
+              // listing search); only the leading glyph is Education's own.
+              hintText: searchHint,
+              controller: contactSearchController,
+              onChanged: onQueryChange,
+              showSearchIcon: false,
+              prefixIcon: Padding(
+                padding: EdgeInsets.only(left: 14.w, right: 4.w),
+                child: SvgPicture.asset(
+                  FileConstants.educationSearchIconSvg,
+                  width: 18.w,
+                  height: 18.w,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Expanded(child: _buildContactBody(context)),
+          ],
+        ),
+      );
+    }
+
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification.metrics.pixels >=
@@ -270,7 +374,7 @@ class _ContactsListSection extends StatelessWidget {
           ),
           SizedBox(height: 10.h),
           SearchTextfield(
-            hintText: 'Search contacts',
+            hintText: searchHint,
             controller: contactSearchController,
             onChange: onQueryChange,
           ),
@@ -303,6 +407,7 @@ class _ContactsListSection extends StatelessWidget {
               visibleCount: visibleCount,
               onSelect: onSelect,
               matchInviteContactAvatarStyle: matchInviteContactAvatarStyle,
+              searchRecipientLayout: false,
             ),
         ],
       ),
@@ -316,23 +421,28 @@ class _ContactsList extends StatelessWidget {
     required this.visibleCount,
     required this.onSelect,
     required this.matchInviteContactAvatarStyle,
+    required this.searchRecipientLayout,
   });
 
   final List<Contact> contacts;
   final int visibleCount;
-  final ValueChanged<String> onSelect;
+  final void Function(String mobile, String displayName) onSelect;
   final bool matchInviteContactAvatarStyle;
+  final bool searchRecipientLayout;
 
   @override
   Widget build(BuildContext context) {
     final displayContacts = contacts.length > visibleCount
         ? contacts.take(visibleCount).toList()
         : contacts;
+    final flatList = searchRecipientLayout;
     return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: !flatList,
+      physics: flatList
+          ? const AlwaysScrollableScrollPhysics()
+          : const NeverScrollableScrollPhysics(),
       itemCount: displayContacts.length,
-      separatorBuilder: (_, __) => SizedBox(height: 8.h),
+      separatorBuilder: (_, __) => SizedBox(height: flatList ? 20.h : 8.h),
       itemBuilder: (context, index) {
         final contact = displayContacts[index];
         final phone =
@@ -341,67 +451,97 @@ class _ContactsList extends StatelessWidget {
             ? contact.displayName
                 .trim()
                 .split(' ')
+                .where((part) => part.isNotEmpty)
                 .map((e) => e[0])
                 .take(2)
                 .join()
             : '';
+        final useInviteStyle =
+            matchInviteContactAvatarStyle || searchRecipientLayout;
+        final avatarBg = useInviteStyle
+            ? const Color(0xFFFFEFE7)
+            : AppColors.primary.withOpacity(0.1);
+        final initialsColor =
+            useInviteStyle ? const Color(0xFFDD5428) : AppColors.primary;
+
+        final row = Row(
+          children: [
+            CircleAvatar(
+              radius: useInviteStyle ? 24.r : 18.r,
+              backgroundColor: avatarBg,
+              child: Text(
+                initials.toUpperCase(),
+                style: useInviteStyle
+                    ? GoogleFonts.plusJakartaSans(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w700,
+                        color: initialsColor,
+                      )
+                    : Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: initialsColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    contact.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: searchRecipientLayout
+                        ? GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF18181B),
+                          )
+                        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    searchRecipientLayout
+                        ? educationContactDisplayPhone(phone)
+                        : phone,
+                    style: searchRecipientLayout
+                        ? GoogleFonts.plusJakartaSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF52525B),
+                          )
+                        : Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textPrimary.withOpacity(0.6),
+                            ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
         return InkWell(
           onTap: phone.isEmpty
               ? null
-              : () => onSelect(normalizeEducationMobile(phone)),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(color: AppColors.lightBorder),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: matchInviteContactAvatarStyle ? 22.r : 18.r,
-                  backgroundColor: matchInviteContactAvatarStyle
-                      ? const Color(0xFFD9D9D9)
-                      : AppColors.primary.withOpacity(0.1),
-                  child: Text(
-                    initials.toUpperCase(),
-                    style: (matchInviteContactAvatarStyle
-                            ? Theme.of(context).textTheme.bodySmall
-                            : Theme.of(context).textTheme.labelMedium)
-                        ?.copyWith(
-                      color: matchInviteContactAvatarStyle
-                          ? AppColors.textPrimary
-                          : AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
+              : () => onSelect(
+                    normalizeEducationMobile(phone),
+                    contact.displayName,
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        contact.displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        phone,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textPrimary.withOpacity(0.6),
-                            ),
-                      ),
-                    ],
+          child: flatList
+              ? row
+              : Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(color: AppColors.lightBorder),
                   ),
+                  child: row,
                 ),
-              ],
-            ),
-          ),
         );
       },
     );

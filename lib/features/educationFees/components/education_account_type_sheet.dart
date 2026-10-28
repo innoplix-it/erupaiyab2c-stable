@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../constants/app_colors.dart';
+import '../education_fees_typography.dart';
 import '../models/education_account_type.dart';
 
 class EducationAccountTypeSheet extends StatelessWidget {

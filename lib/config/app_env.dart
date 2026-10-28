@@ -9,4 +9,5 @@ class AppEnv {
 
   static bool get enableLogs => !isProduction;
   static bool get enableNetworkPayloadLogs => !isProduction;
+
 }

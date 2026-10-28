@@ -937,12 +937,7 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (status) {
       case _TxnStatus.success:
-        // "Paid From" green pill badge — exact SVG from design
-        return SvgPicture.asset(
-          'assets/images/badge_paid_from.svg',
-          height: _figmaR(21),
-          fit: BoxFit.contain,
-        );
+        return _PaidFromBadge(methodIcon: methodIcon);
       case _TxnStatus.failed:
         // "Failed" red pill badge
         return Container(
@@ -987,6 +982,80 @@ class _StatusChip extends StatelessWidget {
           fit: BoxFit.contain,
         );
     }
+  }
+}
+
+/// "Paid From" pill. The payment-source icon is [methodIcon] (`method_icon`
+/// from the history API). A missing or non-network value leaves the text
+/// only — it does not fall back to a bundled icon.
+class _PaidFromBadge extends StatelessWidget {
+  const _PaidFromBadge({required this.methodIcon});
+
+  final String methodIcon;
+
+  static bool _isNetworkIcon(String raw) {
+    final uri = Uri.tryParse(raw.trim());
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) return false;
+    return uri.scheme == 'http' || uri.scheme == 'https';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final iconUrl = methodIcon.trim();
+    final showIcon = _isNetworkIcon(iconUrl);
+    final iconSize = _figmaR(11);
+    return Container(
+      height: _figmaR(21),
+      padding: EdgeInsets.only(
+        left: _figmaW(7),
+        right: showIcon ? _figmaW(4) : _figmaW(8),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF058337).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(_figmaR(10.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Paid From',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 8.5.sp,
+              fontWeight: FontWeight.w600,
+              height: 1,
+              letterSpacing: 0,
+              color: const Color(0xFF058337),
+            ),
+          ),
+          if (showIcon) ...[
+            SizedBox(width: _figmaW(4)),
+            SizedBox(
+              width: iconSize,
+              height: iconSize,
+              child: iconUrl.toLowerCase().endsWith('.svg')
+                  ? SvgPicture.network(
+                      iconUrl,
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.contain,
+                      placeholderBuilder: (_) =>
+                          SizedBox(width: iconSize, height: iconSize),
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    )
+                  : AppNetworkImage(
+                      url: iconUrl,
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.contain,
+                      showShimmer: false,
+                      placeholder: SizedBox(width: iconSize, height: iconSize),
+                      errorWidget: const SizedBox.shrink(),
+                    ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

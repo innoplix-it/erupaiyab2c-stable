@@ -11,6 +11,7 @@ import '../../../constants/app_colors.dart';
 import '../../../services/payment_device_context_service.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../controllers/education_fees_controller.dart';
+import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
 
 class EducationAddCardSheet extends HookConsumerWidget {
@@ -27,7 +28,8 @@ class EducationAddCardSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SafeArea(
+    return EducationFeesTheme(
+      child: SafeArea(
       top: false,
       child: Padding(
         padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 20.h),
@@ -148,6 +150,7 @@ class EducationAddCardSheet extends HookConsumerWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -241,7 +244,8 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
     final payable = current?.payableAmount ?? 0.0;
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return SafeArea(
+    return EducationFeesTheme(
+      child: SafeArea(
       top: false,
       child: AnimatedPadding(
         duration: const Duration(milliseconds: 200),
@@ -410,6 +414,7 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

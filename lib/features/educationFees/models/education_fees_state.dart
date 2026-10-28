@@ -6,6 +6,9 @@ class EducationFeesState {
     this.isValidatingAmount = false,
     this.amountValidated = false,
     this.amountErrorMessage,
+    this.minAmount,
+    this.maxAmount,
+    this.amountLimitHint,
     this.mobileInput = '',
     this.isCheckingMobile = false,
     this.mobileErrorMessage,
@@ -31,6 +34,9 @@ class EducationFeesState {
   final bool isValidatingAmount;
   final bool amountValidated;
   final String? amountErrorMessage;
+  final double? minAmount;
+  final double? maxAmount;
+  final String? amountLimitHint;
 
   final String mobileInput;
   final bool isCheckingMobile;
@@ -60,6 +66,9 @@ class EducationFeesState {
     bool? isValidatingAmount,
     bool? amountValidated,
     Object? amountErrorMessage = _sentinel,
+    Object? minAmount = _sentinel,
+    Object? maxAmount = _sentinel,
+    Object? amountLimitHint = _sentinel,
     String? mobileInput,
     bool? isCheckingMobile,
     Object? mobileErrorMessage = _sentinel,
@@ -87,6 +96,11 @@ class EducationFeesState {
       amountErrorMessage: amountErrorMessage == _sentinel
           ? this.amountErrorMessage
           : amountErrorMessage as String?,
+      minAmount: minAmount == _sentinel ? this.minAmount : minAmount as double?,
+      maxAmount: maxAmount == _sentinel ? this.maxAmount : maxAmount as double?,
+      amountLimitHint: amountLimitHint == _sentinel
+          ? this.amountLimitHint
+          : amountLimitHint as String?,
       mobileInput: mobileInput ?? this.mobileInput,
       isCheckingMobile: isCheckingMobile ?? this.isCheckingMobile,
       mobileErrorMessage: mobileErrorMessage == _sentinel

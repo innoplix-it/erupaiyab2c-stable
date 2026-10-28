@@ -27,7 +27,7 @@ class _FakeEducationRepository extends EducationFeesRepository {
 
   @override
   Future<EducationCheckMobileResponse> checkMobile(String mobile) async {
-    return const EducationCheckMobileResponse(status: true, exists: false);
+    return const EducationCheckMobileResponse(status: true, exists: true);
   }
 
   @override

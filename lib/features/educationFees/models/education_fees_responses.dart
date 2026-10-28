@@ -34,6 +34,9 @@ class EducationValidateAmountResponse {
   const EducationValidateAmountResponse({
     required this.status,
     this.message,
+    this.minAmount,
+    this.maxAmount,
+    this.limitHint,
   });
 
   factory EducationValidateAmountResponse.fromJson(Map<String, dynamic> json) {
@@ -44,13 +47,82 @@ class EducationValidateAmountResponse {
     } else {
       message = json['message'] as String?;
     }
+    num? readAmount(Object? raw) {
+      if (raw is num) return raw;
+      return num.tryParse(raw?.toString() ?? '');
+    }
+
+    double? pickAmount(Map<dynamic, dynamic> map, List<String> keys) {
+      for (final key in keys) {
+        if (!map.containsKey(key)) continue;
+        final value = readAmount(map[key]);
+        if (value != null) return value.toDouble();
+      }
+      return null;
+    }
+
+    const minKeys = [
+      'min_amount',
+      'minAmount',
+      'minimum_amount',
+      'minimumAmount',
+      'min_limit',
+      'minLimit',
+    ];
+    const maxKeys = [
+      'max_amount',
+      'maxAmount',
+      'maximum_amount',
+      'maximumAmount',
+      'max_limit',
+      'maxLimit',
+    ];
+
+    double? minAmount;
+    double? maxAmount;
+    String? limitHint;
+    final data = json['data'];
+    if (data is Map) {
+      minAmount = pickAmount(data, minKeys);
+      maxAmount = pickAmount(data, maxKeys);
+      final limits = data['limits'] ?? data['amount_limits'];
+      if (limits is Map) {
+        minAmount ??= pickAmount(limits, minKeys);
+        maxAmount ??= pickAmount(limits, maxKeys);
+      }
+      final hint = data['limit_text'] ??
+          data['limitText'] ??
+          data['amount_hint'] ??
+          data['amountHint'] ??
+          data['hint'];
+      if (hint is String && hint.trim().isNotEmpty) {
+        limitHint = hint.trim();
+      }
+    }
+    minAmount ??= pickAmount(json, minKeys);
+    maxAmount ??= pickAmount(json, maxKeys);
+    limitHint ??= () {
+      final hint = json['limit_text'] ?? json['limitText'] ?? json['hint'];
+      if (hint is String && hint.trim().isNotEmpty) return hint.trim();
+      return null;
+    }();
+
     return EducationValidateAmountResponse(
       status: json['status'] == true,
       message: message,
+      minAmount: minAmount,
+      maxAmount: maxAmount,
+      limitHint: limitHint,
     );
   }
+
   final bool status;
   final String? message;
+  final double? minAmount;
+  final double? maxAmount;
+
+  /// Backend caption for the min/max line. Display only — not a client rule.
+  final String? limitHint;
 }
 
 class EducationCheckMobileResponse {
@@ -81,6 +153,13 @@ class EducationCheckMobileResponse {
   final bool exists;
   final Object? data;
   final String? message;
+
+  /// Add Tutor registration gate for `POST /api/education/check-mobile`.
+  ///
+  /// The mobile client treats `exists == true` together with `status == true` as
+  /// confirmation that the number belongs to a registered eRupaiya user. If backend
+  /// semantics differ, update this helper and the controller together.
+  bool get confirmsRegisteredUser => status && exists;
 }
 
 class EducationVerifyPanResponse {
@@ -308,11 +387,10 @@ class EducationPaymentStatusResponse {
       serviceCharge: (flattened['service_charge'] ?? '').toString().trim(),
       gstOnServiceCharge:
           (flattened['gst_on_service_charge'] ?? '').toString().trim(),
-      payableAmount: (flattened['payable_amount'] ??
-              flattened['total_payable'] ??
-              '')
-          .toString()
-          .trim(),
+      payableAmount:
+          (flattened['payable_amount'] ?? flattened['total_payable'] ?? '')
+              .toString()
+              .trim(),
       bannerImage: _readBannerImage(flattened),
     );
   }
@@ -494,6 +572,7 @@ class EducationBeneficiary {
     required this.panMasked,
     required this.accountMasked,
     required this.ifsc,
+    required this.branch,
     this.accountNoUnmasked,
   });
 
@@ -508,6 +587,7 @@ class EducationBeneficiary {
       panMasked: json['pan_masked']?.toString() ?? '',
       accountMasked: json['account_masked']?.toString() ?? '',
       ifsc: json['ifsc']?.toString() ?? '',
+      branch: json['branch']?.toString() ?? '',
       accountNoUnmasked: json['account_no_unmasked']?.toString(),
     );
   }
@@ -521,6 +601,7 @@ class EducationBeneficiary {
   final String panMasked;
   final String accountMasked;
   final String ifsc;
+  final String branch;
   final String? accountNoUnmasked;
 }
 
