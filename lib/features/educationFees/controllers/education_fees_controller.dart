@@ -2,6 +2,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../utils/error_message_utils.dart';
 import '../../../helpers/kyc_helpers.dart';
+import '../../../services/logger_service.dart';
 import '../../../services/push_notification_service.dart';
 import '../models/education_account_type.dart';
 import '../models/education_fees_responses.dart';
@@ -50,6 +51,29 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     // write state after the flow has been cleared.
     _panVerifyRequestId++;
     state = const EducationFeesState();
+  }
+
+  /// Clears the per-beneficiary identity/bank fields so a new entry starts
+  /// with empty PAN / Account Number / IFSC. Mobile, name and every other
+  /// flow field are intentionally preserved, and no already-saved backend
+  /// beneficiary data is touched. Called when a fresh add-beneficiary form is
+  /// opened.
+  void clearBeneficiaryDetails() {
+    // Invalidate any in-flight PAN verification so a late response cannot
+    // re-mark the freshly-cleared form as verified.
+    _panVerifyRequestId++;
+    state = state.copyWith(
+      pan: '',
+      isVerifyingPan: false,
+      panVerified: false,
+      panErrorMessage: null,
+      accountNumber: '',
+      ifsc: '',
+      isVerifyingBank: false,
+      bankVerified: false,
+      bankErrorMessage: null,
+      saveErrorMessage: null,
+    );
   }
 
   void updateFeeType(String? feeType) {
@@ -158,8 +182,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   /// on the tutor request screen. Returns null when the number is not a saved
   /// tutor or the lookup fails, so callers can keep their own fallback.
   Future<EducationBeneficiary?> findBeneficiaryByMobile(String mobile) async {
-    final digits =
-        _normalizeMobile(mobile).replaceAll(RegExp(r'\D'), '');
+    final digits = _normalizeMobile(mobile).replaceAll(RegExp(r'\D'), '');
     if (digits.length != 10) return null;
     try {
       final response = await _repository.fetchBeneficiaries();
@@ -204,8 +227,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         return;
       }
 
-      final notRegistered =
-          response.status && !response.exists;
+      final notRegistered = response.status && !response.exists;
       state = state.copyWith(
         isCheckingMobile: false,
         showRecipientFields: false,
@@ -253,9 +275,6 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       isVerifyingPan: false,
       panVerified: false,
       panErrorMessage: null,
-      accountType: EducationAccountType.none,
-      accountNumber: '',
-      ifsc: '',
       bankVerified: false,
       bankErrorMessage: null,
       saveErrorMessage: null,
@@ -268,9 +287,6 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       isVerifyingPan: false,
       panVerified: false,
       panErrorMessage: null,
-      accountType: EducationAccountType.none,
-      accountNumber: '',
-      ifsc: '',
       bankVerified: false,
       bankErrorMessage: null,
       saveErrorMessage: null,
@@ -332,8 +348,6 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   void updateAccountType(EducationAccountType value) {
     state = state.copyWith(
       accountType: value,
-      accountNumber: '',
-      ifsc: '',
       bankVerified: false,
       bankErrorMessage: null,
       saveErrorMessage: null,
@@ -399,23 +413,47 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
-  Future<bool> saveBeneficiary() async {
-    if (!state.showRecipientFields) {
+  Future<bool> saveBeneficiary({bool unverifiedFlow = false}) async {
+    logger.info(
+      'EDU_SAVE SAVE_BENEFICIARY_ENTERED unverifiedFlow=$unverifiedFlow',
+    );
+    logger.info(
+      'EDU_SAVE PAN_VERIFICATION_STATUS verified=${state.panVerified} '
+      'BANK_VERIFICATION_STATUS verified=${state.bankVerified}',
+    );
+    // Re-entry guard: never issue a second request while one is in flight.
+    if (state.isSavingBeneficiary) {
+      logger.info('EDU_SAVE SAVE_GUARD_BLOCKED reason=in_flight');
+      return false;
+    }
+    // Registration gate: enforced for the normal registered-recipient flow
+    // only. The unverified "Add Details" flow bypasses it because the tutor
+    // is by definition not a registered user; every validation below still
+    // applies unchanged.
+    if (!unverifiedFlow && !state.showRecipientFields) {
+      logger.info('EDU_SAVE SAVE_GUARD_BLOCKED reason=registration');
       state = state.copyWith(
-        saveErrorMessage:
-            state.mobileErrorMessage ??
-                'Please verify the recipient mobile number first.',
+        saveErrorMessage: state.mobileErrorMessage ??
+            'Please verify the recipient mobile number first.',
       );
       return false;
     }
     if (!state.panVerified) {
+      logger.info('EDU_SAVE SAVE_GUARD_BLOCKED reason=pan_not_verified');
       state = state.copyWith(
         saveErrorMessage: 'Please verify PAN details.',
       );
       return false;
     }
-    if (state.accountType != EducationAccountType.bankDetails ||
-        !state.bankVerified) {
+    if (state.accountType != EducationAccountType.bankDetails) {
+      logger.info('EDU_SAVE SAVE_GUARD_BLOCKED reason=account_type');
+      state = state.copyWith(
+        saveErrorMessage: 'Please select bank details.',
+      );
+      return false;
+    }
+    if (!state.bankVerified) {
+      logger.info('EDU_SAVE SAVE_GUARD_BLOCKED reason=bank_not_verified');
       state = state.copyWith(
         saveErrorMessage: 'Please verify bank details.',
       );
@@ -432,6 +470,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         pan.isEmpty ||
         accountNo.isEmpty ||
         ifsc.isEmpty) {
+      logger.info('EDU_SAVE SAVE_GUARD_BLOCKED reason=missing_fields');
       state = state.copyWith(
         saveErrorMessage: 'Please fill all required details.',
       );
@@ -442,6 +481,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       saveErrorMessage: null,
     );
     try {
+      logger.info('EDU_SAVE REPOSITORY_CALLED');
       final response = await _repository.saveBeneficiary(
         name: name,
         mobile: mobile,
@@ -451,6 +491,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         ifsc: ifsc,
       );
       if (response.status) {
+        logger.info('EDU_SAVE SAVE_SUCCESS');
         state = state.copyWith(
           isSavingBeneficiary: false,
           beneficiaryId: response.beneficiaryId,
@@ -458,6 +499,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         );
         return true;
       }
+      logger.info('EDU_SAVE SAVE_FAILED reason=server_status');
       state = state.copyWith(
         isSavingBeneficiary: false,
         saveErrorMessage:
@@ -465,6 +507,9 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       );
       return false;
     } catch (e) {
+      logger.info(
+        'EDU_SAVE SAVE_FAILED reason=exception type=${e.runtimeType}',
+      );
       state = state.copyWith(
         isSavingBeneficiary: false,
         saveErrorMessage: ErrorMessageUtils.from(

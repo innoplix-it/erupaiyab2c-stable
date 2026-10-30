@@ -9,6 +9,7 @@ import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/education_payment_sheets.dart';
+import '../components/education_tuition_request_popup.dart';
 import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
@@ -30,6 +31,7 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
     required this.accountNumber,
     required this.ifscCode,
     required this.branch,
+    this.verified = true,
   });
 
   final String tutorName;
@@ -42,6 +44,10 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
   final String? accountNumber;
   final String? ifscCode;
   final String? branch;
+
+  /// Avatar corner tick state on the identity card: green when the tutor is
+  /// verified on eRupaiya, gold for a newly-added (unverified) tutor.
+  final bool verified;
 
   @override
   ConsumerState<EducationTutorProfileView> createState() =>
@@ -108,17 +114,11 @@ class _EducationTutorProfileViewState
     );
   }
 
-  /// Backend values are shown verbatim; a missing field is rendered as an
-  /// explicit placeholder instead of a made-up value.
+  /// Backend values are shown verbatim; a missing (null/empty) field is
+  /// rendered as "NA" instead of a made-up value.
   String _value(String? raw) {
     final value = raw?.trim() ?? '';
-    return value.isEmpty ? '—' : value;
-  }
-
-  String get _firstName {
-    final parts =
-        widget.tutorName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    return parts.isEmpty ? 'Tutor' : parts.first;
+    return value.isEmpty ? 'NA' : value;
   }
 
   @override
@@ -157,17 +157,10 @@ class _EducationTutorProfileViewState
                           name: widget.tutorName,
                           accountLine: widget.accountLine,
                           amountLabel: widget.amountLabel,
-                          statusLines: [
-                            EducationTutorStatusLine(
-                              text:
-                                  '$_firstName has accepted your request now yu can sent tution fees',
-                              color: const Color(0xFF16A34A),
-                            ),
-                            const EducationTutorStatusLine(
-                              text: 'tutor will be saved for future payments',
-                              color: Color(0xFFA1A1AA),
-                            ),
-                          ],
+                          verified: widget.verified,
+                          // No static status copy — the card only shows what
+                          // the API actually returned.
+                          statusLines: const [],
                         ),
                         SizedBox(height: 22 * u),
                         Text(
@@ -286,6 +279,14 @@ class _EducationTutorProfileViewState
                   ),
                 ),
                 Padding(
+                  padding: EdgeInsets.fromLTRB(inset, 0, inset, 12 * u),
+                  child: _TuitionPopupTriggers(
+                    unit: u,
+                    amount: widget.amount,
+                    requesterName: widget.tutorName,
+                  ),
+                ),
+                Padding(
                   padding: EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
                   child: CustomElevatedButton(
                     onPressed: _proceedToPay,
@@ -301,6 +302,70 @@ class _EducationTutorProfileViewState
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Row of text triggers above "Proceed to Pay" that open each state of the
+/// shared [EducationTuitionRequestPopup].
+/// TODO(routing): replace the demo triggers with the real request-state flow.
+class _TuitionPopupTriggers extends StatelessWidget {
+  const _TuitionPopupTriggers({
+    required this.unit,
+    required this.amount,
+    required this.requesterName,
+  });
+
+  final double unit;
+  final double amount;
+  final String requesterName;
+
+  static const List<String> _labels = [
+    'Request',
+    'Received',
+    'Accepted',
+    'Declined',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final u = unit;
+    return Row(
+      children: [
+        for (var i = 0; i < _labels.length; i++) ...[
+          if (i > 0) SizedBox(width: 8 * u),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => showEducationTuitionRequestPopup(
+                context,
+                state: EducationTuitionPopupState.values[i],
+                amount: amount,
+                requesterName: requesterName,
+              ),
+              child: Container(
+                key: ValueKey('tuitionPopupTrigger_${_labels[i]}'),
+                padding: EdgeInsets.symmetric(vertical: 9 * u),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(20 * u),
+                  border: Border.all(color: const Color(0xFFE4E4E7)),
+                ),
+                child: Text(
+                  _labels[i],
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12 * u,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF3F3F46),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

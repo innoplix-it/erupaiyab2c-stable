@@ -110,9 +110,7 @@ class _AccountOptionTile extends StatelessWidget {
               ),
             ),
             Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_off,
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
               color: isSelected
                   ? AppColors.primary
                   : AppColors.textPrimary.withOpacity(0.4),

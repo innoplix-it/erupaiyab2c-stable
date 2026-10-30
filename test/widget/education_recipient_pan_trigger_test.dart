@@ -101,8 +101,17 @@ void main() {
     await tester.enterText(_field(1), 'Ravi Kumar');
     await tester.pump();
 
-    const partial = ['A', 'AB', 'ABC', 'ABCD', 'ABCDE', 'ABCDE1', 'ABCDE12',
-        'ABCDE123', 'ABCDE1234'];
+    const partial = [
+      'A',
+      'AB',
+      'ABC',
+      'ABCD',
+      'ABCDE',
+      'ABCDE1',
+      'ABCDE12',
+      'ABCDE123',
+      'ABCDE1234'
+    ];
     for (final pan in partial) {
       await tester.enterText(_field(2), pan);
       await tester.pump();
@@ -142,7 +151,9 @@ void main() {
 
     expect(repository.verifyPanCalls, ['ABCDE1234F']);
     expect(controller.state.panVerified, isTrue);
-    expect(find.text('PAN verified'), findsOneWidget);
+    // Success is now shown by the in-field verified badge, not a text row,
+    // so the transient "Verifying PAN..." status must have cleared.
+    expect(find.text('Verifying PAN...'), findsNothing);
 
     // Requirement 4: rebuilding with the number unchanged must not re-fire.
     await tester.pump();
@@ -189,5 +200,32 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(repository.verifyPanCalls, ['ABCDE1234F', 'XYZAB1234C']);
+  });
+
+  testWidgets('recipient PAN keyboard switches letters -> numbers -> letters',
+      (tester) async {
+    await _pumpRecipientView(tester, repository);
+    await tester.enterText(_field(1), 'Ravi Kumar');
+    await tester.pump();
+
+    TextInputType panKeyboard() =>
+        tester.widget<TextField>(find.byType(TextField).at(2)).keyboardType;
+
+    // Stage 1: alphabetic keyboard for the first 5 characters.
+    expect(panKeyboard(), TextInputType.text);
+
+    await tester.enterText(_field(2), 'ABCDE');
+    await tester.pump();
+    // Stage 2: numeric keyboard once 5 letters are entered.
+    expect(panKeyboard(), TextInputType.number);
+
+    await tester.enterText(_field(2), 'ABCDE1234');
+    await tester.pump();
+    // Stage 3: back to alphabetic for the final letter.
+    expect(panKeyboard(), TextInputType.text);
+
+    await tester.enterText(_field(2), 'ABCDE1234F');
+    await tester.pump();
+    expect(panKeyboard(), TextInputType.text);
   });
 }

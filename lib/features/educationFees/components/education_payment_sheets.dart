@@ -5,9 +5,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
 import '../../../services/payment_device_context_service.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../controllers/education_fees_controller.dart';
@@ -30,126 +32,125 @@ class EducationAddCardSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return EducationFeesTheme(
       child: SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 20.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Enter Credit Card Details',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              'Pay ₹${amount.toStringAsFixed(2)} For Tuition Fee To ${name.isEmpty ? 'Recipient' : name}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary.withOpacity(0.6),
-                  ),
-            ),
-            SizedBox(height: 16.h),
-            const _Label(text: 'Card Number'),
-            SizedBox(height: 8.h),
-            _InputField(
-              hint: '**** **** **** ****',
-              suffix: Icon(Icons.credit_card, size: 18.r),
-            ),
-            SizedBox(height: 12.h),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _Label(text: 'Valid Upto'),
-                      SizedBox(height: 8.h),
-                      const _InputField(hint: '12/26'),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _Label(text: 'CVV'),
-                      SizedBox(height: 8.h),
-                      _InputField(
-                        hint: '123',
-                        suffix: Icon(Icons.visibility, size: 18.r),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F1F1),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Row(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Container(
-                    height: 16.r,
-                    width: 16.r,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                    child:
-                        Icon(Icons.check, size: 12.r, color: Colors.white),
-                  ),
-                  SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
-                      'Secure my card as per RBI guidelines',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textPrimary.withOpacity(0.6),
+                      'Enter Credit Card Details',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
                     ),
                   ),
-                  Text(
-                    'Learn More',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: 16.h),
-            CustomElevatedButton(
-              onPressed: () {
-                Navigator.of(context).maybePop();
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  onContinue();
-                });
-              },
-              label: 'Continue',
-              uppercaseLabel: false,
-              showArrow: false,
-              height: 54.h,
-            ),
-          ],
+              SizedBox(height: 6.h),
+              Text(
+                'Pay ₹${amount.toStringAsFixed(2)} For Tuition Fee To ${name.isEmpty ? 'Recipient' : name}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textPrimary.withOpacity(0.6),
+                    ),
+              ),
+              SizedBox(height: 16.h),
+              const _Label(text: 'Card Number'),
+              SizedBox(height: 8.h),
+              _InputField(
+                hint: '**** **** **** ****',
+                suffix: Icon(Icons.credit_card, size: 18.r),
+              ),
+              SizedBox(height: 12.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _Label(text: 'Valid Upto'),
+                        SizedBox(height: 8.h),
+                        const _InputField(hint: '12/26'),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _Label(text: 'CVV'),
+                        SizedBox(height: 8.h),
+                        _InputField(
+                          hint: '123',
+                          suffix: Icon(Icons.visibility, size: 18.r),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F1F1),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      height: 16.r,
+                      width: 16.r,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: Icon(Icons.check, size: 12.r, color: Colors.white),
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        'Secure my card as per RBI guidelines',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textPrimary.withOpacity(0.6),
+                            ),
+                      ),
+                    ),
+                    Text(
+                      'Learn More',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16.h),
+              CustomElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).maybePop();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    onContinue();
+                  });
+                },
+                label: 'Continue',
+                uppercaseLabel: false,
+                showArrow: false,
+                height: 54.h,
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -246,175 +247,189 @@ class EducationPaymentSummarySheet extends HookConsumerWidget {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return EducationFeesTheme(
       child: SafeArea(
-      top: false,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 20.h + bottomInset),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Payment Summary',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            SizedBox(height: 10.h),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.lightBorder),
-                borderRadius: BorderRadius.circular(16.r),
-                color: Colors.white,
-              ),
-              child: Column(
+        top: false,
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 20.h + bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
                 children: [
-                  _SummaryRow(
-                    label: 'Amount',
-                    value: '₹${amount.toStringAsFixed(2)}',
-                  ),
-                  SizedBox(height: 8.h),
-                  _SummaryRow(
-                    label: 'Service Charge',
-                    value: '₹${serviceCharge.toStringAsFixed(2)}',
-                  ),
-                  SizedBox(height: 8.h),
-                  _SummaryRow(
-                    label: 'GST on Service Charge',
-                    value: '₹${gstOnServiceCharge.toStringAsFixed(2)}',
-                  ),
-                  // SizedBox(height: 12.h),
-                  // Row(
-                  //   children: [
-                  //     Container(
-                  //       height: 22.r,
-                  //       width: 22.r,
-                  //       decoration: BoxDecoration(
-                  //         color: AppColors.primary.withOpacity(0.1),
-                  //         shape: BoxShape.circle,
-                  //       ),
-                  //       child: Icon(
-                  //         Icons.currency_rupee,
-                  //         size: 14.r,
-                  //         color: AppColors.primary,
-                  //       ),
-                  //     ),
-                  //     SizedBox(width: 8.w),
-                  //     Expanded(
-                  //       child: Text(
-                  //         'Use E-Coins\nBalance ${walletBalance.toStringAsFixed(0)} Coins',
-                  //         style: Theme.of(context)
-                  //             .textTheme
-                  //             .bodySmall
-                  //             ?.copyWith(
-                  //               color: AppColors.textPrimary.withOpacity(0.6),
-                  //             ),
-                  //       ),
-                  //     ),
-                  //     SizedBox(
-                  //       width: 92.w,
-                  //       child: TextField(
-                  //         controller: walletController,
-                  //         keyboardType: TextInputType.number,
-                  //         textAlign: TextAlign.center,
-                  //         enabled: walletBalance > 0,
-                  //         decoration: InputDecoration(
-                  //           hintText: '0',
-                  //           isDense: true,
-                  //           contentPadding: EdgeInsets.symmetric(
-                  //             horizontal: 8.w,
-                  //             vertical: 8.h,
-                  //           ),
-                  //           border: OutlineInputBorder(
-                  //             borderRadius: BorderRadius.circular(10.r),
-                  //             borderSide: const BorderSide(
-                  //                 color: AppColors.lightBorder),
-                  //           ),
-                  //           enabledBorder: OutlineInputBorder(
-                  //             borderRadius: BorderRadius.circular(10.r),
-                  //             borderSide: const BorderSide(
-                  //                 color: AppColors.lightBorder),
-                  //           ),
-                  //           focusedBorder: OutlineInputBorder(
-                  //             borderRadius: BorderRadius.circular(10.r),
-                  //             borderSide:
-                  //                 const BorderSide(color: AppColors.primary),
-                  //           ),
-                  //           suffixIcon: isLoading.value
-                  //               ? Padding(
-                  //                   padding: EdgeInsets.all(8.r),
-                  //                   child: const Center(
-                  //                     child: SpinKitCircle(
-                  //                       color: AppColors.primary,
-                  //                       size: 48,
-                  //                     ),
-                  //                   ),
-                  //                 )
-                  //               : null,
-                  //         ),
-                  //         onChanged: onWalletUsedChanged,
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
-                  // SizedBox(height: 8.h),
-                  // _SummaryRow(
-                  //   label: 'You used ${walletUsed.toStringAsFixed(0)} E-Coins',
-                  //   value: '-₹${walletUsed.toStringAsFixed(2)}',
-                  //   valueColor: Colors.red,
-                  // ),
-                  if (error.value != null) ...[
-                    SizedBox(height: 8.h),
-                    Text(
-                      error.value!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      'Payment Summary',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700,
                           ),
                     ),
-                  ],
-                  Divider(height: 24.h, color: AppColors.lightBorder),
-                  _SummaryRow(
-                    label: 'Payable Amount',
-                    value: '₹${payable.toStringAsFixed(2)}',
-                    isBold: true,
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    icon: SvgPicture.asset(
+                      FileConstants.paymentSummaryCloseSvg,
+                      width: 32.r,
+                      height: 32.r,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: 14.h),
-            CustomElevatedButton(
-              onPressed: (isLoading.value || isPaying.value || current == null || error.value != null)
-                  ? null
-                  : () async {
-                      if (isPaying.value) return;
-                      isPaying.value = true;
-                      await Navigator.of(context).maybePop();
-                      await onPayNow(payable);
-                    },
-              label: isPaying.value
-                  ? 'Processing...'
-                  : (current == null || error.value != null)
-                      ? 'Unavailable'
-                      : 'Pay ₹${payable.toStringAsFixed(2)}',
-              uppercaseLabel: false,
-              showArrow: false,
-              height: 42.h,
-            ),
-          ],
+              SizedBox(height: 10.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.lightBorder),
+                  borderRadius: BorderRadius.circular(16.r),
+                  color: Colors.white,
+                ),
+                child: Column(
+                  children: [
+                    _SummaryRow(
+                      label: 'Amount',
+                      value: '₹${amount.toStringAsFixed(2)}',
+                    ),
+                    SizedBox(height: 8.h),
+                    _SummaryRow(
+                      label: 'Service Charge',
+                      value: '₹${serviceCharge.toStringAsFixed(2)}',
+                    ),
+                    SizedBox(height: 8.h),
+                    _SummaryRow(
+                      label: 'GST on Service Charge',
+                      value: '₹${gstOnServiceCharge.toStringAsFixed(2)}',
+                    ),
+                    // SizedBox(height: 12.h),
+                    // Row(
+                    //   children: [
+                    //     Container(
+                    //       height: 22.r,
+                    //       width: 22.r,
+                    //       decoration: BoxDecoration(
+                    //         color: AppColors.primary.withOpacity(0.1),
+                    //         shape: BoxShape.circle,
+                    //       ),
+                    //       child: Icon(
+                    //         Icons.currency_rupee,
+                    //         size: 14.r,
+                    //         color: AppColors.primary,
+                    //       ),
+                    //     ),
+                    //     SizedBox(width: 8.w),
+                    //     Expanded(
+                    //       child: Text(
+                    //         'Use E-Coins\nBalance ${walletBalance.toStringAsFixed(0)} Coins',
+                    //         style: Theme.of(context)
+                    //             .textTheme
+                    //             .bodySmall
+                    //             ?.copyWith(
+                    //               color: AppColors.textPrimary.withOpacity(0.6),
+                    //             ),
+                    //       ),
+                    //     ),
+                    //     SizedBox(
+                    //       width: 92.w,
+                    //       child: TextField(
+                    //         controller: walletController,
+                    //         keyboardType: TextInputType.number,
+                    //         textAlign: TextAlign.center,
+                    //         enabled: walletBalance > 0,
+                    //         decoration: InputDecoration(
+                    //           hintText: '0',
+                    //           isDense: true,
+                    //           contentPadding: EdgeInsets.symmetric(
+                    //             horizontal: 8.w,
+                    //             vertical: 8.h,
+                    //           ),
+                    //           border: OutlineInputBorder(
+                    //             borderRadius: BorderRadius.circular(10.r),
+                    //             borderSide: const BorderSide(
+                    //                 color: AppColors.lightBorder),
+                    //           ),
+                    //           enabledBorder: OutlineInputBorder(
+                    //             borderRadius: BorderRadius.circular(10.r),
+                    //             borderSide: const BorderSide(
+                    //                 color: AppColors.lightBorder),
+                    //           ),
+                    //           focusedBorder: OutlineInputBorder(
+                    //             borderRadius: BorderRadius.circular(10.r),
+                    //             borderSide:
+                    //                 const BorderSide(color: AppColors.primary),
+                    //           ),
+                    //           suffixIcon: isLoading.value
+                    //               ? Padding(
+                    //                   padding: EdgeInsets.all(8.r),
+                    //                   child: const Center(
+                    //                     child: SpinKitCircle(
+                    //                       color: AppColors.primary,
+                    //                       size: 48,
+                    //                     ),
+                    //                   ),
+                    //                 )
+                    //               : null,
+                    //         ),
+                    //         onChanged: onWalletUsedChanged,
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
+                    // SizedBox(height: 8.h),
+                    // _SummaryRow(
+                    //   label: 'You used ${walletUsed.toStringAsFixed(0)} E-Coins',
+                    //   value: '-₹${walletUsed.toStringAsFixed(2)}',
+                    //   valueColor: Colors.red,
+                    // ),
+                    if (error.value != null) ...[
+                      SizedBox(height: 8.h),
+                      Text(
+                        error.value!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                    Divider(height: 24.h, color: AppColors.lightBorder),
+                    _SummaryRow(
+                      label: 'Payable Amount',
+                      value: '₹${payable.toStringAsFixed(2)}',
+                      isBold: true,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 14.h),
+              CustomElevatedButton(
+                onPressed: (isLoading.value ||
+                        isPaying.value ||
+                        current == null ||
+                        error.value != null)
+                    ? null
+                    : () async {
+                        if (isPaying.value) return;
+                        isPaying.value = true;
+                        await Navigator.of(context).maybePop();
+                        await onPayNow(payable);
+                      },
+                label: isPaying.value
+                    ? 'Processing...'
+                    : (current == null || error.value != null)
+                        ? 'Unavailable'
+                        : 'Pay ₹${payable.toStringAsFixed(2)}',
+                uppercaseLabel: false,
+                showArrow: false,
+                height: 42.h,
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -435,8 +450,10 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Row content is 2px smaller than the previous 14sp theme text.
     final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
         );
     return Row(
       children: [
@@ -445,8 +462,8 @@ class _SummaryRow extends StatelessWidget {
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.black,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w400,
+                  fontSize: 12.sp,
+                  fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
                   height: 1.0,
                   letterSpacing: 0,
                 ),

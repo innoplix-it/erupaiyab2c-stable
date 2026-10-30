@@ -55,7 +55,9 @@ Future<void> runEducationPayNow({
 
   if (!order.status || order.orderId.isEmpty || order.key.isEmpty) {
     AppSnackbar.show(
-      order.message.isNotEmpty ? order.message : 'Failed to create order. Please try again.',
+      order.message.isNotEmpty
+          ? order.message
+          : 'Failed to create order. Please try again.',
       backgroundColor: Colors.red,
       textColor: Colors.white,
     );

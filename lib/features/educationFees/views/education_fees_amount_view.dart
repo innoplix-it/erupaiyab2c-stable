@@ -7,7 +7,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
@@ -24,10 +23,6 @@ const double _kFigmaW = 448.0;
 
 /// Max width the content grows to on tablets / large screens.
 const double _kMaxContentW = 560.0;
-
-/// Shown until the API limits are loaded (matches Figma).
-const double _kDefaultMinAmount = 100;
-const double _kDefaultMaxAmount = 200000;
 
 const Color _kMint = Color(0xFFB5FFDA);
 
@@ -163,8 +158,8 @@ class EducationFeesAmountView extends HookConsumerWidget {
           amountController.clear();
           controller.updateAmountInput('');
         },
-      child: Scaffold(
-        backgroundColor: isTuition ? _kMint : Colors.white,
+        child: Scaffold(
+          backgroundColor: isTuition ? _kMint : Colors.white,
           appBar: MyAppBar(
             title: isTuition ? feeChipLabel : resolvedFeeType,
             showHelp: true,
@@ -227,10 +222,6 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                             amountController: amountController,
                                             amountFocusNode: amountFocusNode,
                                             amountError: amountError,
-                                            minAmount: state.minAmount,
-                                            maxAmount: state.maxAmount,
-                                            amountLimitHint:
-                                                state.amountLimitHint,
                                             hasAmount: hasInput,
                                             onAmountChanged: (value) {
                                               if (suppressAmountSync.value) {
@@ -297,9 +288,6 @@ class _TuitionAmountBody extends StatelessWidget {
     required this.amountController,
     required this.amountFocusNode,
     required this.amountError,
-    required this.minAmount,
-    required this.maxAmount,
-    required this.amountLimitHint,
     required this.hasAmount,
     required this.onAmountChanged,
   });
@@ -309,9 +297,6 @@ class _TuitionAmountBody extends StatelessWidget {
   final TextEditingController amountController;
   final FocusNode amountFocusNode;
   final String? amountError;
-  final double? minAmount;
-  final double? maxAmount;
-  final String? amountLimitHint;
   final bool hasAmount;
   final ValueChanged<String> onAmountChanged;
 
@@ -319,53 +304,20 @@ class _TuitionAmountBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final u = _unit(context);
     final circle = 138 * u;
-    final scale = circle / 138;
-    final caption = (amountLimitHint != null && amountLimitHint!.isNotEmpty)
-        ? amountLimitHint!
-        : _minMaxLabel(
-            minAmount ?? _kDefaultMinAmount,
-            maxAmount ?? _kDefaultMaxAmount,
-          );
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20 * u, 24 * u, 20 * u, 8 * u),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Hero circle (white disc with soft shadow, illustration clipped inside)
-          Container(
+          // Hero: circular card with the teacher icon centered inside.
+          // The asset already carries its own white disc + soft shadow, so it
+          // is rendered as-is (contain) instead of being clipped/stretched.
+          SvgPicture.asset(
+            FileConstants.tuitionFeeHeroSvg,
             width: circle,
             height: circle,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0x1A000000),
-                  blurRadius: 18 * u,
-                  offset: Offset(0, 6 * u),
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: Stack(
-                clipBehavior: Clip.hardEdge,
-                children: [
-                  Positioned(
-                    left: -29 * scale,
-                    top: -6 * scale,
-                    width: 196 * scale,
-                    height: 244 * scale,
-                    child: SvgPicture.asset(
-                      FileConstants.tuitionFeeHeroSvg,
-                      width: 196 * scale,
-                      height: 244 * scale,
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            fit: BoxFit.contain,
           ),
           SizedBox(height: 16 * u),
           Text(
@@ -389,18 +341,6 @@ class _TuitionAmountBody extends StatelessWidget {
                   height: 1.35,
                 ),
           ),
-          if (amountError != null) ...[
-            SizedBox(height: 10 * u),
-            Text(
-              amountError!,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13 * u,
-                  ),
-            ),
-          ],
           SizedBox(height: 45 * u),
           _AmountCard(
             feeChipLabel: feeChipLabel,
@@ -409,14 +349,17 @@ class _TuitionAmountBody extends StatelessWidget {
             hasAmount: hasAmount,
             onAmountChanged: onAmountChanged,
           ),
-          if (caption.isNotEmpty) ...[
+          // Backend validation message (min/max is decided by the API) shown
+          // right under the card; the static min/max hint is intentionally
+          // not rendered here.
+          if (amountError != null) ...[
             SizedBox(height: 18 * u),
             Text(
-              caption,
+              amountError!,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF71717A),
-                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
                     fontSize: 13 * u,
                     height: 1.3,
                   ),
@@ -450,7 +393,7 @@ class _AmountCard extends StatelessWidget {
     final amountTextStyle = EducationFeesTheme.style(
       TextStyle(
         fontSize: fontSize,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         color: const Color(0xFF0C0A09),
         height: 1,
       ),
@@ -507,11 +450,17 @@ class _AmountCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       IgnorePointer(
-                        child: SvgPicture.asset(
-                          FileConstants.rupeeAmountSvg,
-                          width: rupeeW,
-                          height: rupeeH,
-                          fit: BoxFit.contain,
+                        child: Transform.translate(
+                          // The rupee glyph sits high inside its SVG viewBox, so
+                          // it looks raised next to the digits; nudge it down to
+                          // sit on the same visual line as the amount.
+                          offset: Offset(0, 4 * u),
+                          child: SvgPicture.asset(
+                            FileConstants.rupeeAmountSvg,
+                            width: rupeeW,
+                            height: rupeeH,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       SizedBox(width: 6 * u),
@@ -567,11 +516,11 @@ class _AmountCard extends StatelessWidget {
               Text(
                 feeChipLabel,
                 style: MyAppBar.sharedTitleStyle(context)?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13 * u,
-                      letterSpacing: 0,
-                      height: 1,
-                    ),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13 * u,
+                  letterSpacing: 0,
+                  height: 1,
+                ),
               ),
             ],
           ),
@@ -718,6 +667,10 @@ class _LegacyAmountBody extends StatelessWidget {
                             color: AppColors.textPrimary,
                           ),
                         );
+                        // Only the amount beside the ₹ glyph is heavier.
+                        final amountValueStyle = amountTextStyle.copyWith(
+                          fontWeight: FontWeight.w900,
+                        );
                         final strut = StrutStyle(
                           fontSize: 32.sp,
                           height: 1,
@@ -751,7 +704,7 @@ class _LegacyAmountBody extends StatelessWidget {
                                 textAlign: TextAlign.left,
                                 textAlignVertical: TextAlignVertical.center,
                                 strutStyle: strut,
-                                style: amountTextStyle,
+                                style: amountValueStyle,
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   isDense: true,
@@ -773,18 +726,6 @@ class _LegacyAmountBody extends StatelessWidget {
       ],
     );
   }
-}
-
-String _minMaxLabel(double? minAmount, double? maxAmount) {
-  final formatter = NumberFormat.decimalPattern('en_IN');
-  final parts = <String>[];
-  if (minAmount != null) {
-    parts.add('Min Amount ${formatter.format(minAmount.round())}');
-  }
-  if (maxAmount != null) {
-    parts.add('Max ₹${formatter.format(maxAmount.round())}');
-  }
-  return parts.join(' ');
 }
 
 double _parseAmount(String value) {

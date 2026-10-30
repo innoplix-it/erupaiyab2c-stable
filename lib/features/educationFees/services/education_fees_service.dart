@@ -254,7 +254,9 @@ class EducationFeesService {
     required String accountNo,
     required String ifsc,
   }) async {
+    logger.info('EDU_SAVE SERVICE_CALLED');
     try {
+      logger.info('EDU_SAVE DIO_REQUEST_ATTEMPTED');
       final response = await _dio.post(
         ApiConstants.educationSaveBeneficiaryEndpoint,
         data: {
@@ -266,10 +268,17 @@ class EducationFeesService {
           'ifsc': ifsc,
         },
       );
+      logger.info(
+        'EDU_SAVE DIO_RESPONSE_RECEIVED httpStatus=${response.statusCode}',
+      );
       final payload = response.data as Map<String, dynamic>? ?? {};
       return EducationSaveBeneficiaryResponse.fromJson(payload);
     } catch (e) {
       if (e is DioException) {
+        logger.info(
+          'EDU_SAVE DIO_RESPONSE_RECEIVED '
+          'httpStatus=${e.response?.statusCode} error=${e.type.name}',
+        );
         final data = e.response?.data;
         if (data is Map<String, dynamic>) {
           return EducationSaveBeneficiaryResponse.fromJson(data);

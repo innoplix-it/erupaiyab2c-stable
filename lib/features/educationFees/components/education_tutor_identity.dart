@@ -59,6 +59,7 @@ class EducationTutorIdentityCard extends StatelessWidget {
     required this.accountLine,
     required this.amountLabel,
     required this.statusLines,
+    this.verified = true,
   });
 
   final double unit;
@@ -66,6 +67,9 @@ class EducationTutorIdentityCard extends StatelessWidget {
   final String accountLine;
   final String amountLabel;
   final List<EducationTutorStatusLine> statusLines;
+
+  /// Drives the avatar corner tick: green check when verified, gold when not.
+  final bool verified;
 
   @override
   Widget build(BuildContext context) {
@@ -93,25 +97,21 @@ class EducationTutorIdentityCard extends StatelessWidget {
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 36 * u,
-                    backgroundColor: const Color(0xFFFFF0EB),
-                    child: Text(
-                      educationTutorInitials(name),
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 22 * u,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFFDD5428),
-                      ),
-                    ),
+                  // Gradient circular avatar with the verified badge baked in
+                  // (replaces the flat peach circle + separate badge).
+                  SvgPicture.asset(
+                    verified
+                        ? FileConstants.tutorProfileAvatarSvg
+                        : FileConstants.tutorProfileAvatarUnverifiedSvg,
+                    width: 72 * u,
+                    height: 72 * u,
                   ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: SvgPicture.asset(
-                      FileConstants.tutorVerifiedBadgeSvg,
-                      width: 22 * u,
-                      height: 22 * u,
+                  Text(
+                    educationTutorInitials(name),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 22 * u,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
                     ),
                   ),
                 ],

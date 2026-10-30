@@ -218,6 +218,11 @@ class FileConstants {
   static String creditCardContactSvg =
       'assets/images/svg/credit_card_contact.svg';
 
+  /// Figma green verified badge (star-burst + check). Source art is 17×17,
+  /// #17AE67. Used for PAN/bank verification status marks.
+  static String verifyBadgeGreenSvg =
+      'assets/images/svg/verify_badge_green.svg';
+
   /// Last-4 mask pill. Source art is 152×26.
   static String creditCardLast4MaskSvg =
       'assets/images/svg/credit_card_last4_mask.svg';
@@ -452,6 +457,10 @@ class FileConstants {
       'assets/images/svg/education/tutor_verified_badge.svg';
   static String tutorListAvatarSvg =
       'assets/images/svg/education/tutor_list_avatar.svg';
+  static String tutorProfileAvatarSvg =
+      'assets/images/svg/education/tutor_profile_avatar.svg';
+  static String tutorProfileAvatarUnverifiedSvg =
+      'assets/images/svg/education/tutor_profile_avatar_unverified.svg';
   static String educationSearchIconSvg =
       'assets/images/svg/education/education_search_icon.svg';
   static String tutorRequestBadgeSvg =
@@ -466,6 +475,21 @@ class FileConstants {
       'assets/images/png/Investment Banner.png';
   static String tutorTimerIconSvg =
       'assets/images/svg/education/tutor_timer_icon.svg';
+  // Outlined circle + cross used to dismiss the Payment Summary sheet.
+  static String paymentSummaryCloseSvg =
+      'assets/images/svg/education/payment_summary_close.svg';
+  // Success and error icons for payment status popups
+  static String successCheckmarkIconSvg =
+      'assets/images/svg/education/success_checkmark_icon.svg';
+  static String errorCrossIconSvg =
+      'assets/images/svg/education/error_cross_icon.svg';
+  // Gradient circular close (X) button used by the tuition fee request popup.
+  static String tuitionPopupCloseSvg =
+      'assets/images/svg/education/tuition_popup_close.svg';
+  // Static "Pending" status badge used by the tuition fee request popup.
+  // TODO(status): replace with a status-aware badge after backend wiring.
+  static String tuitionPendingBadgeSvg =
+      'assets/images/svg/education/tuition_pending_badge.svg';
   static String thankYouScreenBanner =
       'assets/images/png/thankyouscreenbanner.png';
 

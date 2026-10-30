@@ -303,6 +303,10 @@ class KycVerificationView extends HookConsumerWidget {
                 _PanStep(
                   controller: panController,
                   loading: isVerifyingPan.value,
+                  onSubmit: () {
+                    FocusScope.of(context).unfocus();
+                    verifyPan();
+                  },
                 ),
               if (step.value == _KycStep.aadhaar)
                 _AadhaarStep(
@@ -311,6 +315,10 @@ class KycVerificationView extends HookConsumerWidget {
                   showOtp: otpSent.value,
                   secondsRemaining: timerSeconds.value,
                   onResend: timerSeconds.value == 0 ? sendAadhaarOtp : null,
+                  onSubmit: () {
+                    FocusScope.of(context).unfocus();
+                    if (!otpSent.value) sendAadhaarOtp();
+                  },
                   onChangeAadhaar: () {
                     for (final controller in otpControllers) {
                       controller.clear();
@@ -496,17 +504,22 @@ class _StepIndicator extends HookWidget {
 }
 
 class _PanStep extends HookWidget {
-  const _PanStep({required this.controller, required this.loading});
+  const _PanStep({
+    required this.controller,
+    required this.loading,
+    required this.onSubmit,
+  });
 
   final TextEditingController controller;
   final bool loading;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PanLogoRow(controller: controller),
+        _PanLogoRow(controller: controller, onSubmit: onSubmit),
         if (loading) ...[
           SizedBox(height: 10.h),
           const _LoadingDots(),
@@ -527,6 +540,7 @@ class _AadhaarStep extends HookWidget {
     required this.otpControllers,
     required this.otpFocusNodes,
     required this.verifyLoading,
+    required this.onSubmit,
   });
 
   final TextEditingController controller;
@@ -538,13 +552,14 @@ class _AadhaarStep extends HookWidget {
   final List<TextEditingController> otpControllers;
   final List<FocusNode> otpFocusNodes;
   final bool verifyLoading;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _AadhaarLogoRow(controller: controller),
+        _AadhaarLogoRow(controller: controller, onSubmit: onSubmit),
         if (showOtp) ...[
           SizedBox(height: 18.h),
           Text(
@@ -901,9 +916,10 @@ class _KycCard extends HookWidget {
 }
 
 class _PanLogoRow extends HookWidget {
-  const _PanLogoRow({required this.controller});
+  const _PanLogoRow({required this.controller, this.onSubmit});
 
   final TextEditingController controller;
+  final VoidCallback? onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -936,6 +952,8 @@ class _PanLogoRow extends HookWidget {
           PanInputField(
             controller: controller,
             decoration: _inputDecoration('ABCDE1234E'),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => onSubmit?.call(),
           ),
         ],
       ),
@@ -944,9 +962,10 @@ class _PanLogoRow extends HookWidget {
 }
 
 class _AadhaarLogoRow extends HookWidget {
-  const _AadhaarLogoRow({required this.controller});
+  const _AadhaarLogoRow({required this.controller, this.onSubmit});
 
   final TextEditingController controller;
+  final VoidCallback? onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -980,6 +999,8 @@ class _AadhaarLogoRow extends HookWidget {
           AadhaarInputField(
             controller: controller,
             decoration: _inputDecoration('1234 5678 9012'),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => onSubmit?.call(),
           ),
         ],
       ),

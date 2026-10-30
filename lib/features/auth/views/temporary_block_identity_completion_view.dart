@@ -30,6 +30,8 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
     final aadhaarController = useTextEditingController(
       text: '',
     );
+    final panFocus = useFocusNode();
+    final aadhaarFocus = useFocusNode();
     final panKeyboardSegment = useState(
       panKeyboardSegmentForLength(panController.text.length),
     );
@@ -45,6 +47,22 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
       panController.addListener(syncPanKeyboard);
       return () => panController.removeListener(syncPanKeyboard);
     }, [panController]);
+
+    // Re-attach the input connection when the PAN stage changes so the OS
+    // keyboard flips letters <-> numbers and reliably reopens, instead of
+    // being dismissed by a widget-key rebuild. Text/caret live in the
+    // controller and survive the focus toggle.
+    final lastPanSeg = useRef(panKeyboardSegment.value);
+    useEffect(() {
+      if (panKeyboardSegment.value == lastPanSeg.value) return null;
+      lastPanSeg.value = panKeyboardSegment.value;
+      if (!panFocus.hasFocus) return null;
+      panFocus.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        panFocus.requestFocus();
+      });
+      return null;
+    }, [panKeyboardSegment.value]);
 
     Future<void> handleContinue() async {
       final pan = panController.text.trim().toUpperCase();
@@ -165,16 +183,19 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
             ),
             SizedBox(height: 6.h),
             GreyTextFormField(
-              key: ValueKey('recovery_pan_kb_${panKeyboardSegment.value}'),
               controller: panController,
+              focusNode: panFocus,
               enabled: true,
               autofocus: true,
               height: fieldHeight,
               hintText: 'ABCDE1234F',
               centerText: false,
-              keyboardType:
-                  panKeyboardTypeForLength(panController.text.length),
+              keyboardType: panKeyboardSegment.value == 1
+                  ? TextInputType.number
+                  : TextInputType.text,
               textCapitalization: TextCapitalization.characters,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => aadhaarFocus.requestFocus(),
               inputFormatters: const [PanInputFormatter()],
             ),
             SizedBox(height: 14.h),
@@ -188,12 +209,18 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
             SizedBox(height: 6.h),
             GreyTextFormField(
               controller: aadhaarController,
+              focusNode: aadhaarFocus,
               enabled: true,
               height: fieldHeight,
               hintText: '1234 5678 9012',
               isNumber: true,
               centerText: false,
               maxLength: 14,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) {
+                aadhaarFocus.unfocus();
+                if (!authState.isSubmitting) handleContinue();
+              },
               inputFormatters: const [
                 AadhaarInputFormatter(),
               ],

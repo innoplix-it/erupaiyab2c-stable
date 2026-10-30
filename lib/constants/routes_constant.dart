@@ -22,6 +22,7 @@ class RouteConstants {
   static const String savedBillers = '/billers/saved';
   static const String educationFeesAmount = '/education-fees';
   static const String educationFeesRecipient = '/education-fees/recipient';
+  static const String educationTutorAddDetails = '/education-tutor/add-details';
   static const String educationSearchRecipient =
       '/education-fees/search-recipient';
   static const String educationFeesPayment = '/education-fees/payment';
@@ -32,6 +33,7 @@ class RouteConstants {
   static const String creditCardIntro = '/credit-card';
   static const String creditCardListing = '/credit-card/billers';
   static const String creditCardMyCards = '/credit-card/cards';
+
   /// My Cards bill row → Pay Now (bill fetch on that screen).
   static const String creditCardPayNow = '/credit-card/pay-now';
   static const String creditCardPay = '/credit-card/pay';
@@ -55,11 +57,9 @@ class RouteConstants {
   static const String supportTicketDetail = '/support/tickets/detail';
   static const String transactions = '/transactions';
   static const String transactionDetail = '/transactions/detail';
-  static const String transactionDetailSuccess =
-      '/transactions/detail/success';
+  static const String transactionDetailSuccess = '/transactions/detail/success';
   static const String transactionDetailFailed = '/transactions/detail/failed';
-  static const String transactionDetailPending =
-      '/transactions/detail/pending';
+  static const String transactionDetailPending = '/transactions/detail/pending';
   static const String notifications = '/notifications';
   static const String myQr = '/my-qr';
   static const String quickActions = '/quick-actions';

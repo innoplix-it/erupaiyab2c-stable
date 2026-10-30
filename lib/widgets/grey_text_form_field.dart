@@ -24,6 +24,9 @@ class GreyTextFormField extends StatelessWidget {
     this.autofocus = false,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
+    this.focusNode,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   final TextEditingController controller;
@@ -41,6 +44,9 @@ class GreyTextFormField extends StatelessWidget {
   final bool autofocus;
   final TextInputType? keyboardType;
   final TextCapitalization textCapitalization;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -78,8 +84,11 @@ class GreyTextFormField extends StatelessWidget {
         enabled: enabled,
         autofocus: autofocus,
         controller: controller,
-        keyboardType:
-            keyboardType ?? (isNumber ? TextInputType.number : TextInputType.text),
+        focusNode: focusNode,
+        textInputAction: textInputAction,
+        onFieldSubmitted: onFieldSubmitted,
+        keyboardType: keyboardType ??
+            (isNumber ? TextInputType.number : TextInputType.text),
         textCapitalization: textCapitalization,
         maxLength: maxLength ?? (isNumber ? 10 : null),
         inputFormatters: inputFormatters ??

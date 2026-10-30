@@ -184,13 +184,14 @@ void main() {
     expect(find.text('BANK DETAILS'), findsOneWidget);
     expect(find.text('Subject (Optional)'), findsOneWidget);
     expect(find.text('Proceed to Pay'), findsOneWidget);
+    // The profile card no longer renders static status copy.
     expect(
-      find.text('Supriya has accepted your request now yu can sent tution fees'),
-      findsOneWidget,
+      find.text('Supriya has accepted your request now you \n can sent tution fees'),
+      findsNothing,
     );
     expect(
       find.text('tutor will be saved for future payments'),
-      findsOneWidget,
+      findsNothing,
     );
     // The shared identity card is reused, so the amount pill stays the same.
     expect(find.text('\u20B92,000'), findsOneWidget);

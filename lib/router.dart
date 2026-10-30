@@ -357,6 +357,11 @@ final routerProvider = Provider<GoRouter>(
           builder: (context, state) => const EducationFeesRecipientView(),
         ),
         GoRoute(
+          path: RouteConstants.educationTutorAddDetails,
+          builder: (context, state) =>
+              const EducationFeesRecipientView(unverifiedFlow: true),
+        ),
+        GoRoute(
           path: RouteConstants.educationSearchRecipient,
           builder: (context, state) => const EducationSearchRecipientView(),
         ),

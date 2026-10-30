@@ -145,8 +145,7 @@ class _EducationTutorRequestViewState
 
   Future<void> _sendRequest() async {
     if (_phase != _TutorRequestPhase.form) return;
-    final controller =
-        ref.read(educationFeesControllerProvider.notifier);
+    final controller = ref.read(educationFeesControllerProvider.notifier);
     controller.updateMobileInput(widget.mobile);
     controller.updateRecipientName(widget.tutorName);
 
@@ -179,174 +178,186 @@ class _EducationTutorRequestViewState
     final isLoading = _phase == _TutorRequestPhase.sending ||
         _phase == _TutorRequestPhase.accepted;
 
-    return EducationFeesTheme(
-      child: PopScope(
-        canPop: _phase != _TutorRequestPhase.sending &&
-            _phase != _TutorRequestPhase.accepted,
-        child: Scaffold(
-          backgroundColor: const Color(0xFFB5FFDA),
-          appBar: MyAppBar(
-            title: '',
-            showHelp: true,
-            showBharatConnect: false,
-            showDivider: false,
-            backgroundColor: const Color(0xFFB5FFDA),
-            helpIconSize: 20 * u,
-            onBack: () => context.pop(),
-          ),
-          body: Stack(
-            children: [
-              DecoratedBox(
-                decoration:
-                    const BoxDecoration(gradient: kEducationTutorBackgroundGradient),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding:
-                              EdgeInsets.fromLTRB(inset, 8 * u, inset, 16 * u),
-                          child: Column(
-                            children: [
-                              EducationTutorIdentityCard(
-                                unit: u,
-                                name: widget.tutorName,
-                                accountLine: accountLine,
-                                amountLabel: amountLabel,
-                                statusLines: [
-                                  EducationTutorStatusLine(
-                                    text: isSent
-                                        ? 'Payment request has been sent successfully'
-                                        : 'Please ask your tutor to accept the tuition fees request on erupaiya app',
-                                    color: isSent
-                                        ? const Color(0xFF16A34A)
-                                        : const Color(0xFF71717A),
+    // The processing scrim has to occupy the whole screen, app bar and status
+    // bar included, so it is a sibling above the Scaffold rather than a child
+    // of the body.
+    return Stack(
+      children: [
+        EducationFeesTheme(
+          child: PopScope(
+            canPop: _phase != _TutorRequestPhase.sending &&
+                _phase != _TutorRequestPhase.accepted,
+            child: Scaffold(
+              backgroundColor: const Color(0xFFB5FFDA),
+              appBar: MyAppBar(
+                title: '',
+                showHelp: true,
+                showBharatConnect: false,
+                showDivider: false,
+                backgroundColor: const Color(0xFFB5FFDA),
+                helpIconSize: 20 * u,
+                onBack: () => context.pop(),
+              ),
+              body: Stack(
+                children: [
+                  DecoratedBox(
+                    decoration: const BoxDecoration(
+                        gradient: kEducationTutorBackgroundGradient),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: EdgeInsets.fromLTRB(
+                                  inset, 8 * u, inset, 16 * u),
+                              child: Column(
+                                children: [
+                                  EducationTutorIdentityCard(
+                                    unit: u,
+                                    name: widget.tutorName,
+                                    accountLine: accountLine,
+                                    amountLabel: amountLabel,
+                                    statusLines: [
+                                      EducationTutorStatusLine(
+                                        text: isSent
+                                            ? 'Payment request has been sent successfully'
+                                            : 'Please ask your tutor to accept the tuition fees request on erupaiya app',
+                                        color: isSent
+                                            ? const Color(0xFF16A34A)
+                                            : const Color(0xFF71717A),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              SizedBox(height: 20 * u),
-                              // The investment banner image comes from the
-                              // backend; no local asset is rendered here.
-                              if (isSent) ...[
-                                SizedBox(height: 28 * u),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(
-                                      FileConstants.tutorTimerIconSvg,
-                                      width: 24 * u,
-                                      height: 24 * u,
+                                  SizedBox(height: 20 * u),
+                                  // The investment banner image comes from the
+                                  // backend; no local asset is rendered here.
+                                  if (isSent) ...[
+                                    SizedBox(height: 28 * u),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SvgPicture.asset(
+                                          FileConstants.tutorTimerIconSvg,
+                                          width: 24 * u,
+                                          height: 24 * u,
+                                        ),
+                                        SizedBox(width: 8 * u),
+                                        Text(
+                                          _formatElapsed(_elapsedSeconds),
+                                          key: const ValueKey(
+                                              'tutorRequestTimer'),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 24 * u,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFFDD5428),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    SizedBox(width: 8 * u),
+                                    SizedBox(height: 12 * u),
                                     Text(
-                                      _formatElapsed(_elapsedSeconds),
-                                      key: const ValueKey('tutorRequestTimer'),
+                                      'Please wait until request\naccept from tutor',
+                                      textAlign: TextAlign.center,
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 24 * u,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFFDD5428),
+                                        fontSize: 15 * u,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.4,
+                                        color: Colors.black,
                                       ),
                                     ),
                                   ],
-                                ),
-                                SizedBox(height: 12 * u),
-                                Text(
-                                  'Please wait until request\naccept from tutor',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 15 * u,
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.4,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (isSent)
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 10 * u),
-                          child: Text(
-                            'go back and relax , will notify you once accept',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12 * u,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF71717A),
-                            ),
-                          ),
-                        ),
-                      Padding(
-                        // Figma footer: 24px above the system bottom inset.
-                        padding: EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
-                        child: isSent
-                            ? CustomElevatedButton(
-                                onPressed: () => context.go(
-                                  RouteConstants.home,
-                                ),
-                                label: 'Go to Home',
-                                showArrow: false,
-                                uppercaseLabel: false,
-                                height: 52 * u,
-                                backgroundColor: AppColors.primary,
-                              )
-                            : Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () => context.pop(),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor:
-                                            const Color(0xFFDD5428),
-                                        side: const BorderSide(
-                                          color: Color(0xFFDD5428),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 14 * u,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(28 * u),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Cancel',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15 * u,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 12 * u),
-                                  Expanded(
-                                    child: CustomElevatedButton(
-                                      onPressed: _sendRequest,
-                                      label: 'Send Request',
-                                      showArrow: false,
-                                      uppercaseLabel: false,
-                                      height: 48 * u,
-                                    ),
-                                  ),
                                 ],
                               ),
+                            ),
+                          ),
+                          if (isSent)
+                            Padding(
+                              padding: EdgeInsets.only(bottom: 10 * u),
+                              child: Text(
+                                'go back and relax , will notify you once accept',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12 * u,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFF71717A),
+                                ),
+                              ),
+                            ),
+                          Padding(
+                            // Figma footer: 24px above the system bottom inset.
+                            padding:
+                                EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
+                            child: isSent
+                                ? CustomElevatedButton(
+                                    onPressed: () => context.go(
+                                      RouteConstants.home,
+                                    ),
+                                    label: 'Go to Home',
+                                    showArrow: false,
+                                    uppercaseLabel: false,
+                                    height: 52 * u,
+                                    backgroundColor: AppColors.primary,
+                                  )
+                                : Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: () => context.pop(),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor:
+                                                const Color(0xFFDD5428),
+                                            side: const BorderSide(
+                                              color: Color(0xFFDD5428),
+                                            ),
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 14 * u,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(28 * u),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Cancel',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15 * u,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 12 * u),
+                                      Expanded(
+                                        child: CustomElevatedButton(
+                                          onPressed: _sendRequest,
+                                          label: 'Send Request',
+                                          showArrow: false,
+                                          uppercaseLabel: false,
+                                          height: 48 * u,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-              if (isLoading)
-                EducationErupaiyaVerifyingOverlay(
-                  duration: const Duration(days: 365),
-                  label: _overlayLabel ?? 'Sending Request',
-                  subtitle: _overlaySubtitle ?? 'Do not close or go back.',
-                ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (isLoading)
+          Positioned.fill(
+            child: EducationErupaiyaVerifyingOverlay(
+              duration: const Duration(days: 365),
+              label: _overlayLabel ?? 'Sending Request',
+              subtitle: _overlaySubtitle ?? 'Do not close or go back.',
+            ),
+          ),
+      ],
     );
   }
 }

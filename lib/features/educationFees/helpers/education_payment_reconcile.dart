@@ -35,7 +35,8 @@ Future<void> reconcileEducationPaymentOnFailure({
   bool timedOut = false;
 
   try {
-    final wait = await showPaymentProcessingWhile<EducationPaymentStatusResponse>(
+    final wait =
+        await showPaymentProcessingWhile<EducationPaymentStatusResponse>(
       work: repository.fetchPaymentStatus(transactionRefId: transactionRefId),
       message: 'Verifying Payment',
     );

@@ -77,210 +77,210 @@ class _EducationPaymentThankYouViewState
 
     return EducationFeesTheme(
       child: MediaQuery(
-      // Keep header safe against huge accessibility font sizes.
-      data: mq.copyWith(
-        textScaler: mq.textScaler.clamp(
-          minScaleFactor: 1.0,
-          maxScaleFactor: 1.15,
+        // Keep header safe against huge accessibility font sizes.
+        data: mq.copyWith(
+          textScaler: mq.textScaler.clamp(
+            minScaleFactor: 1.0,
+            maxScaleFactor: 1.15,
+          ),
         ),
-      ),
-      child: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) context.go(RouteConstants.home);
-        },
-        child: Scaffold(
-          backgroundColor: Colors.white,
-          body: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: [
-              // ---------- Green arc: Figma Ellipse 30 ----------
-              // W 838, H 756, Top -409, Left -199 (on 441 frame).
-              Positioned(
-                top: -409 * s,
-                left: -199 * s,
-                child: ClipOval(
-                  child: Container(
-                    width: 838 * s,
-                    height: 756 * s,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF004C1E),
-                          Color(0xFF149248),
-                          Color(0xFF136E3C),
-                          Color(0xFF007340),
-                        ],
-                        stops: [0.0, 0.3446, 0.9055, 1.0],
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) context.go(RouteConstants.home);
+          },
+          child: Scaffold(
+            backgroundColor: Colors.white,
+            body: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                // ---------- Green arc: Figma Ellipse 30 ----------
+                // W 838, H 756, Top -409, Left -199 (on 441 frame).
+                Positioned(
+                  top: -409 * s,
+                  left: -199 * s,
+                  child: ClipOval(
+                    child: Container(
+                      width: 838 * s,
+                      height: 756 * s,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFF004C1E),
+                            Color(0xFF149248),
+                            Color(0xFF136E3C),
+                            Color(0xFF007340),
+                          ],
+                          stops: [0.0, 0.3446, 0.9055, 1.0],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              // ---------- Content ----------
-              Positioned.fill(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Header: fixed height = Figma banner top (377).
-                    // Arc bottom is at 347, so date -> arc -> banner gaps
-                    // match the design on every device.
-                    SizedBox(
-                      height: 377 * s,
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          top: topInset + 50 * s,
-                          left: 24 * s,
-                          right: 24 * s,
+                // ---------- Content ----------
+                Positioned.fill(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header: fixed height = Figma banner top (377).
+                      // Arc bottom is at 347, so date -> arc -> banner gaps
+                      // match the design on every device.
+                      SizedBox(
+                        height: 377 * s,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            top: topInset + 50 * s,
+                            left: 24 * s,
+                            right: 24 * s,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                FileConstants.successIcon,
+                                width: 46 * s,
+                                height: 46 * s,
+                                fit: BoxFit.contain,
+                              ),
+                              SizedBox(height: 14 * s),
+                              Text(
+                                title,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 18 * s,
+                                  height: 1.3,
+                                ),
+                              ),
+                              SizedBox(height: 14 * s),
+                              _GlassBadge(text: formattedAmount, s: s),
+                              SizedBox(height: 14 * s),
+                              Text(
+                                formattedDate,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: const Color(0xE6FFFFFF),
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 10 * s,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Banner region: takes remaining height, keeps aspect,
+                      // max width = Figma 392 (scaled). Shrinks on short
+                      // screens, never overflows.
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24.5 * s),
+                          child: LayoutBuilder(
+                            builder: (context, c) {
+                              double w = c.maxWidth;
+                              double h = w / _bannerAspect;
+                              if (h > c.maxHeight) {
+                                h = c.maxHeight;
+                                w = h * _bannerAspect;
+                              }
+                              return Align(
+                                alignment: Alignment.topCenter,
+                                child: SizedBox(
+                                  width: w,
+                                  height: h,
+                                  child: Stack(
+                                    clipBehavior: Clip.hardEdge,
+                                    children: [
+                                      Positioned.fill(
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(10 * s),
+                                          child: imageUrl.isEmpty
+                                              ? bannerPng
+                                              : AppNetworkImage(
+                                                  url: imageUrl,
+                                                  fit: BoxFit.cover,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          10 * s),
+                                                  errorWidget: bannerPng,
+                                                ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 10 * s,
+                                        right: 0,
+                                        child: SvgPicture.string(
+                                          FileConstants.adBadgeSvg,
+                                          width: 48 * s,
+                                          height: 33 * s,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+
+                      // Bottom: Done + powered by.
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          24 * s,
+                          14 * s,
+                          24 * s,
+                          bottomInset + 20 * s,
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Image.asset(
-                              FileConstants.successIcon,
-                              width: 46 * s,
-                              height: 46 * s,
-                              fit: BoxFit.contain,
+                            CustomElevatedButton(
+                              onPressed: () =>
+                                  context.go(RouteConstants.transactions),
+                              label: 'Done',
+                              uppercaseLabel: false,
+                              showArrow: false,
                             ),
-                            SizedBox(height: 14 * s),
-                            Text(
-                              title,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 18 * s,
-                                height: 1.3,
-                              ),
-                            ),
-                            SizedBox(height: 14 * s),
-                            _GlassBadge(text: formattedAmount, s: s),
-                            SizedBox(height: 14 * s),
-                            Text(
-                              formattedDate,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: const Color(0xE6FFFFFF),
-                                fontWeight: FontWeight.w400,
-                                fontSize: 10 * s,
-                                height: 1.2,
-                              ),
+                            SizedBox(height: 10 * s),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'powered by',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.black,
+                                    fontSize: 9 * s,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(width: 3 * s),
+                                Image.asset(
+                                  FileConstants.bharatConnectColor,
+                                  width: 46 * s,
+                                  height: 22 * s,
+                                  fit: BoxFit.contain,
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    ),
-
-                    // Banner region: takes remaining height, keeps aspect,
-                    // max width = Figma 392 (scaled). Shrinks on short
-                    // screens, never overflows.
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 24.5 * s),
-                        child: LayoutBuilder(
-                          builder: (context, c) {
-                            double w = c.maxWidth;
-                            double h = w / _bannerAspect;
-                            if (h > c.maxHeight) {
-                              h = c.maxHeight;
-                              w = h * _bannerAspect;
-                            }
-                            return Align(
-                              alignment: Alignment.topCenter,
-                              child: SizedBox(
-                                width: w,
-                                height: h,
-                                child: Stack(
-                                  clipBehavior: Clip.hardEdge,
-                                  children: [
-                                    Positioned.fill(
-                                      child: ClipRRect(
-                                        borderRadius:
-                                        BorderRadius.circular(10 * s),
-                                        child: imageUrl.isEmpty
-                                            ? bannerPng
-                                            : AppNetworkImage(
-                                          url: imageUrl,
-                                          fit: BoxFit.cover,
-                                          borderRadius:
-                                          BorderRadius.circular(
-                                              10 * s),
-                                          errorWidget: bannerPng,
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 10 * s,
-                                      right: 0,
-                                      child: SvgPicture.string(
-                                        FileConstants.adBadgeSvg,
-                                        width: 48 * s,
-                                        height: 33 * s,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-
-                    // Bottom: Done + powered by.
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        24 * s,
-                        14 * s,
-                        24 * s,
-                        bottomInset + 20 * s,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CustomElevatedButton(
-                            onPressed: () =>
-                                context.go(RouteConstants.transactions),
-                            label: 'Done',
-                            uppercaseLabel: false,
-                            showArrow: false,
-                          ),
-                          SizedBox(height: 10 * s),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'powered by',
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.black,
-                                  fontSize: 9 * s,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              SizedBox(width: 3 * s),
-                              Image.asset(
-                                FileConstants.bharatConnectColor,
-                                width: 46 * s,
-                                height: 22 * s,
-                                fit: BoxFit.contain,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -417,8 +417,18 @@ String _formatHeaderDate(String raw) {
   final parsed = DateTime.tryParse(normalized);
   if (parsed == null) return value;
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   final day = parsed.day.toString();
   final month = months[parsed.month - 1];

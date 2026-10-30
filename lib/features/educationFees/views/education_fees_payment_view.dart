@@ -19,7 +19,6 @@ import '../education_fees_typography.dart';
 import '../helpers/education_pay_now.dart';
 import '../models/education_fees_responses.dart';
 
-
 class EducationFeesPaymentView extends HookConsumerWidget {
   const EducationFeesPaymentView({super.key});
 
@@ -59,10 +58,12 @@ class EducationFeesPaymentView extends HookConsumerWidget {
           if (response.status && response.data != null) {
             paymentSummary.value = response.data;
           } else {
-            summaryError.value = response.message ?? 'Failed to fetch payment summary.';
+            summaryError.value =
+                response.message ?? 'Failed to fetch payment summary.';
           }
         } catch (e) {
-          summaryError.value = 'Failed to fetch payment summary. Please try again.';
+          summaryError.value =
+              'Failed to fetch payment summary. Please try again.';
         } finally {
           isFetchingSummary.value = false;
         }
@@ -105,73 +106,73 @@ class EducationFeesPaymentView extends HookConsumerWidget {
 
     return EducationFeesTheme(
       child: Scaffold(
-      backgroundColor: Colors.white,
-      appBar: MyAppBar(
-        title: 'Select Payment Method',
-        showHelp: true,
-        showDivider: false,
-        fitTitle: true,
-        titleStyle: MyAppBar.sharedTitleStyle(context),
-        bharatConnectWidth: 52,
-        bharatConnectHeight: 25,
-        helpIconSize: 20,
-        onBack: () => Navigator.of(context).maybePop(),
-      ),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Paying To',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    SizedBox(height: 10.h),
-                    _PayingToCard(
-                      name: state.recipientName,
-                      maskedAccount: _maskAccount(state.accountNumber),
-                      amount: payableAmount,
-                    ),
-                    SizedBox(height: 26.h),
-                    Text(
-                      'My Cards / Recent Cards',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    SizedBox(height: 12.h),
-                    _CardListSection(
-                      amount: payableAmount,
-                      cardsFuture: cardsFuture,
-                      selectedCard: selectedCard,
-                      onViewAndPay: openSummary,
-                    ),
-                  ],
+        backgroundColor: Colors.white,
+        appBar: MyAppBar(
+          title: 'Select Payment Method',
+          showHelp: true,
+          showDivider: false,
+          fitTitle: true,
+          titleStyle: MyAppBar.sharedTitleStyle(context),
+          bharatConnectWidth: 52,
+          bharatConnectHeight: 25,
+          helpIconSize: 20,
+          onBack: () => Navigator.of(context).maybePop(),
+        ),
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Paying To',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      SizedBox(height: 10.h),
+                      _PayingToCard(
+                        name: state.recipientName,
+                        maskedAccount: _maskAccount(state.accountNumber),
+                        amount: payableAmount,
+                      ),
+                      SizedBox(height: 26.h),
+                      Text(
+                        'My Cards / Recent Cards',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      SizedBox(height: 12.h),
+                      _CardListSection(
+                        amount: payableAmount,
+                        cardsFuture: cardsFuture,
+                        selectedCard: selectedCard,
+                        onViewAndPay: openSummary,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 20.h),
-              child: showPayNow
-                  ? CustomElevatedButton(
-                      onPressed: openSummary,
-                      label: 'Pay Now',
-                      uppercaseLabel: false,
-                      showArrow: false,
-                      height: 42.h,
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 20.h),
+                child: showPayNow
+                    ? CustomElevatedButton(
+                        onPressed: openSummary,
+                        label: 'Pay Now',
+                        uppercaseLabel: false,
+                        showArrow: false,
+                        height: 42.h,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -481,4 +482,3 @@ double _parseAmount(String value) {
   final amount = double.tryParse(value.replaceAll(RegExp(r'\D'), '')) ?? 0;
   return amount.toDouble();
 }
-

@@ -10,18 +10,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_search_bar.dart';
-import '../../../widgets/app_snackbar.dart';
-import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
-import '../../../widgets/processing_overlay.dart';
-import '../../paymentgateway/razorpay_guard.dart';
-import '../../paymentgateway/razorpay_service.dart';
+import '../../../widgets/payment_status_popup.dart';
 import '../../profile/controllers/profile_controller.dart';
-import '../components/education_payment_sheets.dart';
-import '../controllers/education_fees_controller.dart';
-import '../helpers/education_payment_reconcile.dart';
 import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
+import 'education_tutor_profile_view.dart';
 
 /// Shared mint gradient (same as Tuition Fee amount screen).
 const LinearGradient _kTutorsMintGradient = LinearGradient(
@@ -51,7 +45,6 @@ class EducationFeesTutorsView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repository = ref.read(educationFeesRepositoryProvider);
     final searchController = useTextEditingController();
     final query = useState('');
     useEffect(() {
@@ -61,7 +54,6 @@ class EducationFeesTutorsView extends HookConsumerWidget {
       );
       return null;
     }, const []);
-    final processingNavigationStarted = useRef(false);
 
     final filtered = useMemoized(() {
       final q = query.value.trim().toLowerCase();
@@ -79,77 +71,21 @@ class EducationFeesTutorsView extends HookConsumerWidget {
     }, [tutors, query.value]);
 
     void openSummary(EducationBeneficiary tutor) {
-      KDialog.instance.openSheet(
-        dialog: EducationPaymentSummarySheet(
-          amount: amount,
-          onPayNow: (payable) async {
-            if (!await RazorpayGuard.ensureProfileReadyAndNotPaused(ref)) {
-              return;
-            }
-            final feeType = ref.read(educationFeesControllerProvider).feeType;
-            EducationCreateOrderResponse order;
-            try {
-              order = await repository.createOrder(
-                recipientName: tutor.name,
-                accountNo: tutor.accountMasked,
-                accountNoUnmasked: tutor.accountNoUnmasked,
-                ifsc: tutor.ifsc,
-                amount: amount,
-                feeType: feeType,
-              );
-            } catch (e) {
-              AppSnackbar.show(
-                'Failed to create order. Please try again.',
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
-              );
-              return;
-            }
-
-            if (!order.status || order.orderId.isEmpty || order.key.isEmpty) {
-              AppSnackbar.show(
-                order.message.isNotEmpty
-                    ? order.message
-                    : 'Failed to create order. Please try again.',
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
-              );
-              return;
-            }
-
-            await RazorpayService.instance.openCheckout(
-              amount: payable,
-              name: tutor.name.isEmpty ? 'Education Fees' : tutor.name,
-              description: 'Tuition fee payment',
-              orderId: order.orderId,
-              keyOverride: order.key,
-              onSuccess: (paymentId) {
-                if (processingNavigationStarted.value) return;
-                processingNavigationStarted.value = true;
-                openEducationPaymentProcessing({
-                  'transactionRefId': order.transactionRefId,
-                  'paymentType': feeType ?? 'Education Fees',
-                  'recipientName': tutor.name,
-                  'maskedAccount': tutor.accountMasked,
-                  'fallbackAmount': payable.toStringAsFixed(2),
-                  'paymentId': paymentId,
-                });
-              },
-              onFailure: (message) async {
-                if (processingNavigationStarted.value) return;
-                processingNavigationStarted.value = true;
-                await reconcileEducationPaymentOnFailure(
-                  context: context,
-                  repository: repository,
-                  transactionRefId: order.transactionRefId,
-                  paymentType: feeType ?? 'Education Fees',
-                  recipientName: tutor.name,
-                  maskedAccount: tutor.accountMasked,
-                  fallbackAmount: payable.toStringAsFixed(2),
-                );
-              },
-            );
-          },
+      // Tutor profile screen — every value shown there comes from the
+      // beneficiaries API (the [tutor] record), nothing is fabricated here.
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => EducationTutorProfileView(
+            tutorName:
+                tutor.name.isEmpty ? _fallbackTutorName(tutor) : tutor.name,
+            accountLine: tutor.accountMasked,
+            amount: amount,
+            amountLabel: '\u20B9${amount.toStringAsFixed(0)}',
+            panDetails: tutor.panMasked,
+            accountNumber: tutor.accountNoUnmasked,
+            ifscCode: tutor.ifsc,
+            branch: tutor.branch,
+          ),
         ),
       );
     }
@@ -228,7 +164,7 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16 * u),
+                      SizedBox(height: 30 * u),
                       AppSearchBar(
                         hintText: 'Search contacts / tutors',
                         controller: searchController,
@@ -255,8 +191,8 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                           padding: EdgeInsets.only(right: 10 * u),
                           child: GestureDetector(
                             onTap: () => context.push(
-                                  RouteConstants.educationSearchRecipient,
-                                ),
+                              RouteConstants.educationSearchRecipient,
+                            ),
                             child: SvgPicture.asset(
                               FileConstants.addTutorBadgeSvg,
                               height: 31 * u,
@@ -276,7 +212,7 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                           height: 1.9,
                         ),
                       ),
-                      SizedBox(height: 8 * u),
+                      SizedBox(height: 18 * u),
                       if (filtered.isEmpty)
                         Padding(
                           padding: EdgeInsets.symmetric(vertical: 32 * u),
@@ -310,6 +246,36 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                             ),
                           );
                         }),
+                    ],
+                  ),
+                ),
+                // Bottom text elements row
+                Container(
+                  padding: EdgeInsets.fromLTRB(
+                    inset,
+                    16 * u,
+                    inset,
+                    24 * u,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _PopupTriggerText(
+                        text: 'Success',
+                        onTap: () => _showSuccessPopup(context, u),
+                      ),
+                      _PopupTriggerText(
+                        text: 'Error',
+                        onTap: () => _showErrorPopup(context, u),
+                      ),
+                      _PopupTriggerText(
+                        text: 'Pending',
+                        onTap: () => _showPendingPopup(context, u),
+                      ),
+                      _PopupTriggerText(
+                        text: 'Declined',
+                        onTap: () => _showDeclinedPopup(context, u),
+                      ),
                     ],
                   ),
                 ),
@@ -499,4 +465,78 @@ String _fallbackTutorName(EducationBeneficiary tutor) {
     return 'Account ${tutor.accountMasked}';
   }
   return 'Beneficiary';
+}
+
+class _PopupTriggerText extends StatelessWidget {
+  const _PopupTriggerText({
+    required this.text,
+    required this.onTap,
+  });
+
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        text,
+        style: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: const Color(0xFFDD5428),
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+}
+
+void _showSuccessPopup(BuildContext context, double u) {
+  showPaymentStatusPopup(
+    context: context,
+    type: PaymentStatusType.success,
+    title: 'Request Accepted Successfully',
+    message: 'You have accepted the tuition fee payment request from Darshan Nikam.',
+    amount: '₹2,000',
+    statusTag: 'Request Accepted',
+    subMessage: 'You can now proceed with the next step. Continue',
+  );
+}
+
+void _showErrorPopup(BuildContext context, double u) {
+  showPaymentStatusPopup(
+    context: context,
+    type: PaymentStatusType.error,
+    title: 'Payment Failed',
+    message: 'Your payment could not be processed due to an error.',
+    amount: '₹2,000',
+    statusTag: 'Payment Failed',
+    subMessage: 'Please try again or contact support if the issue persists.',
+  );
+}
+
+void _showPendingPopup(BuildContext context, double u) {
+  showPaymentStatusPopup(
+    context: context,
+    type: PaymentStatusType.success,
+    title: 'Request Pending',
+    message: 'Your tuition fee payment request is being processed.',
+    amount: '₹2,000',
+    statusTag: 'Pending',
+    subMessage: 'Please wait while we verify your payment details.',
+  );
+}
+
+void _showDeclinedPopup(BuildContext context, double u) {
+  showPaymentStatusPopup(
+    context: context,
+    type: PaymentStatusType.error,
+    title: 'Request Declined',
+    message: 'You have declined the tuition fee payment request from Darshan Nikam.',
+    amount: '₹2,000',
+    statusTag: 'Request Declined',
+    subMessage: 'Darshan Nikam will be notified about your decision.',
+  );
 }

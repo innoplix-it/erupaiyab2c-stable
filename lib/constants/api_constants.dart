@@ -1,5 +1,7 @@
 class ApiConstants {
-  static const String baseUrl = 'https://test.erupaiya.com';
+
+  static const String baseUrl = 'https://erupaiya.com'; //after
+
 
   static const String loginEndpoint = '$baseUrl/api/auth/login';
   static const String checkLoginEndpoint = '$baseUrl/api/auth/check-login';

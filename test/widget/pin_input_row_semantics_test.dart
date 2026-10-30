@@ -105,11 +105,6 @@ void main() {
       final handle = tester.ensureSemantics();
       await tester.pumpAndSettle();
 
-      // Measured node structure: the Semantics wrapper publishes one merged
-      // node per field (label 'PIN entry' + length hint, empty value), while
-      // each EditableText node carries only its own digit as `value` with no
-      // label/hint. Assert no announced label/hint embeds an entered digit
-      // and the full PIN never appears anywhere.
       final wrapper = tester.getSemantics(
         find.byWidgetPredicate((widget) =>
             widget is Semantics &&
