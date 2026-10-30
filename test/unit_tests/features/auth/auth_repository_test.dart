@@ -282,10 +282,82 @@ void main() {
       verify(() => mockSecureStorage.delete(key: 'refreshToken')).called(1);
       verify(() => mockSecureStorage.delete(key: 'tokenType')).called(1);
       verify(() => mockSecureStorage.delete(key: 'tokenExpiresAt')).called(1);
+      // AUD-032: refreshTokenExpiresAt must be cleared by the shared
+      // clearSessionStorage used from logout().
+      verify(() => mockSecureStorage.delete(key: 'refreshTokenExpiresAt'))
+          .called(1);
       verify(() => mockSecureStorage.delete(key: 'userId')).called(1);
       verify(() => mockSecureStorage.delete(key: 'mobile')).called(1);
       verify(() => mockSecureStorage.delete(key: 'tempAccessToken')).called(1);
       verifyNoMoreInteractions(mockSecureStorage);
+    });
+
+    test('logout still clears session when the API call fails', () async {
+      when(() => mockSecureStorage.read(key: 'refreshToken'))
+          .thenAnswer((_) async => 'refresh-token-value');
+      when(() => mockSecureStorage.delete(key: any(named: 'key')))
+          .thenAnswer((_) async {});
+      when(() => mockDioClient.post(
+            ApiConstants.logoutEndpoint,
+            data: any(named: 'data'),
+            options: any(named: 'options'),
+          )).thenThrow(
+        DioException(
+          type: DioExceptionType.connectionError,
+          requestOptions: RequestOptions(path: ApiConstants.logoutEndpoint),
+        ),
+      );
+
+      await authRepository.logout();
+
+      // Cleanup runs in `finally` even when the logout API is unreachable.
+      verify(() => mockSecureStorage.delete(key: 'refreshTokenExpiresAt'))
+          .called(1);
+      verify(() => mockSecureStorage.delete(key: 'accessToken')).called(1);
+    });
+  });
+
+  group('AuthRepository - refreshSession (AUD-032 preservation)', () {
+    test('successful refresh writes new tokens and never deletes keys',
+        () async {
+      when(() => mockSecureStorage.read(key: 'refreshToken'))
+          .thenAnswer((_) async => 'old-refresh-token');
+      when(() => mockSecureStorage.write(
+            key: any(named: 'key'),
+            value: any(named: 'value'),
+          )).thenAnswer((_) async {});
+      when(() => mockDioClient.post(
+            ApiConstants.refreshTokenEndpoint,
+            data: any(named: 'data'),
+            options: any(named: 'options'),
+          )).thenAnswer(
+        (_) async => Response(
+          data: const {
+            'success': true,
+            'data': {
+              'access_token': 'new-access',
+              'refresh_token': 'new-refresh',
+              'token_type': 'Bearer',
+              'expires_in': 3600,
+              'refresh_expires_in': 86400,
+            },
+          },
+          statusCode: 200,
+          requestOptions:
+              RequestOptions(path: ApiConstants.refreshTokenEndpoint),
+        ),
+      );
+
+      final refreshed = await authRepository.refreshSession();
+
+      expect(refreshed, isTrue);
+      // Normal refresh must NOT clear session expiry data…
+      verifyNever(() => mockSecureStorage.delete(key: any(named: 'key')));
+      // …and must store the new refresh-token expiry instead.
+      verify(() => mockSecureStorage.write(
+            key: 'refreshTokenExpiresAt',
+            value: any(named: 'value'),
+          )).called(1);
     });
   });
 }

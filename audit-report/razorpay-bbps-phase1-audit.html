@@ -1,0 +1,274 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><style>
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:11px;
+line-height:1.5;color:#18181b;margin:0;}
+h1{font-size:20px;border-bottom:3px solid #F37021;padding-bottom:6px;}
+h2{font-size:15px;margin-top:22px;border-bottom:1px solid #e4e4e7;padding-bottom:3px;}
+h3{font-size:13px;margin-top:16px;}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:10px;}
+th,td{border:1px solid #d4d4d8;padding:4px 6px;text-align:left;vertical-align:top;}
+th{background:#fafafa;}
+code{background:#f4f4f5;padding:1px 3px;border-radius:3px;font-size:10px;}
+pre{background:#f4f4f5;border:1px solid #e4e4e7;border-radius:6px;padding:8px;
+font-size:9.5px;white-space:pre-wrap;word-break:break-word;}
+ul,ol{margin:4px 0 4px 18px;padding:0;list-style:none;}
+li{margin:2px 0;}
+ul li::before{content:"- ";}
+ol{counter-reset:item;}
+ol li::before{content:counter(item) ". ";counter-increment:item;}
+.nested{margin-left:16px;}
+hr{border:none;border-top:1px solid #e4e4e7;margin:14px 0;}
+@page{size:A4;margin:14mm 12mm;}
+</style></head><body><h1>Phase 1 — Razorpay Integration Audit (BBPS Scope) — eRupaiya Flutter App</h1>
+<p><strong>Audit date:</strong> 30-Oct-2026</p>
+<p><strong>Type:</strong> READ-ONLY audit (kooni hi application code modify kela nahi)</p>
+<p><strong>Scope:</strong> Fakt BBPS (Bharat Bill Payment System) modules madhe vaparlyala jaanaar Razorpay flow. Non-BBPS flows (udahararth Digital Gold) detail analysis kaadhe takle ahet, punhi mahutvachi findings sangitli ahet.</p>
+<hr>
+<h2>1. Project Razorpay Implementation Overview</h2>
+<ul class=""><li><strong>Package:</strong> <code>razorpay_flutter: ^1.1.1</code> (<code>pubspec.yaml</code> line 15).</li></ul>
+<ul class=""><li><strong>Single shared wrapper:</strong> Puriva app madhe Razorpay checkout <strong>ekach class</strong> madhun open hoto — <code>RazorpayService</code> (<code>lib/features/paymentgateway/razorpay_service.dart</code>). Hi ek <strong>singleton</strong> ahe (<code>RazorpayService.instance</code>).</li></ul>
+<ul class=""><li><strong>Key source:</strong> Razorpay Key ID <strong>Flutter madhe hardcode NAHI</strong>. To mag backend <code>create-order</code> API chya response madha <code>key</code> field madhun yeto. Mhanje key backend kade ahe ani to runtime la device var pathavto.</li></ul>
+<ul class=""><li><strong>Key Secret:</strong> Flutter code madhe <strong>konthi hi Razorpay key secret NAH</strong> (search karun verify kela). ✓ Security drushtya hi bari go.</li></ul>
+<ul class=""><li><strong>Signature verification:</strong> Flutter side la <code>razorpay_signature</code> / <code>razorpay_payment_id</code> cha <strong>konthi hi handling NAHI</strong>. Payment khara "kela ka nahi" he <strong>fakt backend status API</strong> ne poll karun tharte. (He design badal CCAvenue sathi mahutvachi ahe — PAHI §8.)</li></ul>
+<ul class=""><li><strong>Kill-switch:</strong> Profile API chya <code>is_razorpay_disable</code> flag ne backend remote paasun payments pause karu shakto — <code>RazorpayGuard</code> hi check dar payment sathi hoto.</li></ul>
+<ul class=""><li><strong>Payment chya 4 BBPS invocation points ahet:</strong></li></ul>
+<ol class="nested"><li><strong>Education Fees</strong> (Tuition/Rent etc.) → <code>runEducationPayNow</code></li></ol>
+<ol class="nested"><li><strong>Mobile Recharge</strong> → <code>payment_bottom_sheet.dart</code> (recharge sheet)</li></ol>
+<ol class="nested"><li><strong>BBPS Bill Payment</strong> (electricity, water, gas, DTH etc.) → <code>payment_bottom_sheet.dart</code> (biller sheet)</li></ol>
+<ol class="nested"><li><strong>Biller detail / subscription + FastTag direct pay</strong> → <code>biller_detail_view.dart</code></li></ol>
+<h3>Dar Razorpay payment cha 3-stage pattern (sarva BBPS modules madhe same):</h3>
+<pre>Stage 1: POST &lt;module&gt;/create-order   → backend {order_id, key, transaction_ref_id}
+Stage 2: RazorpayCheckout open        → user pays → success/failure callback
+Stage 3: GET &lt;module&gt;/status/&lt;ref&gt;    → backend polling → SUCCESS/FAILED/PENDING screen</pre>
+<p>Flutter <strong>konthi hi Razorpay order create karat nahi, signature verify karat nahi</strong> — he sagla backend che kaam ahe (backend code repo madhe nahi → <code>Backend code not available for verification</code>).</p>
+<hr>
+<h2>2. Complete File Inventory (Razorpay-related)</h2>
+<table>
+<tr><th>#</th><th>File</th><th>Responsibility</th></tr>
+<tr><td>1</td><td><code>lib/features/paymentgateway/razorpay_service.dart</code></td><td>Razorpay checkout wrapper (singleton) — ekmathra jagya <code>Razorpay().open()</code></td></tr>
+<tr><td>2</td><td><code>lib/features/paymentgateway/razorpay_guard.dart</code></td><td>Payment-purv chi profile-readiness + kill-switch check</td></tr>
+<tr><td>3</td><td><code>lib/features/educationFees/helpers/education_pay_now.dart</code></td><td>Education "Pay" handoff (order → checkout → result)</td></tr>
+<tr><td>4</td><td><code>lib/features/educationFees/helpers/education_payment_reconcile.dart</code></td><td>Gateway-failure nantar single-shot status reconciliation</td></tr>
+<tr><td>5</td><td><code>lib/widgets/processing_overlay.dart</code></td><td>Processing screens + 60s status polling engine</td></tr>
+<tr><td>6</td><td><code>lib/features/educationFees/services/education_fees_service.dart</code></td><td><code>create-order</code> + <code>status</code> API calls (education)</td></tr>
+<tr><td>7</td><td><code>lib/features/educationFees/repositories/education_fees_repository.dart</code></td><td>Repository passthrough (education)</td></tr>
+<tr><td>8</td><td><code>lib/features/educationFees/models/education_fees_responses.dart</code></td><td>Order/status request-response models</td></tr>
+<tr><td>9</td><td><code>lib/features/mobile_prepaid/components/payment_bottom_sheet.dart</code></td><td>Recharge ani Bill-payment sheets — 2checkout call sites</td></tr>
+<tr><td>10</td><td><code>lib/features/mobile_prepaid/controllers/mobile_prepaid_controller.dart</code></td><td>Recharge order + status verify + single-flight guard</td></tr>
+<tr><td>11</td><td><code>lib/features/mobile_prepaid/repositories/mobile_prepaid_repository.dart</code></td><td><code>recharge/create-order</code> + status APIs</td></tr>
+<tr><td>12</td><td><code>lib/features/mobile_prepaid/models/recharge_order_result.dart</code></td><td>Recharge order response model</td></tr>
+<tr><td>13</td><td><code>lib/features/mobile_prepaid/models/prepaid_transaction_status.dart</code></td><td>Recharge status model</td></tr>
+<tr><td>14</td><td><code>lib/features/services/controllers/biller_detail_controller.dart</code></td><td>Bill order + status polling controller</td></tr>
+<tr><td>15</td><td><code>lib/features/services/repositories/biller_repository.dart</code></td><td><code>bill/create-order</code> + <code>recharge/status</code> APIs</td></tr>
+<tr><td>16</td><td><code>lib/features/services/models/service_payment_order_result.dart</code></td><td>Bill order response model</td></tr>
+<tr><td>17</td><td><code>lib/features/services/models/recharge_status_result.dart</code></td><td>Bill/recharge status model</td></tr>
+<tr><td>18</td><td><code>lib/features/services/views/biller_detail_view.dart</code></td><td>Direct Razorpay call (subscription bill/FastTag path)</td></tr>
+<tr><td>19</td><td><code>lib/features/profile/models/profile_model.dart</code></td><td><code>is_razorpay_disable</code> kill-switch field</td></tr>
+<tr><td>20</td><td><code>lib/services/payment_device_context_service.dart</code></td><td>Device context (GPS/VPN/root/deviceId) — order request la attach</td></tr>
+<tr><td>21</td><td><code>lib/constants/api_constants.dart</code></td><td>Sarva endpoints</td></tr>
+<tr><td>22</td><td><code>lib/features/digital_gold/components/gold_payment_summary_sheet.dart</code></td><td><strong>Non-BBPS</strong> — punhi ek finding ahe (§9.3)</td></tr>
+</table>
+<hr>
+<h2>3. CORE FILE — <code>razorpay_service.dart</code> (Line-by-Line)</h2>
+<p>Path: <code>lib/features/paymentgateway/razorpay_service.dart</code> (77 lines — sagla file vapale)</p>
+<table>
+<tr><th>Line(s)</th><th>Code</th><th>Saral Spashtikaran</th></tr>
+<tr><td>1</td><td><code>import 'package:razorpay_flutter/razorpay_flutter.dart';</code></td><td>Official Razorpay Flutter plugin. Yethun <code>Razorpay</code> class ani callback response types yetat.</td></tr>
+<tr><td>3–5</td><td><code>typedef RazorpaySuccessCallback = void Function(String paymentId);</code> etc.</td><td>Tin callbacks che simple function-types: success (paymentId pathavto), failure (message pathavto), external-wallet (wallet che nav pathavto). <strong>Note:</strong> success la fakt <code>paymentId</code> yeto — signature NAHI.</td></tr>
+<tr><td>7–10</td><td><code>class RazorpayService { RazorpayService._(); static final instance = ... }</code></td><td><strong>Singleton pattern.</strong> Constructor private ahe, mhanje app bhar ekach instance vaparalat. Yacha fayda: ekach <code>Razorpay</code> object, duplicate listeners control hotat.</td></tr>
+<tr><td>12</td><td><code>Razorpay? _razorpay;</code></td><td>Razorpay SDK cha actual object. Nullable — aajun checkout open zala nasel tar null.</td></tr>
+<tr><td>14–17</td><td><code>dispose() { _razorpay?.clear(); _razorpay = null; }</code></td><td>Listeners clean karnyasaathi helper. <strong>⚠ Finding:</strong> hi method konthi hi call kelayala <strong>adisla nahi</strong> (grep ne confirm) — practically cleanup <code>openCheckout()</code> chya line 36 var hote.</td></tr>
+<tr><td>19–29</td><td><code>Future&lt;void&gt; openCheckout({...})</code></td><td><strong>Ekmathra entry point dar payment sathi.</strong> Params: <code>amount</code> (rupees madhe), <code>name</code>, <code>description</code>, <code>orderId</code>, <code>keyOverride</code> (backend kadeun mileli key), 3 callbacks, <code>prefill</code> (contact/email pre-fill).</td></tr>
+<tr><td>30–34</td><td><code>final key = keyOverride.trim(); if (key.isEmpty) { onFailure?.call('Razorpay key is missing.'); return; }</code></td><td><strong>Guard:</strong> jar backend ne key pathavli nahi tar checkout open hokh nahi — lagan onFailure call hoto. Yane app crash tala ani user la spast message yeto.</td></tr>
+<tr><td>36–37</td><td><code>_razorpay?.clear(); _razorpay = Razorpay();</code></td><td><strong>Dar checkout purvi eski listeners havgatli jaat.</strong> Yacha arth: jar 2 veli payment kele, tar 1adya che listeners 2rya la duplicate fire <strong>karu shakat nahi</strong>. He duplicate-callback prevention cha 1st layer ahe.</td></tr>
+<tr><td>39–44</td><td><code>on(EVENT_PAYMENT_SUCCESS, (PaymentSuccessResponse response) =&gt; onSuccess?.call(response.paymentId ?? ''))</code></td><td>Razorpay SDK la success listener register karto. User che payment gateway kade success zale ki hi event fire hote; <code>paymentId</code> (udah. <code>pay_XXXX</code>) callback madhun forward hoto. <strong><code>paymentId</code> fakt UI/record sathi vaparala jaato — backend la kathyahi pathavlat nahi</strong> (he §8 madhe detail).</td></tr>
+<tr><td>45–50</td><td><code>on(EVENT_PAYMENT_ERROR, ...)</code></td><td>Payment fail/cancel zalyavar hi event. <code>response.message</code> (gateway cha message) forward hoto. <strong>User cancel pan yaahich yeto</strong> — vegla "cancel" event implement kelea nahi.</td></tr>
+<tr><td>51–56</td><td><code>on(EVENT_EXTERNAL_WALLET, ...)</code></td><td>Jar user external wallet (udah. Paytm app) nividato tar hi event — wallet che nav yeto. Amchya flows madhe he pan "verify and show" kade jaate.</td></tr>
+<tr><td>58–59</td><td><code>normalizedAmountPaise = amount &gt; 0 &amp;&amp; amount &lt; 1 ? 100 : (amount * 100).round()</code></td><td>Razorpay la amount <strong>paise</strong> madha havsa. ₹2000 → 200000. Edge case: ₹1 peksha kami amount asel tar tối 100 paise (₹1) mantat — negative/shunya payment tala.</td></tr>
+<tr><td>61–72</td><td><code>options = {'key': key, if (orderId...) 'order_id': orderId, 'amount': ..., 'name': ..., 'description': ..., 'prefill': ..., 'theme': {'color': '#F37021'}}</code></td><td>Checkout config. <code>order_id</code> asel tar <strong>backend-created order</strong> la attach hote (recommended flow); nasel tar plain checkout. <code>theme #F37021</code> = app cha orange brand color.</td></tr>
+<tr><td>74</td><td><code>_razorpay!.open(options);</code></td><td><strong>Razorpay Checkout UI open hote</strong> — he native (Android/iOS) gateway screen ahe, amcha Flutter UI nahi. User card/UPI/wallet nikalta.</td></tr>
+</table>
+<hr>
+<h2>4. CORE FILE — <code>razorpay_guard.dart</code> (Line-by-Line)</h2>
+<p>Path: <code>lib/features/paymentgateway/razorpay_guard.dart</code> (52 lines)</p>
+<table>
+<tr><th>Line(s)</th><th>Code</th><th>Spashtikaran</th></tr>
+<tr><td>7–10</td><td><code>pausedMessage / loadingMessage</code></td><td>Do static user-facing messages.</td></tr>
+<tr><td>12–15</td><td><code>isPaused(ref) =&gt; profile?.isRazorpayDisabled ?? false</code></td><td>Profile state madhla kill-switch read karto. Profile null asel tar default <code>false</code> (payments chalu).</td></tr>
+<tr><td>17–41</td><td><code>ensureProfileReadyAndNotPaused(ref)</code></td><td><strong>Payment sathi chi dar gate.</strong> (1) Profile load nasel tar <code>fetchProfileIfNeeded()</code> ne API hunun aanat; (2) toih pan null tar "profile load hona" snackbar + <code>false</code>; (3) <code>isRazorpayDisabled == true</code> tar "Payments are paused" snackbar + <code>false</code>; (4) sagla ok tar <code>true</code>.</td></tr>
+<tr><td>43–50</td><td><code>ensureNotPaused(ref)</code></td><td>Same check, pun profile fetch agahan (sync version).</td></tr>
+</table>
+<p><strong>Kahate ahe he:</strong> Backend <code>is_razorpay_disable=true</code> set karun <strong>app update vangarich sagle Razorpay payments band</strong> karu shakto. Hi emergency kill-switch ahe. CCAvenue sathi pan equivalent pahije.</p>
+<hr>
+<h2>5. BBPS MODULE 1 — Education Fees Flow</h2>
+<h3>5.1 Entry points</h3>
+<ul class=""><li><code>lib/features/educationFees/views/education_fees_payment_view.dart:95</code> → <code>onPayNow: (payable) =&gt; runEducationPayNow(...)</code></li></ul>
+<ul class=""><li><code>lib/features/educationFees/views/education_tutor_profile_view.dart:101</code> → same helper (donhi jagi ekach behaviour).</li></ul>
+<h3>5.2 <code>education_pay_now.dart</code> (121 lines) — line-by-line</h3>
+<table>
+<tr><th>Line(s)</th><th>Kay hote</th></tr>
+<tr><td>30</td><td><code>RazorpayGuard.ensureProfileReadyAndNotPaused(ref)</code> — payment purvi kill-switch + profile check. Fail tar <strong>return</strong> (checkout open hokh nahi).</td></tr>
+<tr><td>34–36</td><td><code>_firstNonEmpty(...)</code> — recipient name/account/IFSC: explicit param (tutor-profile screen kadeun) asel to, nahitar shared controller state.</td></tr>
+<tr><td>38–54</td><td><code>repository.createOrder(...)</code> — <strong>POST <code>/api/education/create-order</code></strong>. Exception aailya tar red snackbar "Failed to create order" + return.</td></tr>
+<tr><td>56–65</td><td><strong>Response validation guard:</strong> <code>order.status != true</code> kinva <code>orderId</code> khali kinva <code>key</code> khali → backend cha <code>message</code> dakhun payment <strong>thambvto</strong>. Yane invalid order ne checkout open hokh nahi.</td></tr>
+<tr><td>69</td><td><code>var navigationStarted = false;</code></td><td><strong>Duplicate-navigation guard (2nd layer).</strong> Gateway kadeun success ani failure donhi fire zale, kinva user already dusrya screen var gasla, tar dusrya callback madhe kaam hokh nahi — <strong>ekach payment result flow</strong>.</td></tr>
+<tr><td>71–76</td><td><code>RazorpayService.instance.openCheckout(amount: payable, name..., description: 'Tuition fee payment', orderId: order.orderId, keyOverride: order.key)</code> — checkout open, <strong>backend order la attach</strong>.</td></tr>
+<tr><td>77–88</td><td><strong>onSuccess:</strong> <code>navigationStarted</code> check → <code>openEducationPaymentProcessing({...})</code> — full-screen processing route var jaat, yethle <strong>60s polling</strong> chalu hote (§5.4). Map madhe: <code>transactionRefId</code> (status API sathi), <code>paymentType</code>, <code>recipientName</code>, <code>maskedAccount</code> (<code>****1234</code> mask, line 110–115), <code>fallbackAmount</code>, <code>paymentId</code>.</td></tr>
+<tr><td>89–105</td><td><strong>onFailure:</strong> 60s polling <strong>karayala nahi</strong> — gateway ne failure confirm keli ahe. Tadya badala <code>reconcileEducationPaymentOnFailure(...)</code> — <strong>single-shot</strong> status check (5.3).</td></tr>
+</table>
+<h3>5.3 <code>education_payment_reconcile.dart</code> (160 lines)</h3>
+<ul class=""><li>L37–48: <code>showPaymentProcessingWhile(work: repository.fetchPaymentStatus(transactionRefId))</code> — "Verifying Payment" overlay khali <strong>ekda</strong> status API. Network error tar <code>timedOut=true</code> (indeterminate → PENDING).</li></ul>
+<ul class=""><li>L54–72: Status <strong>SUCCESS</strong> aasel tar (durya session madhe payment jhala) → <code>EducationPaymentThankYouView</code>.</li></ul>
+<ul class=""><li>L76–80: <code>resolvedStatus</code> = timeout/null → <code>PENDING</code>; PENDING/PROCESSING → to status; nahitar → <code>FAILED</code>.</li></ul>
+<ul class=""><li>L97–151: Local <code>TransactionHistoryEntry</code> banavun <code>context.go(RouteConstants.transactionDetailForStatus(status))</code> — <strong>result screen</strong> (success/pending/failed transaction detail). L109: <code>pgTransactionId = paymentId asel tar to, nahitar transactionRefId</code> — fakt display sathi.</li></ul>
+<ul class=""><li>L117: <code>method: 'Razorpay / Online'</code> — hardcode display label.</li></ul>
+<h3>5.4 Processing + Polling — <code>processing_overlay.dart</code></h3>
+<ul class=""><li>L23–49 <code>openEducationPaymentProcessing</code>: <code>navigatorKey.currentContext</code> vaparun <code>context.go(paymentProcessing, extra)</code> — <strong>app kathyahi context gasli ki lifecycle listener ne resume var open hote</strong>. <code>opened</code> flag ne duplicate navigation talt.</li></ul>
+<ul class=""><li>L51–52: <code>_statusRetryInterval = 1s</code>, <code>_processingTimeout = paymentProcessingDuration</code> (60s — <code>payment_processing_loader.dart</code> madhe defined).</li></ul>
+<ul class=""><li>L63–110 <code>showPaymentProcessingWhile&lt;T&gt;</code>: OverlayEntry insert → <code>work</code> future + 60s Timer race → result kinva <code>timedOut</code>. Finally overlay remove.</li></ul>
+<ul class=""><li><strong>L510–714 <code>PaymentProcessingOverlay</code> (full-screen, back-locked):</strong></li></ul>
+<ul class="nested"><li>L532–714 <code>useEffect(const [])</code> madhe <code>pollStatus()</code> loop: <strong>dar 1 second la GET <code>/api/education/status/&lt;ref&gt;</code></strong> (repository → service → Dio).</li></ul>
+<ul class="nested"><li>L674–681: <code>isSuccess</code> → ThankYou; <code>isTerminalStatus</code> (FAILED kinva REFUND contain) → status screen.</li></ul>
+<ul class="nested"><li>L682–689: API error (network down) → <strong>loop chalu rahte</strong> (catch karto, fall out hokh nahi) — internet yeta chi wait.</li></ul>
+<ul class="nested"><li>L696–707: 60s countdown Timerหมดला → <code>goToPending()</code> — PENDING transaction detail screen.</li></ul>
+<ul class="nested"><li>L716: <code>PopScope(canPop: false)</code> — <strong>verifying astana user back dabu shakat nahi</strong>.</li></ul>
+<ul class="nested"><li>L656–663: <code>transactionRefId</code> khali asel tar Transactions screen kade fallback.</li></ul>
+<h3>5.5 Education API layer</h3>
+<p><code>education_fees_service.dart</code>:</p>
+<ul class=""><li><strong>createOrder (L158–207):</strong></li></ul>
+<ul class="nested"><li>L167: <code>PaymentDeviceContextService().collect()</code> — device context map merge (sikhane 5.6).</li></ul>
+<ul class="nested"><li>L168–175: <code>EducationCreateOrderRequest.toJson()</code> — body: <code>recipient_name</code> (String), <code>account_no</code> (String — unmasked asel tar te), <code>ifsc</code> (String), <code>amount</code> (double, 2-decimal). Sarva <strong>required</strong> (constructor <code>required</code>).</li></ul>
+<ul class="nested"><li>L177–190: <code>fee_type</code> (optional, String); House/Shop Rent sathi extra <code>payment_type</code> pan.</li></ul>
+<ul class="nested"><li>L191–193: <code>POST /api/education/create-order</code> (JSON).</li></ul>
+<ul class="nested"><li>L197–202: <strong>DioException madhla response body pan parse karto</strong> — mhanje HTTP 400 asla tar pan backend cha <code>message</code> user la dakhvta yeel.</li></ul>
+<ul class=""><li><strong>fetchPaymentStatus (L209–228):</strong> <code>GET /api/education/status/{transactionRefId}</code> → <code>EducationPaymentStatusResponse</code>.</li></ul>
+<p><code>education_fees_responses.dart</code>:</p>
+<ul class=""><li><strong><code>EducationCreateOrderResponse</code> (L289–327)</strong> — fields: <code>status</code> (bool), <code>message</code>, <code>txn_id</code> (int), <code>transaction_ref_id</code> (String — <strong>amcha status-polling key</strong>), <code>order_id</code> (String — Razorpay la), <code>amount</code>, <code>currency</code>, <strong><code>key</code></strong> (Razorpay public key ID — backend generated).</li></ul>
+<ul class=""><li><strong><code>EducationPaymentStatusResponse</code> (L329–416)</strong> — <code>data</code> nested flatten karto; <code>payment_status</code>/<code>status</code> donhi keys vahato; getters: <code>isSuccess/isPending/isProcessing/isFailed</code> (uppercase compare); amount/service_charge/gst/payable_amount/banner fields transaction detail sathi.</li></ul>
+<h3>5.6 Device context (PCI-DDA type fields) — <code>payment_device_context_service.dart</code></h3>
+<p>L43–64: Order request la merge honare fields: <code>latitude</code>, <code>longitude</code>, <code>isMock</code> (mock location), <code>isVpn</code>, <code>isRooted</code>, <code>deviceId</code> (Android ID / iOS IDFV), <code>timestamp</code>. 30s cache (L11–35) + in-flight dedupe. <strong>Purpose:</strong> fraud/risk signals — backend/BBPS regulatory requirement. Location permission naasel tar safe-fallback (try/catch).</p>
+<hr>
+<h2>6. BBPS MODULE 2 — Mobile Recharge</h2>
+<h3>6.1 Order create — <code>mobile_prepaid_controller.dart</code></h3>
+<ul class=""><li><strong><code>createRechargeOrderWithPlan</code> (L484–544):</strong></li></ul>
+<ul class="nested"><li>L488–493: operator/mobile missing → error, return null.</li></ul>
+<ul class="nested"><li>L495–499: <strong>Single-flight guard</strong> — <code>state.isPaymentInFlight</code> asel tar duplicate create-order <strong>ignore</strong> (log: "Payment already in flight"). He duplicate payment request prevention cha <strong>3rd layer</strong> ahe.</li></ul>
+<ul class="nested"><li>L501–510: State reset (isRecharging, in-flight=true, eski results null).</li></ul>
+<ul class="nested"><li>L512–518: repository call; fail tar <code>isPaymentInFlight=false</code> + message. <strong>Yad rakha:</strong> <code>isPaymentInFlight</code> payment <strong>complete hoen merichet true rahte</strong> (L519 comment) — verification nantar controller reset.</li></ul>
+<ul class=""><li><strong><code>verifyRechargeStatus</code> (L546–597):</strong> <code>_fetchRechargeStatusWithProcessingPoll</code> — PROCESSING asel tar deadline paryant poll; result state madhe bharto (<code>verifiedTransaction</code>), success/failure messages set.</li></ul>
+<h3>6.2 API — <code>mobile_prepaid_repository.dart</code></h3>
+<ul class=""><li><strong><code>createRechargeOrder</code> (L311–354):</strong> <code>POST /api/recharge/create-order</code>, <strong>form-urlencoded</strong> body: <code>mobile</code> (String), <code>amount</code> (String, 2-decimal), <code>operator</code> (String), <code>use_wallet</code> (int 0/1), <code>desc</code> (String), <strong><code>idempotency_key</code></strong> (client-side UUID v4, L356–369 — duplicate order taltayla). Response → <code>RechargeOrderResult {isSuccess, message, transaction_ref, txn_id, order_id, key}</code>.</li></ul>
+<ul class=""><li><strong>Status APIs:</strong> <code>GET /api/transaction/status/{id}</code> (L371–391) ani <code>GET /api/recharge/status/{id}</code> (L393–411) → <code>PrepaidTransactionStatus</code> (<code>status/message/amount/operator/mobile/paymentMode/walletAmount/razorpayAmount/transactionId/updatedAt</code> + isSuccess/Pending/Processing getters). <code>validateStatus &lt;600</code> — mhanje 4xx/5xx pan parse hote.</li></ul>
+<h3>6.3 Checkout — <code>payment_bottom_sheet.dart</code> (recharge sheet, L913–1300)</h3>
+<ul class=""><li>L1233–1256: Pay button → <code>createRechargeOrderWithPlan</code> → order null/<code>orderId</code>/<code>key</code> khali → snackbar + return.</li></ul>
+<ul class=""><li>L1261–1275: <code>_startRazorpay(amount: remainingAmount, ..., prefill: {'contact': mobile})</code> — <strong>eCoins (wallet) apply kelyavar fact BAKI_ROPAY (remaining) Razorpay la jaato</strong>.</li></ul>
+<ul class=""><li>L913–936 <code>_startRazorpay</code>: RazorpayGuard check → <code>openCheckout(description: 'Recharge', ...)</code>.</li></ul>
+<ul class=""><li><strong>onSuccess (L937–977):</strong> verification loader khali <code>verifyRechargeStatus</code> → <code>_prepaidOutcome(timedOut, verified)</code> → <code>_openPaymentResultFlow(... isMobileRecharge: true)</code> — Success/Pending/Failure result screen.</li></ul>
+<ul class=""><li><strong>onFailure (L978–1000+):</strong> <code>pollIfProcessing: false</code> ne ekda verify — gateway failure asla tar pan backend ne SUCCESS dila tar to manato (reconciliation-first).</li></ul>
+<hr>
+<h2>7. BBPS MODULE 3 — Bill Payment (Billers) + Module 4 — Biller-detail/FastTag</h2>
+<h3>7.1 Shared sheet — <code>payment_bottom_sheet.dart</code> (biller sheet, L155–375)</h3>
+<ul class=""><li>L216–283 <code>_verifyAndShow</code>: <code>controller.verifyPayAllServicesStatus(transactionRef, pollIfProcessing: !isGatewayFailure)</code> → loader khali → outcome mapping (L239–251): SUCCESS→success; timeout/null/PENDING/PROCESSING→pending; gateway-failure kinva FAILED→failure; unknown→<strong>pending (fail-safe)</strong>. Sheet close → <code>_openPaymentResultFlow</code>.</li></ul>
+<ul class=""><li>L329–375 <code>_onPayPressed</code>: <code>createPayAllServicesOrder</code> → order validation (orderId/key/<strong>transactionRef</strong> tinhi havshe) → <code>remainingAmount &lt;= 0</code> (full wallet) tar checkout <strong>tula deun direct verify</strong> flow; nahitar <code>_startRazorpay</code>.</li></ul>
+<h3>7.2 Controller — <code>biller_detail_controller.dart</code></h3>
+<ul class=""><li><strong><code>createPayAllServicesOrder</code> (L337–408):</strong> biller/detail/bill null check; <strong>single-flight guard L350–353</strong>; repository call; <code>isPaymentInFlight</code> verification paryant true.</li></ul>
+<ul class=""><li><strong><code>verifyPayAllServicesStatus</code> (L410–440)</strong> + <code>_fetchStatusWithProcessingPoll</code> (L69–120): PROCESSING astana deadline (60s) paryant poll; done → in-flight false.</li></ul>
+<ul class=""><li>L334–335 comment: <strong>jun <code>api/bill/pay</code> deprecated ahe</strong> — aata create-order + status pattern.</li></ul>
+<h3>7.3 Repository — <code>biller_repository.dart</code></h3>
+<ul class=""><li><strong><code>createPayAllServicesOrder</code> (L150–218):</strong> <code>POST /api/bill/create-order</code> (form-urlencoded). Body: <code>payment_type</code>, <code>biller_name</code>, <code>billerid</code>, <code>amount</code> (String), <code>ref_id</code>, <code>fetch_ref_id</code>, <code>arr_bill_payment_modes</code> (comma-joined), <code>masked_identifier</code>, <code>use_wallet</code> (0/1), <strong><code>idempotency_key</code></strong> (UUID), <code>accountHolderName</code>+<code>account_holder_name</code> (donhi keys — backend compatibility), <code>dueDate</code>+<code>due_date</code>, <strong>device context merge</strong>, ani biller-che dynamic <code>customer_params</code> (L179–184). → <code>ServicePaymentOrderResult {isSuccess, message, transaction_ref, txn_id, order_id, key}</code>.</li></ul>
+<ul class=""><li><strong>Status:</strong> <code>GET /api/recharge/status/{transactionId}</code> → <code>RechargeStatusResult</code> (same model recharge kade share).</li></ul>
+<h3>7.4 <code>biller_detail_view.dart</code> (subscription/FastTag inline path, L1650–1785)</h3>
+<p>Same order → <code>openCheckout(description: 'Subscription bill payment', prefill: {contact})</code> → success/failure/external-wallet donhi <code>verifyAndShowResult</code> kade (L1761–1781). FastTag minimum ₹100 client check (L1785–1792). Success zalyavar <code>EducationPaymentThankYouView</code> (shared thank-you screen), nahitar <code>TransactionDetailScreen</code>.</p>
+<hr>
+<h2>8. Complete API Analysis (Summary Table)</h2>
+<table>
+<tr><th>API</th><th>Method</th><th>Endpoint</th><th>Call site</th><th>Trigger</th><th>Key request fields</th><th>Key response fields</th></tr>
+<tr><td>Education create order</td><td>POST</td><td><code>/api/education/create-order</code></td><td><code>education_fees_service.dart:191</code></td><td>Pay tap</td><td>recipient_name, account_no, ifsc, amount, fee_type, device-context</td><td>status, message, txn_id, transaction_ref_id, order_id, key</td></tr>
+<tr><td>Education status</td><td>GET</td><td><code>/api/education/status/{ref}</code></td><td><code>:213</code> (poll 1s ×60s)</td><td>Checkout nantar</td><td>path param</td><td>payment_status, amount, transaction_id, timestamps, charges</td></tr>
+<tr><td>Recharge create order</td><td>POST (form)</td><td><code>/api/recharge/create-order</code></td><td><code>mobile_prepaid_repository.dart:319</code></td><td>Proceed tap</td><td>mobile, amount, operator, use_wallet, desc, idempotency_key</td><td>status, transaction_ref, txn_id, order_id, key</td></tr>
+<tr><td>Recharge status</td><td>GET</td><td><code>/api/recharge/status/{id}</code></td><td><code>:397</code></td><td>success/failure nantar</td><td>path param</td><td>status, razorpayAmount, walletAmount, transaction_id</td></tr>
+<tr><td>Generic txn status</td><td>GET</td><td><code>/api/transaction/status/{id}</code></td><td><code>:375</code></td><td>(prepaid fallback)</td><td>path param</td><td>vartul</td></tr>
+<tr><td>Bill create order</td><td>POST (form)</td><td><code>/api/bill/create-order</code></td><td><code>biller_repository.dart:190</code></td><td>Pay/Proceed tap</td><td>payment_type, billerid, ref_id, fetch_ref_id, customer params, masked_identifier, use_wallet, idempotency_key, device-context</td><td>status, transaction_ref, txn_id, order_id, key</td></tr>
+<tr><td>Bill status</td><td>GET</td><td><code>/api/recharge/status/{id}</code></td><td><code>:239</code></td><td>verify phase</td><td>path param</td><td>status, transaction_id, customer_params, amount_breakdown</td></tr>
+<tr><td>Profile (kill-switch)</td><td>GET</td><td>profile endpoint</td><td>profile service</td><td>App start / payment purvi</td><td>—</td><td><strong><code>is_razorpay_disable</code></strong></td></tr>
+</table>
+<p><strong>Sensitive values masked:</strong> Razorpay key ID (<code>rzp_live_████…</code>) runtime-la response kadeun yeto — repo madhe nahi. Key secret kathyahi nahi.</p>
+<h3>Security &amp; Verification — Final Verdict</h3>
+<table>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
+<tr><td>Key ID Flutter madhe hardcode?</td><td><strong>NAHI</strong> ✓</td><td>Fakt <code>keyOverride</code> param, backend <code>key</code> field kadeun</td></tr>
+<tr><td>Key Secret in app?</td><td><strong>NAHI</strong> ✓</td><td>Full-repo grep: kadhihi nahi</td></tr>
+<tr><td>Order ID kuthe generate?</td><td><strong>Backend</strong> (create-order response)</td><td>Flutter fakt <code>order_id</code> options madhe ghalto</td></tr>
+<tr><td>Payment ID kutheun?</td><td>Razorpay success callback (<code>response.paymentId</code>)</td><td><code>razorpay_service.dart:42</code></td></tr>
+<tr><td>Signature receive/verify in Flutter?</td><td><strong>NAHI</strong> ✗</td><td><code>razorpay_signature</code> konthi code madhe nahi</td></tr>
+<tr><td>Verification kuthe hote?</td><td><strong>Backend status API polling</strong> — app kade fakt result check</td><td><code>processing_overlay.dart:654–694</code> etc.</td></tr>
+<tr><td>Payment ID backend la pathavto?</td><td><strong>NAHI</strong> (fakt display/record)</td><td>Konthiya hi status/verify API la paymentId jaat nahi</td></tr>
+<tr><td>Webhook/server verification</td><td><code>Backend code not available for verification</code></td><td>Flutter repo madhe kadhihi reference nahi</td></tr>
+<tr><td>Duplicate prevention</td><td>3 layers: <code>_razorpay?.clear()</code> (L36), <code>navigationStarted</code> flag, <code>isPaymentInFlight</code> single-flight + <code>idempotency_key</code> (UUID)</td><td>§3, §5.2, §6.1, §6.2</td></tr>
+</table>
+<hr>
+<h2>9. PHASE 1D — Actual Payment Flow Diagram (generic BBPS)</h2>
+<pre>[USER] Pay/Proceed tap
+   │
+   ▼  (Flutter)
+RazorpayGuard.ensureProfileReadyAndNotPaused ──fail──► Snackbar, THAMBTO
+   │ ok
+   ▼
+Controller/Helper: create-order ──► [BACKEND] POST .../create-order
+   │   (device-context + idempotency_key attach)
+   │   ◄── {order_id, key, transaction_ref_id}
+   ├─ invalid/empty ──► Red snackbar (backend message), THAMBTO
+   ▼
+RazorpayService.openCheckout(order_id, key, amount_in_paise)
+   │
+   ▼  [RAZORPAY NATIVE CHECKOUT — gateway screen]
+   ├─ SUCCESS callback (paymentId)
+   │    └─► Processing screen / loader
+   │          └─ LOOP: GET .../status/{ref} dar 1s, kamya 60s
+   │                ├─ SUCCESS    ► ThankYou screen
+   │                ├─ FAILED/REFUND ► TransactionDetail(FAILED)
+   │                ├─ PENDING/PROCESSING (60s timeout) ► Detail(PENDING)
+   │                └─ Network error ► poll chalu rahto (retry)
+   ├─ FAILURE/CANCEL callback (message)
+   │    ├─ Education: single-shot reconcile (ekda status API) → SUCCESS/PENDING/FAILED screen
+   │    └─ Recharge/Bill: verify ekda (pollIfProcessing=false) → outcome screen
+   └─ EXTERNAL_WALLET callback → same "verify" path</pre>
+<p><strong>Flutter responsibilities:</strong> guard checks, order request, checkout open, callbacks, status polling, result navigation, masking/display.</p>
+<p><strong>Backend responsibilities:</strong> Razorpay key supply, Razorpay order creation, payment gateway integration, transaction save/update, status API (source of truth), kill-switch flag. <em>(Backend code not available for verification.)</em></p>
+<h3>9.1 Cancel ani Internet-loss behaviour (Phase 1F Q9/Q10)</h3>
+<ul class=""><li><strong>User cancel:</strong> Razorpay <code>EVENT_PAYMENT_ERROR</code> fire karto (vegla cancel event nahi) → <code>onFailure</code> → Education: gateway-failure manun 60s poll tala deun <strong>ekda status check</strong> (<code>education_pay_now.dart:89–105</code>) → FAILED/PENDING screen. Recharge/Bill: <code>pollIfProcessing:false</code> ne ekda verify.</li></ul>
+<ul class=""><li><strong>Payment madhe internet gamla:</strong> Checkout native screen gateway kade astana app offline zali tar Razorpay SDK failure/deep-link return deto; amchi side la <code>onFailure</code> kinva callback hi nahilyas <code>navigationStarted</code> false rahto. <strong>Jala payment backend ver SUCCESS asel tar</strong> user app punha open karun history/status madhun to pahhu shakte; current code madhe <strong>app-return var pending-reconcile screen NAHI</strong> (finding §10).</li></ul>
+<ul class=""><li><strong>Polling madhe internet gamla:</strong> <code>pollStatus</code> catch karto ani loop chalu rahte (L682–689); 60s zale tar <strong>PENDING</strong> screen — wrong FAILED dakhvle jaat nahi (fail-safe).</li></ul>
+<hr>
+<h2>10. PHASE 1E — BBPS Module Inventory</h2>
+<table>
+<tr><th>Module</th><th>Screen(s)</th><th>Razorpay invocation</th><th>Controller</th><th>Repository</th><th>APIs</th><th>Success handling</th><th>Failure handling</th><th>History/Detail</th></tr>
+<tr><td><strong>Education Fees</strong> (Tuition, House/Shop Rent, School/College Fees)</td><td><code>education_fees_payment_view.dart:95</code>, <code>education_tutor_profile_view.dart:101</code></td><td><code>education_pay_now.dart:71</code></td><td><code>EducationFeesController</code> (+ <code>educationFeesRepositoryProvider</code>)</td><td><code>education_fees_repository.dart</code> → <code>education_fees_service.dart</code></td><td><code>/api/education/create-order</code>, <code>/api/education/status/{ref}</code></td><td>60s poll → ThankYou</td><td>single-shot reconcile → status screen</td><td><code>TransactionHistoryEntry</code> → <code>transactionDetailForStatus</code></td></tr>
+<tr><td><strong>Mobile Recharge</strong></td><td><code>payment_bottom_sheet.dart</code> (recharge sheet)</td><td><code>:930</code></td><td><code>mobile_prepaid_controller.dart:484/546</code></td><td><code>mobile_prepaid_repository.dart:311/371/393</code></td><td><code>/api/recharge/create-order</code>, <code>/api/recharge/status</code>, <code>/api/transaction/status</code></td><td>verify → result flow (<code>isMobileRecharge:true</code>)</td><td>verify(false poll) → outcome</td><td>profile transaction history</td></tr>
+<tr><td><strong>BBPS Bill Payment</strong> (electricity/water/gas/DTH etc.)</td><td><code>payment_bottom_sheet.dart</code> (biller sheet)</td><td><code>:293</code></td><td><code>biller_detail_controller.dart:337/410</code></td><td><code>biller_repository.dart:150/235</code></td><td><code>/api/bill/create-order</code>, <code>/api/recharge/status</code></td><td><code>_verifyAndShow</code> → result flow</td><td>gateway-failure → 1 verify</td><td>same</td></tr>
+<tr><td><strong>Biller detail direct pay / FastTag / Credit-card bill</strong></td><td><code>biller_detail_view.dart:1749</code></td><td>inline <code>openCheckout</code></td><td><code>biller_detail_controller</code></td><td><code>biller_repository</code></td><td>same bill endpoints</td><td>ThankYou (shared)</td><td>TransactionDetail</td><td>same</td></tr>
+<tr><td><em>(Non-BBPS)</em> Digital Gold</td><td><code>gold_payment_summary_sheet.dart:269</code></td><td><code>keyOverride: ''</code></td><td>—</td><td>—</td><td>buy API Razorpay-nantar</td><td>—</td><td>—</td><td><strong>Needs confirmation</strong> (§10.3)</td></tr>
+</table>
+<h3>§10 Unclear / Missing items (findings)</h3>
+<ol class=""><li><strong>Signature verification client kade nahi</strong> — backend kade ahe ka te <code>Backend code not available for verification</code>. CCAvenue migration sathi he confirm karave.</li></ol>
+<ol class=""><li><strong><code>paymentId</code> backend la jaat nahi</strong> — gateway transaction ani backend transaction cha link fakt <code>transaction_ref_id</code> ne; Razorpay cha payment record match karnyala backend webhook/own store asel ka — confirm pahije.</li></ol>
+<ol class=""><li><strong>Digital Gold <code>keyOverride: ''</code> (L273)</strong> — empty key guard mule <code>onFailure('Razorpay key is missing.')</code> <strong>nekhamich</strong> yeto; punha nantar buy API call hoto. He BBPS scope baher ahe, punhi <strong>suspicious/dead path</strong> ahe — alageedel team la sangave.</li></ol>
+<ol class=""><li><strong><code>RazorpayService.dispose()</code> (L14–17) konthi call karat nahi</strong> — memory leak chance kami (singleton), pun cleanup gap ahe.</li></ol>
+<ol class=""><li><strong>Cancel = Payment_ERROR</strong> — "user cancelled" ani "genuine failure" madhla farak message string varun mant nahi; vegla cancel handling implement kelea nahi.</li></ol>
+<ol class=""><li><strong>Education create-order madhe <code>idempotency_key</code> NAHI</strong> (recharge/bill madhe ahe) — double-tap protection fakt <code>isPaymentInFlight</code>-var (education madhe tohi guard nahi — <code>runEducationPayNow</code> stateless function ahe). <strong>Double Pay Now tap</strong> veli donhi order API call hoohu shakte — Phase 2 madhe pahave.</li></ol>
+<ol class=""><li>External-wallet callback: saglyaa kade fakt verify path ahe — wallet deep-link complete karnyacha extra kaam nahī.</li></ol>
+<hr>
+<h2>11. Conclusions &amp; CCAvenue-Readiness Notes</h2>
+<ol class=""><li><strong>Architecture clean ahe:</strong> Ek wrapper (<code>RazorpayService</code>), ek guard (<code>RazorpayGuard</code>), per-module "create-order → checkout → status-poll" pattern. CCAvenue sathi <strong>same pattern tiho theun fakt wrapper badalne</strong> shakte — modules la spast seam ahe.</li></ol>
+<ol class=""><li><strong>Verification model = backend status polling</strong> (signature nahi). Mhanje gateway badalalyavar pan Flutter side flow toach rahel; fakt order/result APIs badaltat.</li></ol>
+<ol class=""><li><strong>Kill-switch, device-context, idempotency (2/3 modules)</strong> already ahet — he BBPS compliance assets ahet.</li></ol>
+<ol class=""><li><strong>Pahila module analysis sathi recommendation: Education Fees</strong> — karan (a) to saglyat naveen ani fully-shared flow ahe (<code>runEducationPayNow</code> ekach helper), (b) polling/reconcile donhi patterns yethe ahet, (c) idempotency gap yethe disla — CCAvenue design madhe to fix hoohu shakte.</li></ol>
+<hr>
+<h2>12. Questions for Backend Team</h2>
+<ol class=""><li>Razorpay signature verification backend kade hote ka (webhook/SDK)? Kontha endpoint var?</li></ol>
+<ol class=""><li><code>create-order</code> madhla <code>key</code> test/test-mode ahe ka live — environment switch kasa hote?</li></ol>
+<ol class=""><li><code>transaction_ref_id</code> ani Razorpay <code>payment_id</code> cha mapping backend kade store hote ka?</li></ol>
+<ol class=""><li>Payment pending astana <strong>Razorpay webhook → status update</strong> hote ka? (App la fakt status API diste.)</li></ol>
+<ol class=""><li><code>is_razorpay_disable</code> flag CCAvenue sathi pan common rahel ka vegla flag havsa?</li></ol>
+<ol class=""><li>Education flow la <code>idempotency_key</code> support ahe ka? (Recharge/Bill madhe client pathavto.)</li></ol>
+<hr>
+<p><em>Report generated by read-only audit. Application source files unchanged (git status verified at audit time).</em></p></body></html>

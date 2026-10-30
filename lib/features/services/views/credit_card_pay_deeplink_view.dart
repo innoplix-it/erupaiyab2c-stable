@@ -40,7 +40,7 @@ class _CreditCardPayDeeplinkViewState
   String _normalize(String input) => input.trim().toLowerCase();
 
   String _last4FromMasked(String maskedIdentifier) {
-    final digits = maskedIdentifier.replaceAll(RegExp(r'\\D'), '');
+    final digits = maskedIdentifier.replaceAll(RegExp(r'\D'), '');
     if (digits.length >= 4) return digits.substring(digits.length - 4);
     return digits;
   }

@@ -14,7 +14,6 @@ import 'package:http_certificate_pinning/http_certificate_pinning.dart';
 import '../config/app_env.dart';
 import '../config/ssl_pinning_config.dart';
 import '../constants/app_error_messages.dart';
-import '../constants/storage_keys.dart';
 import '../widgets/app_snackbar.dart';
 import 'secure_storage_service.dart';
 
@@ -126,14 +125,9 @@ class DioInterceptors extends InterceptorsWrapper {
   }
 
   Future<void> _clearSession() async {
-    await secureStorage.delete(key: 'accessToken');
-    await secureStorage.delete(key: 'refreshToken');
-    await secureStorage.delete(key: 'tokenType');
-    await secureStorage.delete(key: 'tokenExpiresAt');
-    await secureStorage.delete(key: 'refreshTokenExpiresAt');
-    await secureStorage.delete(key: 'userId');
-    await secureStorage.delete(key: 'mobile');
-    await secureStorage.delete(key: StorageKeys.tempAccessToken);
+    // AUD-032: reuse the shared session-clear (same key list as logout) so
+    // the terminal session-expiration path can never drift from it again.
+    await clearSessionStorage(secureStorage);
   }
 
   Dio _buildPinnedRefreshClient() {

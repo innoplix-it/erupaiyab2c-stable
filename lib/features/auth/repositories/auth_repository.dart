@@ -263,7 +263,8 @@ class AuthRepository {
 
       final deviceContext = await const LoginDeviceContextService().collect();
 
-      final installationId = await _secureStorage.read(key: StorageKeys.guestInstallationId);
+      final installationId =
+          await _secureStorage.read(key: StorageKeys.guestInstallationId);
       final requestPayload = <String, dynamic>{
         'mobile': mobile,
         'pin': pin,
@@ -394,12 +395,9 @@ class AuthRepository {
   }
 
   Future<void> _clearPrimarySession() async {
-    await _secureStorage.delete(key: 'accessToken');
-    await _secureStorage.delete(key: 'refreshToken');
-    await _secureStorage.delete(key: 'tokenType');
-    await _secureStorage.delete(key: 'tokenExpiresAt');
-    await _secureStorage.delete(key: 'refreshTokenExpiresAt');
-    await _secureStorage.delete(key: 'userId');
+    // AUD-032: shared cleanup list; the suspected-account path re-writes
+    // `mobile`/`tempAccessToken` right after this, which stays unchanged.
+    await clearSessionStorage(_secureStorage);
   }
 
   Future<String> pinLock({
@@ -731,13 +729,9 @@ class AuthRepository {
     } catch (e) {
       logger.error('Logout API call failed: $e', error: e);
     } finally {
-      await _secureStorage.delete(key: 'accessToken');
-      await _secureStorage.delete(key: 'refreshToken');
-      await _secureStorage.delete(key: 'tokenType');
-      await _secureStorage.delete(key: 'tokenExpiresAt');
-      await _secureStorage.delete(key: 'userId');
-      await _secureStorage.delete(key: 'mobile');
-      await _secureStorage.delete(key: StorageKeys.tempAccessToken);
+      // AUD-032: single shared session-clear so every session key (including
+      // refreshTokenExpiresAt) is always removed on logout.
+      await clearSessionStorage(_secureStorage);
     }
   }
 

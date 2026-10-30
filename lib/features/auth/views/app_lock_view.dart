@@ -96,7 +96,7 @@ class AppLockView extends HookConsumerWidget {
           ),
         );
         if (didAuth && context.mounted) {
-          showAuthKeyboard(pinFocusNode);
+          Navigator.of(context).pop();
           return;
         }
       } catch (e, stackTrace) {

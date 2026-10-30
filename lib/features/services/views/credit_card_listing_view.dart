@@ -75,11 +75,11 @@ class CreditCardListingView extends HookConsumerWidget {
         return;
       }
 
-      final digits = txn.serviceNo.replaceAll(RegExp(r'\\D'), '');
+      final digits = txn.serviceNo.replaceAll(RegExp(r'\D'), '');
       final last4 =
           digits.length >= 4 ? digits.substring(digits.length - 4) : '';
       final mobile =
-          (profileState.profile?.mobile ?? '').replaceAll(RegExp(r'\\D'), '');
+          (profileState.profile?.mobile ?? '').replaceAll(RegExp(r'\D'), '');
 
       final canAutoFetch = mobile.length >= 10 && last4.length == 4;
       if (!canAutoFetch) {
