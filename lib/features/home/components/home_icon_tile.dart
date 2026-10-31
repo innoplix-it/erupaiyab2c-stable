@@ -139,9 +139,12 @@ class HomeServiceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Single-word labels (e.g. Subscription) must never break mid-word: keep
-    // them on one row at the original font size instead of rescaling.
+    // Single-word labels (e.g. Subscription) have no break opportunity and
+    // must stay fully visible instead of being cut mid-word. Multi-word
+    // single-line labels (e.g. "Gym Membership") and explicit two-line labels
+    // truncate with an ellipsis ("Gym Mem…") when they overflow the tile.
     final isSingleLine = !text.contains('\n');
+    final isSingleWord = isSingleLine && !text.contains(' ');
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -154,7 +157,7 @@ class HomeServiceLabel extends StatelessWidget {
             maxLines: isSingleLine ? 1 : maxLines,
             softWrap: !isSingleLine && maxLines > 1,
             overflow:
-                isSingleLine ? TextOverflow.visible : TextOverflow.ellipsis,
+                isSingleWord ? TextOverflow.visible : TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             textHeightBehavior: HomeServiceItemMetrics._labelHeightBehavior,
             style: homeServiceCardLabelStyle(),
@@ -440,7 +443,7 @@ class _HomeIconTileState extends State<HomeIconTile> {
               ],
             ),
             HomeServiceLabel(formattedLabel, maxLines: 2),
-          ],
+          ],  
         ),
       ),
     );

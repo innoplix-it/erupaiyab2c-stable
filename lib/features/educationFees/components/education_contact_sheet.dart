@@ -258,6 +258,7 @@ class _PermissionEmptyState extends StatelessWidget {
               label: 'Allow Contact Access',
               uppercaseLabel: true,
               height: buttonHeight,
+              backgroundColor: const Color(0xFFDD5428),
             ),
           ],
         ),

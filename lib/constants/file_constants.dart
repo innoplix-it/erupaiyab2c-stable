@@ -5,6 +5,8 @@ class FileConstants {
   static String mpinSuccessBadge = 'assets/images/svg/mpin_success_badge.svg';
   static String fingerprintButton = 'assets/images/svg/fingerprint_button.svg';
   static String successVectorIcon = 'assets/images/svg/Vector.svg';
+  static String invitePendingBadgeSvg =
+      'assets/images/svg/invite_pending_badge.svg';
   static String indiaFlag = 'assets/images/png/indiaFlag.png';
   static String logo = 'assets/images/png/logo.png';
   static String favicon = 'assets/images/png/favicon.png';

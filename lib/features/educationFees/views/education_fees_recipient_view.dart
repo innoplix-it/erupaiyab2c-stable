@@ -44,6 +44,13 @@ class EducationFeesRecipientView extends HookConsumerWidget {
 
     final showFields = state.showRecipientFields || unverifiedFlow;
 
+    // The bottom "We will notify the recipient via SMS..." info box is hidden
+    // while the on-screen keyboard is open so it does not crowd the field the
+    // user is typing into, and is restored once the keyboard is dismissed.
+    // viewInsets.bottom is driven by the OS keyboard, so this reacts
+    // dynamically to keyboard show/hide without touching the Proceed button.
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+
     final mobileController = useTextEditingController(text: state.mobileInput);
     final nameController = useTextEditingController(text: state.recipientName);
     final panController = useTextEditingController(text: state.pan);
@@ -402,7 +409,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                                 decoration: _inputDecoration('').copyWith(
                                   contentPadding: EdgeInsets.symmetric(
                                     horizontal: 14.w,
-                                    vertical: 14.h,
+                                    vertical: 12.h,
                                   ),
                                 ),
                                 child: Row(
@@ -531,7 +538,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (showFields)
+                    if (showFields && !isKeyboardVisible)
                       Container(
                         width: double.infinity,
                         color: const Color(0xFFFFE9E2),

@@ -98,13 +98,11 @@ flutter:
 
 
 flutter_native_splash:
-  # Static OS launch splash is intentionally brand-white with no logo:
-  # the native (pre-Flutter) splash cannot play the animated Lottie, so the
-  # static appLogo.png was removed and the animated logo now comes solely from
-  # the in-app SplashView (assets/lottie/logo-verticle.json).
   color: "#FFFFFF"
+  image: assets/images/png/appLogo.png
   android: true
   ios: true
   web: false
   android_12:
     color: "#FFFFFF"
+    image: assets/images/png/appLogo.png

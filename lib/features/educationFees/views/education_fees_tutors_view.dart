@@ -307,32 +307,43 @@ class _TutorCard extends StatelessWidget {
                     height: 1.2,
                   ),
                 ),
-                if (subject != null && subject!.isNotEmpty) ...[
-                  SizedBox(height: 5 * u),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8 * u,
-                      vertical: 2 * u,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12 * u),
-                      border: Border.all(
-                        color: const Color(0xFFE4E4E7),
-                        width: 0.5,
+                SizedBox(height: 5 * u),
+                Wrap(
+                  spacing: 6 * u,
+                  runSpacing: 4 * u,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (subject != null && subject!.isNotEmpty)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8 * u,
+                          vertical: 2 * u,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12 * u),
+                          border: Border.all(
+                            color: const Color(0xFFE4E4E7),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          subject!,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFF52525B),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11 * u,
+                            height: 1.15,
+                          ),
+                        ),
                       ),
+                    SvgPicture.asset(
+                      FileConstants.invitePendingBadgeSvg,
+                      height: 16 * u,
+                      fit: BoxFit.contain,
                     ),
-                    child: Text(
-                      subject!,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: const Color(0xFF52525B),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11 * u,
-                        height: 1.15,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ],
             ),
           ),
