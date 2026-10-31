@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
+import '../services/secure_clipboard.dart';
+
 /// PAN format: AAAAA 9999 A  (5 letters, 4 digits, 1 letter) = 10 chars.
 const int kPanLength = 10;
 const int kPanLeadingLetters = 5;
@@ -176,6 +178,8 @@ class PanInputField extends HookWidget {
       autocorrect: false,
       enableSuggestions: false,
       inputFormatters: const [PanInputFormatter()],
+      // AUD-038: entered PAN must not be copyable via the selection toolbar.
+      contextMenuBuilder: SecureClipboard.sensitiveFieldContextMenu,
       decoration: decoration,
       style: style,
       textAlign: textAlign,
@@ -224,6 +228,8 @@ class AadhaarInputField extends StatelessWidget {
       // 12 digits + 2 group spaces = 14 chars; formatter enforces the digit cap.
       maxLength: 14,
       inputFormatters: const [AadhaarInputFormatter()],
+      // AUD-038: entered Aadhaar must not be copyable via the selection toolbar.
+      contextMenuBuilder: SecureClipboard.sensitiveFieldContextMenu,
       textInputAction: textInputAction,
       onSubmitted: onSubmitted,
       decoration: decoration?.copyWith(counterText: '') ??

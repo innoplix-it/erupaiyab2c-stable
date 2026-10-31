@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
@@ -16,7 +17,6 @@ import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
-import 'education_fees_tutors_view.dart';
 
 /// Figma artboard width. Every Tuition-screen size is (figmaPx * unit).
 const double _kFigmaW = 448.0;
@@ -26,10 +26,28 @@ const double _kMaxContentW = 560.0;
 
 const Color _kMint = Color(0xFFB5FFDA);
 
+/// Hard input ceiling for the Tuition amount field (₹2,00,000). The user can
+/// never type an amount above this; the API still owns the error messaging.
+const int kMaxTuitionAmount = 200000;
+
 /// Scale factor relative to the Figma artboard, clamped for small / large devices.
 double _unit(BuildContext context) {
   final w = MediaQuery.sizeOf(context).width;
   return w.clamp(320.0, _kMaxContentW) / _kFigmaW;
+}
+
+/// "Min Amount 2,000 Max ₹2,00,000" — whichever bounds the API provided,
+/// grouped with the shared en_IN decimal pattern.
+String _amountLimitsHint(double? minAmount, double? maxAmount) {
+  final formatter = NumberFormat.decimalPattern('en_IN');
+  final parts = <String>[];
+  if (minAmount != null) {
+    parts.add('Min Amount ${formatter.format(minAmount.round())}');
+  }
+  if (maxAmount != null) {
+    parts.add('Max ₹${formatter.format(maxAmount.round())}');
+  }
+  return parts.join(' ');
 }
 
 class EducationFeesAmountView extends HookConsumerWidget {
@@ -107,18 +125,16 @@ class EducationFeesAmountView extends HookConsumerWidget {
       try {
         final response = await repository.fetchBeneficiaries();
         if (!context.mounted) return;
-        if (response.status && response.beneficiaries.isNotEmpty) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => EducationFeesTutorsView(
-                amount: amountValue,
-                tutors: response.beneficiaries,
-              ),
-            ),
-          );
-        } else {
-          context.push(RouteConstants.educationFeesRecipient);
-        }
+        // Always land on the Tutors list. Adding a new tutor (the mobile
+        // number / recipient screen) is reachable from "+ Add Tutor" inside
+        // that list, so we must not route straight to it here.
+        context.push(
+          RouteConstants.educationFeesTutors,
+          extra: <String, dynamic>{
+            'amount': amountValue,
+            'tutors': response.beneficiaries,
+          },
+        );
       } catch (_) {
         AppSnackbar.show(
           'Unable to fetch tutors. Please try again.',
@@ -214,34 +230,23 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                 keyboardDismissBehavior:
                                     ScrollViewKeyboardDismissBehavior.onDrag,
                                 child: isTuition
-                                    ? Column(
-                                        children: [
-                                          _TuitionAmountBody(
-                                            feeChipLabel: feeChipLabel,
-                                            paymentName: resolvedFeeType,
-                                            amountController: amountController,
-                                            amountFocusNode: amountFocusNode,
-                                            amountError: amountError,
-                                            hasAmount: hasInput,
-                                            onAmountChanged: (value) {
-                                              if (suppressAmountSync.value) {
-                                                return;
-                                              }
-                                              controller
-                                                  .updateAmountInput(value);
-                                            },
-                                          ),
-                                          SizedBox(height: 24 * u),
-                                          Padding(
-                                            padding: EdgeInsets.fromLTRB(
-                                              20 * u,
-                                              0,
-                                              20 * u,
-                                              16 * u,
-                                            ),
-                                            child: continueButton,
-                                          ),
-                                        ],
+                                    ? _TuitionAmountBody(
+                                        feeChipLabel: feeChipLabel,
+                                        paymentName: resolvedFeeType,
+                                        amountController: amountController,
+                                        amountFocusNode: amountFocusNode,
+                                        amountError: amountError,
+                                        minAmount: state.minAmount,
+                                        maxAmount: state.maxAmount,
+                                        limitHint: state.amountLimitHint,
+                                        hasAmount: hasInput,
+                                        onAmountChanged: (value) {
+                                          if (suppressAmountSync.value) {
+                                            return;
+                                          }
+                                          controller
+                                              .updateAmountInput(value);
+                                        },
                                       )
                                     : _LegacyAmountBody(
                                         resolvedFeeType: resolvedFeeType,
@@ -256,7 +261,17 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                       ),
                               ),
                             ),
-                            if (!isTuition && amountValue > 0)
+                            if (isTuition)
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                  20 * u,
+                                  0,
+                                  20 * u,
+                                  24 * u,
+                                ),
+                                child: continueButton,
+                              )
+                            else if (!isTuition && amountValue > 0)
                               Padding(
                                 padding: EdgeInsets.fromLTRB(
                                   20 * u,
@@ -288,6 +303,9 @@ class _TuitionAmountBody extends StatelessWidget {
     required this.amountController,
     required this.amountFocusNode,
     required this.amountError,
+    required this.minAmount,
+    required this.maxAmount,
+    required this.limitHint,
     required this.hasAmount,
     required this.onAmountChanged,
   });
@@ -297,6 +315,9 @@ class _TuitionAmountBody extends StatelessWidget {
   final TextEditingController amountController;
   final FocusNode amountFocusNode;
   final String? amountError;
+  final double? minAmount;
+  final double? maxAmount;
+  final String? limitHint;
   final bool hasAmount;
   final ValueChanged<String> onAmountChanged;
 
@@ -304,20 +325,44 @@ class _TuitionAmountBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final u = _unit(context);
     final circle = 138 * u;
+    final scale = circle / 138.0;
+    // Input ceiling: honour the backend max when present but never allow more
+    // than the hard ₹2,00,000 cap. Falls back to the cap before prefetch.
+    final amountCap = (maxAmount != null && maxAmount! > 0)
+        ? maxAmount!.round().clamp(0, kMaxTuitionAmount)
+        : kMaxTuitionAmount;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20 * u, 24 * u, 20 * u, 8 * u),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Hero: circular card with the teacher icon centered inside.
-          // The asset already carries its own white disc + soft shadow, so it
-          // is rendered as-is (contain) instead of being clipped/stretched.
-          SvgPicture.asset(
-            FileConstants.tuitionFeeHeroSvg,
-            width: circle,
-            height: circle,
-            fit: BoxFit.contain,
+          // Hero: same cropped-circle rendering as the Tutors screen so the
+          // icon reads at an identical visual size on both screens.
+          Center(
+            child: SizedBox(
+              width: circle,
+              height: circle,
+              child: ClipOval(
+                child: Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    Positioned(
+                      left: -29 * scale,
+                      top: -6 * scale,
+                      width: 196 * scale,
+                      height: 244 * scale,
+                      child: SvgPicture.asset(
+                        FileConstants.tuitionFeeHeroSvg,
+                        width: 196 * scale,
+                        height: 244 * scale,
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           SizedBox(height: 16 * u),
           Text(
@@ -347,13 +392,29 @@ class _TuitionAmountBody extends StatelessWidget {
             amountController: amountController,
             amountFocusNode: amountFocusNode,
             hasAmount: hasAmount,
+            maxAmount: amountCap,
             onAmountChanged: onAmountChanged,
           ),
-          // Backend validation message (min/max is decided by the API) shown
-          // right under the card; the static min/max hint is intentionally
-          // not rendered here.
+          // Limits caption: backend numbers win; else the backend hint text;
+          // else the standard 2,000–2,00,000 tuition range. The API
+          // validation error renders right below it.
+          SizedBox(height: 14 * u),
+          Text(
+            (minAmount != null || maxAmount != null)
+                ? _amountLimitsHint(minAmount, maxAmount)
+                : ((limitHint != null && limitHint!.trim().isNotEmpty)
+                    ? limitHint!.trim()
+                    : _amountLimitsHint(2000, 200000)),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF71717A),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13 * u,
+                  height: 1.3,
+                ),
+          ),
           if (amountError != null) ...[
-            SizedBox(height: 18 * u),
+            SizedBox(height: 8 * u),
             Text(
               amountError!,
               textAlign: TextAlign.center,
@@ -377,6 +438,7 @@ class _AmountCard extends StatelessWidget {
     required this.amountController,
     required this.amountFocusNode,
     required this.hasAmount,
+    required this.maxAmount,
     required this.onAmountChanged,
   });
 
@@ -384,6 +446,7 @@ class _AmountCard extends StatelessWidget {
   final TextEditingController amountController;
   final FocusNode amountFocusNode;
   final bool hasAmount;
+  final int maxAmount;
   final ValueChanged<String> onAmountChanged;
 
   @override
@@ -476,6 +539,7 @@ class _AmountCard extends StatelessWidget {
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
+                            MaxAmountInputFormatter(maxAmount),
                           ],
                           textAlign: TextAlign.left,
                           cursorColor: const Color(0xFF0C0A09),
@@ -725,6 +789,32 @@ class _LegacyAmountBody extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Rejects amount edits whose numeric value would exceed [maxValue].
+///
+/// Runs after [FilteringTextInputFormatter.digitsOnly], so `newValue.text` is
+/// already pure digits. When the typed value crosses the ceiling the edit is
+/// dropped and the previous (valid) value is kept, so the field can never show
+/// more than the cap. This is a UI guard only — the API still returns and the
+/// screen still displays the authoritative amount-limit error.
+class MaxAmountInputFormatter extends TextInputFormatter {
+  const MaxAmountInputFormatter(this.maxValue);
+
+  final int maxValue;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+    final parsed = int.tryParse(newValue.text);
+    if (parsed == null || parsed > maxValue) {
+      return oldValue;
+    }
+    return newValue;
   }
 }
 

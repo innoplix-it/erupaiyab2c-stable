@@ -31,8 +31,10 @@ import 'features/digital_gold/views/digital_gold_success_view.dart';
 import 'features/digital_gold/views/digital_gold_summary_view.dart';
 import 'features/digital_gold/views/digital_gold_view.dart';
 import 'features/educationFees/views/education_fees_amount_view.dart';
+import 'features/educationFees/models/education_fees_responses.dart';
 import 'features/educationFees/views/education_fees_payment_view.dart';
 import 'features/educationFees/views/education_fees_recipient_view.dart';
+import 'features/educationFees/views/education_fees_tutors_view.dart';
 import 'features/educationFees/views/education_search_recipient_view.dart';
 import 'features/educationFees/views/education_payment_thank_you_view.dart';
 import 'features/home/components/zero_balance_account_popup_view.dart';
@@ -83,6 +85,7 @@ import 'features/services/views/credit_card_transaction_detail_screen.dart';
 import 'features/services/views/credit_card_transactions_screen.dart';
 import 'features/spinandear/views/spin_and_win_view.dart';
 import 'features/zero_balance_account/views/choose_your_bank_view.dart';
+import 'services/dio_interceptors.dart';
 import 'services/navigation_interaction_lock.dart';
 import 'widgets/k_dialog.dart';
 import 'widgets/payment_success_flow.dart';
@@ -351,6 +354,16 @@ final routerProvider = Provider<GoRouter>(
           builder: (context, state) => EducationFeesAmountView(
             feeType: state.extra as String?,
           ),
+        ),
+        GoRoute(
+          path: RouteConstants.educationFeesTutors,
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            return EducationFeesTutorsView(
+              amount: (extra['amount'] as num?)?.toDouble() ?? 0,
+              tutors: (extra['tutors'] as List<EducationBeneficiary>?) ?? [],
+            );
+          },
         ),
         GoRoute(
           path: RouteConstants.educationFeesRecipient,
@@ -891,6 +904,14 @@ final routerProvider = Provider<GoRouter>(
       authControllerProvider,
       (_, __) => router.refresh(),
     );
+
+    // AUD-037 G1: let the Dio interceptor reset the in-memory AuthController
+    // when a session permanently expires with no navigator context. It is a
+    // local-only state change, and the ref.listen above then refreshes
+    // GoRouter so the redirect rules evaluate the logged-out state.
+    DioInterceptors.onLocalSessionExpired = () {
+      ref.read(authControllerProvider.notifier).expireSessionLocally();
+    };
 
     return router;
   },

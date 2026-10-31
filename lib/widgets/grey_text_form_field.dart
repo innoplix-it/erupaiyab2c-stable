@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../constants/app_colors.dart';
+import '../services/secure_clipboard.dart';
 
 class GreyTextFormField extends StatelessWidget {
   const GreyTextFormField({
@@ -27,6 +28,7 @@ class GreyTextFormField extends StatelessWidget {
     this.focusNode,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.blockCopy = false,
   });
 
   final TextEditingController controller;
@@ -47,6 +49,11 @@ class GreyTextFormField extends StatelessWidget {
   final FocusNode? focusNode;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
+
+  /// AUD-038: when true, the selection toolbar hides Copy/Cut so sensitive
+  /// values (PAN, Aadhaar, account no, IFSC) typed by the user can never be
+  /// placed on the clipboard by the framework's own copy action.
+  final bool blockCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +135,9 @@ class GreyTextFormField extends StatelessWidget {
               height: 1.0,
             ),
         validator: validator,
+        contextMenuBuilder: blockCopy
+            ? SecureClipboard.sensitiveFieldContextMenu
+            : null,
       ),
     );
   }

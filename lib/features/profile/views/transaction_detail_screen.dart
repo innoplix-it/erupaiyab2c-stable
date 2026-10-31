@@ -13,6 +13,7 @@ import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../models/support_latest_transaction.dart';
+import '../../../services/secure_clipboard.dart';
 import '../models/transaction_history_entry.dart';
 import '../utils/receipt_actions.dart';
 import 'create_support_ticket_screen.dart';
@@ -1254,8 +1255,9 @@ class _CardDetailRow extends StatelessWidget {
                   SizedBox(width: 4.w),
                   InkWell(
                     onTap: () async {
-                      await Clipboard.setData(ClipboardData(text: row.value));
-                      AppSnackbar.show('Copied to clipboard');
+                      if (await SecureClipboard.copy(row.value)) {
+                        AppSnackbar.show('Copied to clipboard');
+                      }
                     },
                     borderRadius: BorderRadius.circular(8.r),
                     child: Padding(

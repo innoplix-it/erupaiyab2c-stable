@@ -96,7 +96,6 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-
   Future<AuthFlow?> checkLogin({
     required String mobile,
   }) async {
@@ -291,6 +290,24 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _repository.logout();
+    state = state.copyWith(
+      isAuthenticated: false,
+      hasTemporaryAccess: false,
+      pendingMobile: null,
+      postOtpToken: null,
+      errorMessage: null,
+    );
+  }
+
+  /// AUD-037 G1: local-only session-expiration reset.
+  ///
+  /// Clears the in-memory authentication state without making any network
+  /// request, so it is safe to invoke from the Dio interceptor (a network
+  /// call here would re-enter the same interceptor). The session keys
+  /// themselves are removed by the shared `clearSessionStorage()` cleanup on
+  /// the interceptor side; this method keeps AuthState in sync with storage
+  /// when no BuildContext exists to run the full [logout] flow.
+  void expireSessionLocally() {
     state = state.copyWith(
       isAuthenticated: false,
       hasTemporaryAccess: false,

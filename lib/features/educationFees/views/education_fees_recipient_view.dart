@@ -24,6 +24,7 @@ import '../education_fees_typography.dart';
 import '../helpers/education_pay_now.dart';
 import '../models/education_account_type.dart';
 import '../models/education_fees_state.dart';
+import '../../../services/secure_clipboard.dart';
 import 'education_tutor_profile_view.dart';
 
 class EducationFeesRecipientView extends HookConsumerWidget {
@@ -147,10 +148,13 @@ class EducationFeesRecipientView extends HookConsumerWidget {
     // Unverified flow: the Account Type picker is hidden and Figma shows the
     // bank fields directly, so keep accountType pinned to Bank. The
     // controller resets it to none whenever the name/PAN changes, so re-seed
-    // on every reset instead of seeding only once.
+    // on every reset instead of seeding only once. Any other stale value
+    // (e.g. `upiId` left behind by the verified flow after a system-back
+    // exit — the persistent provider is never reset there) must also be
+    // replaced, because this screen offers no way to change the type.
     useEffect(() {
       if (!unverifiedFlow) return null;
-      if (state.accountType != EducationAccountType.none) return null;
+      if (state.accountType == EducationAccountType.bankDetails) return null;
       Future.microtask(
         () => controller.updateAccountType(EducationAccountType.bankDetails),
       );
@@ -239,6 +243,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
           showDivider: true,
           fitTitle: true,
           titleStyle: MyAppBar.sharedTitleStyle(context),
+          showBharatConnect: false,
           bharatConnectWidth: 52,
           bharatConnectHeight: 25,
           helpIconSize: 20,
@@ -325,6 +330,9 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                             key: const Key('pan_field'),
                             controller: panController,
                             focusNode: panFocus,
+                            // AUD-038: entered PAN must not reach the clipboard.
+                            contextMenuBuilder:
+                                SecureClipboard.sensitiveFieldContextMenu,
                             textCapitalization: TextCapitalization.characters,
                             textInputAction: TextInputAction.done,
                             autocorrect: false,
@@ -442,6 +450,9 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                               key: const Key('account_field'),
                               controller: accountNoController,
                               keyboardType: TextInputType.number,
+                              // AUD-038: entered account no must not reach the clipboard.
+                              contextMenuBuilder:
+                                  SecureClipboard.sensitiveFieldContextMenu,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
@@ -459,6 +470,9 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                             child: TextField(
                               key: const Key('ifsc_field'),
                               controller: ifscController,
+                              // AUD-038: entered IFSC must not reach the clipboard.
+                              contextMenuBuilder:
+                                  SecureClipboard.sensitiveFieldContextMenu,
                               textCapitalization: TextCapitalization.characters,
                               autocorrect: false,
                               enableSuggestions: false,

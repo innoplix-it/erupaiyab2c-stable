@@ -11,7 +11,6 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/my_app_bar.dart';
-import '../../../widgets/payment_status_popup.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
@@ -249,36 +248,6 @@ class EducationFeesTutorsView extends HookConsumerWidget {
                     ],
                   ),
                 ),
-                // Bottom text elements row
-                Container(
-                  padding: EdgeInsets.fromLTRB(
-                    inset,
-                    16 * u,
-                    inset,
-                    24 * u,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _PopupTriggerText(
-                        text: 'Success',
-                        onTap: () => _showSuccessPopup(context, u),
-                      ),
-                      _PopupTriggerText(
-                        text: 'Error',
-                        onTap: () => _showErrorPopup(context, u),
-                      ),
-                      _PopupTriggerText(
-                        text: 'Pending',
-                        onTap: () => _showPendingPopup(context, u),
-                      ),
-                      _PopupTriggerText(
-                        text: 'Declined',
-                        onTap: () => _showDeclinedPopup(context, u),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -465,78 +434,4 @@ String _fallbackTutorName(EducationBeneficiary tutor) {
     return 'Account ${tutor.accountMasked}';
   }
   return 'Beneficiary';
-}
-
-class _PopupTriggerText extends StatelessWidget {
-  const _PopupTriggerText({
-    required this.text,
-    required this.onTap,
-  });
-
-  final String text;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        text,
-        style: GoogleFonts.plusJakartaSans(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          color: const Color(0xFFDD5428),
-          decoration: TextDecoration.underline,
-        ),
-      ),
-    );
-  }
-}
-
-void _showSuccessPopup(BuildContext context, double u) {
-  showPaymentStatusPopup(
-    context: context,
-    type: PaymentStatusType.success,
-    title: 'Request Accepted Successfully',
-    message: 'You have accepted the tuition fee payment request from Darshan Nikam.',
-    amount: '₹2,000',
-    statusTag: 'Request Accepted',
-    subMessage: 'You can now proceed with the next step. Continue',
-  );
-}
-
-void _showErrorPopup(BuildContext context, double u) {
-  showPaymentStatusPopup(
-    context: context,
-    type: PaymentStatusType.error,
-    title: 'Payment Failed',
-    message: 'Your payment could not be processed due to an error.',
-    amount: '₹2,000',
-    statusTag: 'Payment Failed',
-    subMessage: 'Please try again or contact support if the issue persists.',
-  );
-}
-
-void _showPendingPopup(BuildContext context, double u) {
-  showPaymentStatusPopup(
-    context: context,
-    type: PaymentStatusType.success,
-    title: 'Request Pending',
-    message: 'Your tuition fee payment request is being processed.',
-    amount: '₹2,000',
-    statusTag: 'Pending',
-    subMessage: 'Please wait while we verify your payment details.',
-  );
-}
-
-void _showDeclinedPopup(BuildContext context, double u) {
-  showPaymentStatusPopup(
-    context: context,
-    type: PaymentStatusType.error,
-    title: 'Request Declined',
-    message: 'You have declined the tuition fee payment request from Darshan Nikam.',
-    amount: '₹2,000',
-    statusTag: 'Request Declined',
-    subMessage: 'Darshan Nikam will be notified about your decision.',
-  );
 }

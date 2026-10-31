@@ -26,6 +26,13 @@ class DioInterceptors extends InterceptorsWrapper {
   final secureStorage = SecureStorageService.instance;
   static Completer<bool>? _refreshCompleter;
   static bool _handlingServerUnavailable = false;
+  static bool _handlingTerminalExpiry = false;
+
+  /// AUD-037 G1: app-wiring hook registered by `routerProvider` so the
+  /// terminal session-expiration path can reset the in-memory AuthController
+  /// state without a BuildContext. It must be local-only (no network
+  /// requests — a request here would re-enter this same interceptor).
+  static void Function()? onLocalSessionExpired;
 
   static const int _maxLogBodyChars = 6000;
   static const Set<String> _sensitiveKeys = {
@@ -128,6 +135,45 @@ class DioInterceptors extends InterceptorsWrapper {
     // AUD-032: reuse the shared session-clear (same key list as logout) so
     // the terminal session-expiration path can never drift from it again.
     await clearSessionStorage(secureStorage);
+  }
+
+  /// AUD-037 G1: single entry point for the permanent session-expiration
+  /// condition. Concurrent 401s must not run the cleanup twice or fire the
+  /// auth-state reset repeatedly.
+  Future<void> _handleTerminalSessionExpiry() async {
+    if (_handlingTerminalExpiry) return;
+    _handlingTerminalExpiry = true;
+    try {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        // Existing behaviour preserved: full logout (API + shared storage
+        // clear + state reset), then navigate to Login.
+        try {
+          // ignore: use_build_context_synchronously
+          await ProviderScope.containerOf(context)
+              .read(authControllerProvider.notifier)
+              .logout();
+        } catch (_) {
+          await _clearSession();
+          // AUD-037 G1: the API-backed logout threw before resetting state —
+          // storage is cleared, so the in-memory state must match.
+          onLocalSessionExpired?.call();
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          context.go(RouteConstants.login);
+        });
+      } else {
+        // AUD-037 G1: no navigator context (e.g. background FCM-triggered
+        // 401). Clear storage AND reset the in-memory auth state so
+        // AuthState never stays authenticated; the router's existing
+        // authControllerProvider listener refreshes navigation later.
+        await _clearSession();
+        onLocalSessionExpired?.call();
+      }
+    } finally {
+      _handlingTerminalExpiry = false;
+    }
   }
 
   Dio _buildPinnedRefreshClient() {
@@ -355,25 +401,28 @@ class DioInterceptors extends InterceptorsWrapper {
       final refreshExpired = await _isRefreshTokenExpired();
       if (refreshExpired == true) {
         _showAppError(AppErrorMessages.sessionExpired);
-        final context = navigatorKey.currentContext;
-        if (context != null) {
-          try {
-            // ignore: use_build_context_synchronously
-            await ProviderScope.containerOf(context)
-                .read(authControllerProvider.notifier)
-                .logout();
-          } catch (_) {
-            await _clearSession();
-          }
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!context.mounted) return;
-            context.go(RouteConstants.login);
-          });
-        } else {
-          await _clearSession();
-        }
+        await _handleTerminalSessionExpiry();
       } else {
         _showAppError(AppErrorMessages.sessionRefreshFailed);
+      }
+    } else if (err.response?.statusCode == 404) {
+      _showAppError(AppErrorMessages.sessionExpired);
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        try {
+          // ignore: use_build_context_synchronously
+          await ProviderScope.containerOf(context)
+              .read(authControllerProvider.notifier)
+              .logout();
+        } catch (_) {
+          await _clearSession();
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          context.go(RouteConstants.login);
+        });
+      } else {
+        await _clearSession();
       }
     } else if (err.error is CertificateNotVerifiedException ||
         err.error is CertificateCouldNotBeVerifiedException) {

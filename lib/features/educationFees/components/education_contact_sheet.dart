@@ -13,6 +13,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../services/permission_service.dart';
 import '../../../widgets/app_search_bar.dart';
+import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/search_textfield.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
 
@@ -201,64 +202,66 @@ class _PermissionEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(height: 20.h),
-        Container(
-          height: 120.r,
-          width: 120.r,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.08),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Icon(
-              Icons.phone_in_talk_outlined,
-              color: AppColors.primary,
-              size: 58.r,
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isSmallScreen = screenWidth < 360;
+    final iconSize = isSmallScreen ? 100.r : 120.r;
+    final iconInnerSize = isSmallScreen ? 48.r : 58.r;
+    final titleFontSize = isSmallScreen ? 16.sp : 18.sp;
+    final descFontSize = isSmallScreen ? 13.sp : 14.sp;
+    final buttonHeight = isSmallScreen ? 44.h : 48.h;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: screenWidth * 0.85),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: 20.h),
+            Container(
+              height: iconSize,
+              width: iconSize,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.phone_in_talk_outlined,
+                  color: AppColors.primary,
+                  size: iconInnerSize,
+                ),
+              ),
             ),
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          'Provide Access To Contacts',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            SizedBox(height: 12.h),
+            Text(
+              'Provide Access To Contacts',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
+                fontSize: titleFontSize,
               ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          'We need this to pick a recipient.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'We need this to pick a recipient.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
                 color: AppColors.textPrimary.withOpacity(0.6),
+                fontSize: descFontSize,
+                fontWeight: FontWeight.w500,
               ),
-        ),
-        SizedBox(height: 18.h),
-        SizedBox(
-          width: double.infinity,
-          height: 48.h,
-          child: ElevatedButton(
-            onPressed: onAllow,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              elevation: 0,
             ),
-            child: Text(
-              'Allow Contact Access',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+            SizedBox(height: 18.h),
+            CustomElevatedButton(
+              onPressed: onAllow,
+              label: 'Allow Contact Access',
+              uppercaseLabel: true,
+              height: buttonHeight,
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

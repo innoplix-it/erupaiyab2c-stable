@@ -13,6 +13,7 @@ import '../constants/file_constants.dart';
 import '../features/mobile_prepaid/models/prepaid_transaction_status.dart';
 import '../features/profile/models/transaction_history_entry.dart';
 import '../features/services/models/recharge_status_result.dart';
+import '../services/secure_clipboard.dart';
 import '../utils/screenutil_ext.dart';
 import 'app_snackbar.dart';
 import 'custom_elevated_button.dart';
@@ -1133,15 +1134,14 @@ class _TransactionDetailsCard extends StatelessWidget {
                           6.vs,
                           InkWell(
                             onTap: () async {
-                              await Clipboard.setData(
-                                ClipboardData(text: item.value),
-                              );
-                              if (!context.mounted) return;
-                              AppSnackbar.show(
-                                'Copied to clipboard',
-                                backgroundColor: AppColors.green,
-                                textColor: Colors.white,
-                              );
+                              if (await SecureClipboard.copy(item.value)) {
+                                if (!context.mounted) return;
+                                AppSnackbar.show(
+                                  'Copied to clipboard',
+                                  backgroundColor: AppColors.green,
+                                  textColor: Colors.white,
+                                );
+                              }
                             },
                             borderRadius: BorderRadius.circular(8.r),
                             child: Padding(

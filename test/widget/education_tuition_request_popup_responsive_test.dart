@@ -118,8 +118,7 @@ Future<void> _openPopup(
 }) async {
   _setSize(tester, size);
   await tester.pumpWidget(
-    _host(state,
-        textScale: textScale, requesterName: requesterName, amount: amount),
+    _host(state, textScale: textScale, requesterName: requesterName, amount: amount),
   );
   await tester.pump();
   await tester.tap(find.text('open'));

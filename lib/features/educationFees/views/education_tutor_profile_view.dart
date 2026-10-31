@@ -321,7 +321,6 @@ class _TuitionPopupTriggers extends StatelessWidget {
   final String requesterName;
 
   static const List<String> _labels = [
-    'Request',
     'Received',
     'Accepted',
     'Declined',
@@ -337,9 +336,11 @@ class _TuitionPopupTriggers extends StatelessWidget {
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
+              // +1: the request state's own trigger was removed; the
+              // remaining chips map to received/accepted/declined.
               onTap: () => showEducationTuitionRequestPopup(
                 context,
-                state: EducationTuitionPopupState.values[i],
+                state: EducationTuitionPopupState.values[i + 1],
                 amount: amount,
                 requesterName: requesterName,
               ),

@@ -439,7 +439,7 @@ class _HomeIconTileState extends State<HomeIconTile> {
                   ),
               ],
             ),
-            HomeServiceLabel(formattedLabel),
+            HomeServiceLabel(formattedLabel, maxLines: 2),
           ],
         ),
       ),

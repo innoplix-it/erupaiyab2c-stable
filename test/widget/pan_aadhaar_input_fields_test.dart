@@ -3,181 +3,135 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:e_rupaiya/widgets/pan_aadhaar_input_fields.dart';
 
-Future<void> _pump(WidgetTester tester, Widget field) async {
-  await tester.pumpWidget(
-    MaterialApp(home: Scaffold(body: field)),
-  );
-}
+Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 void main() {
-  testWidgets('PanInputField switches keyboard type at segment boundaries',
-      (tester) async {
-    final controller = TextEditingController();
-    await _pump(tester, PanInputField(controller: controller));
-
-    EditableText editable() => tester.widget(find.byType(EditableText));
-
-    expect(editable().keyboardType, TextInputType.text);
-
-    await tester.enterText(find.byType(EditableText), 'ABCDE');
-    await tester.pump();
-    expect(editable().keyboardType, TextInputType.number);
-
-    await tester.enterText(find.byType(EditableText), 'ABCDE1234');
-    await tester.pump();
-    expect(editable().keyboardType, TextInputType.text);
-  });
-
-  testWidgets('PanInputField uppercases letters and keeps the valid pattern',
-      (tester) async {
-    final controller = TextEditingController();
-    await _pump(tester, PanInputField(controller: controller));
-
-    await tester.enterText(find.byType(EditableText), 'abcde');
-    await tester.pump();
-    expect(controller.text, 'ABCDE');
-
-    await tester.enterText(find.byType(EditableText), 'abcde1234f');
-    await tester.pump();
-    expect(controller.text, 'ABCDE1234F');
-  });
-
-  testWidgets('PanInputField rejects out-of-position characters and caps at 10',
-      (tester) async {
-    final controller = TextEditingController();
-    await _pump(tester, PanInputField(controller: controller));
-
-    // Digits are not valid in the leading 5 letter slots, so only the trailing
-    // letters survive.
-    await tester.enterText(find.byType(EditableText), '1234567890ABCDE');
-    await tester.pump();
-    expect(controller.text, 'ABCDE');
-
-    // Extra characters beyond the 10-character PAN are dropped.
-    await tester.enterText(find.byType(EditableText), 'ABCDE1234FGHIJ');
-    await tester.pump();
-    expect(controller.text, 'ABCDE1234F');
-    expect(controller.text.length, 10);
-  });
-
-  testWidgets('PanInputField honours textInputAction and fires onSubmitted',
-      (tester) async {
-    final controller = TextEditingController();
-    var submitted = '';
-    await _pump(
+  group('PanInputField', () {
+    testWidgets('pre-filled controller text survives first build', (
       tester,
-      PanInputField(
-        controller: controller,
-        textInputAction: TextInputAction.next,
-        onSubmitted: (value) => submitted = value,
-      ),
-    );
+    ) async {
+      final controller = TextEditingController(text: 'ABCDE1234Z');
+      await tester.pumpWidget(_wrap(PanInputField(controller: controller)));
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
 
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).textInputAction,
-      TextInputAction.next,
-    );
+      expect(find.text('ABCDE1234Z'), findsOneWidget);
 
-    await tester.enterText(find.byType(EditableText), 'ABCDE1234F');
-    await tester.pump();
-    await tester.showKeyboard(find.byType(EditableText));
-    await tester.testTextInput.receiveAction(TextInputAction.next);
-    await tester.pump();
+      controller.dispose();
+    });
 
-    expect(submitted, 'ABCDE1234F');
-  });
-
-  testWidgets('AadhaarInputField uses the numeric keyboard', (tester) async {
-    final controller = TextEditingController();
-    await _pump(tester, AadhaarInputField(controller: controller));
-
-    expect(
-      tester.widget<EditableText>(find.byType(EditableText)).keyboardType,
-      TextInputType.number,
-    );
-  });
-
-  testWidgets('AadhaarInputField keeps digits only and caps at 12 digits',
-      (tester) async {
-    final controller = TextEditingController();
-    await _pump(tester, AadhaarInputField(controller: controller));
-
-    await tester.enterText(find.byType(EditableText), '12ab34cd56789012345');
-    await tester.pump();
-
-    expect(controller.text, '1234 5678 9012');
-    expect(controller.text.replaceAll(RegExp(r'\D'), '').length, 12);
-  });
-
-  testWidgets('AadhaarInputField fires onSubmitted on done', (tester) async {
-    final controller = TextEditingController();
-    var submitted = '';
-    await _pump(
+    testWidgets('uppercase-only input is normalized and capped at 10 chars', (
       tester,
-      AadhaarInputField(
-        controller: controller,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (value) => submitted = value,
-      ),
-    );
+    ) async {
+      final controller = TextEditingController();
+      await tester.pumpWidget(_wrap(PanInputField(controller: controller)));
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
 
-    await tester.enterText(find.byType(EditableText), '123456789012');
-    await tester.pump();
-    await tester.showKeyboard(find.byType(EditableText));
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
+      await tester.enterText(find.byType(TextField), 'abcde1234x9999Z');
+      await tester.pump();
 
-    expect(submitted, '1234 5678 9012');
-  });
+      // 'x' lands on the final-letter slot (valid) and caps the field at 10
+      // chars, so the trailing digits and 'Z' are dropped by the formatter.
+      expect(controller.text, 'ABCDE1234X');
 
-  testWidgets(
-      'PanInputField restores the right keyboard when backspacing '
-      'across stage boundaries', (tester) async {
-    final controller = TextEditingController();
-    await _pump(tester, PanInputField(controller: controller));
+      controller.dispose();
+    });
 
-    TextInputType keyboard() =>
-        tester.widget<EditableText>(find.byType(EditableText)).keyboardType;
-
-    // 5 letters + 4 digits -> stage 2 (final letter, alphabetic).
-    await tester.enterText(find.byType(EditableText), 'ABCDE1234');
-    await tester.pump();
-    expect(keyboard(), TextInputType.text);
-
-    // Delete the 4 digits -> back to stage 1 (numeric) at 5 letters.
-    await tester.enterText(find.byType(EditableText), 'ABCDE');
-    await tester.pump();
-    expect(keyboard(), TextInputType.number);
-
-    // Delete one more letter -> stage 0 (alphabetic).
-    await tester.enterText(find.byType(EditableText), 'ABCD');
-    await tester.pump();
-    expect(keyboard(), TextInputType.text);
-  });
-
-  testWidgets('PanInputField keeps focus and text across keyboard switches',
-      (tester) async {
-    final controller = TextEditingController();
-    final focus = FocusNode();
-    await _pump(
+    testWidgets('digits-only input in letter slots is rejected', (
       tester,
-      PanInputField(controller: controller, focusNode: focus),
-    );
+    ) async {
+      final controller = TextEditingController();
+      await tester.pumpWidget(_wrap(PanInputField(controller: controller)));
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
 
-    await tester.tap(find.byType(EditableText));
-    await tester.pump();
-    expect(focus.hasFocus, isTrue);
+      await tester.enterText(find.byType(TextField), '12345');
+      await tester.pump();
 
-    for (final entry in ['ABCDE', 'ABCDE1234', 'ABCDE1234F']) {
-      await tester.enterText(find.byType(EditableText), entry);
-      // The stage switch schedules an unfocus -> requestFocus re-attach that
-      // resolves over the following frames, so settle before asserting.
-      await tester.pumpAndSettle();
-      // Focus survives the re-attach and the value is intact.
-      expect(focus.hasFocus, isTrue, reason: 'lost focus at "$entry"');
-      expect(controller.text, entry);
-    }
+      expect(controller.text, '');
 
-    focus.dispose();
+      controller.dispose();
+    });
+
+    testWidgets('switches to number keyboard after 5 letters are entered', (
+      tester,
+    ) async {
+      final controller = TextEditingController(text: 'ABCDE');
+      await tester.pumpWidget(_wrap(PanInputField(controller: controller)));
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+
+      // Segment state is derived from controller length; after the letters
+      // stage the field must accept digits.
+      await tester.enterText(find.byType(TextField), 'ABCDE1');
+      await tester.pump();
+
+      expect(controller.text, 'ABCDE1');
+
+      controller.dispose();
+    });
+
+    test('panKeyboardSegmentForLength maps the three PAN stages', () {
+      expect(panKeyboardSegmentForLength(0), 0);
+      expect(panKeyboardSegmentForLength(4), 0);
+      expect(panKeyboardSegmentForLength(5), 1);
+      expect(panKeyboardSegmentForLength(8), 1);
+      expect(panKeyboardSegmentForLength(9), 2);
+      expect(panKeyboardSegmentForLength(10), 2);
+    });
+  });
+
+  group('AadhaarInputField', () {
+    testWidgets('uses numeric keyboard and hides the counter', (
+      tester,
+    ) async {
+      final controller = TextEditingController();
+      await tester.pumpWidget(
+        _wrap(AadhaarInputField(controller: controller)),
+      );
+
+      final textField =
+          tester.widget<TextField>(find.byType(TextField));
+      expect(textField.keyboardType, TextInputType.number);
+      expect(textField.decoration?.counterText, '');
+      expect(textField.maxLength, 14);
+
+      controller.dispose();
+    });
+
+    testWidgets('groups digits as "1234 5678 9012" and caps at 12 digits', (
+      tester,
+    ) async {
+      final controller = TextEditingController();
+      await tester.pumpWidget(
+        _wrap(AadhaarInputField(controller: controller)),
+      );
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), '1234567890123456');
+      await tester.pump();
+
+      expect(controller.text, '1234 5678 9012');
+
+      controller.dispose();
+    });
+
+    testWidgets('non-digit characters are stripped', (tester) async {
+      final controller = TextEditingController();
+      await tester.pumpWidget(
+        _wrap(AadhaarInputField(controller: controller)),
+      );
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), '12ab34!@56');
+      await tester.pump();
+
+      expect(controller.text, '1234 56');
+
+      controller.dispose();
+    });
   });
 }

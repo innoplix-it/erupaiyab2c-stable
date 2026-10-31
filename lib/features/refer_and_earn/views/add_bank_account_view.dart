@@ -9,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../services/secure_clipboard.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../utils/utils.dart';
 import '../../../widgets/app_snackbar.dart';
@@ -391,6 +392,7 @@ class _VerifyBankForm extends HookWidget {
           controller: accountController,
           hintText: 'Enter Account Number',
           keyboardType: TextInputType.number,
+          blockCopy: true,
         ),
         SizedBox(height: 16.h),
         Text(
@@ -405,6 +407,7 @@ class _VerifyBankForm extends HookWidget {
           controller: ifscController,
           hintText: 'Enter IFSC Code',
           textCapitalization: TextCapitalization.characters,
+          blockCopy: true,
         ),
         SizedBox(height: 24.h),
       ],
@@ -467,6 +470,7 @@ class _ConfirmBankForm extends HookWidget {
           controller: accountController,
           hintText: 'Account Number',
           keyboardType: TextInputType.number,
+          blockCopy: true,
         ),
         SizedBox(height: 16.h),
         Text(
@@ -481,6 +485,7 @@ class _ConfirmBankForm extends HookWidget {
           controller: ifscController,
           hintText: 'IFSC Code',
           textCapitalization: TextCapitalization.characters,
+          blockCopy: true,
         ),
         SizedBox(height: 16.h),
         Text(
@@ -535,6 +540,7 @@ class _InputField extends HookWidget {
     required this.hintText,
     this.keyboardType,
     this.textCapitalization,
+    this.blockCopy = false,
   });
 
   final TextEditingController controller;
@@ -542,12 +548,19 @@ class _InputField extends HookWidget {
   final TextInputType? keyboardType;
   final TextCapitalization? textCapitalization;
 
+  /// AUD-038: true for account-number / IFSC inputs — removes Copy/Cut from
+  /// the selection toolbar so typed banking values cannot reach the clipboard.
+  final bool blockCopy;
+
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization ?? TextCapitalization.none,
+      contextMenuBuilder: blockCopy
+          ? SecureClipboard.sensitiveFieldContextMenu
+          : null,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(

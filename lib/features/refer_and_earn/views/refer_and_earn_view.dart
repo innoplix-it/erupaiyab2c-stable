@@ -21,6 +21,7 @@ import '../components/refer_and_earn_app_bar.dart';
 import '../components/referral_qr_code.dart';
 import '../components/referral_share_actions.dart';
 import '../providers/referral_link_provider.dart';
+import '../../../services/secure_clipboard.dart';
 import '../repositories/referral_repository.dart';
 import '../services/referral_share_service.dart';
 import '../components/refer_and_earn_figma_metrics.dart';
@@ -973,8 +974,11 @@ class _ReferralUrlRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        await Clipboard.setData(ClipboardData(text: url));
-        AppSnackbar.show('Referral link copied');
+        // Non-sensitive by design (public share link), but still routed
+        // through the centralized guard for one consistent policy.
+        if (await SecureClipboard.copy(url)) {
+          AppSnackbar.show('Referral link copied');
+        }
       },
       behavior: HitTestBehavior.opaque,
       child: Row(

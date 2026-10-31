@@ -26,6 +26,9 @@ class ContactsPermissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isSmallScreen = screenWidth < 360;
+    final buttonHeight = isSmallScreen ? 44.h : 48.h;
     return Padding(
       padding: outerPadding ??
           EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h + bottomInset),
@@ -89,7 +92,7 @@ class ContactsPermissionCard extends StatelessWidget {
             SizedBox(height: 18.h),
             SizedBox(
               width: double.infinity,
-              height: 40.h,
+              height: buttonHeight,
               child: ElevatedButton(
                 onPressed: onAllow,
                 style: ElevatedButton.styleFrom(
@@ -104,7 +107,8 @@ class ContactsPermissionCard extends StatelessWidget {
                   buttonLabel,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: Colors.white,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
                       ),
                 ),
               ),
