@@ -17,6 +17,7 @@ import '../../../widgets/k_dialog.dart';
 import '../../../widgets/payment_success_flow.dart';
 import '../../../widgets/processing_overlay.dart';
 import '../../educationFees/views/education_payment_thank_you_view.dart';
+import '../../paymentgateway/ccavenue_webview_screen.dart';
 import '../../paymentgateway/razorpay_guard.dart';
 import '../../paymentgateway/razorpay_service.dart';
 import '../../profile/controllers/profile_controller.dart';
@@ -326,6 +327,44 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
     );
   }
 
+  Future<void> _startCcavenue({
+    required String paymentUrl,
+    required String encRequest,
+    required String accessCode,
+    required String transactionRef,
+    required String billerName,
+    String? redirectUrl,
+    String? cancelUrl,
+  }) async {
+    if (!mounted) return;
+    
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CCAvenueWebViewScreen(
+          paymentUrl: paymentUrl,
+          encRequest: encRequest,
+          accessCode: accessCode,
+          transactionRef: transactionRef,
+          redirectUrl: redirectUrl,
+          cancelUrl: cancelUrl,
+          onPaymentComplete: () async {
+            await _verifyAndShow(
+              transactionRef: transactionRef,
+              amount: widget.amount,
+              billerName: billerName,
+              fallbackMessage: 'We are verifying your payment. Please wait a moment.',
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  bool _isMobilePrepaid(String paymentType) {
+    final normalized = paymentType.trim().toLowerCase();
+    return normalized.contains('mobile prepaid');
+  }
+
   Future<void> _onPayPressed({
     required BillerDetailState detailState,
     required double remainingAmount,
@@ -343,8 +382,6 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
 
     if (!mounted) return;
     if (order == null ||
-        order.orderId.trim().isEmpty ||
-        order.key.trim().isEmpty ||
         order.transactionRef.trim().isEmpty) {
       AppSnackbar.show(
         ref.read(billerDetailControllerProvider).payErrorMessage ??
@@ -365,13 +402,51 @@ class _PaymentBottomSheetState extends ConsumerState<PaymentBottomSheet> {
       return;
     }
 
-    await _startRazorpay(
-      amount: remainingAmount,
-      billerName: billerName,
-      orderId: order.orderId,
-      keyOverride: order.key,
-      transactionRef: order.transactionRef,
-    );
+    // Gateway selection: For Services/BBPS and Mobile Postpaid, exclude Mobile Prepaid
+    final isMobilePrepaid = _isMobilePrepaid(paymentType);
+    
+    if (!isMobilePrepaid && order.isCcavenue) {
+      // Validate CCAvenue required fields
+      final paymentUrl = order.paymentUrl?.trim() ?? '';
+      final encRequest = order.encRequest?.trim() ?? '';
+      final accessCode = order.accessCode?.trim() ?? '';
+      
+      if (paymentUrl.isEmpty || encRequest.isEmpty || accessCode.isEmpty) {
+        AppSnackbar.show(
+          'Payment gateway configuration error. Please try again.',
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+        return;
+      }
+      await _startCcavenue(
+        paymentUrl: paymentUrl,
+        encRequest: encRequest,
+        accessCode: accessCode,
+        transactionRef: order.transactionRef,
+        billerName: billerName,
+        redirectUrl: order.redirectUrl,
+        cancelUrl: order.cancelUrl,
+      );
+    } else {
+      // Razorpay flow for Mobile Prepaid or when gateway is not CCAvenue
+      if (order.orderId.trim().isEmpty ||
+          order.key.trim().isEmpty) {
+        AppSnackbar.show(
+          'Payment gateway configuration error. Please try again.',
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+        return;
+      }
+      await _startRazorpay(
+        amount: remainingAmount,
+        billerName: billerName,
+        orderId: order.orderId,
+        keyOverride: order.key,
+        transactionRef: order.transactionRef,
+      );
+    }
   }
 
   @override

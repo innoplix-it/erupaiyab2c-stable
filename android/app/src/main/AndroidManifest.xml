@@ -71,6 +71,7 @@
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- UPI app package visibility for CCAvenue payment integration -->
     <queries>
         <intent>
             <action
@@ -78,5 +79,15 @@
             <data
                 android:mimeType="text/plain"/>
         </intent>
+        <!-- PhonePe -->
+        <package android:name="com.phonepe.app"/>
+        <!-- Google Pay (Tez) -->
+        <package android:name="com.google.android.apps.nbu.paisa.user"/>
+        <!-- Paytm -->
+        <package android:name="net.one97.paytm"/>
+        <!-- BHIM -->
+        <package android:name="in.org.npci.upiapp"/>
+        <!-- CRED -->
+        <package android:name="com.dreamplug.androidapp"/>
     </queries>
 </manifest>

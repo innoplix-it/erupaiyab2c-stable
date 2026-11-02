@@ -12,7 +12,6 @@ import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
 import 'education_tutor_request_view.dart';
-import 'education_tutor_unverified_view.dart';
 
 class EducationSearchRecipientView extends HookConsumerWidget {
   const EducationSearchRecipientView({
@@ -31,9 +30,6 @@ class EducationSearchRecipientView extends HookConsumerWidget {
     final pickedMobile = useRef<String?>(null);
     final pickedTutor = useRef<EducationBeneficiary?>(null);
 
-    // TEMPORARY (testing only): manual tutor verification toggle shown in the
-    // app bar. Remove once the verification status arrives from the API.
-    final isTutorVerified = useState(false);
 
     void openTutorRequest() {
       if (!context.mounted) return;
@@ -53,22 +49,6 @@ class EducationSearchRecipientView extends HookConsumerWidget {
       ref.read(educationFeesControllerProvider.notifier).updateRecipientName(
             name,
           );
-
-      // TEMPORARY (testing only): unverified tutors land on the Ask-for-KYC /
-      // Add-Details screen; verified tutors keep the request flow. Replace the
-      // branch with the real API verification status later.
-      if (!isTutorVerified.value) {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => EducationTutorUnverifiedView(
-              tutorName: name,
-              amount: amount,
-              amountLabel: '\u20B9${amount.toStringAsFixed(0)}',
-            ),
-          ),
-        );
-        return;
-      }
 
       Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -125,12 +105,6 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                 showBharatConnect: false,
                 fitTitle: true,
                 titleStyle: MyAppBar.sharedTitleStyle(context),
-                // TEMPORARY (testing only): Verified / Unverified toggle.
-                trailing: _VerificationToggle(
-                  unit: u,
-                  isVerified: isTutorVerified.value,
-                  onChanged: (verified) => isTutorVerified.value = verified,
-                ),
                 onBack: isVerifying.value ? null : () => context.pop(),
               ),
               body: Stack(
@@ -162,86 +136,6 @@ class EducationSearchRecipientView extends HookConsumerWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// TEMPORARY (testing only): a two-option Verified / Unverified control for
-/// the Add Tutor app bar. The selected label turns green. Delete this once the
-/// tutor verification status is returned by the API.
-class _VerificationToggle extends StatelessWidget {
-  const _VerificationToggle({
-    required this.unit,
-    required this.isVerified,
-    required this.onChanged,
-  });
-
-  final double unit;
-  final bool isVerified;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final u = unit;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _VerificationChip(
-          unit: u,
-          label: 'Verified',
-          selected: isVerified,
-          onTap: () => onChanged(true),
-        ),
-        SizedBox(width: 6 * u),
-        _VerificationChip(
-          unit: u,
-          label: 'Unverified',
-          selected: !isVerified,
-          onTap: () => onChanged(false),
-        ),
-      ],
-    );
-  }
-}
-
-class _VerificationChip extends StatelessWidget {
-  const _VerificationChip({
-    required this.unit,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final double unit;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final u = unit;
-    const green = Color(0xFF16A34A);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10 * u, vertical: 5 * u),
-        decoration: BoxDecoration(
-          color: selected ? green : const Color(0xFFF4F4F5),
-          borderRadius: BorderRadius.circular(20 * u),
-          border: Border.all(
-            color: selected ? green : const Color(0xFFE4E4E7),
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12 * u,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : const Color(0xFF71717A),
-          ),
-        ),
-      ),
     );
   }
 }
