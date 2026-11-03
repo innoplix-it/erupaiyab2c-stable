@@ -11,6 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_text_styles.dart';
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../services/permission_service.dart';
@@ -2207,13 +2208,9 @@ class _BillerTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   _capitalizeWords(biller.billerName),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13.sp,
-                    height: 1.35,
-                    letterSpacing: 0,
-                    color: const Color(0xFF000000),
-                  ),
+                  // Shared operator-name text (AppTextStyles.operatorName)
+                  // so every service module's provider name renders equal.
+                  style: AppTextStyles.operatorName(context),
                 ),
               ),
               SizedBox(width: 10.w),

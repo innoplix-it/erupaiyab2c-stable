@@ -39,17 +39,17 @@ class CustomElevatedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? 28.r;
-    final background = backgroundColor != null
-        ? LinearGradient(
-            colors: [backgroundColor!, backgroundColor!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          )
-        : const LinearGradient(
-            colors: [AppColors.primary, AppColors.primaryDark],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          );
+    // Master style: flat brand orange (#DD5428). An explicit backgroundColor
+    // (e.g. disabled grays) still overrides; only the default used to be a
+    // primary->primaryDark gradient, now unified to the flat master.
+    final background = LinearGradient(
+      colors: [
+        backgroundColor ?? AppColors.primary,
+        backgroundColor ?? AppColors.primary,
+      ],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
 
     return SizedBox(
       width: width,

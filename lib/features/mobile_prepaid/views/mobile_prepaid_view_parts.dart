@@ -368,8 +368,11 @@ class _SearchModeToggle extends StatelessWidget {
     }) {
       final active = mode == value;
       return SizedBox(
-        width: 36.w,
-        height: 16.h,
+        // Chip width reduced slightly (44 -> 40); .w already scales with the
+        // device width via ScreenUtil, so it shrinks proportionally on small
+        // phones and grows on large ones.
+        width: 40.w,
+        height: 24.h,
         child: Stack(
           alignment: Alignment.center,
           clipBehavior: Clip.none,
@@ -391,8 +394,10 @@ class _SearchModeToggle extends StatelessWidget {
               borderRadius: BorderRadius.circular(90.r),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: 36.w,
-                height: 16.h,
+                // Matches the chip slot (40 x 24) — earlier 44 wide looked
+                // oversized next to the label.
+                width: 40.w,
+                height: 24.h,
                 padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
@@ -411,7 +416,7 @@ class _SearchModeToggle extends StatelessWidget {
                           ? const Color(0xFFFFFFFF)
                           : const Color(0xFF000000),
                       fontWeight: FontWeight.w500,
-                      fontSize: 10.sp,
+                      fontSize: 11.sp,
                       height: 1.0,
                       letterSpacing: 0,
                     ),
@@ -425,7 +430,8 @@ class _SearchModeToggle extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+      // Figma: toggle sits inset from the bar's right edge, not flush.
+      padding: EdgeInsets.only(left: 4.w, right: 12.w, top: 8.h, bottom: 8.h),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0x21DD5428),

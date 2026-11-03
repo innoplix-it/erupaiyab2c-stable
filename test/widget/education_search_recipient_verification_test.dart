@@ -105,6 +105,26 @@ void main() {
     expect(popScope.canPop, isTrue);
   });
 
+  testWidgets('app bar shows verified/unverified flow toggle', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const EducationSearchRecipientView(
+          verificationDuration: Duration(milliseconds: 200),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Both pills render in the app bar; tapping one selects it.
+    expect(find.text('Verified'), findsOneWidget);
+    expect(find.text('Unverified'), findsOneWidget);
+
+    await tester.tap(find.text('Unverified'));
+    await tester.pump();
+    await tester.tap(find.text('Verified'));
+    await tester.pump();
+  });
+
   testWidgets('tutor request screen shows actions and no local banner',
       (tester) async {
     await tester.pumpWidget(

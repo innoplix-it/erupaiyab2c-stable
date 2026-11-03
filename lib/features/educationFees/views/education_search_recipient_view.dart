@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -11,7 +12,12 @@ import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
+import 'education_fees_recipient_view.dart';
 import 'education_tutor_request_view.dart';
+
+/// AppBar flow selector on the Add-Tutor contacts screen: picking a contact
+/// then runs the matching verified / unverified tutor flow.
+enum EducationTutorFlowMode { verified, unverified }
 
 class EducationSearchRecipientView extends HookConsumerWidget {
   const EducationSearchRecipientView({
@@ -25,6 +31,7 @@ class EducationSearchRecipientView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isVerifying = useState(false);
+    final flowMode = useState(EducationTutorFlowMode.verified);
     final verificationStarted = useRef(false);
     final pickedName = useRef<String?>(null);
     final pickedMobile = useRef<String?>(null);
@@ -43,12 +50,23 @@ class EducationSearchRecipientView extends HookConsumerWidget {
       isVerifying.value = false;
       verificationStarted.value = false;
 
-      ref.read(educationFeesControllerProvider.notifier).updateMobileInput(
-            mobile,
-          );
-      ref.read(educationFeesControllerProvider.notifier).updateRecipientName(
-            name,
-          );
+      // Verified mode opens the normal recipient form (checkMobile-gated,
+      // Proceed goes straight to payment); unverified mode keeps the
+      // tutor review / send-request flow.
+      if (flowMode.value == EducationTutorFlowMode.verified) {
+        ref.read(educationFeesControllerProvider.notifier).updateMobileInput(
+              mobile,
+            );
+        ref.read(educationFeesControllerProvider.notifier).updateRecipientName(
+              name,
+            );
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const EducationFeesRecipientView(),
+          ),
+        );
+        return;
+      }
 
       Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -106,6 +124,10 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                 fitTitle: true,
                 titleStyle: MyAppBar.sharedTitleStyle(context),
                 onBack: isVerifying.value ? null : () => context.pop(),
+                trailing: _TutorFlowToggle(
+                  mode: flowMode.value,
+                  onChanged: (mode) => flowMode.value = mode,
+                ),
               ),
               body: Stack(
                 children: [
@@ -136,6 +158,88 @@ class EducationSearchRecipientView extends HookConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// AppBar pill toggle (same styling as the Mobile Prepaid search-mode
+/// toggle) that picks which flow a contact pick should run.
+class _TutorFlowToggle extends StatelessWidget {
+  const _TutorFlowToggle({required this.mode, required this.onChanged});
+
+  final EducationTutorFlowMode mode;
+  final ValueChanged<EducationTutorFlowMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget chip({
+      required String label,
+      required EducationTutorFlowMode value,
+      required double width,
+    }) {
+      final active = mode == value;
+      return InkWell(
+        onTap: () => onChanged(value),
+        borderRadius: BorderRadius.circular(90.r),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: width,
+          height: 24.h,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFFDD5428) : Colors.transparent,
+            borderRadius: BorderRadius.circular(90.r),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                color: active ? Colors.white : const Color(0xFF000000),
+                fontWeight: FontWeight.w500,
+                fontSize: 11.sp,
+                height: 1.0,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return FittedBox(
+      // Shrink on very narrow screens instead of overflowing the toolbar.
+      fit: BoxFit.scaleDown,
+      child: Padding(
+        padding: EdgeInsets.only(right: 4.w),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0x21DD5428),
+            borderRadius: BorderRadius.circular(90.r),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 3.h),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                chip(
+                  label: 'Verified',
+                  value: EducationTutorFlowMode.verified,
+                  width: 62.w,
+                ),
+                chip(
+                  label: 'Unverified',
+                  value: EducationTutorFlowMode.unverified,
+                  width: 74.w,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

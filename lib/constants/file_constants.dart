@@ -7,6 +7,11 @@ class FileConstants {
   static String successVectorIcon = 'assets/images/svg/Vector.svg';
   static String invitePendingBadgeSvg =
       'assets/images/svg/invite_pending_badge.svg';
+  static String profileWalletSvg = 'assets/images/svg/profile_wallet.svg';
+  static String profileLoansSvg = 'assets/images/svg/profile_loans.svg';
+  static String profileLogoutSvg = 'assets/images/svg/profile_logout.svg';
+  static String profileEmailEditSvg =
+      'assets/images/svg/profile_email_edit.svg';
   static String indiaFlag = 'assets/images/png/indiaFlag.png';
   static String logo = 'assets/images/png/logo.png';
   static String favicon = 'assets/images/png/favicon.png';

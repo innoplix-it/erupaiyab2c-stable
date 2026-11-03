@@ -28,7 +28,7 @@ class ContactsPermissionCard extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isSmallScreen = screenWidth < 360;
-    final buttonHeight = isSmallScreen ? 44.h : 48.h;
+    final buttonHeight = isSmallScreen ? 35.h : 40.h;
     return Padding(
       padding: outerPadding ??
           EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h + bottomInset),
@@ -90,6 +90,8 @@ class ContactsPermissionCard extends StatelessWidget {
                   ),
             ),
             SizedBox(height: 18.h),
+            // Reuse the exact Education Fees (tuition) contact-access button:
+            // same #E85A2C fill, 26.r pill, elevation 0, labelLarge w700.
             SizedBox(
               width: double.infinity,
               height: buttonHeight,

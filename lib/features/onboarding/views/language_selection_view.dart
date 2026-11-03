@@ -24,6 +24,9 @@ class LanguageSelectionView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isSmallScreen = screenWidth < 360;
+    final buttonHeight = isSmallScreen ? 44.h : 48.h;
     final selectedLanguage = useState(languageOptions.first);
 
     void handleContinue() {
@@ -87,11 +90,28 @@ class LanguageSelectionView extends HookConsumerWidget {
                 ),
               ),
               SizedBox(height: 16.h),
-              CustomElevatedButton(
-                onPressed: handleContinue,
-                label: 'Continue',
-                showArrow: false,
-                uppercaseLabel: false,
+              SizedBox(
+                width: double.infinity,
+                height: buttonHeight,
+                child: ElevatedButton(
+                  onPressed: handleContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE85A2C),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Continue',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

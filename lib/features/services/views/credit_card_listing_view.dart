@@ -9,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_text_styles.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
@@ -280,10 +281,12 @@ class CreditCardListingView extends HookConsumerWidget {
                                                 context, 12)),
                                         LayoutBuilder(
                                           builder: (context, constraints) {
+                                            // Figma: 3 tiles of 120 with a
+                                            // 16 gap in both directions.
                                             final spacing =
                                                 CreditCardFigmaMetrics.s(
                                               context,
-                                              12,
+                                              16,
                                             );
                                             const columns = 3;
                                             final tileWidth = (constraints
@@ -425,16 +428,34 @@ class _BillerGridTile extends StatelessWidget {
   final Biller biller;
   final VoidCallback? onTap;
 
+  /// Display-only line-break overrides for grid tiles. Backend name stays
+  /// untouched for navigation/API; only the tile label is split (Figma:
+  /// "BoB Credit" / "Card", "RBL Credit" / "Card").
+  static String _displayName(String name) {
+    final key = name.trim().toLowerCase();
+    if (key == 'bob credit card') {
+      return 'BoB Credit\nCard';
+    }
+    if (key == 'rbl credit card') {
+      return 'RBL Credit\nCard';
+    }
+    return name;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Height is derived from width-scaled children (not a fixed 112 + .h),
-    // so tall/wide phones cannot RenderFlex-overflow the Column.
-    final pad = CreditCardFigmaMetrics.s(context, 10);
-    final iconSize = CreditCardFigmaMetrics.s(context, 44);
-    final gap = CreditCardFigmaMetrics.s(context, 10);
-    final textHeight = CreditCardFigmaMetrics.s(context, 32);
-    final tileHeight = pad * 2 + iconSize + gap + textHeight;
-    final logoSize = CreditCardFigmaMetrics.s(context, 38);
+    final pad = CreditCardFigmaMetrics.s(context, 16);
+    final iconSize = CreditCardFigmaMetrics.s(context, 50);
+    final gap = CreditCardFigmaMetrics.s(context, 8);
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontSize: CreditCardFigmaMetrics.s(context, 12),
+          height: 1.4,
+        );
+    final textHeight =
+        2 * (labelStyle?.fontSize ?? 12) * (labelStyle?.height ?? 1.4);
+    final tileHeight = CreditCardFigmaMetrics.sy(context, 122);
 
     return InkWell(
       onTap: onTap,
@@ -447,45 +468,59 @@ class _BillerGridTile extends StatelessWidget {
           color: Colors.white,
           borderRadius:
               BorderRadius.circular(CreditCardFigmaMetrics.s(context, 16)),
+          border: Border.all(
+            color: const Color(0xFFE4E4E4).withOpacity(0.5),
+            width: 1,
+          ),
           boxShadow: [
+            // Figma drop shadow 1: Y 4, blur 8, #B3B3B3 @10%.
             BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: CreditCardFigmaMetrics.s(context, 12),
-              offset: Offset(CreditCardFigmaMetrics.s(context, 0),
-                  CreditCardFigmaMetrics.sy(context, 6)),
+              color: const Color(0xFFB3B3B3).withOpacity(0.10),
+              blurRadius: CreditCardFigmaMetrics.s(context, 8),
+              offset: Offset(0, CreditCardFigmaMetrics.sy(context, 4)),
+            ),
+            // Figma drop shadow 2: Y 14, blur 14, #B3B3B3 @9%.
+            BoxShadow(
+              color: const Color(0xFFB3B3B3).withOpacity(0.09),
+              blurRadius: CreditCardFigmaMetrics.s(context, 14),
+              offset: Offset(0, CreditCardFigmaMetrics.sy(context, 14)),
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _ProviderIconFrame(
-              size: iconSize,
-              child: _BillerIcon(
-                name: biller.billerName,
-                iconUrl: biller.iconUrl,
-                size: logoSize,
-                backgroundColor: Colors.white,
-                borderRadius: BorderRadius.circular(
-                    CreditCardFigmaMetrics.s(context, 14)),
-              ),
-            ),
-            SizedBox(height: gap),
-            SizedBox(
-              height: textHeight,
-              child: Text(
-                biller.billerName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      height: 1.15,
-                    ),
-              ),
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final available = constraints.maxHeight - gap - textHeight;
+            final side = iconSize > available ? available : iconSize;
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ProviderIconFrame(
+                  size: side,
+                  child: _BillerIcon(
+                    name: biller.billerName,
+                    iconUrl: biller.iconUrl,
+                    // frame 50 - 2x3 padding - 2x1 border = 42 logo area.
+                    size: side - CreditCardFigmaMetrics.s(context, 8),
+                    backgroundColor: Colors.white,
+                    borderRadius: BorderRadius.circular(
+                        CreditCardFigmaMetrics.s(context, 14)),
+                  ),
+                ),
+                SizedBox(height: gap),
+                SizedBox(
+                  height: textHeight,
+                  child: Text(
+                    _displayName(biller.billerName),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    // Exactly the "All Banks" row text (no overrides).
+                    style: labelStyle,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -497,9 +532,6 @@ class _BillerListTile extends StatelessWidget {
 
   final Biller biller;
   final VoidCallback? onTap;
-
-  /// Matches Electricity Fetch Your Provider operator rows: 50x50 logo card,
-  /// 13sp Plus Jakarta name, square 24 arrow, width-scaled row gap.
   @override
   Widget build(BuildContext context) {
     final borderWidth = 1.0;
@@ -552,13 +584,10 @@ class _BillerListTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   displayName,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w500,
-                    fontSize: CreditCardFigmaMetrics.s(context, 13),
-                    height: 1.35,
-                    letterSpacing: 0,
-                    color: const Color(0xFF000000),
-                  ),
+                  // Shared operator-name text (AppTextStyles.operatorName),
+                  // identical to the Electricity Fetch Your Provider rows so
+                  // every module's provider name renders at one size.
+                  style: AppTextStyles.operatorName(context),
                 ),
               ),
               SizedBox(width: CreditCardFigmaMetrics.s(context, 10)),
@@ -719,7 +748,7 @@ class _CreditCardListingSkeleton extends StatelessWidget {
                             builder: (context, constraints) {
                               final spacing = CreditCardFigmaMetrics.s(
                                 context,
-                                12,
+                                16,
                               );
                               const columns = 3;
                               final tileWidth = (constraints.maxWidth -

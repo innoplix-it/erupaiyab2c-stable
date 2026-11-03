@@ -14,6 +14,7 @@ import '../../../constants/file_constants.dart';
 import '../../../services/permission_service.dart';
 import '../../../widgets/app_search_bar.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../widgets/contacts_permission_card.dart';
 import '../../../widgets/search_textfield.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
 
@@ -208,7 +209,7 @@ class _PermissionEmptyState extends StatelessWidget {
     final iconInnerSize = isSmallScreen ? 48.r : 58.r;
     final titleFontSize = isSmallScreen ? 16.sp : 18.sp;
     final descFontSize = isSmallScreen ? 13.sp : 14.sp;
-    final buttonHeight = isSmallScreen ? 44.h : 48.h;
+    final buttonHeight = isSmallScreen ? 35.h : 40.h;
 
     return Center(
       child: ConstrainedBox(
@@ -253,12 +254,28 @@ class _PermissionEmptyState extends StatelessWidget {
               ),
             ),
             SizedBox(height: 18.h),
-            CustomElevatedButton(
-              onPressed: onAllow,
-              label: 'Allow Contact Access',
-              uppercaseLabel: true,
+            SizedBox(
+              width: double.infinity,
               height: buttonHeight,
-              backgroundColor: const Color(0xFFDD5428),
+              child: ElevatedButton(
+                onPressed: onAllow,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE85A2C),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(26.r),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Allow Contact Access',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+              ),
             ),
           ],
         ),

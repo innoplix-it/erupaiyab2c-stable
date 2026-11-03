@@ -28,6 +28,7 @@ class ProfileModel {
     this.createdAt,
     this.updatedAt,
     this.profilePhotoUrl,
+    this.profileCompletionPercent = 0,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -94,6 +95,12 @@ class ProfileModel {
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
       profilePhotoUrl: json['profile_photo_url'] as String?,
+      profileCompletionPercent: _parseInt(
+        json['profile_completion_percent'] ??
+            json['completion_percent'] ??
+            json['profile_completion'] ??
+            json['kyc_completion_percent'],
+      ),
     );
   }
 
@@ -126,9 +133,14 @@ class ProfileModel {
   final String? updatedAt;
   final String? profilePhotoUrl;
 
+  /// Profile completion percentage reported by the backend. Defaults to 0
+  /// when the API provides no value.
+  final int profileCompletionPercent;
+
   AddressEntry? get billingAddressEntry =>
       addresses.firstWhere((e) => e.type == AddressType.billing, orElse: () {
-        if (billingAddress == null) return AddressEntry.empty(AddressType.billing);
+        if (billingAddress == null)
+          return AddressEntry.empty(AddressType.billing);
         return AddressEntry(
           type: AddressType.billing,
           addressLine1: billingAddress!.addressLine1,
@@ -161,6 +173,11 @@ class ProfileModel {
     if (value is num) return value == 1;
     final text = value?.toString().trim().toLowerCase();
     return text == '1' || text == 'true' || text == 'verified' || text == 'yes';
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString().trim() ?? '') ?? 0;
   }
 
   static ProfileKycStatus _parseKycStatus(dynamic value) {

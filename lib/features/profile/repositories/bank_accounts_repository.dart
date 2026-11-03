@@ -82,6 +82,7 @@ class BankAccountEntry {
     required this.verified,
     this.ifsc,
     this.referenceId,
+    this.bankLogo,
   });
 
   factory BankAccountEntry.fromJson(Map<String, dynamic> json) {
@@ -95,6 +96,12 @@ class BankAccountEntry {
       verified: json['verified'] == true,
       ifsc: (json['ifsc'] ?? '').toString(),
       referenceId: (json['reference_id'] ?? '').toString(),
+      bankLogo: (json['bank_logo'] ??
+              json['bank_icon'] ??
+              json['logo'] ??
+              json['image_url'] ??
+              '')
+          .toString(),
     );
   }
 
@@ -105,6 +112,7 @@ class BankAccountEntry {
   final bool verified;
   final String? ifsc;
   final String? referenceId;
+  final String? bankLogo;
 }
 
 Map<String, dynamic> _asMap(dynamic data) {
