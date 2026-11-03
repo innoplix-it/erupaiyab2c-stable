@@ -10,6 +10,8 @@ class FileConstants {
   static String profileWalletSvg = 'assets/images/svg/profile_wallet.svg';
   static String profileLoansSvg = 'assets/images/svg/profile_loans.svg';
   static String profileLogoutSvg = 'assets/images/svg/profile_logout.svg';
+  // Bank Account tab empty state (Figma bank illustration, 104 x 100).
+  static String bankEmptyStateSvg = 'assets/images/svg/bank_account_empty.svg';
   static String profileEmailEditSvg =
       'assets/images/svg/profile_email_edit.svg';
   static String indiaFlag = 'assets/images/png/indiaFlag.png';

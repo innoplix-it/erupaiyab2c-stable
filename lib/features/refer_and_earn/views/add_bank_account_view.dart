@@ -3,33 +3,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../services/secure_clipboard.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../utils/utils.dart';
 import '../../../widgets/app_snackbar.dart';
+import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
+import '../../../widgets/my_app_bar.dart';
+import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../../profile/models/profile_model.dart';
 import '../../profile/repositories/bank_accounts_repository.dart';
-import '../components/refer_and_earn_app_bar.dart';
+import '../../services/components/credit_card/credit_card_figma_metrics.dart';
 import '../repositories/bank_account_repository.dart';
+import '../views/select_bank_view.dart';
 
+/// Add / Edit Bank Account.
+///
+/// Layout follows the Credit Card bill-entry screen 1:1 (same shared pieces:
+/// [MyAppBar], [SimpleQuickActionCard] in `creditCardStyle`, the bill-field
+/// chrome and [CustomElevatedButton]) and is sized through
+/// [CreditCardFigmaMetrics] (440-wide Figma frame scaled by MediaQuery), so
+/// every device gets the same proportions. Verification / save payloads and
+/// the two-step flow are untouched.
 class AddBankAccountView extends HookConsumerWidget {
   const AddBankAccountView({
     super.key,
     this.existingAccount,
     this.selectedBankName,
+    this.selectedBank,
     this.redirectToHomeOnSuccess = false,
   });
 
   final BankAccountEntry? existingAccount;
   final String? selectedBankName;
+
+  /// Bank picked on [SelectBankView]; carries the logo for the header card.
+  final BankListItem? selectedBank;
   final bool redirectToHomeOnSuccess;
 
   @override
@@ -46,6 +63,10 @@ class AddBankAccountView extends HookConsumerWidget {
     final nameController = useTextEditingController();
     final branchController = useTextEditingController();
     final bankNameController = useTextEditingController();
+    // The header card mirrors the bank name, so rebuild when it changes
+    // (picker selection, edit prefill, verify response).
+    useListenable(bankNameController);
+    final pickedBank = useState<BankListItem?>(selectedBank);
 
     final confirmChecked = useState(isEdit);
     final isVerifying = useState(false);
@@ -69,11 +90,16 @@ class AddBankAccountView extends HookConsumerWidget {
         referenceId.value = existingAccount!.referenceId ?? '';
         step.value = _BankStep.verify;
       }
-      if (selectedBankName != null && selectedBankName!.trim().isNotEmpty) {
+      final incomingBank = selectedBank;
+      if (incomingBank != null) {
+        pickedBank.value = incomingBank;
+        bankNameController.text = incomingBank.bankName.trim();
+      } else if (selectedBankName != null &&
+          selectedBankName!.trim().isNotEmpty) {
         bankNameController.text = selectedBankName!.trim();
       }
       return null;
-    }, [existingAccount?.id, selectedBankName]);
+    }, [existingAccount?.id, selectedBankName, selectedBank?.id]);
 
     Future<void> handleVerify() async {
       if (profileState.profile == null) {
@@ -91,12 +117,6 @@ class AddBankAccountView extends HookConsumerWidget {
       final ifsc = ifscController.text.trim();
       if (accountNo.isEmpty || ifsc.isEmpty) {
         AppSnackbar.show('Please enter account number and IFSC code.');
-        return;
-      }
-      if (!confirmChecked.value) {
-        AppSnackbar.show(
-          'Please confirm your bank account details before verifying.',
-        );
         return;
       }
       try {
@@ -228,135 +248,102 @@ class AddBankAccountView extends HookConsumerWidget {
       }
     }
 
+    /// Re-opens [SelectBankView]. The picked bank only feeds the existing
+    /// verify/save payload (bank name) — no API logic changes here.
+    Future<void> openBankPicker() async {
+      final selected = await Navigator.of(context).push<BankListItem>(
+        MaterialPageRoute(
+          builder: (_) => const SelectBankView(),
+        ),
+      );
+      if (selected == null) return;
+      pickedBank.value = selected;
+      bankNameController.text = selected.bankName.trim();
+    }
+
+    final bankLabel = bankNameController.text.trim();
+    final hasBank = bankLabel.isNotEmpty;
+
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: MyAppBar(
+        title: isEdit ? 'Edit Bank Account' : 'Add Bank Account',
+        fitTitle: true,
+        showHelp: true,
+        // Figma keeps only the help mark on this screen.
+        showBharatConnect: false,
+        helpIconSize: 20,
+        onBack: () => Navigator.of(context).maybePop(),
+      ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0.h, 16.w, 18.h),
+          padding: EdgeInsets.fromLTRB(
+            CreditCardFigmaMetrics.s(context, 24),
+            0,
+            CreditCardFigmaMetrics.s(context, 24),
+            CreditCardFigmaMetrics.sy(context, 20),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (step.value == _BankStep.verify)
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 10.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F1F1),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: 20.w,
-                        width: 20.w,
-                        child: Checkbox(
-                          value: confirmChecked.value,
-                          onChanged: (value) =>
-                              confirmChecked.value = value ?? false,
-                          activeColor: const Color(0xFFE85A2C),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          'I Confirm That The Bank Account Details Are Correct And Match My KYC Information.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                color: AppColors.textPrimary.withOpacity(0.7),
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (step.value == _BankStep.verify) SizedBox(height: 12.h),
-              _PrimaryButton(
+              CustomElevatedButton(
+                onPressed:
+                    step.value == _BankStep.verify ? handleVerify : handleSave,
                 label: step.value == _BankStep.verify
-                    ? 'Verify Account'
+                    ? 'Proceed'
                     : (isEdit ? 'Update Bank Account' : 'Save Bank Account'),
-                loading: step.value == _BankStep.verify
+                isLoading: step.value == _BankStep.verify
                     ? isVerifying.value
                     : isSaving.value,
-                onTap:
-                    step.value == _BankStep.verify ? handleVerify : handleSave,
+                uppercaseLabel: false,
+                height: CreditCardFigmaMetrics.primaryButtonHeight(context),
+                borderRadius: CreditCardFigmaMetrics.s(context, 28),
+                labelStyle:
+                    CreditCardFigmaMetrics.primaryButtonLabelStyle(context),
               ),
             ],
           ),
         ),
       ),
       body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          CreditCardFigmaMetrics.s(context, 24),
+          CreditCardFigmaMetrics.sy(context, 20),
+          CreditCardFigmaMetrics.s(context, 24),
+          CreditCardFigmaMetrics.sy(context, 16),
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ReferAndEarnAppBar(
-              title: isEdit ? 'Edit Bank Account' : 'Add Bank Account',
-              height: 300.h,
-              body: Column(
-                children: [
-                  Container(
-                    width: 54.w,
-                    height: 54.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.account_balance,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(height: 10.h),
-                  Text(
-                    isEdit
-                        ? 'Edit your bank account details to keep withdrawals active.'
-                        : step.value == _BankStep.verify
-                            ? 'Select your bank to link it with your wallet for\nwithdrawals.'
-                            : 'Add your bank details to receive withdrawal\npayments securely.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
-                          fontWeight: FontWeight.w600,
-                          height: 1.4,
-                        ),
-                  ),
-                ],
-              ),
+            SimpleQuickActionCard(
+              overline: 'Selected Bank',
+              title: hasBank ? bankLabel : 'Tap to select bank',
+              subtitle: '',
+              // Bank list API sends no logo yet, so the generic bank mark shows
+              // until a URL exists (LeadingIcon prefers the remote icon).
+              leadingAsset: FileConstants.homeBank,
+              leadingImageUrl: pickedBank.value?.logoUrl,
+              creditCardStyle: true,
+              showShadow: true,
+              actionLabel: hasBank ? 'Change' : 'Select',
+              onTap: openBankPicker,
+              onAction: openBankPicker,
             ),
-            Transform.translate(
-              offset: Offset(0, -26.h),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(26.r),
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 12.h),
-                  child: step.value == _BankStep.verify
-                      ? _VerifyBankForm(
-                          accountController: accountController,
-                          ifscController: ifscController,
-                        )
-                      : _ConfirmBankForm(
-                          nameController: nameController,
-                          accountController: accountController,
-                          ifscController: ifscController,
-                          branchController: branchController,
-                          bankNameController: bankNameController,
-                        ),
-                ),
+            SizedBox(height: CreditCardFigmaMetrics.sy(context, 22)),
+            if (step.value == _BankStep.verify)
+              _VerifyBankForm(
+                accountController: accountController,
+                ifscController: ifscController,
+              )
+            else
+              _ConfirmBankForm(
+                nameController: nameController,
+                accountController: accountController,
+                ifscController: ifscController,
+                branchController: branchController,
+                bankNameController: bankNameController,
               ),
-            ),
-            SizedBox(height: 8.h),
           ],
         ),
       ),
@@ -365,6 +352,79 @@ class AddBankAccountView extends HookConsumerWidget {
 }
 
 enum _BankStep { verify, confirm }
+
+/// Field label — Figma "Account Number" / "IFSC Code" row.
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w600,
+          fontSize: CreditCardFigmaMetrics.s(context, 14),
+          height: 1,
+          color: AppColors.textPrimary,
+        ),
+      );
+}
+
+/// KYC attestation shown above the CTA on the verify step.
+class _ConfirmCheckbox extends StatelessWidget {
+  const _ConfirmCheckbox({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: CreditCardFigmaMetrics.s(context, 12),
+        vertical: CreditCardFigmaMetrics.sy(context, 10),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F1F1),
+        borderRadius: BorderRadius.circular(
+          CreditCardFigmaMetrics.s(context, 10),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: CreditCardFigmaMetrics.s(context, 20),
+            width: CreditCardFigmaMetrics.s(context, 20),
+            child: Checkbox(
+              value: value,
+              onChanged: (next) => onChanged(next ?? false),
+              activeColor: const Color(0xFFE85A2C),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          SizedBox(width: CreditCardFigmaMetrics.s(context, 8)),
+          Expanded(
+            child: Text(
+              'I Confirm That The Bank Account Details Are Correct And Match '
+              'My KYC Information.',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w600,
+                fontSize: CreditCardFigmaMetrics.s(context, 12),
+                height: 1.35,
+                color: AppColors.textPrimary.withOpacity(0.7),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _VerifyBankForm extends HookWidget {
   const _VerifyBankForm({
@@ -380,36 +440,23 @@ class _VerifyBankForm extends HookWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Account Number',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 8.h),
+        const _FieldLabel('Account Number'),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         _InputField(
           controller: accountController,
-          hintText: 'Enter Account Number',
+          hintText: 'Account number',
           keyboardType: TextInputType.number,
           blockCopy: true,
         ),
-        SizedBox(height: 16.h),
-        Text(
-          'IFSC Code',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 8.h),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 18)),
+        const _FieldLabel('IFSC Code'),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         _InputField(
           controller: ifscController,
-          hintText: 'Enter IFSC Code',
+          hintText: 'IFSC',
           textCapitalization: TextCapitalization.characters,
           blockCopy: true,
         ),
-        SizedBox(height: 24.h),
       ],
     );
   }
@@ -438,95 +485,73 @@ class _ConfirmBankForm extends HookWidget {
         Center(
           child: Text(
             'Confirm Bank Details',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700,
+              fontSize: CreditCardFigmaMetrics.s(context, 15),
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
         SizedBox(height: 16.h),
-        Text(
-          'Account Holder Name',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 8.h),
+        const _FieldLabel('Account Holder Name'),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         _InputField(
           controller: nameController,
           hintText: 'Account Holder Name',
         ),
-        SizedBox(height: 16.h),
-        Text(
-          'Account Number',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 8.h),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 16)),
+        const _FieldLabel('Account Number'),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         _InputField(
           controller: accountController,
           hintText: 'Account Number',
           keyboardType: TextInputType.number,
           blockCopy: true,
         ),
-        SizedBox(height: 16.h),
-        Text(
-          'IFSC Code',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 8.h),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 16)),
+        const _FieldLabel('IFSC Code'),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         _InputField(
           controller: ifscController,
           hintText: 'IFSC Code',
           textCapitalization: TextCapitalization.characters,
           blockCopy: true,
         ),
-        SizedBox(height: 16.h),
-        Text(
-          'Branch Name (Opt)',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 8.h),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 16)),
+        const _FieldLabel('Branch Name (Opt)'),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         _InputField(
           controller: branchController,
           hintText: 'Enter Branch Name',
         ),
-        SizedBox(height: 16.h),
-        Text(
-          'Bank Name (Opt)',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        SizedBox(height: 8.h),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 16)),
+        const _FieldLabel('Bank Name (Opt)'),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 8)),
         _InputField(
           controller: bankNameController,
           hintText: 'Enter Bank Name',
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: CreditCardFigmaMetrics.sy(context, 16)),
         Container(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: CreditCardFigmaMetrics.s(context, 12),
+            vertical: CreditCardFigmaMetrics.sy(context, 10),
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFE7E7E7),
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(
+              CreditCardFigmaMetrics.s(context, 10),
+            ),
           ),
           child: Text(
             'Please Confirm Your Bank Details Before Saving. Withdrawals Will Be Processed To This Account.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary.withOpacity(0.8),
-                  fontWeight: FontWeight.w600,
-                ),
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w600,
+              fontSize: CreditCardFigmaMetrics.s(context, 12),
+              height: 1.35,
+              color: AppColors.textPrimary.withOpacity(0.8),
+            ),
           ),
         ),
       ],
@@ -554,73 +579,66 @@ class _InputField extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization ?? TextCapitalization.none,
-      contextMenuBuilder: blockCopy
-          ? SecureClipboard.sensitiveFieldContextMenu
-          : null,
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textPrimary.withOpacity(0.5),
-            ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.r),
-          borderSide: const BorderSide(color: AppColors.lightBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.r),
-          borderSide: const BorderSide(color: Color(0xFF1A56A1)),
-        ),
-      ),
+    final radius = BorderRadius.circular(
+      CreditCardFigmaMetrics.billFieldRadius(context),
     );
-  }
-}
+    OutlineInputBorder border(Color color) => OutlineInputBorder(
+          borderRadius: radius,
+          borderSide: BorderSide(color: color),
+        );
+    final fontSize = CreditCardFigmaMetrics.s(context, 14);
 
-class _PrimaryButton extends HookWidget {
-  const _PrimaryButton({
-    required this.label,
-    required this.onTap,
-    this.loading = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool loading;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: loading ? null : onTap,
-      borderRadius: BorderRadius.circular(28.r),
-      child: Container(
-        height: 42.h,
+    // Same chrome as the credit card bill inputs: fixed Figma height, text
+    // centred, hairline border and a soft elevation.
+    return SizedBox(
+      width: double.infinity,
+      height: CreditCardFigmaMetrics.billFieldHeight(context),
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFFE85A2C),
-          borderRadius: BorderRadius.circular(28.r),
+          borderRadius: radius,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: CreditCardFigmaMetrics.s(context, 8),
+              offset: Offset(0, CreditCardFigmaMetrics.sy(context, 2)),
+            ),
+          ],
         ),
-        alignment: Alignment.center,
-        child: loading
-            ? SizedBox(
-                width: 22.w,
-                height: 22.w,
-                child: const Center(
-                  child: SpinKitCircle(
-                    color: AppColors.primary,
-                    size: 48,
-                  ),
-                ),
-              )
-            : Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+        child: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          textCapitalization: textCapitalization ?? TextCapitalization.none,
+          contextMenuBuilder:
+              blockCopy ? SecureClipboard.sensitiveFieldContextMenu : null,
+          expands: true,
+          maxLines: null,
+          textAlignVertical: TextAlignVertical.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w500,
+            fontSize: fontSize,
+            color: const Color(0xFF7C7C7C),
+          ),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w400,
+              fontSize: fontSize,
+              color: AppColors.textPrimary.withOpacity(0.45),
+            ),
+            counterText: '',
+            filled: true,
+            fillColor: const Color(0xFF000000),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: CreditCardFigmaMetrics.billFieldHorizontalInset(
+                context,
               ),
+            ),
+            border: border(AppColors.lightBorder),
+            enabledBorder: border(AppColors.lightBorder),
+            focusedBorder: border(AppColors.primary),
+          ),
+        ),
       ),
     );
   }

@@ -1,4 +1,13 @@
 class ProfileModel {
+  /// Response keys that can carry the Billing & Delivery percentage. Confirm
+  /// the final key with the backend and keep only that one here.
+  static const List<String> _billingDeliveryPercentKeys = [
+    'billing_delivery_percent',
+    'billing_and_delivery_percent',
+    'address_completion_percent',
+    'billing_percent',
+  ];
+
   const ProfileModel({
     required this.id,
     required this.name,
@@ -29,6 +38,7 @@ class ProfileModel {
     this.updatedAt,
     this.profilePhotoUrl,
     this.profileCompletionPercent = 0,
+    this.billingDeliveryPercent = 0,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -101,6 +111,11 @@ class ProfileModel {
             json['profile_completion'] ??
             json['kyc_completion_percent'],
       ),
+      // Badge value for the Billing & Delivery section. Straight from the API;
+      // no value in the response means 0 (never computed on the client).
+      billingDeliveryPercent: _parseInt(
+        _firstValue(json, _billingDeliveryPercentKeys),
+      ),
     );
   }
 
@@ -136,6 +151,10 @@ class ProfileModel {
   /// Profile completion percentage reported by the backend. Defaults to 0
   /// when the API provides no value.
   final int profileCompletionPercent;
+
+  /// Billing & Delivery completion percentage reported by the backend. 0 when
+  /// the API sends no value for it.
+  final int billingDeliveryPercent;
 
   AddressEntry? get billingAddressEntry =>
       addresses.firstWhere((e) => e.type == AddressType.billing, orElse: () {
@@ -178,6 +197,15 @@ class ProfileModel {
   static int _parseInt(dynamic value) {
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString().trim() ?? '') ?? 0;
+  }
+
+  /// First present, non-null value among [keys] in [json].
+  static dynamic _firstValue(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value != null) return value;
+    }
+    return null;
   }
 
   static ProfileKycStatus _parseKycStatus(dynamic value) {

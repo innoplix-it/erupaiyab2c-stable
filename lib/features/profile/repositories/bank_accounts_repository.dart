@@ -81,6 +81,7 @@ class BankAccountEntry {
     required this.accountHolderName,
     required this.verified,
     this.ifsc,
+    this.branch,
     this.referenceId,
     this.bankLogo,
   });
@@ -95,6 +96,15 @@ class BankAccountEntry {
       accountHolderName: (json['account_holder_name'] ?? '').toString(),
       verified: json['verified'] == true,
       ifsc: (json['ifsc'] ?? '').toString(),
+      // Backend sends the branch under different keys depending on the
+      // endpoint; the card shows '--' when none of them is present.
+      branch: (
+            json['branch_name'] ??
+            json['branch'] ??
+            json['bank_branch'] ??
+            ''
+        )
+        .toString(),
       referenceId: (json['reference_id'] ?? '').toString(),
       bankLogo: (json['bank_logo'] ??
               json['bank_icon'] ??
@@ -111,6 +121,7 @@ class BankAccountEntry {
   final String accountHolderName;
   final bool verified;
   final String? ifsc;
+  final String? branch;
   final String? referenceId;
   final String? bankLogo;
 }

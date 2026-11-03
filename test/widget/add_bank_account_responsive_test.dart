@@ -16,8 +16,7 @@ import '../helpers/responsive_test_sizes.dart';
 /// triggers a real profile fetch and the KYC branch is inactive during
 /// responsive renders.
 class _FakeProfileController extends ProfileController {
-  _FakeProfileController()
-      : super(repository: ProfileRepository(dio: Dio())) {
+  _FakeProfileController() : super(repository: ProfileRepository(dio: Dio())) {
     state = const ProfileState(
       profile: ProfileModel(
         id: '1',
@@ -45,7 +44,8 @@ Future<void> _pumpAddBank(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        profileControllerProvider.overrideWith((ref) => _FakeProfileController()),
+        profileControllerProvider
+            .overrideWith((ref) => _FakeProfileController()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(360, 690),
@@ -84,7 +84,11 @@ void main() {
         expect(find.text('Add Bank Account'), findsOneWidget);
         expect(find.text('Account Number'), findsOneWidget);
         expect(find.text('IFSC Code'), findsOneWidget);
-        expect(find.text('Verify Account'), findsOneWidget);
+        expect(find.text('Proceed'), findsOneWidget);
+        // Header card: overline + tap-to-select state (no bank passed).
+        expect(find.text('Selected Bank'), findsOneWidget);
+        expect(find.text('Tap to select bank'), findsOneWidget);
+        expect(find.text('Select'), findsOneWidget);
         expect(
           find.textContaining('I Confirm That The Bank Account Details'),
           findsOneWidget,
@@ -104,7 +108,8 @@ void main() {
         for (final finder in [
           find.text('Account Number'),
           find.text('IFSC Code'),
-          find.text('Verify Account'),
+          find.text('Proceed'),
+          find.text('Selected Bank'),
           find.textContaining('I Confirm That The Bank Account Details'),
         ]) {
           final rect = tester.getRect(finder);
@@ -114,7 +119,7 @@ void main() {
 
         // The primary CTA is fully visible above the fold (bottom bar).
         expect(
-          tester.getRect(find.text('Verify Account')).bottom,
+          tester.getRect(find.text('Proceed')).bottom,
           lessThanOrEqualTo(screen.height),
         );
       });
@@ -137,10 +142,13 @@ void main() {
     );
     expect(find.text('Edit Bank Account'), findsOneWidget);
     // Edit mode still starts on the verify step, so the CTA reads
-    // "Verify Account"; the "Update Bank Account" label only appears after
+    // "Proceed"; the "Update Bank Account" label only appears after
     // verification moves the form to the confirm step.
-    expect(find.text('Verify Account'), findsOneWidget);
+    expect(find.text('Proceed'), findsOneWidget);
     expect(find.text('Update Bank Account'), findsNothing);
+    // Existing account name lands in the header card.
+    expect(find.text('HDFC Bank'), findsOneWidget);
+    expect(find.text('Change'), findsOneWidget);
   });
 
   testWidgets('selected bank name prefills the CTA step without overflow',
@@ -150,7 +158,9 @@ void main() {
       size: const Size(360, 690),
       selectedBankName: 'ICICI Bank',
     );
-    expect(find.text('Verify Account'), findsOneWidget);
+    expect(find.text('Proceed'), findsOneWidget);
+    expect(find.text('ICICI Bank'), findsOneWidget);
+    expect(find.text('Change'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

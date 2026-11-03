@@ -7,6 +7,7 @@ import 'package:e_rupaiya/services/dio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../helpers/responsive_test_sizes.dart';
 
@@ -24,10 +25,22 @@ const _banksPayload = {
       {'id': '3', 'bank_name': 'Axis Bank', 'bank_code': 'UTIB0000049'},
     ],
     'all_banks': [
-      {'id': '11', 'bank_name': 'Punjab National Bank', 'bank_code': 'PUNB0000000'},
-      {'id': '12', 'bank_name': 'State Bank of India', 'bank_code': 'SBIN0000001'},
+      {
+        'id': '11',
+        'bank_name': 'Punjab National Bank',
+        'bank_code': 'PUNB0000000'
+      },
+      {
+        'id': '12',
+        'bank_name': 'State Bank of India',
+        'bank_code': 'SBIN0000001'
+      },
       {'id': '13', 'bank_name': 'Bank of Baroda', 'bank_code': 'BARB0000001'},
-      {'id': '14', 'bank_name': 'Kotak Mahindra Bank', 'bank_code': 'KKBK0000001'},
+      {
+        'id': '14',
+        'bank_name': 'Kotak Mahindra Bank',
+        'bank_code': 'KKBK0000001'
+      },
       {'id': '15', 'bank_name': 'Yes Bank', 'bank_code': 'YESB0000001'},
     ],
   },
@@ -83,20 +96,20 @@ Future<void> _pumpSelectBank(
     ),
   );
 
-  // Drain the fetchBanks microtask chain (the fake adapter resolves
-  // immediately) so the populated grid/list renders rather than the spinner.
-  // runAsync lets Dio's real async pipeline complete inside the fake-async
-  // test zone; a following pump() then renders the loaded state.
+  // Drain the fetchBanks future chain (the fake adapter resolves without
+  // timers) so the populated grid/list renders rather than the spinner.
+  // Real-async pumping is deliberately avoided: it would also surface
+  // google_fonts' offline font notice as a test failure.
   await tester.pump();
-  await tester.runAsync(
-    () => Future<void>.delayed(const Duration(milliseconds: 30)),
-  );
-  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
   await tester.pump(const Duration(milliseconds: 120));
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // The screen sets Plus Jakarta Sans; keep tests offline-safe.
+  setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
   setUp(() {
     final dio = DioService.instance.client;
@@ -113,13 +126,13 @@ void main() {
         await _pumpSelectBank(tester, size: size);
         expect(tester.takeException(), isNull);
 
-        expect(find.text('Add Bank Account'), findsOneWidget);
-        expect(find.text('Search bank name'), findsOneWidget);
+        expect(find.text('Select Receiver Bank'), findsOneWidget);
+        expect(find.text('Search by Bank Name'), findsOneWidget);
         expect(find.text('Popular Banks'), findsOneWidget);
         expect(find.text('All Banks'), findsOneWidget);
         // The list actually loaded (not stuck on the spinner / error state).
         expect(find.text('HDFC Bank'), findsOneWidget);
-        expect(find.textContaining('State Bank of India'), findsOneWidget);
+        expect(find.textContaining('State Bank Of India'), findsOneWidget);
       });
     }
   });
@@ -134,7 +147,7 @@ void main() {
           find.text('HDFC Bank'),
           find.text('ICICI Bank'),
           find.text('Axis Bank'),
-          find.text('Search bank name'),
+          find.text('Search by Bank Name'),
         ]) {
           final rect = tester.getRect(finder);
           expect(rect.left, greaterThanOrEqualTo(0));
@@ -144,19 +157,22 @@ void main() {
     }
   });
 
-  testWidgets('search field filters the popular grid by name', (tester) async {
+  testWidgets('search field filters both lists by name', (tester) async {
     await _pumpSelectBank(tester, size: const Size(390, 844));
 
     await tester.enterText(find.byType(TextField).first, 'icici');
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('ICICI Bank'), findsOneWidget);
-    expect(find.text('HDFC Bank'), findsNothing);
-    expect(find.text('Axis Bank'), findsNothing);
+    // Search renders the flattened result list, so every label carries the
+    // bank code suffix ("ICICI Bank (ICIC0000087)").
+    expect(find.textContaining('ICICI Bank'), findsOneWidget);
+    // Searching flattens the screen into one result list.
+    expect(find.text('Popular Banks'), findsNothing);
+    expect(find.textContaining('HDFC Bank'), findsNothing);
 
     await tester.enterText(find.byType(TextField).first, 'zzzz');
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('No popular banks found.'), findsOneWidget);
+    expect(find.text('No banks found'), findsOneWidget);
   });
 
   testWidgets('selecting a bank pops with the chosen item', (tester) async {

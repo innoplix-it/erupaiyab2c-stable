@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:e_rupaiya/features/auth/controllers/auth_controller.dart';
@@ -19,23 +20,35 @@ import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
-import '../../../widgets/common_banner_slider.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/custom_textfield.dart';
 import '../../../widgets/image_picker_helper.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/profile_image_picker_sheet.dart';
-import '../../home/controllers/home_controller.dart';
-import '../../home/models/banner_model.dart';
-import '../../home/utils/banner_redirect_mapper.dart';
-import '../components/profile_field.dart';
 import '../components/profile_shimmer.dart';
 import '../controllers/profile_controller.dart';
 import '../models/profile_model.dart';
 import 'bank_accounts_view.dart';
 
 // ---------------------------------------------------------------------------
-// Shared design tokens (taken from the Figma frames)
+// Responsive helpers
+//
+// Every width / height / padding / radius / icon size in this file is a
+// PERCENTAGE of the screen taken from MediaQuery (no fixed pixel sizes):
+//   context.wp(5.64)  -> 5.64 % of screen width
+//   context.hp(5.21)  -> 5.21 % of screen height
+// Percentages were derived from the Figma frame (390 x 844):
+//   width %  = figmaValue / 390 * 100
+//   height % = figmaValue / 844 * 100
+// Font sizes use flutter_screenutil (.sp) inside _ts().
+// ---------------------------------------------------------------------------
+extension _ResponsiveContext on BuildContext {
+  double wp(double percent) => MediaQuery.sizeOf(this).width * percent / 100;
+  double hp(double percent) => MediaQuery.sizeOf(this).height * percent / 100;
+}
+
+// ---------------------------------------------------------------------------
+// Shared design tokens (colours from Figma)
 // ---------------------------------------------------------------------------
 const Color _kBlue = Color(0xFF1D4E9E);
 const Color _kPageBg = Color(0xFFF5F5F5);
@@ -45,7 +58,11 @@ const Color _kTextDark = Color(0xFF1C1C1E);
 const Color _kTextGrey = Color(0xFF71717A);
 const Color _kCardBorder = Color(0xFFE4E4E4);
 const Color _kIconCircle = Color(0xFFFCEBE4);
+const Color _kFieldBorder = Color(0xFFE4E4E7);
+const Color _kHint = Color(0xFFA1A1AA);
+const Color _kDanger = Color(0xFFB20003);
 
+/// Every text in the app goes through this so it is always Plus Jakarta Sans.
 TextStyle _ts(
   double size,
   FontWeight weight,
@@ -60,6 +77,15 @@ TextStyle _ts(
     height: height,
     decoration: decoration,
     decorationColor: color,
+  );
+}
+
+/// Keeps layouts stable when the user has a very large system font size.
+Widget _clampTextScale(BuildContext context, Widget child) {
+  return MediaQuery.withClampedTextScaling(
+    minScaleFactor: 0.9,
+    maxScaleFactor: 1.15,
+    child: child,
   );
 }
 
@@ -82,11 +108,6 @@ class ProfileView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
     final profile = profileState.profile;
-    // Same "Banking & Investments" banners the Home carousel shows, reused for
-    // the common slider below the Zero Balance Account banner.
-    final bankingBanners =
-        ref.watch(homeControllerProvider).banners?['banking_investment'] ??
-            const <BannerModel>[];
 
     useEffect(() {
       Future.microtask(
@@ -104,169 +125,164 @@ class ProfileView extends HookConsumerWidget {
       );
     }
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: _kBlue,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.white,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: _kPageBg,
-        body: profileState.isFetching && profile == null
-            ? const SafeArea(child: ProfileShimmer())
-            : Column(
-                children: [
-                  _ProfileHeaderCard(
-                    profile: profile,
-                    onBack: () {
-                      final navigator = Navigator.of(context);
-                      if (navigator.canPop()) {
-                        navigator.pop();
-                      }
-                    },
-                    onManage: openPersonalDetails,
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.only(bottom: 24.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            color: _kBlue,
-                            child: _InviteEarnCard(
-                              onInvite: () =>
-                                  context.push(RouteConstants.referAndEarn),
-                            ),
-                          ),
-                          SizedBox(height: 16.h),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
-                            child: _ZeroBalanceBanner(
-                              onTap: () => context.push(
-                                RouteConstants.zeroBalanceChooseBank,
+    final sidePad = context.wp(5.13);
+
+    return _clampTextScale(
+      context,
+      AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: _kBlue,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: Colors.white,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          backgroundColor: _kPageBg,
+          body: profileState.isFetching && profile == null
+              ? const SafeArea(child: ProfileShimmer())
+              : Column(
+                  children: [
+                    _ProfileHeaderCard(
+                      profile: profile,
+                      onBack: () {
+                        final navigator = Navigator.of(context);
+                        if (navigator.canPop()) {
+                          navigator.pop();
+                        }
+                      },
+                      onManage: openPersonalDetails,
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.only(bottom: context.hp(2.84)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              color: _kBlue,
+                              child: _InviteEarnCard(
+                                onInvite: () =>
+                                    context.push(RouteConstants.referAndEarn),
                               ),
                             ),
-                          ),
-                          if (bankingBanners.isNotEmpty) ...[
-                            SizedBox(height: 12.h),
+                            SizedBox(height: context.hp(1.9)),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 20.w),
-                              child: CommonBannerSlider(
-                                banners: bankingBanners,
-                                height: 90.h,
-                                onTap: (banner) => BannerRedirectMapper.handle(
-                                  context,
-                                  banner.redirectUrl,
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: sidePad),
+                              child: _ZeroBalanceSlider(
+                                onTap: () => context.push(
+                                  RouteConstants.zeroBalanceChooseBank,
                                 ),
+                              ),
+                            ),
+                            SizedBox(height: context.hp(1.9)),
+                            Padding(
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: sidePad),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const _ProfileSectionTitle(
+                                    title: 'My Account',
+                                  ),
+                                  SizedBox(height: context.hp(0.24)),
+                                  _ProfileActionTile(
+                                    icon: Icons.help_outline_rounded,
+                                    title: 'Personal Details',
+                                    trailing: _CompletionBadge(
+                                      percent:
+                                          profile?.profileCompletionPercent ??
+                                              0,
+                                    ),
+                                    onTap: openPersonalDetails,
+                                  ),
+                                  const _TileDivider(),
+                                  _ProfileActionTile(
+                                    svgAsset: FileConstants.profileWalletSvg,
+                                    title: 'My eCoins',
+                                    onTap: () => context.push(
+                                      RouteConstants.referAndEarnWallet,
+                                    ),
+                                  ),
+                                  const _TileDivider(),
+                                  _ProfileActionTile(
+                                    svgAsset: FileConstants.profileLoansSvg,
+                                    title: 'My Loans',
+                                  ),
+                                  const _TileDivider(),
+                                  const _ProfileActionTile(
+                                    icon: Icons.speed_rounded,
+                                    title: 'My Credit Score',
+                                  ),
+                                  const _TileDivider(),
+                                  SizedBox(height: context.hp(1.9)),
+                                  const _ProfileSectionTitle(title: 'Settings'),
+                                  SizedBox(height: context.hp(0.24)),
+                                  _ProfileActionTile(
+                                    icon: Icons.tune_rounded,
+                                    title: 'Preferences',
+                                    subtitle:
+                                        'Languages, Permissions, Reminders',
+                                    onTap: () => context
+                                        .push(RouteConstants.preferences),
+                                  ),
+                                  const _TileDivider(),
+                                  _ProfileActionTile(
+                                    icon: Icons.shield_outlined,
+                                    title: 'Security',
+                                    subtitle: 'Screen Lock, Passcode',
+                                    onTap: () =>
+                                        context.push(RouteConstants.security),
+                                  ),
+                                  const _TileDivider(),
+                                  SizedBox(height: context.hp(1.9)),
+                                  const _ProfileSectionTitle(title: 'Support'),
+                                  SizedBox(height: context.hp(0.24)),
+                                  _ProfileActionTile(
+                                    icon: Icons.help_outline_rounded,
+                                    title: 'Help & Support',
+                                    onTap: () => context
+                                        .push(RouteConstants.helpSupport),
+                                  ),
+                                  const _TileDivider(),
+                                  _ProfileActionTile(
+                                    icon: Icons.info_outline_rounded,
+                                    title: 'About eRupaiya',
+                                    onTap: () =>
+                                        context.push(RouteConstants.policies),
+                                  ),
+                                  const _TileDivider(),
+                                  _ProfileLogoutTile(
+                                    onTap: () {
+                                      KDialog.instance.openSheet(
+                                        dialog: _LogoutBottomSheet(
+                                          onLogout: () async {
+                                            navigatorKey.currentState?.pop();
+                                            await ref
+                                                .read(authControllerProvider
+                                                    .notifier)
+                                                .logout();
+                                            if (context.mounted) {
+                                              context.go(RouteConstants.login);
+                                            }
+                                          },
+                                          onStay: () =>
+                                              navigatorKey.currentState?.pop(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                          SizedBox(height: 16.h),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const _ProfileSectionTitle(
-                                  title: 'My Account',
-                                ),
-                                SizedBox(height: 2.h),
-                                _ProfileActionTile(
-                                  icon: Icons.help_outline_rounded,
-                                  title: 'Personal Details',
-                                  trailing: _CompletionBadge(
-                                    percent:
-                                        profile?.profileCompletionPercent ?? 0,
-                                  ),
-                                  onTap: openPersonalDetails,
-                                ),
-                                const _TileDivider(),
-                                _ProfileActionTile(
-                                  svgAsset: FileConstants.profileWalletSvg,
-                                  title: 'Wallet (eCoins)',
-                                  onTap: () => context.push(
-                                    RouteConstants.referAndEarnWallet,
-                                  ),
-                                ),
-                                const _TileDivider(),
-                                _ProfileActionTile(
-                                  svgAsset: FileConstants.profileLoansSvg,
-                                  title: 'My Loans',
-                                ),
-                                const _TileDivider(),
-                                const _ProfileActionTile(
-                                  icon: Icons.speed_rounded,
-                                  title: 'My Credit Score',
-                                ),
-                                const _TileDivider(),
-                                SizedBox(height: 16.h),
-                                const _ProfileSectionTitle(title: 'Settings'),
-                                SizedBox(height: 2.h),
-                                _ProfileActionTile(
-                                  icon: Icons.tune_rounded,
-                                  title: 'Preferences',
-                                  subtitle: 'Languages, Permissions, Reminders',
-                                  onTap: () =>
-                                      context.push(RouteConstants.preferences),
-                                ),
-                                const _TileDivider(),
-                                _ProfileActionTile(
-                                  icon: Icons.shield_outlined,
-                                  title: 'Security',
-                                  subtitle: 'Screen Lock, Passcode',
-                                  onTap: () =>
-                                      context.push(RouteConstants.security),
-                                ),
-                                const _TileDivider(),
-                                SizedBox(height: 16.h),
-                                const _ProfileSectionTitle(title: 'Support'),
-                                SizedBox(height: 2.h),
-                                _ProfileActionTile(
-                                  icon: Icons.help_outline_rounded,
-                                  title: 'Help & Support',
-                                  onTap: () =>
-                                      context.push(RouteConstants.helpSupport),
-                                ),
-                                const _TileDivider(),
-                                _ProfileActionTile(
-                                  icon: Icons.info_outline_rounded,
-                                  title: 'About eRupaiya',
-                                  onTap: () =>
-                                      context.push(RouteConstants.policies),
-                                ),
-                                const _TileDivider(),
-                                _ProfileLogoutTile(
-                                  onTap: () {
-                                    KDialog.instance.openSheet(
-                                      dialog: _LogoutBottomSheet(
-                                        onLogout: () async {
-                                          navigatorKey.currentState?.pop();
-                                          await ref
-                                              .read(authControllerProvider
-                                                  .notifier)
-                                              .logout();
-                                          if (context.mounted) {
-                                            context.go(RouteConstants.login);
-                                          }
-                                        },
-                                        onStay: () =>
-                                            navigatorKey.currentState?.pop(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -284,11 +300,12 @@ class _ProfileHeaderCard extends StatelessWidget {
   final VoidCallback onManage;
 
   Widget _buildInitials(BuildContext context, ProfileModel? profile) {
-    // Fixed 40x40 box so the initials sit dead-center of the 20.r circle
+    // Fixed square box so the initials sit dead-center of the avatar circle
     // (a bare Text sizes to its glyphs and can drift off the centre).
+    final box = context.wp(10.26);
     return SizedBox(
-      width: 40.r,
-      height: 40.r,
+      width: box,
+      height: box,
       child: Center(
         child: Text(
           profile?.initials ?? '',
@@ -304,6 +321,7 @@ class _ProfileHeaderCard extends StatelessWidget {
     final name = profile?.name ?? '';
     final rawMobile = profile?.mobile ?? '';
     final mobile = rawMobile.startsWith('+') ? rawMobile : '+91$rawMobile';
+    final avatarBox = context.wp(10.26);
     return Container(
       width: double.infinity,
       color: _kBlue,
@@ -313,9 +331,14 @@ class _ProfileHeaderCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(18.w, 8.h, 20.w, 0),
+              padding: EdgeInsets.fromLTRB(
+                context.wp(4.62),
+                context.hp(0.95),
+                context.wp(5.13),
+                0,
+              ),
               child: SizedBox(
-                height: 36.h,
+                height: context.hp(4.27),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -324,10 +347,10 @@ class _ProfileHeaderCard extends StatelessWidget {
                       child: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: 18.r,
+                        size: context.wp(4.62),
                       ),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(width: context.wp(3.08)),
                     Expanded(
                       child: Text(
                         'My Profile',
@@ -339,20 +362,23 @@ class _ProfileHeaderCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 23.h),
+              padding: EdgeInsets.fromLTRB(
+                context.wp(5.13),
+                context.hp(1.42),
+                context.wp(5.13),
+                context.hp(2.73),
+              ),
               child: Row(
                 children: [
-                  // Same avatar as the Personal Details header: backend photo
-                  // when present, otherwise the name initials on zinc/200.
                   CircleAvatar(
-                    radius: 20.r,
+                    radius: avatarBox / 2,
                     backgroundColor: const Color(0xFFE4E4E7),
                     child: ClipOval(
                       child: profile?.profilePhotoUrl?.isNotEmpty == true
                           ? AppNetworkImage(
                               url: profile!.profilePhotoUrl,
-                              width: 40.r,
-                              height: 40.r,
+                              width: avatarBox,
+                              height: avatarBox,
                               fit: BoxFit.cover,
                               showShimmer: false,
                               placeholder: _buildInitials(context, profile),
@@ -361,7 +387,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                           : _buildInitials(context, profile),
                     ),
                   ),
-                  SizedBox(width: 10.w),
+                  SizedBox(width: context.wp(2.56)),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +398,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: _ts(16, FontWeight.w600, Colors.white),
                         ),
-                        SizedBox(height: 2.h),
+                        SizedBox(height: context.hp(0.24)),
                         Text(
                           mobile,
                           maxLines: 1,
@@ -386,7 +412,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: context.wp(2.05)),
                   GestureDetector(
                     onTap: onManage,
                     behavior: HitTestBehavior.opaque,
@@ -419,27 +445,36 @@ class _InviteEarnCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pillRadius = BorderRadius.circular(context.wp(100));
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.wp(5.13),
+        vertical: context.hp(0.95),
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFFEE7E0),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(14.r)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.wp(3.59)),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 70.w,
-            height: 40.h,
+            width: context.wp(17.95),
+            height: context.hp(4.74),
             decoration: BoxDecoration(
               color: _kBlue,
-              borderRadius: BorderRadius.circular(999.r),
+              borderRadius: pillRadius,
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(999.r),
+              borderRadius: pillRadius,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.wp(1.54),
+                  vertical: context.hp(0.47),
+                ),
                 child: Image.asset(
                   FileConstants.referAndEarn,
                   fit: BoxFit.contain,
@@ -447,7 +482,7 @@ class _InviteEarnCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(width: 10.w),
+          SizedBox(width: context.wp(2.56)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,7 +497,7 @@ class _InviteEarnCard extends StatelessWidget {
                     style: _ts(13, FontWeight.w600, AppColors.textPrimary),
                   ),
                 ),
-                SizedBox(height: 3.h),
+                SizedBox(height: context.hp(0.36)),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -475,23 +510,22 @@ class _InviteEarnCard extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(width: 8.w),
-          // Invite Now button: fixed 79 x 20 pill, text 13 / w500.
+          SizedBox(width: context.wp(2.05)),
           InkWell(
             onTap: onInvite,
-            borderRadius: BorderRadius.circular(999.r),
+            borderRadius: pillRadius,
             child: Container(
-              width: 79.w,
-              height: 20.h,
+              width: context.wp(20.26),
+              height: context.hp(2.37),
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(999.r),
+                borderRadius: pillRadius,
               ),
               alignment: Alignment.center,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  padding: EdgeInsets.symmetric(horizontal: context.wp(1.03)),
                   child: Text(
                     'Invite Now',
                     maxLines: 1,
@@ -537,23 +571,24 @@ class _ProfileActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = context.wp(3.59);
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 13.h),
+        padding: EdgeInsets.symmetric(vertical: context.hp(1.54)),
         child: Row(
           children: [
             _ProfileIconCircle(
               child: svgAsset != null
                   ? SvgPicture.asset(
                       svgAsset!,
-                      width: 14.r,
-                      height: 14.r,
+                      width: iconSize,
+                      height: iconSize,
                       fit: BoxFit.contain,
                     )
-                  : Icon(icon, color: AppColors.primary, size: 14.r),
+                  : Icon(icon, color: AppColors.primary, size: iconSize),
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: context.wp(2.56)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,14 +598,10 @@ class _ProfileActionTile extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF27272A),
-                    ),
+                    style: _ts(13, FontWeight.w500, const Color(0xFF27272A)),
                   ),
                   if (subtitle != null && subtitle!.isNotEmpty) ...[
-                    SizedBox(height: 2.h),
+                    SizedBox(height: context.hp(0.24)),
                     Text(
                       subtitle!,
                       maxLines: 1,
@@ -582,13 +613,13 @@ class _ProfileActionTile extends StatelessWidget {
               ),
             ),
             if (trailing != null) ...[
-              SizedBox(width: 8.w),
+              SizedBox(width: context.wp(2.05)),
               trailing!,
             ],
-            SizedBox(width: 8.w),
+            SizedBox(width: context.wp(2.05)),
             Icon(
               Icons.chevron_right,
-              size: 18.r,
+              size: context.wp(4.62),
               color: _kTextDark,
             ),
           ],
@@ -606,9 +637,10 @@ class _ProfileIconCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = context.wp(6.67);
     return Container(
-      width: 26.r,
-      height: 26.r,
+      width: size,
+      height: size,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: _kIconCircle,
@@ -628,10 +660,13 @@ class _CompletionBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.wp(2.05),
+        vertical: context.hp(0.36),
+      ),
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(4.r),
+        borderRadius: BorderRadius.circular(context.wp(1.03)),
       ),
       child: Text(
         '$percent% Complete',
@@ -643,22 +678,73 @@ class _CompletionBadge extends StatelessWidget {
   }
 }
 
-/// Green-to-blue horizontal banner promoting the zero balance account.
-class _ZeroBalanceBanner extends StatelessWidget {
-  const _ZeroBalanceBanner({required this.onTap});
+// ---------------------------------------------------------------------------
+// Zero Balance Account slider
+// ---------------------------------------------------------------------------
+class _ZeroBalanceSlide {
+  const _ZeroBalanceSlide(this.icon, this.text);
+
+  final IconData icon;
+  final String text;
+}
+
+class _ZeroBalanceSlider extends StatefulWidget {
+  const _ZeroBalanceSlider({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+  State<_ZeroBalanceSlider> createState() => _ZeroBalanceSliderState();
+}
+
+class _ZeroBalanceSliderState extends State<_ZeroBalanceSlider> {
+  static const List<_ZeroBalanceSlide> _slides = [
+    _ZeroBalanceSlide(Icons.account_balance, 'Open Zero Balance Account'),
+    _ZeroBalanceSlide(
+      Icons.savings_outlined,
+      'Start Banking With Zero Balance',
+    ),
+    _ZeroBalanceSlide(
+      Icons.account_balance_wallet_outlined,
+      'Choose Your Bank & Get Started',
+    ),
+  ];
+
+  final PageController _pageController = PageController();
+  Timer? _timer;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_pageController.hasClients) return;
+      final next = (_index + 1) % _slides.length;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6.r),
+    final dot = context.wp(0.77);
+    return GestureDetector(
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 33.h,
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
+        height: context.hp(3.91),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6.r),
+          borderRadius: BorderRadius.circular(context.wp(1.54)),
           gradient: const LinearGradient(
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
@@ -667,38 +753,57 @@ class _ZeroBalanceBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.account_balance,
-              color: Colors.white,
-              size: 14.r,
-            ),
-            SizedBox(width: 8.w),
             Expanded(
-              child: Text(
-                'Open Zero Balance Account',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _ts(12, FontWeight.w400, Colors.white),
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _slides.length,
+                onPageChanged: (i) => setState(() => _index = i),
+                itemBuilder: (context, i) {
+                  final slide = _slides[i];
+                  return Padding(
+                    padding: EdgeInsets.only(left: context.wp(3.59)),
+                    child: Row(
+                      children: [
+                        Icon(
+                          slide.icon,
+                          color: Colors.white,
+                          size: context.wp(3.59),
+                        ),
+                        SizedBox(width: context.wp(2.05)),
+                        Expanded(
+                          child: Text(
+                            slide.text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: _ts(12, FontWeight.w400, Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
-            SizedBox(width: 6.w),
-            Container(
-              width: 3.r,
-              height: 3.r,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
+            SizedBox(width: context.wp(1.54)),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(_slides.length, (i) {
+                final active = i == _index;
+                return Padding(
+                  padding: EdgeInsets.only(left: i == 0 ? 0 : context.wp(0.51)),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: active ? context.wp(2.05) : dot,
+                    height: dot,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(active ? 1 : 0.6),
+                      borderRadius: BorderRadius.circular(context.wp(0.51)),
+                    ),
+                  ),
+                );
+              }),
             ),
-            SizedBox(width: 2.w),
-            Container(
-              width: 8.w,
-              height: 3.r,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
+            SizedBox(width: context.wp(3.59)),
           ],
         ),
       ),
@@ -716,19 +821,19 @@ class _ProfileLogoutTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 18.h),
+        padding: EdgeInsets.symmetric(vertical: context.hp(2.13)),
         child: Row(
           children: [
             SvgPicture.asset(
               FileConstants.profileLogoutSvg,
-              width: 16.r,
-              height: 16.r,
+              width: context.wp(4.1),
+              height: context.wp(4.1),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: context.wp(3.08)),
             Expanded(
               child: Text(
                 'Log Out',
-                style: _ts(13, FontWeight.w500, const Color(0xFFB20003)),
+                style: _ts(13, FontWeight.w500, _kDanger),
               ),
             ),
           ],
@@ -756,12 +861,12 @@ class _PillTab extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 33.h,
+        height: context.hp(4.15),
         alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(horizontal: 8.w),
+        padding: EdgeInsets.symmetric(horizontal: context.wp(2.05)),
         decoration: BoxDecoration(
           color: isActive ? AppColors.primary : _kSheetBg,
-          borderRadius: BorderRadius.circular(8.r),
+          borderRadius: BorderRadius.circular(context.wp(2.05)),
           border: Border.all(color: AppColors.primary, width: 1.0),
         ),
         child: Text(
@@ -781,8 +886,6 @@ class _PillTab extends StatelessWidget {
 }
 
 /// Grey-label / dark-value read-only row for the Personal Details card.
-/// When [editableController] is provided the value renders as a borderless
-/// text field (pre-KYC name editing keeps the existing save flow).
 class _ProfileInfoRow extends StatelessWidget {
   const _ProfileInfoRow({
     required this.label,
@@ -798,8 +901,14 @@ class _ProfileInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final valueStyle = _ts(
+      13,
+      FontWeight.w500,
+      const Color(0xFF18181B),
+      height: 1.5,
+    );
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 5.5.h),
+      padding: EdgeInsets.symmetric(vertical: context.hp(0.65)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -809,14 +918,19 @@ class _ProfileInfoRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: _ts(12, FontWeight.w400, const Color(0xFF52525B)),
+                  style: _ts(
+                    12,
+                    FontWeight.w400,
+                    const Color(0xFF52525B),
+                    height: 1.5,
+                  ),
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: context.hp(0.12)),
                 if (editableController != null)
                   TextField(
                     controller: editableController,
                     maxLines: 1,
-                    style: _ts(13, FontWeight.w500, const Color(0xFF18181B)),
+                    style: valueStyle,
                     decoration: const InputDecoration(
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
@@ -824,18 +938,153 @@ class _ProfileInfoRow extends StatelessWidget {
                     ),
                   )
                 else
-                  Text(
-                    value,
-                    style: _ts(13, FontWeight.w500, const Color(0xFF18181B)),
-                  ),
+                  Text(value, style: valueStyle),
               ],
             ),
           ),
           if (trailing != null) ...[
-            SizedBox(width: 8.w),
+            SizedBox(width: context.wp(2.05)),
             trailing!,
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Label on top + a white bordered box of fixed (percentage) height.
+///
+/// FIX: the old version used `expands: true`, which pinned the text to the
+/// top of the box. Now the box centres a normal single-line TextField, so the
+/// typed text AND the hint are vertically centred.
+class _AddressField extends StatelessWidget {
+  const _AddressField({
+    required this.label,
+    required this.hint,
+    required this.controller,
+    this.keyboardType,
+    this.inputFormatters,
+    this.maxLength,
+  });
+
+  final String label;
+  final String hint;
+  final TextEditingController controller;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: _ts(13, FontWeight.w500, _kTextDark, height: 1.3)),
+        SizedBox(height: context.hp(1.07)),
+        Container(
+          width: double.infinity,
+          height: context.hp(5.21),
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.symmetric(horizontal: context.wp(4.62)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(context.wp(2.56)),
+            border: Border.all(color: _kFieldBorder),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType ?? TextInputType.text,
+            textInputAction: TextInputAction.next,
+            inputFormatters: [
+              FilteringTextInputFormatter.singleLineFormatter,
+              // No leading spaces, so what the user types is already trimmed.
+              FilteringTextInputFormatter.deny(RegExp(r'^\s')),
+              ...?inputFormatters,
+            ],
+            maxLength: maxLength,
+            maxLines: 1,
+            textAlignVertical: TextAlignVertical.center,
+            style: _ts(13, FontWeight.w500, const Color(0xFF18181B)),
+            decoration: InputDecoration(
+              isCollapsed: true,
+              contentPadding: EdgeInsets.zero,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              counterText: '',
+              hintText: hint,
+              hintStyle: _ts(13, FontWeight.w400, _kHint),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Thin "V" chevron that flips when the section opens.
+class _ChevronPainter extends CustomPainter {
+  const _ChevronPainter({required this.color, required this.stroke});
+
+  final Color color;
+  final double stroke;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final inset = stroke / 2;
+    final path = Path()
+      ..moveTo(inset, inset)
+      ..lineTo(size.width / 2, size.height - inset)
+      ..lineTo(size.width - inset, inset);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ChevronPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.stroke != stroke;
+}
+
+/// Full-width pill CTA used by Save & Update.
+class _PrimaryPillButton extends StatelessWidget {
+  const _PrimaryPillButton({
+    required this.label,
+    required this.onTap,
+    this.fontSize = 14,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(context.wp(100));
+    return Opacity(
+      opacity: onTap == null ? 0.6 : 1,
+      child: Material(
+        color: AppColors.primary,
+        borderRadius: radius,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: SizedBox(
+            width: double.infinity,
+            height: context.hp(5.21),
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                style: _ts(fontSize, FontWeight.w500, Colors.white),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -852,11 +1101,22 @@ class _LogoutBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final buttonShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(context.wp(7.18)),
+    );
+    final buttonPad = EdgeInsets.symmetric(vertical: context.hp(1.42));
     return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
+      padding: EdgeInsets.fromLTRB(
+        context.wp(5.13),
+        context.hp(2.37),
+        context.wp(5.13),
+        context.hp(2.84),
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.wp(6.15)),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -866,7 +1126,7 @@ class _LogoutBottomSheet extends StatelessWidget {
             'Log Out Of Your Account?',
             style: _ts(16, FontWeight.w800, AppColors.textPrimary),
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: context.hp(0.71)),
           Text(
             "You'll Need To Sign In Again To Access Your Account.",
             style: _ts(
@@ -875,7 +1135,7 @@ class _LogoutBottomSheet extends StatelessWidget {
               AppColors.textPrimary.withOpacity(0.6),
             ),
           ),
-          SizedBox(height: 18.h),
+          SizedBox(height: context.hp(2.13)),
           Row(
             children: [
               Expanded(
@@ -883,10 +1143,8 @@ class _LogoutBottomSheet extends StatelessWidget {
                   onPressed: onLogout,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28.r),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: buttonShape,
+                    padding: buttonPad,
                   ),
                   child: Text(
                     'Log Out',
@@ -894,16 +1152,14 @@ class _LogoutBottomSheet extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: context.wp(3.08)),
               Expanded(
                 child: ElevatedButton(
                   onPressed: onStay,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28.r),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: buttonShape,
+                    padding: buttonPad,
                   ),
                   child: Text(
                     'Stay logged in',
@@ -940,9 +1196,12 @@ class UpdateProfileView extends HookConsumerWidget {
     final emailController = useTextEditingController(
       text: profile.email ?? '',
     );
+    // Communication address (edited through the pencil icon sheet).
     final addressController = useTextEditingController(
       text: profile.address ?? '',
     );
+
+    // Billing & delivery: typed MANUALLY by the user. Never prefilled.
     final billingAddress1Controller = useTextEditingController();
     final billingAddress2Controller = useTextEditingController();
     final billingCountryController = useTextEditingController();
@@ -960,8 +1219,33 @@ class UpdateProfileView extends HookConsumerWidget {
     final deliveryStateCodeController = useTextEditingController();
     final deliveryZipController = useTextEditingController();
     final deliveryMobileController = useTextEditingController();
+
     useListenable(fullNameController);
     useListenable(addressController);
+    // Rebuild whenever a billing / delivery field changes so the
+    // "unsaved changes" state stays live.
+    final addressListenable = useMemoized(
+      () => Listenable.merge([
+        billingAddress1Controller,
+        billingAddress2Controller,
+        billingCountryController,
+        billingStateController,
+        billingCityController,
+        billingStateCodeController,
+        billingZipController,
+        billingMobileController,
+        deliveryAddress1Controller,
+        deliveryAddress2Controller,
+        deliveryCountryController,
+        deliveryStateController,
+        deliveryCityController,
+        deliveryStateCodeController,
+        deliveryZipController,
+        deliveryMobileController,
+      ]),
+      const [],
+    );
+    useListenable(addressListenable);
 
     useEffect(() {
       fullNameController.text = profile.name.trim();
@@ -984,49 +1268,46 @@ class UpdateProfileView extends HookConsumerWidget {
         !latestProfile.isEmailVerified &&
         currentEmail != initialEmail;
     final hasPendingImage = pickedImage.value != null;
-    final canSave = hasPendingImage ||
+    final canSaveProfile = hasPendingImage ||
         (hasNonEmailChanges && (canEdit || hasCommunicationChange));
-    final hasUnsavedChanges =
-        hasNonEmailChanges || hasEmailChange || hasPendingImage;
+
+    // Baseline is "all empty"; after a successful save it becomes whatever
+    // was saved.
+    final savedAddressSnapshot =
+        useState<String>(List.filled(16, '').join('|'));
+    String addressSnapshot() => [
+          billingAddress1Controller,
+          billingAddress2Controller,
+          billingCountryController,
+          billingStateController,
+          billingCityController,
+          billingStateCodeController,
+          billingZipController,
+          billingMobileController,
+          deliveryAddress1Controller,
+          deliveryAddress2Controller,
+          deliveryCountryController,
+          deliveryStateController,
+          deliveryCityController,
+          deliveryStateCodeController,
+          deliveryZipController,
+          deliveryMobileController,
+        ].map((c) => c.text.trim()).join('|');
+
+    final hasAddressChange = addressSnapshot() != savedAddressSnapshot.value;
+
+    // "Billing & Delivery" badge: the percentage the backend reports, exactly
+    // as sent. No client-side math, no invented value — the API not sending it
+    // means 0%.
+    final billingPercent = latestProfile.billingDeliveryPercent;
+
+    final hasUnsavedChanges = hasNonEmailChanges ||
+        hasEmailChange ||
+        hasPendingImage ||
+        hasAddressChange;
 
     final selectedTab = useState<int>(0);
-    final deliveryScrollController = useScrollController();
-    final deliverySectionKey = useMemoized(() => GlobalKey(), const []);
-    final deliveryFirstFieldKey = useMemoized(() => GlobalKey(), const []);
-
-    Future<void> saveDeliveryInfo() async {
-      final ok = await controller.updateDeliveryInfo(
-        billingAddressLine1: billingAddress1Controller.text.trim(),
-        billingAddressLine2: billingAddress2Controller.text.trim(),
-        billingCity: billingCityController.text.trim(),
-        billingState: billingStateController.text.trim(),
-        billingZip: billingZipController.text.trim(),
-        billingCountry: billingCountryController.text.trim(),
-        billingMobile: billingMobileController.text.trim(),
-        deliveryAddressLine1: deliveryAddress1Controller.text.trim(),
-        deliveryAddressLine2: deliveryAddress2Controller.text.trim(),
-        deliveryCity: deliveryCityController.text.trim(),
-        deliveryState: deliveryStateController.text.trim(),
-        deliveryZip: deliveryZipController.text.trim(),
-        deliveryCountry: deliveryCountryController.text.trim(),
-        deliveryMobile: deliveryMobileController.text.trim(),
-      );
-      if (!context.mounted) return;
-      if (ok) {
-        await controller.fetchProfile();
-        if (!context.mounted) return;
-        AppSnackbar.show(
-          'Delivery information updated successfully.',
-          type: AppSnackbarType.success,
-        );
-      } else {
-        AppSnackbar.show(
-          ref.read(profileControllerProvider).updateErrorMessage ??
-              'Failed to update delivery info.',
-          type: AppSnackbarType.error,
-        );
-      }
-    }
+    final billingExpanded = useState<bool>(false);
 
     Future<bool> confirmDiscard() async {
       if (!hasUnsavedChanges) return true;
@@ -1035,30 +1316,33 @@ class UpdateProfileView extends HookConsumerWidget {
         builder: (dialogContext) {
           return AlertDialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.r),
+              borderRadius: BorderRadius.circular(dialogContext.wp(4.1)),
             ),
-            title: const Text('Discard changes?'),
-            content: const Text(
+            title: Text(
+              'Discard changes?',
+              style: _ts(16, FontWeight.w700, AppColors.textPrimary),
+            ),
+            content: Text(
               'You have unsaved changes. Are you sure you want to leave?',
+              style: _ts(13, FontWeight.w400, AppColors.textPrimary),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
                 child: Text(
                   'Cancel',
-                  style: TextStyle(
-                    color: AppColors.textPrimary.withOpacity(0.7),
+                  style: _ts(
+                    13,
+                    FontWeight.w500,
+                    AppColors.textPrimary.withOpacity(0.7),
                   ),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text(
+                child: Text(
                   'Discard',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: _ts(13, FontWeight.w600, AppColors.primary),
                 ),
               ),
             ],
@@ -1068,6 +1352,9 @@ class UpdateProfileView extends HookConsumerWidget {
       return result ?? false;
     }
 
+    // Keep the email field in sync with the server (email flow only).
+    // NOTE: billing / delivery controllers are intentionally NOT synced from
+    // the API any more - the user types them manually.
     useEffect(() {
       final updatedEmail = state.profile?.email ?? '';
       if (emailController.text != updatedEmail) {
@@ -1075,50 +1362,6 @@ class UpdateProfileView extends HookConsumerWidget {
       }
       return null;
     }, [state.profile?.email]);
-
-    useEffect(() {
-      if (state.isUpdating) return null;
-      final updatedProfile = state.profile;
-      if (updatedProfile == null) return null;
-      void setIfNotEmpty(TextEditingController controller, String value) {
-        if (value.isNotEmpty || controller.text.isEmpty) {
-          controller.text = value;
-        }
-      }
-
-      final billingEntry = updatedProfile.billingAddressEntry;
-      final deliveryEntry = updatedProfile.deliveryAddressEntry;
-      setIfNotEmpty(
-          billingAddress1Controller, billingEntry?.addressLine1 ?? '');
-      setIfNotEmpty(
-          billingAddress2Controller, billingEntry?.addressLine2 ?? '');
-      setIfNotEmpty(billingCountryController, billingEntry?.country ?? '');
-      setIfNotEmpty(billingStateController, billingEntry?.state ?? '');
-      setIfNotEmpty(billingCityController, billingEntry?.city ?? '');
-      setIfNotEmpty(billingStateCodeController, billingEntry?.stateCode ?? '');
-      setIfNotEmpty(billingZipController, billingEntry?.zip ?? '');
-      setIfNotEmpty(billingMobileController, billingEntry?.mobile ?? '');
-
-      setIfNotEmpty(
-          deliveryAddress1Controller, deliveryEntry?.addressLine1 ?? '');
-      setIfNotEmpty(
-          deliveryAddress2Controller, deliveryEntry?.addressLine2 ?? '');
-      setIfNotEmpty(deliveryCountryController, deliveryEntry?.country ?? '');
-      setIfNotEmpty(deliveryStateController, deliveryEntry?.state ?? '');
-      setIfNotEmpty(deliveryCityController, deliveryEntry?.city ?? '');
-      setIfNotEmpty(
-          deliveryStateCodeController, deliveryEntry?.stateCode ?? '');
-      setIfNotEmpty(deliveryZipController, deliveryEntry?.zip ?? '');
-      setIfNotEmpty(deliveryMobileController, deliveryEntry?.mobile ?? '');
-      return null;
-    }, [
-      state.profile?.aadhaarMasked,
-      state.profile?.panMasked,
-      state.profile?.dob,
-      state.profile?.billingAddress,
-      state.profile?.addresses,
-      state.isUpdating,
-    ]);
 
     String displayValue(String? value) {
       final trimmed = (value ?? '').trim();
@@ -1129,577 +1372,763 @@ class UpdateProfileView extends HookConsumerWidget {
     final mobileDisplay =
         rawMobile.startsWith('+') ? rawMobile : '+91 $rawMobile';
 
+    Future<void> handleSave() async {
+      FocusScope.of(context).unfocus();
+      if (!canSaveProfile && !hasAddressChange) {
+        AppSnackbar.show('No changes to save.');
+        return;
+      }
+
+      final name = fullNameController.text.trim();
+      final address = addressController.text.trim();
+      final email =
+          state.profile?.email ?? profile.email ?? emailController.text.trim();
+
+      if (canSaveProfile) {
+        if (name.isEmpty) {
+          AppSnackbar.show('Please enter your full name.');
+          return;
+        }
+        final ok = await controller.updateProfile(
+          name: name,
+          email: email,
+          address: address,
+          image: pickedImage.value,
+        );
+        if (!context.mounted) return;
+        if (!ok) {
+          AppSnackbar.show(
+            ref.read(profileControllerProvider).updateErrorMessage ??
+                'Failed to update profile.',
+            type: AppSnackbarType.error,
+          );
+          return;
+        }
+        pickedImage.value = null;
+      }
+
+      if (hasAddressChange) {
+        final ok = await controller.updateDeliveryInfo(
+          billingAddressLine1: billingAddress1Controller.text.trim(),
+          billingAddressLine2: billingAddress2Controller.text.trim(),
+          billingCity: billingCityController.text.trim(),
+          billingState: billingStateController.text.trim(),
+          billingZip: billingZipController.text.trim(),
+          billingCountry: billingCountryController.text.trim(),
+          billingMobile: billingMobileController.text.trim(),
+          deliveryAddressLine1: deliveryAddress1Controller.text.trim(),
+          deliveryAddressLine2: deliveryAddress2Controller.text.trim(),
+          deliveryCity: deliveryCityController.text.trim(),
+          deliveryState: deliveryStateController.text.trim(),
+          deliveryZip: deliveryZipController.text.trim(),
+          deliveryCountry: deliveryCountryController.text.trim(),
+          deliveryMobile: deliveryMobileController.text.trim(),
+        );
+        if (!context.mounted) return;
+        if (!ok) {
+          AppSnackbar.show(
+            ref.read(profileControllerProvider).updateErrorMessage ??
+                'Failed to update delivery info.',
+            type: AppSnackbarType.error,
+          );
+          return;
+        }
+        savedAddressSnapshot.value = addressSnapshot();
+      }
+
+      await controller.fetchProfile();
+      if (!context.mounted) return;
+      final refreshed = ref.read(profileControllerProvider).profile;
+      initialFullNameState.value = (refreshed?.name ?? name).trim();
+      initialAddressState.value = (refreshed?.address ?? address).trim();
+      initialEmailState.value = (refreshed?.email ?? email).trim();
+      AppSnackbar.show(
+        'Profile updated successfully.',
+        type: AppSnackbarType.success,
+      );
+    }
+
+    // ---- Shared responsive values (percent of screen) ----
+    final sidePad = context.wp(5.64);
+    // Avatar identical to the My Profile header (_ProfileHeaderCard).
+    final avatarBox = context.wp(10.26);
+
+    // Fixed square box so the initials sit dead-centre of the avatar circle
+    // (a bare Text sizes to its glyphs and can drift off the centre).
+    Widget avatarInitials() {
+      return SizedBox(
+        width: avatarBox,
+        height: avatarBox,
+        child: Center(
+          child: Text(
+            profile.initials,
+            textAlign: TextAlign.center,
+            style: _ts(13, FontWeight.w700, _kBlue, height: 1.0),
+          ),
+        ),
+      );
+    }
+
     Widget avatarChild() {
       if (pickedImage.value != null) {
         return Image.file(
           pickedImage.value!,
-          width: 40.r,
-          height: 40.r,
+          width: avatarBox,
+          height: avatarBox,
           fit: BoxFit.cover,
         );
       }
       if (profile.profilePhotoUrl?.isNotEmpty == true) {
         return AppNetworkImage(
           url: profile.profilePhotoUrl,
-          width: 40.r,
-          height: 40.r,
+          width: avatarBox,
+          height: avatarBox,
           fit: BoxFit.cover,
           showShimmer: false,
+          placeholder: avatarInitials(),
+          errorWidget: avatarInitials(),
         );
       }
-      return SizedBox(
-        width: 40.r,
-        height: 40.r,
-        child: Center(
-          child: Text(
-            profile.initials,
-            textAlign: TextAlign.center,
-            style: _ts(13, FontWeight.w700, Colors.white, height: 1.0),
-          ),
+      return avatarInitials();
+    }
+
+    // Pencil icon, flush with the card's inner right edge.
+    Widget editIcon(VoidCallback onTap) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SvgPicture.asset(
+          FileConstants.profileEmailEditSvg,
+          width: context.wp(4.36),
+          height: context.wp(4.36),
         ),
       );
     }
 
-    return WillPopScope(
-      onWillPop: confirmDiscard,
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          statusBarColor: _kBlue,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
-        child: Scaffold(
-          backgroundColor: _kSheetBg,
-          body: Stack(
-            children: [
-              Column(
+    Widget sectionHeading(String text) {
+      return Text(
+        text,
+        style: _ts(17, FontWeight.w500, _kTextDark, height: 1.5),
+      );
+    }
+
+    Widget fieldGap() => SizedBox(height: context.hp(1.78));
+
+    // ---------------- Tab 0 : Personal & Billing ----------------
+    Widget personalAndBillingTab() {
+      return SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(sidePad, 0, sidePad, context.hp(2.84)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: context.wp(3.59),
+                vertical: context.hp(0.95),
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(context.wp(3.08)),
+                border: Border.all(color: _kCardBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ---------------- Blue header ----------------
-                  Container(
-                    width: double.infinity,
-                    color: _kBlue,
-                    child: SafeArea(
-                      bottom: false,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(18.w, 8.h, 20.w, 0),
-                            child: SizedBox(
-                              height: 36.h,
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: () async {
-                                      final okToLeave = await confirmDiscard();
-                                      if (!context.mounted || !okToLeave) {
-                                        return;
-                                      }
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: Icon(
-                                      Icons.arrow_back,
-                                      color: Colors.white,
-                                      size: 18.r,
-                                    ),
-                                  ),
-                                  SizedBox(width: 12.w),
-                                  Expanded(
-                                    child: Text(
-                                      'Personal Details',
-                                      style: _ts(
-                                        15,
-                                        FontWeight.w500,
-                                        Colors.white,
+                  _ProfileInfoRow(
+                    label: 'Full name (as per PAN)',
+                    value: displayValue(latestProfile.name),
+                    editableController: canEdit ? fullNameController : null,
+                  ),
+                  _ProfileInfoRow(
+                    label: 'Mobile Number',
+                    value: mobileDisplay,
+                  ),
+                  _ProfileInfoRow(
+                    label: 'Email ID',
+                    value: displayValue(currentEmail),
+                    trailing: editIcon(() {
+                      KDialog.instance.openSheet(
+                        dialog: _EmailUpdateSheet(
+                          currentEmail: emailController.text.trim(),
+                        ),
+                      );
+                    }),
+                  ),
+                  _ProfileInfoRow(
+                    label: 'Adhaar Number',
+                    value: displayValue(latestProfile.aadhaarMasked),
+                  ),
+                  _ProfileInfoRow(
+                    label: 'PAN Number',
+                    value: displayValue(latestProfile.panMasked),
+                  ),
+                  _ProfileInfoRow(
+                    label: 'Date Of Birth',
+                    value: displayValue(latestProfile.dob),
+                  ),
+                  _ProfileInfoRow(
+                    label: 'Permanent Address',
+                    value: displayValue(latestProfile.permanentAddress),
+                  ),
+                  _ProfileInfoRow(
+                    label: 'Communication Address',
+                    value: currentAddress.isEmpty ? 'NA' : currentAddress,
+                    trailing: editIcon(() {
+                      KDialog.instance.openSheet(
+                        dialog: _CommunicationAddressSheet(
+                          initial: addressController.text.trim(),
+                          onDone: (value) =>
+                              addressController.text = value.trim(),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: context.hp(1.78)),
+            // ---------------- Billing & Delivery (collapsible) ----------------
+            InkWell(
+              onTap: () => billingExpanded.value = !billingExpanded.value,
+              borderRadius: BorderRadius.circular(context.wp(3.08)),
+              child: Container(
+                width: double.infinity,
+                height: context.hp(5.69),
+                padding: EdgeInsets.symmetric(horizontal: context.wp(3.59)),
+                decoration: BoxDecoration(
+                  color: _kSheetBg,
+                  borderRadius: BorderRadius.circular(context.wp(3.08)),
+                  border: Border.all(color: _kCardBorder),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Billing & Delivery',
+                      style: _ts(14, FontWeight.w600, _kTextDark),
+                    ),
+                    SizedBox(width: context.wp(2.05)),
+                    Container(
+                      height: context.hp(2.25),
+                      alignment: Alignment.center,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: context.wp(2.05)),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(context.wp(100)),
+                      ),
+                      child: Text(
+                        '$billingPercent%',
+                        style: _ts(
+                          11,
+                          FontWeight.w500,
+                          Colors.white,
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    AnimatedRotation(
+                      turns: billingExpanded.value ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: CustomPaint(
+                        size: Size(context.wp(4.1), context.hp(1.0)),
+                        painter: _ChevronPainter(
+                          color: _kTextDark,
+                          stroke: context.wp(0.56),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (billingExpanded.value) ...[
+              SizedBox(height: context.hp(1.66)),
+              sectionHeading('Billing Address'),
+              SizedBox(height: context.hp(1.3)),
+              _AddressField(
+                label: 'Address Line 1',
+                hint: 'Billing Address Line 1',
+                controller: billingAddress1Controller,
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'Country',
+                hint: 'Country',
+                controller: billingCountryController,
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'State',
+                hint: 'State',
+                controller: billingStateController,
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'City',
+                hint: 'City',
+                controller: billingCityController,
+              ),
+              fieldGap(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _AddressField(
+                      label: 'State Code',
+                      hint: 'Code',
+                      controller: billingStateCodeController,
+                    ),
+                  ),
+                  SizedBox(width: context.wp(3.59)),
+                  Expanded(
+                    child: _AddressField(
+                      label: 'ZIP Code',
+                      hint: 'Code',
+                      controller: billingZipController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                  ),
+                ],
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'Mobile Number',
+                hint: '1234567890',
+                controller: billingMobileController,
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+              SizedBox(height: context.hp(1.42)),
+              sectionHeading('Delivery Address'),
+              SizedBox(height: context.hp(1.3)),
+              _AddressField(
+                label: 'Address Line 1',
+                hint: 'Delivery Address Line 1',
+                controller: deliveryAddress1Controller,
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'Country',
+                hint: 'Country',
+                controller: deliveryCountryController,
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'State',
+                hint: 'State',
+                controller: deliveryStateController,
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'City',
+                hint: 'City',
+                controller: deliveryCityController,
+              ),
+              fieldGap(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _AddressField(
+                      label: 'State Code',
+                      hint: 'Code',
+                      controller: deliveryStateCodeController,
+                    ),
+                  ),
+                  SizedBox(width: context.wp(3.59)),
+                  Expanded(
+                    child: _AddressField(
+                      label: 'ZIP Code',
+                      hint: 'Code',
+                      controller: deliveryZipController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                  ),
+                ],
+              ),
+              fieldGap(),
+              _AddressField(
+                label: 'Mobile Number',
+                hint: '1234567890',
+                controller: deliveryMobileController,
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    // ---------------- Tab 1 : Bank Account ----------------
+    // BankAccountsSection (bank_accounts_view.dart) owns the data + actions and
+    // renders the shared Figma widgets (BankEmptyState / BankAccountCard from
+    // components/bank_account_tab_ui.dart). It scrolls itself, so the tab only
+    // pads it — that also lets the empty state centre in the free space.
+    Widget bankAccountTab() {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(sidePad, 0, sidePad, context.hp(2.84)),
+        child: isKycVerified
+            ? const BankAccountsSection(padding: EdgeInsets.zero)
+            : Text(
+                'Please complete KYC first to manage bank details.',
+                style: _ts(
+                  12,
+                  FontWeight.w400,
+                  AppColors.textPrimary.withOpacity(0.6),
+                ),
+              ),
+      );
+    }
+
+    final cameraBadge = context.wp(3.85);
+
+    return _clampTextScale(
+      context,
+      WillPopScope(
+        onWillPop: confirmDiscard,
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: const SystemUiOverlayStyle(
+            statusBarColor: _kBlue,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          ),
+          child: Scaffold(
+            backgroundColor: _kSheetBg,
+            resizeToAvoidBottomInset: true,
+            body: Stack(
+              children: [
+                Column(
+                  children: [
+                    // ---------------- Blue header ----------------
+                    Container(
+                      width: double.infinity,
+                      color: _kBlue,
+                      child: SafeArea(
+                        bottom: false,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Back arrow + title.
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                context.wp(4.1),
+                                context.hp(0.95),
+                                sidePad,
+                                0,
+                              ),
+                              child: SizedBox(
+                                height: context.hp(3.32),
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () async {
+                                        final okToLeave =
+                                            await confirmDiscard();
+                                        if (!context.mounted || !okToLeave) {
+                                          return;
+                                        }
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: Icon(
+                                        Icons.arrow_back,
+                                        color: Colors.white,
+                                        size: context.wp(6.15),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding:
-                                EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 16.h),
-                            child: Row(
-                              children: [
-                                Stack(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20.r,
-                                      backgroundColor:
-                                          Colors.white.withOpacity(0.25),
-                                      child: ClipOval(child: avatarChild()),
-                                    ),
-                                    Positioned(
-                                      right: 0,
-                                      bottom: 0,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          KDialog.instance.openSheet(
-                                            dialog: ProfileImagePickerSheet(
-                                              onCamera: () async {
-                                                navigatorKey.currentState
-                                                    ?.pop();
-                                                final image =
-                                                    await ImagePickerHelper
-                                                        .pickFromCamera();
-                                                if (image == null) return;
-                                                pickedImage.value = image;
-                                              },
-                                              onGallery: () async {
-                                                navigatorKey.currentState
-                                                    ?.pop();
-                                                final image =
-                                                    await ImagePickerHelper
-                                                        .pickFromGallery();
-                                                if (image == null) return;
-                                                pickedImage.value = image;
-                                              },
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          height: 16.r,
-                                          width: 16.r,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withOpacity(0.15),
-                                                blurRadius: 4.r,
-                                                offset: Offset(0, 1.h),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Icon(
-                                            Icons.camera_alt_outlined,
-                                            size: 10.r,
-                                            color: AppColors.primary,
-                                          ),
+                                    SizedBox(width: context.wp(2.56)),
+                                    Expanded(
+                                      child: Text(
+                                        'Personal Details',
+                                        style: _ts(
+                                          15,
+                                          FontWeight.w500,
+                                          Colors.white,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                SizedBox(width: 10.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        latestProfile.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: _ts(
-                                          18,
-                                          FontWeight.w500,
-                                          Colors.white,
-                                        ),
-                                      ),
-                                      SizedBox(height: 2.h),
-                                      Text(
-                                        rawMobile.startsWith('+')
-                                            ? rawMobile
-                                            : '+91$rawMobile',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: _ts(
-                                          12,
-                                          FontWeight.w400,
-                                          Colors.white.withOpacity(0.85),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Rounded top edge of the white sheet.
-                          Container(
-                            height: 16.h,
-                            decoration: BoxDecoration(
-                              color: _kSheetBg,
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16.r),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // ---------------- Sheet content ----------------
-                  Expanded(
-                    child: Container(
-                      color: _kSheetBg,
-                      child: Column(
-                        children: [
-                          SizedBox(height: 4.h),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _PillTab(
-                                    label: 'Personal & Banking',
-                                    isActive: selectedTab.value == 0,
-                                    onTap: () => selectedTab.value = 0,
-                                  ),
-                                ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: _PillTab(
-                                    label: 'Billing Address',
-                                    isActive: selectedTab.value == 1,
-                                    onTap: () => selectedTab.value = 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 14.h),
-                          Expanded(
-                            child: selectedTab.value == 0
-                                ? SingleChildScrollView(
-                                    padding: EdgeInsets.fromLTRB(
-                                        20.w, 0, 20.w, 24.h),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 14.w,
-                                            vertical: 8.h,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(12.r),
-                                            border: Border.all(
-                                              color: _kCardBorder,
-                                            ),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _ProfileInfoRow(
-                                                label: 'Full name (as per PAN)',
-                                                value: displayValue(
-                                                    latestProfile.name),
-                                                editableController: canEdit
-                                                    ? fullNameController
-                                                    : null,
-                                              ),
-                                              _ProfileInfoRow(
-                                                label: 'Mobile Number',
-                                                value: mobileDisplay,
-                                              ),
-                                              _ProfileInfoRow(
-                                                label: 'Email ID',
-                                                value:
-                                                    displayValue(currentEmail),
-                                                trailing: GestureDetector(
-                                                  behavior:
-                                                      HitTestBehavior.opaque,
-                                                  onTap: () {
-                                                    KDialog.instance.openSheet(
-                                                      dialog: _EmailUpdateSheet(
-                                                        currentEmail:
-                                                            emailController.text
-                                                                .trim(),
-                                                      ),
-                                                    );
+                            // Avatar (orange ring) + name + phone.
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                sidePad,
+                                context.hp(3.08),
+                                sidePad,
+                                context.hp(2.13),
+                              ),
+                              child: Row(
+                                children: [
+                                  Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: avatarBox / 2,
+                                        backgroundColor:
+                                            const Color(0xFFE4E4E7),
+                                        child: ClipOval(child: avatarChild()),
+                                      ),
+                                      // Camera badge only on the Personal tab
+                                      // (not shown on the Bank Account design).
+                                      if (selectedTab.value == 0)
+                                        Positioned(
+                                          right: -context.wp(0.26),
+                                          bottom: -context.wp(0.26),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              KDialog.instance.openSheet(
+                                                dialog: ProfileImagePickerSheet(
+                                                  onCamera: () async {
+                                                    navigatorKey.currentState
+                                                        ?.pop();
+                                                    final image =
+                                                        await ImagePickerHelper
+                                                            .pickFromCamera();
+                                                    if (image == null) return;
+                                                    pickedImage.value = image;
                                                   },
-                                                  child: SvgPicture.asset(
-                                                    FileConstants
-                                                        .profileEmailEditSvg,
-                                                    width: 16.r,
-                                                    height: 16.r,
-                                                  ),
+                                                  onGallery: () async {
+                                                    navigatorKey.currentState
+                                                        ?.pop();
+                                                    final image =
+                                                        await ImagePickerHelper
+                                                            .pickFromGallery();
+                                                    if (image == null) return;
+                                                    pickedImage.value = image;
+                                                  },
                                                 ),
+                                              );
+                                            },
+                                            child: Container(
+                                              height: cameraBadge,
+                                              width: cameraBadge,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.15),
+                                                    blurRadius:
+                                                        context.wp(1.03),
+                                                    offset: Offset(
+                                                      0,
+                                                      context.hp(0.12),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              _ProfileInfoRow(
-                                                label: 'Adhaar Number',
-                                                value: displayValue(
-                                                    latestProfile
-                                                        .aadhaarMasked),
+                                              child: Icon(
+                                                Icons.camera_alt_outlined,
+                                                size: context.wp(2.31),
+                                                color: AppColors.primary,
                                               ),
-                                              _ProfileInfoRow(
-                                                label: 'PAN Number',
-                                                value: displayValue(
-                                                    latestProfile.panMasked),
-                                              ),
-                                              _ProfileInfoRow(
-                                                label: 'Date Of Birth',
-                                                value: displayValue(
-                                                    latestProfile.dob),
-                                              ),
-                                              _ProfileInfoRow(
-                                                label: 'Permanent Address',
-                                                value: displayValue(
-                                                    latestProfile
-                                                        .permanentAddress),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        if (isKycVerified)
-                                          const BankAccountsSection(
-                                            padding: EdgeInsets.zero,
-                                          )
-                                        else
-                                          Text(
-                                            'Please complete KYC first to '
-                                            'manage bank details.',
-                                            style: _ts(
-                                              12,
-                                              FontWeight.w400,
-                                              AppColors.textPrimary
-                                                  .withOpacity(0.6),
                                             ),
                                           ),
-                                      ],
-                                    ),
-                                  )
-                                : SingleChildScrollView(
-                                    controller: deliveryScrollController,
-                                    padding: EdgeInsets.fromLTRB(
-                                        20.w, 0, 20.w, 90.h),
+                                        ),
+                                    ],
+                                  ),
+                                  SizedBox(width: context.wp(3.08)),
+                                  Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Billing Address Details',
+                                          latestProfile.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: _ts(
-                                            15,
-                                            FontWeight.w700,
-                                            _kTextDark,
+                                            18,
+                                            FontWeight.w500,
+                                            Colors.white,
                                           ),
                                         ),
-                                        SizedBox(height: 12.h),
-                                        ProfileField(
-                                          label: 'Billing Address Line 1',
-                                          controller: billingAddress1Controller,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Billing Address Line 2',
-                                          controller: billingAddress2Controller,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Billing Country',
-                                          controller: billingCountryController,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Billing State',
-                                          controller: billingStateController,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Billing City',
-                                          controller: billingCityController,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: ProfileField(
-                                                label: 'Billing State Code',
-                                                controller:
-                                                    billingStateCodeController,
-                                                enabled: true,
-                                              ),
-                                            ),
-                                            SizedBox(width: 12.w),
-                                            Expanded(
-                                              child: ProfileField(
-                                                label: 'Billing Zip Code',
-                                                controller:
-                                                    billingZipController,
-                                                enabled: true,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Billing Mobile Number',
-                                          controller: billingMobileController,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 18.h),
+                                        SizedBox(height: context.hp(0.12)),
                                         Text(
-                                          'Delivery Address Details',
-                                          key: deliverySectionKey,
+                                          rawMobile.startsWith('+')
+                                              ? rawMobile
+                                              : '+91$rawMobile',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: _ts(
-                                            15,
-                                            FontWeight.w700,
-                                            _kTextDark,
+                                            12,
+                                            FontWeight.w400,
+                                            Colors.white.withOpacity(0.85),
                                           ),
-                                        ),
-                                        SizedBox(height: 12.h),
-                                        ProfileField(
-                                          key: deliveryFirstFieldKey,
-                                          label: 'Delivery Address Line 1',
-                                          controller:
-                                              deliveryAddress1Controller,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Delivery Address Line 2',
-                                          controller:
-                                              deliveryAddress2Controller,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Delivery Country',
-                                          controller: deliveryCountryController,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Delivery State',
-                                          controller: deliveryStateController,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Delivery City',
-                                          controller: deliveryCityController,
-                                          enabled: true,
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: ProfileField(
-                                                label: 'Delivery State Code',
-                                                controller:
-                                                    deliveryStateCodeController,
-                                                enabled: true,
-                                              ),
-                                            ),
-                                            SizedBox(width: 12.w),
-                                            Expanded(
-                                              child: ProfileField(
-                                                label: 'Delivery Zip Code',
-                                                controller:
-                                                    deliveryZipController,
-                                                enabled: true,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 14.h),
-                                        ProfileField(
-                                          label: 'Delivery Mobile Number',
-                                          controller: deliveryMobileController,
-                                          enabled: true,
                                         ),
                                       ],
                                     ),
                                   ),
-                          ),
-                        ],
+                                ],
+                              ),
+                            ),
+                            // Rounded top edge of the white sheet.
+                            Container(
+                              height: context.wp(5.13),
+                              decoration: BoxDecoration(
+                                color: _kSheetBg,
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(context.wp(5.13)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              if (state.isUpdating) const _UpdateProfileLoading(),
-            ],
+                    // ---------------- Sheet content ----------------
+                    Expanded(
+                      child: Container(
+                        color: _kSheetBg,
+                        child: Column(
+                          children: [
+                            SizedBox(height: context.hp(0.24)),
+                            Padding(
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: sidePad),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _PillTab(
+                                      label: 'Personal & Billing',
+                                      isActive: selectedTab.value == 0,
+                                      onTap: () => selectedTab.value = 0,
+                                    ),
+                                  ),
+                                  SizedBox(width: context.wp(3.59)),
+                                  Expanded(
+                                    child: _PillTab(
+                                      label: 'Bank Account',
+                                      isActive: selectedTab.value == 1,
+                                      onTap: () => selectedTab.value = 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: context.hp(1.66)),
+                            Expanded(
+                              child: selectedTab.value == 0
+                                  ? personalAndBillingTab()
+                                  : bankAccountTab(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (state.isUpdating) const _UpdateProfileLoading(),
+              ],
+            ),
+            bottomNavigationBar: selectedTab.value == 0
+                ? Container(
+                    color: _kSheetBg,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          sidePad,
+                          context.hp(1.18),
+                          sidePad,
+                          context.hp(1.9),
+                        ),
+                        child: _PrimaryPillButton(
+                          onTap: state.isUpdating ? null : handleSave,
+                          label:
+                              state.isUpdating ? 'Saving...' : 'Save & Update',
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
           ),
-          bottomNavigationBar: selectedTab.value == 1 ||
-                  (selectedTab.value == 0 && (canSave || state.isUpdating))
-              ? Container(
-                  color: _kSheetBg,
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
-                      child: CustomElevatedButton(
-                        onPressed: state.isUpdating ||
-                                (selectedTab.value == 0 && !canSave)
-                            ? null
-                            : () async {
-                                FocusScope.of(context).unfocus();
-                                if (selectedTab.value == 1) {
-                                  await saveDeliveryInfo();
-                                  return;
-                                }
-                                final name = fullNameController.text.trim();
-                                if (name.isEmpty) {
-                                  AppSnackbar.show(
-                                      'Please enter your full name.');
-                                  return;
-                                }
-                                final address = addressController.text.trim();
-                                final email = state.profile?.email ??
-                                    profile.email ??
-                                    emailController.text.trim();
-                                final ok = await controller.updateProfile(
-                                  name: name,
-                                  email: email,
-                                  address: address,
-                                  image: pickedImage.value,
-                                );
-                                if (!context.mounted) return;
-                                if (ok) {
-                                  pickedImage.value = null;
-                                  await controller.fetchProfile();
-                                  if (!context.mounted) return;
-                                  final refreshed = ref
-                                      .read(profileControllerProvider)
-                                      .profile;
-                                  initialFullNameState.value =
-                                      (refreshed?.name ?? name).trim();
-                                  initialAddressState.value =
-                                      (refreshed?.address ?? address).trim();
-                                  initialEmailState.value =
-                                      (refreshed?.email ?? email).trim();
-                                  AppSnackbar.show(
-                                    'Profile updated successfully.',
-                                    type: AppSnackbarType.success,
-                                  );
-                                } else {
-                                  AppSnackbar.show(
-                                    ref
-                                            .read(profileControllerProvider)
-                                            .updateErrorMessage ??
-                                        'Failed to update profile.',
-                                    type: AppSnackbarType.error,
-                                  );
-                                }
-                              },
-                        label: state.isUpdating ? 'Saving...' : 'Save & Update',
-                        uppercaseLabel: false,
-                        showArrow: false,
-                        height: 42.h,
-                      ),
-                    ),
-                  ),
-                )
-              : null,
         ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet used by the pencil icon next to "Communication Address".
+class _CommunicationAddressSheet extends HookWidget {
+  const _CommunicationAddressSheet({
+    required this.initial,
+    required this.onDone,
+  });
+
+  final String initial;
+  final ValueChanged<String> onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final textController = useTextEditingController(text: initial);
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(context.wp(2.56)),
+      borderSide: const BorderSide(color: _kFieldBorder),
+    );
+
+    return Padding(
+      padding: MediaQuery.of(context).viewInsets +
+          EdgeInsets.fromLTRB(
+            context.wp(5.13),
+            context.hp(2.37),
+            context.wp(5.13),
+            context.hp(2.84),
+          ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Communication Address',
+            style: _ts(16, FontWeight.w700, AppColors.textPrimary),
+          ),
+          SizedBox(height: context.hp(1.42)),
+          TextField(
+            controller: textController,
+            maxLines: 3,
+            minLines: 3,
+            textCapitalization: TextCapitalization.words,
+            style: _ts(13, FontWeight.w500, const Color(0xFF18181B)),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: Colors.white,
+              hintText: 'Enter your communication address',
+              hintStyle: _ts(13, FontWeight.w400, _kHint),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: context.wp(4.62),
+                vertical: context.hp(1.66),
+              ),
+              border: fieldBorder,
+              enabledBorder: fieldBorder,
+              focusedBorder: fieldBorder.copyWith(
+                borderSide: const BorderSide(color: AppColors.primary),
+              ),
+            ),
+          ),
+          SizedBox(height: context.hp(1.9)),
+          _PrimaryPillButton(
+            label: 'Done',
+            onTap: () {
+              onDone(textController.text);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -1733,6 +2162,8 @@ class _UpdateProfileLoadingState extends State<_UpdateProfileLoading>
 
   @override
   Widget build(BuildContext context) {
+    final barRadius = BorderRadius.circular(context.wp(1.54));
+    final iconCircle = context.wp(9.23);
     return Positioned.fill(
       child: AbsorbPointer(
         child: Container(
@@ -1758,19 +2189,19 @@ class _UpdateProfileLoadingState extends State<_UpdateProfileLoading>
                   },
                   blendMode: BlendMode.srcATop,
                   child: Container(
-                    width: 260.w,
+                    width: context.wp(66.67),
                     padding: EdgeInsets.symmetric(
-                      horizontal: 18.w,
-                      vertical: 16.h,
+                      horizontal: context.wp(4.62),
+                      vertical: context.hp(1.9),
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16.r),
+                      borderRadius: BorderRadius.circular(context.wp(4.1)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.08),
-                          blurRadius: 18.r,
-                          offset: Offset(0, 10.h),
+                          blurRadius: context.wp(4.62),
+                          offset: Offset(0, context.hp(1.18)),
                         ),
                       ],
                     ),
@@ -1778,8 +2209,8 @@ class _UpdateProfileLoadingState extends State<_UpdateProfileLoading>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          height: 36.r,
-                          width: 36.r,
+                          height: iconCircle,
+                          width: iconCircle,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white,
@@ -1787,31 +2218,31 @@ class _UpdateProfileLoadingState extends State<_UpdateProfileLoading>
                           child: Icon(
                             Icons.cloud_upload_outlined,
                             color: AppColors.primary,
-                            size: 20.r,
+                            size: context.wp(5.13),
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: context.hp(1.42)),
                         Text(
                           'Updating profile',
                           style:
                               _ts(14, FontWeight.w700, AppColors.textPrimary),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: context.hp(0.95)),
                         Container(
-                          height: 10.h,
-                          width: 140.w,
+                          height: context.hp(1.18),
+                          width: context.wp(35.9),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(6.r),
+                            borderRadius: barRadius,
                           ),
                         ),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: context.hp(0.71)),
                         Container(
-                          height: 10.h,
-                          width: 110.w,
+                          height: context.hp(1.18),
+                          width: context.wp(28.2),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(6.r),
+                            borderRadius: barRadius,
                           ),
                         ),
                       ],
@@ -1908,19 +2339,24 @@ class _EmailUpdateSheet extends HookConsumerWidget {
     }
 
     PinTheme pinTheme(Color borderColor, double borderWidth) => PinTheme(
-          width: 42.w,
-          height: 46.h,
+          width: context.wp(10.77),
+          height: context.hp(5.45),
           textStyle: _ts(16, FontWeight.w700, AppColors.textPrimary),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(context.wp(2.56)),
             border: Border.all(color: borderColor, width: borderWidth),
           ),
         );
 
     return Padding(
       padding: MediaQuery.of(context).viewInsets +
-          EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
+          EdgeInsets.fromLTRB(
+            context.wp(5.13),
+            context.hp(2.37),
+            context.wp(5.13),
+            context.hp(2.84),
+          ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1929,7 +2365,7 @@ class _EmailUpdateSheet extends HookConsumerWidget {
             'Change Email',
             style: _ts(16, FontWeight.w700, AppColors.textPrimary),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: context.hp(1.42)),
           Text(
             'Current email: $currentEmail',
             style: _ts(
@@ -1938,14 +2374,14 @@ class _EmailUpdateSheet extends HookConsumerWidget {
               AppColors.textPrimary.withOpacity(0.7),
             ),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: context.hp(1.42)),
           CustomTextField(
             labelText: 'New Email',
             enabled: true,
             textEditingController: emailController,
             keyboardType: TextInputType.emailAddress,
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: context.hp(1.42)),
           if (!otpSent.value)
             SizedBox(
               width: double.infinity,
@@ -1955,31 +2391,31 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
+                    borderRadius: BorderRadius.circular(context.wp(3.08)),
                   ),
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  padding: EdgeInsets.symmetric(vertical: context.hp(1.42)),
                   elevation: 0,
                 ),
                 child: isSending.value
                     ? Center(
                         child: SpinKitCircle(
                           color: AppColors.primary,
-                          size: 48.r,
+                          size: context.wp(12.31),
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Send OTP',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        style: _ts(14, FontWeight.w700, Colors.white),
                       ),
               ),
             ),
           if (otpSent.value) ...[
-            SizedBox(height: 20.h),
+            SizedBox(height: context.hp(2.37)),
             Text(
               'Enter OTP',
               style: _ts(13, FontWeight.w600, AppColors.textPrimary),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: context.hp(1.18)),
             Center(
               child: Pinput(
                 length: 6,
@@ -1995,14 +2431,14 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                 errorText: otpErrorText.value,
               ),
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: context.hp(1.9)),
             Row(
               children: [
                 TextButton(
                   onPressed: isSending.value ? null : sendOtp,
-                  child: const Text(
+                  child: Text(
                     'Resend OTP',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                    style: _ts(13, FontWeight.w700, AppColors.primary),
                   ),
                 ),
                 const Spacer(),
@@ -2010,7 +2446,7 @@ class _EmailUpdateSheet extends HookConsumerWidget {
                   onPressed: isVerifying.value ? null : verifyOtp,
                   label: isVerifying.value ? 'Saving...' : 'Update',
                   showArrow: false,
-                  width: 140.w,
+                  width: context.wp(35.9),
                 ),
               ],
             ),

@@ -12,6 +12,7 @@ class SimpleQuickActionCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
+    this.overline,
     this.leadingAsset,
     this.leadingImageUrl,
     this.onTap,
@@ -20,10 +21,15 @@ class SimpleQuickActionCard extends StatelessWidget {
     this.showShadow = true,
     this.operatorStyle = false,
     this.creditCardStyle = false,
+    this.backgroundColor,
   });
 
   final String title;
   final String subtitle;
+
+  /// Small caption rendered above [title] (e.g. "Selected Bank" on the Add
+  /// Bank Account header card). Null/empty keeps the original single-line look.
+  final String? overline;
   final String? leadingAsset;
   final String? leadingImageUrl;
   final VoidCallback? onTap;
@@ -37,6 +43,9 @@ class SimpleQuickActionCard extends StatelessWidget {
 
   /// Credit Card Pay Bill / Pay Now provider row (440×956 metrics).
   final bool creditCardStyle;
+
+  /// Custom background color for the card. Defaults to white.
+  final Color? backgroundColor;
 
   /// Figma soft elevation for the Maharashtra / operator card (440 frame):
   /// 0 10 22 #7070701A, 0 41 41 #70707017, 0 91 55 #7070700D,
@@ -158,7 +167,7 @@ class SimpleQuickActionCard extends StatelessWidget {
                   )
                 : EdgeInsets.symmetric(horizontal: 14.w),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
+          color: backgroundColor ?? const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(
             useCredit
                 ? CreditCardFigmaMetrics.providerCardRadius(context)
@@ -244,6 +253,22 @@ class SimpleQuickActionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  if ((overline ?? '').trim().isNotEmpty) ...[
+                    Text(
+                      overline!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w500,
+                        fontSize: useCredit
+                            ? CreditCardFigmaMetrics.s(context, 12)
+                            : 11.sp,
+                        height: 1.2,
+                        color: const Color(0xFF71717A),
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                  ],
                   if (title.trim().isNotEmpty)
                     Text(
                       titleText,
