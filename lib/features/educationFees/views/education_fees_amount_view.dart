@@ -244,8 +244,7 @@ class EducationFeesAmountView extends HookConsumerWidget {
                                           if (suppressAmountSync.value) {
                                             return;
                                           }
-                                          controller
-                                              .updateAmountInput(value);
+                                          controller.updateAmountInput(value);
                                         },
                                       )
                                     : _LegacyAmountBody(
@@ -326,8 +325,9 @@ class _TuitionAmountBody extends StatelessWidget {
     final u = _unit(context);
     final circle = 138 * u;
     final scale = circle / 138.0;
-    // Input ceiling: honour the backend max when present but never allow more
-    // than the hard ₹2,00,000 cap. Falls back to the cap before prefetch.
+    // Backend max, kept for the limits caption. The typing ceiling is not
+    // enforced on the front end any more (see _AmountCard), so this value is
+    // display data only.
     final amountCap = (maxAmount != null && maxAmount! > 0)
         ? maxAmount!.round().clamp(0, kMaxTuitionAmount)
         : kMaxTuitionAmount;
@@ -398,21 +398,23 @@ class _TuitionAmountBody extends StatelessWidget {
           // Limits caption: backend numbers win; else the backend hint text;
           // else the standard 2,000–2,00,000 tuition range. The API
           // validation error renders right below it.
-          SizedBox(height: 14 * u),
-          Text(
-            (minAmount != null || maxAmount != null)
-                ? _amountLimitsHint(minAmount, maxAmount)
-                : ((limitHint != null && limitHint!.trim().isNotEmpty)
-                    ? limitHint!.trim()
-                    : _amountLimitsHint(2000, 200000)),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF71717A),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13 * u,
-                  height: 1.3,
-                ),
-          ),
+          if (minAmount != null ||
+              maxAmount != null ||
+              (limitHint != null && limitHint!.trim().isNotEmpty)) ...[
+            SizedBox(height: 14 * u),
+            Text(
+              (minAmount != null || maxAmount != null)
+                  ? _amountLimitsHint(minAmount, maxAmount)
+                  : limitHint!.trim(),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF71717A),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13 * u,
+                    height: 1.3,
+                  ),
+            ),
+          ],
           if (amountError != null) ...[
             SizedBox(height: 8 * u),
             Text(
@@ -539,7 +541,12 @@ class _AmountCard extends StatelessWidget {
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
-                            MaxAmountInputFormatter(maxAmount),
+                            // Min/max are NOT validated on the front end. The
+                            // backend owns the tuition limits
+                            // (POST /api/education/amount/validate) and its
+                            // message is shown below the limits caption, so the
+                            // typing ceiling stays commented out.
+                            // MaxAmountInputFormatter(maxAmount),
                           ],
                           textAlign: TextAlign.left,
                           cursorColor: const Color(0xFF0C0A09),

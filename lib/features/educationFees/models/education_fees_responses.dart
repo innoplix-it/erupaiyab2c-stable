@@ -233,6 +233,628 @@ EducationTutorVerificationStatus _readTutorVerificationStatus(Object? raw) {
   }
 }
 
+class EducationTutorDetailsRequest {
+  const EducationTutorDetailsRequest({
+    required this.mobile,
+    required this.amount,
+  });
+
+  final String mobile;
+  final int amount;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'mobile': mobile,
+      'amount': amount,
+    };
+  }
+}
+
+class EducationTutorDetailsData {
+  const EducationTutorDetailsData({
+    required this.tutorId,
+    required this.tutorName,
+    required this.bankName,
+    required this.accountNumber,
+    required this.accountHolderName,
+    required this.ifsc,
+    required this.bankLogo,
+    required this.amount,
+  });
+
+  factory EducationTutorDetailsData.fromJson(Map<String, dynamic> json) {
+    return EducationTutorDetailsData(
+      tutorId: json['tutor_id'] as int? ?? 0,
+      tutorName: json['tutor_name']?.toString() ?? '',
+      bankName: json['bank_name']?.toString() ?? '',
+      accountNumber: json['account_number']?.toString() ?? '',
+      accountHolderName: json['account_holder_name']?.toString() ?? '',
+      ifsc: json['ifsc']?.toString() ?? '',
+      bankLogo: json['bank_logo']?.toString(),
+      amount: json['amount'] as int? ?? 0,
+    );
+  }
+
+  final int tutorId;
+  final String tutorName;
+  final String bankName;
+  final String accountNumber;
+  final String accountHolderName;
+  final String ifsc;
+  final String? bankLogo;
+  final int amount;
+}
+
+class EducationTutorDetailsResponse {
+  const EducationTutorDetailsResponse({
+    required this.status,
+    required this.verificationStatus,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorDetailsResponse.fromJson(Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorDetailsData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorDetailsData.fromJson(dataJson);
+    }
+
+    return EducationTutorDetailsResponse(
+      status: json['status'] == true,
+      verificationStatus: _readTutorVerificationStatus(
+        json['verification_status'],
+      ),
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final EducationTutorVerificationStatus verificationStatus;
+  final String? message;
+  final EducationTutorDetailsData? data;
+
+  bool get isVerified =>
+      verificationStatus == EducationTutorVerificationStatus.verified;
+  bool get isNotVerified =>
+      verificationStatus == EducationTutorVerificationStatus.notVerified;
+  bool get isNotFound =>
+      verificationStatus == EducationTutorVerificationStatus.notFound;
+  bool get hasKnownVerificationStatus =>
+      verificationStatus != EducationTutorVerificationStatus.unknown;
+
+  /// Convenience gate for callers: the request succeeded and the tutor is
+  /// fully verified (KYC complete). NOT_VERIFIED and NOT_FOUND both return
+  /// false here and must be distinguished through [verificationStatus].
+  bool get confirmsVerifiedTutor => status && isVerified;
+}
+
+class EducationTutorSendRequestRequest {
+  const EducationTutorSendRequestRequest({
+    required this.mobile,
+    required this.amount,
+    required this.subject,
+  });
+
+  final String mobile;
+  final int amount;
+  final String subject;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'mobile': mobile,
+      'amount': amount,
+      'subject': subject,
+    };
+  }
+}
+
+class EducationTutorSendRequestData {
+  const EducationTutorSendRequestData({
+    required this.requestId,
+    required this.requestReference,
+    required this.tutorId,
+    required this.amount,
+    required this.requestStatus,
+    required this.createdAt,
+  });
+
+  factory EducationTutorSendRequestData.fromJson(Map<String, dynamic> json) {
+    return EducationTutorSendRequestData(
+      requestId: json['request_id'] as int? ?? 0,
+      requestReference: json['request_reference']?.toString() ?? '',
+      tutorId: json['tutor_id'] as int? ?? 0,
+      amount: json['amount']?.toString() ?? '0',
+      requestStatus: json['request_status']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+    );
+  }
+
+  final int requestId;
+  final String requestReference;
+  final int tutorId;
+  final String amount;
+  final String requestStatus;
+  final String createdAt;
+}
+
+class EducationTutorSendRequestResponse {
+  const EducationTutorSendRequestResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorSendRequestResponse.fromJson(
+      Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorSendRequestData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorSendRequestData.fromJson(dataJson);
+    }
+
+    return EducationTutorSendRequestResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final EducationTutorSendRequestData? data;
+}
+
+class EducationTutorRequestStatusData {
+  const EducationTutorRequestStatusData({
+    required this.requestReference,
+    required this.amount,
+    required this.subject,
+    required this.requestStatus,
+    required this.isAccepted,
+    required this.isRejected,
+    required this.isPending,
+    required this.rejectionReason,
+    required this.createdAt,
+    required this.respondedAt,
+  });
+
+  factory EducationTutorRequestStatusData.fromJson(Map<String, dynamic> json) {
+    return EducationTutorRequestStatusData(
+      requestReference: json['request_reference']?.toString() ?? '',
+      amount: json['amount']?.toString() ?? '0',
+      subject: json['subject']?.toString() ?? '',
+      requestStatus: json['request_status']?.toString() ?? '',
+      isAccepted: json['is_accepted'] == true,
+      isRejected: json['is_rejected'] == true,
+      isPending: json['is_pending'] == true,
+      rejectionReason: json['rejection_reason']?.toString(),
+      createdAt: json['created_at']?.toString() ?? '',
+      respondedAt: json['responded_at']?.toString(),
+    );
+  }
+
+  final String requestReference;
+  final String amount;
+  final String subject;
+  final String requestStatus;
+  final bool isAccepted;
+  final bool isRejected;
+  final bool isPending;
+  final String? rejectionReason;
+  final String createdAt;
+  final String? respondedAt;
+}
+
+class EducationTutorRequestStatusResponse {
+  const EducationTutorRequestStatusResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorRequestStatusResponse.fromJson(
+      Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorRequestStatusData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorRequestStatusData.fromJson(dataJson);
+    }
+
+    return EducationTutorRequestStatusResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final EducationTutorRequestStatusData? data;
+}
+
+class EducationTutorReceivedRequestsPagination {
+  const EducationTutorReceivedRequestsPagination({
+    required this.page,
+    required this.perPage,
+    required this.total,
+    required this.totalPages,
+  });
+
+  factory EducationTutorReceivedRequestsPagination.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return EducationTutorReceivedRequestsPagination(
+      page: json['page'] as int? ?? 1,
+      perPage: json['per_page'] as int? ?? 20,
+      total: json['total'] as int? ?? 0,
+      totalPages: json['total_pages'] as int? ?? 0,
+    );
+  }
+
+  final int page;
+  final int perPage;
+  final int total;
+  final int totalPages;
+}
+
+class EducationTutorReceivedRequestsData {
+  const EducationTutorReceivedRequestsData({
+    required this.requests,
+    required this.pagination,
+  });
+
+  factory EducationTutorReceivedRequestsData.fromJson(
+      Map<String, dynamic> json) {
+    final requestsJson = json['requests'];
+    final List<Map<String, dynamic>> requests = requestsJson is List
+        ? requestsJson.whereType<Map<String, dynamic>>().toList()
+        : <Map<String, dynamic>>[];
+
+    final paginationJson = json['pagination'];
+    EducationTutorReceivedRequestsPagination? pagination;
+    if (paginationJson is Map<String, dynamic>) {
+      pagination =
+          EducationTutorReceivedRequestsPagination.fromJson(paginationJson);
+    }
+
+    return EducationTutorReceivedRequestsData(
+      requests: requests,
+      pagination: pagination,
+    );
+  }
+
+  final List<Map<String, dynamic>> requests;
+  final EducationTutorReceivedRequestsPagination? pagination;
+}
+
+class EducationTutorReceivedRequestsResponse {
+  const EducationTutorReceivedRequestsResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorReceivedRequestsResponse.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorReceivedRequestsData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorReceivedRequestsData.fromJson(dataJson);
+    }
+
+    return EducationTutorReceivedRequestsResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final EducationTutorReceivedRequestsData? data;
+}
+
+class EducationTutorRespondToRequestRequest {
+  const EducationTutorRespondToRequestRequest({
+    required this.requestReference,
+    required this.action,
+  });
+
+  final String requestReference;
+  final String action;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'request_reference': requestReference,
+      'action': action,
+    };
+  }
+}
+
+class EducationTutorRespondToRequestData {
+  const EducationTutorRespondToRequestData({
+    required this.requestReference,
+    required this.amount,
+    required this.requestStatus,
+    required this.respondedAt,
+  });
+
+  factory EducationTutorRespondToRequestData.fromJson(
+      Map<String, dynamic> json) {
+    return EducationTutorRespondToRequestData(
+      requestReference: json['request_reference']?.toString() ?? '',
+      amount: json['amount']?.toString() ?? '0',
+      requestStatus: json['request_status']?.toString() ?? '',
+      respondedAt: json['responded_at']?.toString(),
+    );
+  }
+
+  final String requestReference;
+  final String amount;
+  final String requestStatus;
+  final String? respondedAt;
+}
+
+class EducationTutorRespondToRequestResponse {
+  const EducationTutorRespondToRequestResponse({
+    required this.status,
+    this.message,
+    this.data,
+    this.requestStatus,
+  });
+
+  factory EducationTutorRespondToRequestResponse.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorRespondToRequestData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorRespondToRequestData.fromJson(dataJson);
+    }
+
+    final requestStatus = json['request_status']?.toString();
+
+    return EducationTutorRespondToRequestResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+      requestStatus: requestStatus,
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final EducationTutorRespondToRequestData? data;
+  final String? requestStatus;
+}
+
+class EducationTutorVerifyPanRequest {
+  const EducationTutorVerifyPanRequest({required this.pan});
+
+  final String pan;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'pan': pan,
+    };
+  }
+}
+
+class EducationTutorVerifyPanData {
+  const EducationTutorVerifyPanData({
+    required this.recipientReference,
+    required this.beneficiaryId,
+    required this.name,
+    required this.panMasked,
+    required this.panVerified,
+  });
+
+  factory EducationTutorVerifyPanData.fromJson(Map<String, dynamic> json) {
+    return EducationTutorVerifyPanData(
+      recipientReference: json['recipient_reference']?.toString() ?? '',
+      beneficiaryId: json['beneficiary_id'] as int?,
+      name: json['name']?.toString() ?? '',
+      panMasked: json['pan_masked']?.toString() ?? '',
+      panVerified: json['pan_verified'] == true,
+    );
+  }
+
+  final String recipientReference;
+  final int? beneficiaryId;
+  final String name;
+  final String panMasked;
+  final bool panVerified;
+}
+
+class EducationTutorVerifyPanResponse {
+  const EducationTutorVerifyPanResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorVerifyPanResponse.fromJson(Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorVerifyPanData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorVerifyPanData.fromJson(dataJson);
+    }
+
+    return EducationTutorVerifyPanResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final EducationTutorVerifyPanData? data;
+
+  /// Business success requires the backend status flag and a verified payload.
+  bool get confirmsVerifiedPan => status && data != null && data!.panVerified;
+}
+
+/// Request for `POST /api/education/tutor/recipient/verify-bank`.
+///
+/// The [recipientReference] is the exact value stored by a successful tutor
+/// PAN verification; it is never hardcoded, reconstructed or replaced by the
+/// beneficiary id. Account number and IFSC come live from the Add Details
+/// form fields.
+class EducationTutorVerifyBankRequest {
+  const EducationTutorVerifyBankRequest({
+    required this.recipientReference,
+    required this.accountNo,
+    required this.ifsc,
+  });
+
+  final String recipientReference;
+  final String accountNo;
+  final String ifsc;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'recipient_reference': recipientReference,
+      'account_no': accountNo,
+      'ifsc': ifsc,
+    };
+  }
+}
+
+/// Nested `data` payload of the tutor recipient bank verification.
+///
+/// [accountNumber] is the backend-masked account number and is preserved
+/// exactly as returned — the client never re-masks or fabricates it.
+/// [recipientReference] is echoed back for the next tutor recipient step and
+/// must stay the same value that was sent.
+class EducationTutorVerifyBankData {
+  const EducationTutorVerifyBankData({
+    required this.recipientReference,
+    required this.beneficiaryId,
+    required this.name,
+    required this.accountNumber,
+    required this.ifsc,
+    required this.transactionReference,
+    required this.bankVerified,
+  });
+
+  factory EducationTutorVerifyBankData.fromJson(Map<String, dynamic> json) {
+    return EducationTutorVerifyBankData(
+      recipientReference: json['recipient_reference']?.toString() ?? '',
+      beneficiaryId: json['beneficiary_id'] as int?,
+      name: json['name']?.toString() ?? '',
+      accountNumber: json['account_number']?.toString() ?? '',
+      ifsc: json['ifsc']?.toString() ?? '',
+      transactionReference: json['transaction_reference'] as int?,
+      bankVerified: json['bank_verified'] == true,
+    );
+  }
+
+  final String recipientReference;
+  final int? beneficiaryId;
+  final String name;
+
+  /// Masked account number exactly as the backend returned it.
+  final String accountNumber;
+  final String ifsc;
+
+  /// Numeric transaction reference of the backend verification, matching the
+  /// project convention of keeping backend ids as nullable ints.
+  final int? transactionReference;
+  final bool bankVerified;
+}
+
+class EducationTutorVerifyBankResponse {
+  const EducationTutorVerifyBankResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorVerifyBankResponse.fromJson(Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorVerifyBankData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorVerifyBankData.fromJson(dataJson);
+    }
+
+    return EducationTutorVerifyBankResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final String? message;
+
+  /// Nullable by contract: a `status: true` envelope without usable `data`
+  /// is an invalid response, not a verified bank account.
+  final EducationTutorVerifyBankData? data;
+
+  /// Business success requires the backend status flag and a verified payload.
+  bool get confirmsVerifiedBank => status && data != null && data!.bankVerified;
+}
+
 class EducationVerifyPanResponse {
   const EducationVerifyPanResponse({
     required this.status,
@@ -735,4 +1357,148 @@ class EducationSaveBeneficiaryResponse {
   final bool status;
   final String? message;
   final int? beneficiaryId;
+}
+
+/// Request for tutor recipient save beneficiary API
+/// (`POST /api/education/save-beneficiary` for unverified tutor flow).
+///
+/// The [recipientReference] is the exact value stored by a successful tutor
+/// PAN verification; it is never hardcoded, reconstructed or replaced by the
+/// beneficiary id.
+class EducationTutorSaveBeneficiaryRequest {
+  const EducationTutorSaveBeneficiaryRequest({
+    required this.recipientReference,
+  });
+
+  final String recipientReference;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'recipient_reference': recipientReference,
+    };
+  }
+}
+
+/// Response for tutor recipient save beneficiary API.
+///
+/// The response contains [beneficiaryId] and [recipientReference] at the
+/// ROOT level, not inside a nested `data` object. This is distinct from the
+/// registered/verified tutor flow which will be implemented separately.
+class EducationTutorSaveBeneficiaryResponse {
+  const EducationTutorSaveBeneficiaryResponse({
+    required this.status,
+    this.message,
+    this.beneficiaryId,
+    this.recipientReference,
+  });
+
+  factory EducationTutorSaveBeneficiaryResponse.fromJson(
+      Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+    return EducationTutorSaveBeneficiaryResponse(
+      status: json['status'] == true,
+      message: message,
+      beneficiaryId: json['beneficiary_id'] as int?,
+      recipientReference: json['recipient_reference']?.toString(),
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final int? beneficiaryId;
+  final String? recipientReference;
+}
+
+/// Request for registered/verified tutor Save Beneficiary API
+/// (`POST /api/education/save-beneficiary`).
+///
+/// The [requestReference] MUST come from the Tutor Send Request response
+/// (`data.request_reference`). It is never hardcoded, reconstructed or replaced
+/// by the recipient_reference or beneficiary_id.
+class EducationTutorSaveBeneficiaryRegisteredRequest {
+  const EducationTutorSaveBeneficiaryRegisteredRequest({
+    required this.requestReference,
+  });
+
+  final String requestReference;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'request_reference': requestReference,
+    };
+  }
+}
+
+/// Nested data object for registered/verified tutor Save Beneficiary response.
+class EducationTutorSaveBeneficiaryRegisteredData {
+  const EducationTutorSaveBeneficiaryRegisteredData({
+    required this.beneficiaryId,
+    required this.recipientReference,
+    required this.recipientType,
+    required this.panVerified,
+    required this.bankVerified,
+  });
+
+  factory EducationTutorSaveBeneficiaryRegisteredData.fromJson(
+      Map<String, dynamic> json) {
+    return EducationTutorSaveBeneficiaryRegisteredData(
+      beneficiaryId: json['beneficiary_id'] as int? ?? 0,
+      recipientReference: json['recipient_reference']?.toString() ?? '',
+      recipientType: json['recipient_type']?.toString() ?? '',
+      panVerified: json['pan_verified'] == true,
+      bankVerified: json['bank_verified'] == true,
+    );
+  }
+
+  final int beneficiaryId;
+  final String recipientReference;
+  final String recipientType;
+  final bool panVerified;
+  final bool bankVerified;
+}
+
+/// Response for registered/verified tutor Save Beneficiary API.
+///
+/// Unlike the unverified flow, this response has a nested `data` object
+/// containing beneficiary details. The request uses `request_reference` from
+/// Tutor Send Request, not `recipient_reference`.
+class EducationTutorSaveBeneficiaryRegisteredResponse {
+  const EducationTutorSaveBeneficiaryRegisteredResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorSaveBeneficiaryRegisteredResponse.fromJson(
+      Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorSaveBeneficiaryRegisteredData? data;
+    if (dataJson is Map<String, dynamic>) {
+      data = EducationTutorSaveBeneficiaryRegisteredData.fromJson(dataJson);
+    }
+
+    return EducationTutorSaveBeneficiaryRegisteredResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final EducationTutorSaveBeneficiaryRegisteredData? data;
 }

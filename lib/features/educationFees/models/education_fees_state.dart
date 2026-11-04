@@ -26,8 +26,15 @@ class EducationFeesState {
     this.bankErrorMessage,
     this.isSavingBeneficiary = false,
     this.beneficiaryId,
+    this.recipientReference,
+    this.panMasked,
+    this.verifiedPanName,
+    this.bankAccountMasked,
+    this.bankVerifiedIfsc,
+    this.bankTransactionReference,
     this.saveErrorMessage,
     this.feeType,
+    this.requestReference,
   });
 
   final String amountInput;
@@ -56,8 +63,33 @@ class EducationFeesState {
   final String? bankErrorMessage;
   final bool isSavingBeneficiary;
   final int? beneficiaryId;
+
+  /// Tutor recipient reference returned by PAN verify. Required by the next
+  /// tutor bank-verification request. Kept separate from [beneficiaryId].
+  final String? recipientReference;
+
+  /// Masked PAN from tutor PAN verify. The raw PAN is not copied here.
+  final String? panMasked;
+
+  /// Name returned by tutor PAN verify.
+  final String? verifiedPanName;
+
+  /// Masked account number returned by tutor bank verify, preserved exactly
+  /// as the backend sent it. The raw typed account number stays only in
+  /// [accountNumber] for the form itself.
+  final String? bankAccountMasked;
+
+  /// IFSC echoed back by tutor bank verify.
+  final String? bankVerifiedIfsc;
+
+  /// Numeric transaction reference of the backend bank verification.
+  final int? bankTransactionReference;
   final String? saveErrorMessage;
   final String? feeType;
+
+  /// Request reference from Tutor Send Request API. Used for registered/verified
+  /// tutor Save Beneficiary API.
+  final String? requestReference;
 
   static const _sentinel = Object();
 
@@ -85,9 +117,16 @@ class EducationFeesState {
     bool? bankVerified,
     Object? bankErrorMessage = _sentinel,
     bool? isSavingBeneficiary,
-    int? beneficiaryId,
+    Object? beneficiaryId = _sentinel,
+    Object? recipientReference = _sentinel,
+    Object? panMasked = _sentinel,
+    Object? verifiedPanName = _sentinel,
+    Object? bankAccountMasked = _sentinel,
+    Object? bankVerifiedIfsc = _sentinel,
+    Object? bankTransactionReference = _sentinel,
     Object? saveErrorMessage = _sentinel,
     Object? feeType = _sentinel,
+    Object? requestReference = _sentinel,
   }) {
     return EducationFeesState(
       amountInput: amountInput ?? this.amountInput,
@@ -123,11 +162,34 @@ class EducationFeesState {
           ? this.bankErrorMessage
           : bankErrorMessage as String?,
       isSavingBeneficiary: isSavingBeneficiary ?? this.isSavingBeneficiary,
-      beneficiaryId: beneficiaryId ?? this.beneficiaryId,
+      beneficiaryId: identical(beneficiaryId, _sentinel)
+          ? this.beneficiaryId
+          : beneficiaryId as int?,
+      recipientReference: identical(recipientReference, _sentinel)
+          ? this.recipientReference
+          : recipientReference as String?,
+      panMasked: identical(panMasked, _sentinel)
+          ? this.panMasked
+          : panMasked as String?,
+      verifiedPanName: identical(verifiedPanName, _sentinel)
+          ? this.verifiedPanName
+          : verifiedPanName as String?,
+      bankAccountMasked: identical(bankAccountMasked, _sentinel)
+          ? this.bankAccountMasked
+          : bankAccountMasked as String?,
+      bankVerifiedIfsc: identical(bankVerifiedIfsc, _sentinel)
+          ? this.bankVerifiedIfsc
+          : bankVerifiedIfsc as String?,
+      bankTransactionReference: identical(bankTransactionReference, _sentinel)
+          ? this.bankTransactionReference
+          : bankTransactionReference as int?,
       saveErrorMessage: saveErrorMessage == _sentinel
           ? this.saveErrorMessage
           : saveErrorMessage as String?,
       feeType: feeType == _sentinel ? this.feeType : feeType as String?,
+      requestReference: identical(requestReference, _sentinel)
+          ? this.requestReference
+          : requestReference as String?,
     );
   }
 }

@@ -166,7 +166,7 @@ class ProfileView extends HookConsumerWidget {
                                     context.push(RouteConstants.referAndEarn),
                               ),
                             ),
-                            SizedBox(height: context.hp(1.9)),
+                            SizedBox(height: context.hp(1.42)),
                             Padding(
                               padding:
                                   EdgeInsets.symmetric(horizontal: sidePad),
@@ -176,7 +176,7 @@ class ProfileView extends HookConsumerWidget {
                                 ),
                               ),
                             ),
-                            SizedBox(height: context.hp(1.9)),
+                            SizedBox(height: context.hp(1.42)),
                             Padding(
                               padding:
                                   EdgeInsets.symmetric(horizontal: sidePad),
@@ -200,7 +200,7 @@ class ProfileView extends HookConsumerWidget {
                                   const _TileDivider(),
                                   _ProfileActionTile(
                                     svgAsset: FileConstants.profileWalletSvg,
-                                    title: 'My eCoins',
+                                    title: 'Wallet (eCoins)',
                                     onTap: () => context.push(
                                       RouteConstants.referAndEarnWallet,
                                     ),
@@ -216,7 +216,7 @@ class ProfileView extends HookConsumerWidget {
                                     title: 'My Credit Score',
                                   ),
                                   const _TileDivider(),
-                                  SizedBox(height: context.hp(1.9)),
+                                  SizedBox(height: context.hp(1.42)),
                                   const _ProfileSectionTitle(title: 'Settings'),
                                   SizedBox(height: context.hp(0.24)),
                                   _ProfileActionTile(
@@ -236,7 +236,7 @@ class ProfileView extends HookConsumerWidget {
                                         context.push(RouteConstants.security),
                                   ),
                                   const _TileDivider(),
-                                  SizedBox(height: context.hp(1.9)),
+                                  SizedBox(height: context.hp(1.42)),
                                   const _ProfileSectionTitle(title: 'Support'),
                                   SizedBox(height: context.hp(0.24)),
                                   _ProfileActionTile(
@@ -300,9 +300,7 @@ class _ProfileHeaderCard extends StatelessWidget {
   final VoidCallback onManage;
 
   Widget _buildInitials(BuildContext context, ProfileModel? profile) {
-    // Fixed square box so the initials sit dead-center of the avatar circle
-    // (a bare Text sizes to its glyphs and can drift off the centre).
-    final box = context.wp(10.26);
+    final box = context.wp(11.28);
     return SizedBox(
       width: box,
       height: box,
@@ -321,7 +319,7 @@ class _ProfileHeaderCard extends StatelessWidget {
     final name = profile?.name ?? '';
     final rawMobile = profile?.mobile ?? '';
     final mobile = rawMobile.startsWith('+') ? rawMobile : '+91$rawMobile';
-    final avatarBox = context.wp(10.26);
+    final avatarBox = context.wp(11.28);
     return Container(
       width: double.infinity,
       color: _kBlue,
@@ -333,12 +331,12 @@ class _ProfileHeaderCard extends StatelessWidget {
             Padding(
               padding: EdgeInsets.fromLTRB(
                 context.wp(4.62),
-                context.hp(0.95),
+                context.hp(0.47),
                 context.wp(5.13),
                 0,
               ),
               child: SizedBox(
-                height: context.hp(4.27),
+                height: context.hp(3.32),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -347,14 +345,14 @@ class _ProfileHeaderCard extends StatelessWidget {
                       child: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: context.wp(4.62),
+                        size: context.wp(5.13),
                       ),
                     ),
-                    SizedBox(width: context.wp(3.08)),
+                    SizedBox(width: context.wp(2.56)),
                     Expanded(
                       child: Text(
                         'My Profile',
-                        style: _ts(15, FontWeight.w500, Colors.white),
+                        style: _ts(14, FontWeight.w600, Colors.white),
                       ),
                     ),
                   ],
@@ -364,9 +362,9 @@ class _ProfileHeaderCard extends StatelessWidget {
             Padding(
               padding: EdgeInsets.fromLTRB(
                 context.wp(5.13),
-                context.hp(1.42),
+                context.hp(0.95),
                 context.wp(5.13),
-                context.hp(2.73),
+                context.hp(1.66),
               ),
               child: Row(
                 children: [
@@ -396,17 +394,17 @@ class _ProfileHeaderCard extends StatelessWidget {
                           name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: _ts(16, FontWeight.w600, Colors.white),
+                          style: _ts(14, FontWeight.w600, Colors.white),
                         ),
-                        SizedBox(height: context.hp(0.24)),
+                        SizedBox(height: context.hp(0.12)),
                         Text(
                           mobile,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: _ts(
-                            12,
+                            11,
                             FontWeight.w400,
-                            Colors.white.withOpacity(0.9),
+                            Colors.white.withOpacity(0.85),
                           ),
                         ),
                       ],
@@ -420,7 +418,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                       'Manage',
                       textAlign: TextAlign.right,
                       style: _ts(
-                        12,
+                        11,
                         FontWeight.w500,
                         Colors.white,
                         height: 1.0,
@@ -449,8 +447,8 @@ class _InviteEarnCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: context.wp(5.13),
-        vertical: context.hp(0.95),
+        horizontal: context.wp(4.1),
+        vertical: context.hp(0.71),
       ),
       decoration: BoxDecoration(
         color: const Color(0xFFFEE7E0),
@@ -462,8 +460,8 @@ class _InviteEarnCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: context.wp(17.95),
-            height: context.hp(4.74),
+            width: context.wp(15.38),
+            height: context.hp(4.15),
             decoration: BoxDecoration(
               color: _kBlue,
               borderRadius: pillRadius,
@@ -472,8 +470,8 @@ class _InviteEarnCard extends StatelessWidget {
               borderRadius: pillRadius,
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: context.wp(1.54),
-                  vertical: context.hp(0.47),
+                  horizontal: context.wp(1.28),
+                  vertical: context.hp(0.36),
                 ),
                 child: Image.asset(
                   FileConstants.referAndEarn,
@@ -482,7 +480,7 @@ class _InviteEarnCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(width: context.wp(2.56)),
+          SizedBox(width: context.wp(2.05)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,46 +490,42 @@ class _InviteEarnCard extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Invite & earn eCoins',
+                    'Invite & earn eCoins daily',
                     maxLines: 1,
-                    style: _ts(13, FontWeight.w600, AppColors.textPrimary),
+                    style: _ts(11, FontWeight.w600, AppColors.textPrimary),
                   ),
                 ),
-                SizedBox(height: context.hp(0.36)),
+                SizedBox(height: context.hp(0.12)),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'ReferFriends & Unlock Bonus Rewards',
+                    'Refer Your First Friend And Unlock Bonus Rewards',
                     maxLines: 1,
-                    style: _ts(13, FontWeight.w600, AppColors.textPrimary),
+                    style: _ts(8, FontWeight.w400, _kTextGrey),
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(width: context.wp(2.05)),
+          SizedBox(width: context.wp(1.54)),
           InkWell(
             onTap: onInvite,
             borderRadius: pillRadius,
             child: Container(
-              width: context.wp(20.26),
-              height: context.hp(2.37),
+              padding: EdgeInsets.symmetric(
+                horizontal: context.wp(3.08),
+                vertical: context.hp(0.59),
+              ),
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: pillRadius,
               ),
               alignment: Alignment.center,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: context.wp(1.03)),
-                  child: Text(
-                    'Invite Now',
-                    maxLines: 1,
-                    style: _ts(10, FontWeight.w500, Colors.white),
-                  ),
-                ),
+              child: Text(
+                'Invite Now',
+                maxLines: 1,
+                style: _ts(9, FontWeight.w500, Colors.white),
               ),
             ),
           ),
@@ -548,7 +542,7 @@ class _ProfileSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: _ts(13, FontWeight.w400, _kTextGrey));
+    return Text(title, style: _ts(12, FontWeight.w500, _kTextGrey));
   }
 }
 
@@ -571,11 +565,11 @@ class _ProfileActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = context.wp(3.59);
+    final iconSize = context.wp(4.62);
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: context.hp(1.54)),
+        padding: EdgeInsets.symmetric(vertical: context.hp(1.18)),
         child: Row(
           children: [
             _ProfileIconCircle(
@@ -637,7 +631,7 @@ class _ProfileIconCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = context.wp(6.67);
+    final size = context.wp(8.21);
     return Container(
       width: size,
       height: size,
@@ -742,7 +736,7 @@ class _ZeroBalanceSliderState extends State<_ZeroBalanceSlider> {
       onTap: widget.onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: context.hp(3.91),
+        height: context.hp(4.5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(context.wp(1.54)),
           gradient: const LinearGradient(
@@ -1055,12 +1049,10 @@ class _PrimaryPillButton extends StatelessWidget {
   const _PrimaryPillButton({
     required this.label,
     required this.onTap,
-    this.fontSize = 14,
   });
 
   final String label;
   final VoidCallback? onTap;
-  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -1080,7 +1072,7 @@ class _PrimaryPillButton extends StatelessWidget {
               child: Text(
                 label,
                 maxLines: 1,
-                style: _ts(fontSize, FontWeight.w500, Colors.white),
+                style: _ts(14, FontWeight.w500, Colors.white),
               ),
             ),
           ),

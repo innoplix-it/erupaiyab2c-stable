@@ -32,6 +32,10 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
     required this.ifscCode,
     required this.branch,
     this.verified = true,
+    this.bankLogoUrl,
+    this.bankName,
+    this.accountHolderName,
+    this.tutorDetails,
   });
 
   final String tutorName;
@@ -48,6 +52,12 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
   /// Avatar corner tick state on the identity card: green when the tutor is
   /// verified on eRupaiya, gold for a newly-added (unverified) tutor.
   final bool verified;
+
+  /// Bank details from Tutor Details API.
+  final String? bankLogoUrl;
+  final String? bankName;
+  final String? accountHolderName;
+  final EducationTutorDetailsData? tutorDetails;
 
   @override
   ConsumerState<EducationTutorProfileView> createState() =>
@@ -158,8 +168,8 @@ class _EducationTutorProfileViewState
                           accountLine: widget.accountLine,
                           amountLabel: widget.amountLabel,
                           verified: widget.verified,
-                          // No static status copy — the card only shows what
-                          // the API actually returned.
+                          bankLogoUrl: widget.bankLogoUrl ??
+                              widget.tutorDetails?.bankLogo,
                           statusLines: const [],
                         ),
                         SizedBox(height: 22 * u),
@@ -203,7 +213,8 @@ class _EducationTutorProfileViewState
                                     child: EducationTutorDetailCell(
                                       unit: u,
                                       label: 'Account Number',
-                                      value: _value(widget.accountNumber),
+                                      value: _value(widget.accountNumber ??
+                                          widget.tutorDetails?.accountNumber),
                                       alignRight: true,
                                     ),
                                   ),
@@ -217,7 +228,8 @@ class _EducationTutorProfileViewState
                                     child: EducationTutorDetailCell(
                                       unit: u,
                                       label: 'IFSC Code',
-                                      value: _value(widget.ifscCode),
+                                      value: _value(widget.ifscCode ??
+                                          widget.tutorDetails?.ifsc),
                                     ),
                                   ),
                                   Expanded(
@@ -230,6 +242,46 @@ class _EducationTutorProfileViewState
                                   ),
                                 ],
                               ),
+                              if ((widget.bankName != null &&
+                                      widget.bankName!.trim().isNotEmpty) ||
+                                  (widget.tutorDetails?.bankName
+                                          .trim()
+                                          .isNotEmpty ==
+                                      true)) ...[
+                                SizedBox(height: 18 * u),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: EducationTutorDetailCell(
+                                        unit: u,
+                                        label: 'Bank Name',
+                                        value: _value(widget.bankName ??
+                                            widget.tutorDetails?.bankName),
+                                      ),
+                                    ),
+                                    if ((widget.accountHolderName != null &&
+                                            widget.accountHolderName!
+                                                .trim()
+                                                .isNotEmpty) ||
+                                        (widget.tutorDetails?.accountHolderName
+                                                .trim()
+                                                .isNotEmpty ==
+                                            true))
+                                      Expanded(
+                                        child: EducationTutorDetailCell(
+                                          unit: u,
+                                          label: 'Account Holder',
+                                          value: _value(
+                                              widget.accountHolderName ??
+                                                  widget.tutorDetails
+                                                      ?.accountHolderName),
+                                          alignRight: true,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),

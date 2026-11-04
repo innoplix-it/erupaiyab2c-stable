@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
+import '../../../constants/app_error_messages.dart';
+import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/education_contact_sheet.dart';
 import '../components/education_erupaiya_verifying_overlay.dart';
-import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
 import 'education_tutor_request_view.dart';
 import 'education_tutor_unverified_view.dart';
 
-/// AppBar flow selector on the Add-Tutor contacts screen: picking a contact
-/// then runs the matching verified / unverified tutor flow.
-enum EducationTutorFlowMode { verified, unverified }
+/// Shown when the Tutor Details call fails after a VERIFIED response, and the
+/// backend gave no message of its own. Never routed to the Unverified screen.
+const String kEducationTutorDetailsFailureMessage =
+    'Unable to load tutor details. Please try again.';
+
+/// Backend message when present, otherwise the shared generic error text.
+String _tutorApiErrorText(String? message) {
+  final trimmed = message?.trim() ?? '';
+  return trimmed.isNotEmpty ? trimmed : AppErrorMessages.generic;
+}
 
 class EducationSearchRecipientView extends HookConsumerWidget {
   const EducationSearchRecipientView({
@@ -32,13 +38,30 @@ class EducationSearchRecipientView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isVerifying = useState(false);
-    final flowMode = useState(EducationTutorFlowMode.verified);
     final verificationStarted = useRef(false);
     final pickedName = useRef<String?>(null);
     final pickedMobile = useRef<String?>(null);
     final pickedTutor = useRef<EducationBeneficiary?>(null);
 
-    void openTutorRequest() {
+    /// Real KYC result of the picked number, resolved while the overlay runs.
+    final verifyFuture = useRef<Future<EducationTutorVerifyResponse?>?>(null);
+
+    /// Dismisses the scrim and releases the pick guards, so a failed call can
+    /// simply be retried from the same screen.
+    void stopVerifying() {
+      isVerifying.value = false;
+      verificationStarted.value = false;
+      verifyFuture.value = null;
+    }
+
+    void showError(String message) {
+      AppSnackbar.show(message, type: AppSnackbarType.error);
+    }
+
+    Future<void> openTutorRequest() async {
+      // The overlay stays up until the backend answer is in, so a slow network
+      // never routes on a guessed status.
+      final verifyResponse = await verifyFuture.value;
       if (!context.mounted) return;
       final name = pickedName.value ?? '';
       final mobile = pickedMobile.value ?? '';
@@ -46,9 +69,6 @@ class EducationSearchRecipientView extends HookConsumerWidget {
           ref.read(educationFeesControllerProvider).amountInput.trim();
       final amount =
           double.tryParse(amountRaw.replaceAll(RegExp(r'\D'), '')) ?? 0;
-
-      isVerifying.value = false;
-      verificationStarted.value = false;
 
       // Keep the controller inputs in sync so any form opened further down
       // the flow starts prefilled.
@@ -59,42 +79,92 @@ class EducationSearchRecipientView extends HookConsumerWidget {
             name,
           );
 
-      // Verified tutor: the tuition-fees request card (verified identity badge,
-      // Cancel / Send Request). Plain Navigator push, no go_router route.
-      if (flowMode.value == EducationTutorFlowMode.verified) {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => EducationTutorRequestView(
-              tutorName: name,
-              mobile: mobile,
-              amount: amount,
-              // Backend `account_masked` under the name; the screen falls back
-              // to the mobile-derived mask when the tutor is not saved yet.
-              maskedAccount: pickedTutor.value?.accountMasked,
-              panDetails: pickedTutor.value?.panMasked,
-              accountNumber: pickedTutor.value?.accountNoUnmasked,
-              ifscCode: pickedTutor.value?.ifsc,
-              branch: pickedTutor.value?.branch,
-            ),
-          ),
-        );
+      // API failure, `status: false` or an unrecognised status: stay on the
+      // contacts screen with the error snackbar and never open a tutor screen.
+      if (verifyResponse == null ||
+          !verifyResponse.status ||
+          !verifyResponse.hasKnownVerificationStatus) {
+        stopVerifying();
+        showError(_tutorApiErrorText(verifyResponse?.message));
         return;
       }
 
-      // Unverified tutor: the Ask for KYC / Add Details screen.
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => EducationTutorUnverifiedView(
-            tutorName: name,
-            amount: amount,
-            amountLabel: NumberFormat.currency(
-              locale: 'en_IN',
-              symbol: '\u20B9',
-              decimalDigits: 0,
-            ).format(amount),
-          ),
-        ),
-      );
+      switch (verifyResponse.verificationStatus) {
+        // VERIFIED: fetch the Tutor Details API with the same mobile and the
+        // amount from the flow, then show the verified tutor card.
+        case EducationTutorVerificationStatus.verified:
+          EducationTutorDetailsResponse? detailsResponse;
+          try {
+            detailsResponse = await ref
+                .read(educationFeesControllerProvider.notifier)
+                .fetchTutorDetails(
+                  mobile: mobile,
+                  amount: amount.toInt(),
+                );
+          } catch (_) {
+            // Network/API failure: keep the tutor treated as verified.
+            detailsResponse = null;
+          }
+          if (!context.mounted) return;
+
+          final data =
+              detailsResponse?.status == true ? detailsResponse?.data : null;
+          if (data == null) {
+            // A Tutor Details failure is not a verification failure: the tutor
+            // stays verified, so the Unverified screen must not be opened and
+            // no placeholder bank data is invented. The number stays in the
+            // field, so tapping Continue retries.
+            stopVerifying();
+            showError(
+              detailsResponse == null
+                  ? kEducationTutorDetailsFailureMessage
+                  : _tutorApiErrorText(detailsResponse.message),
+            );
+            return;
+          }
+
+          stopVerifying();
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => EducationTutorRequestView(
+                tutorName: name,
+                mobile: mobile,
+                amount: amount,
+                // Verified tutor card renders these API values: tutor_name,
+                // account_number, bank_name, bank_logo, amount and
+                // account_holder_name exactly as returned.
+                tutorDetails: data,
+                // Saved-tutor extras, still forwarded to the tutor profile.
+                maskedAccount: pickedTutor.value?.accountMasked,
+                panDetails: pickedTutor.value?.panMasked,
+                branch: pickedTutor.value?.branch,
+              ),
+            ),
+          );
+        // NOT_VERIFIED (KYC pending) and NOT_FOUND (not registered) are both
+        // valid business outcomes of a successful API call, and both open the
+        // same Ask for KYC / Add Details screen.
+        case EducationTutorVerificationStatus.notVerified:
+        case EducationTutorVerificationStatus.notFound:
+          stopVerifying();
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => EducationTutorUnverifiedView(
+                tutorName: name,
+                amount: amount,
+                amountLabel: NumberFormat.currency(
+                  locale: 'en_IN',
+                  symbol: '\u20B9',
+                  decimalDigits: 0,
+                ).format(amount),
+              ),
+            ),
+          );
+        // Unrecognised status: never guessed into a flow.
+        case EducationTutorVerificationStatus.unknown:
+          stopVerifying();
+          showError(_tutorApiErrorText(verifyResponse.message));
+      }
     }
 
     void onContactPicked(String mobile, String displayName) {
@@ -104,6 +174,12 @@ class EducationSearchRecipientView extends HookConsumerWidget {
       pickedName.value = displayName;
       pickedTutor.value = null;
       isVerifying.value = true;
+
+      // Backend tutor KYC check. The request is fired here, while the scrim is
+      // already up, and awaited by [openTutorRequest] before routing.
+      verifyFuture.value = ref
+          .read(educationFeesControllerProvider.notifier)
+          .verifyTutor(mobile);
 
       // Resolved while the loader runs; purely display data.
       ref
@@ -133,10 +209,6 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                 fitTitle: true,
                 titleStyle: MyAppBar.sharedTitleStyle(context),
                 onBack: isVerifying.value ? null : () => context.pop(),
-                trailing: _TutorFlowToggle(
-                  mode: flowMode.value,
-                  onChanged: (mode) => flowMode.value = mode,
-                ),
               ),
               body: Stack(
                 children: [
@@ -167,111 +239,6 @@ class EducationSearchRecipientView extends HookConsumerWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// AppBar pill toggle (same styling as the Mobile Prepaid search-mode
-/// toggle) that picks which flow a contact pick should run.
-class _TutorFlowToggle extends StatelessWidget {
-  const _TutorFlowToggle({required this.mode, required this.onChanged});
-
-  final EducationTutorFlowMode mode;
-  final ValueChanged<EducationTutorFlowMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget chip({
-      required String label,
-      required EducationTutorFlowMode value,
-      required double width,
-    }) {
-      final active = mode == value;
-      return SizedBox(
-        width: width,
-        height: 24.h,
-        child: Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // Same hit-target structure as the Mobile Prepaid ABC/123 pill:
-            // a ~44x44 tap area without enlarging the visible chip.
-            Positioned(
-              top: -14.h,
-              bottom: -14.h,
-              left: -4.w,
-              right: -4.w,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onChanged(value),
-                child: const SizedBox.shrink(),
-              ),
-            ),
-            InkWell(
-              onTap: () => onChanged(value),
-              borderRadius: BorderRadius.circular(90.r),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: width,
-                height: 24.h,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: active ? const Color(0xFFDD5428) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(90.r),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: active ? Colors.white : const Color(0xFF000000),
-                      fontWeight: FontWeight.w500,
-                      fontSize: 11.sp,
-                      height: 1.0,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return FittedBox(
-      // Shrink on very narrow screens instead of overflowing the toolbar.
-      fit: BoxFit.scaleDown,
-      child: Padding(
-        padding: EdgeInsets.only(right: 4.w),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0x21DD5428),
-            borderRadius: BorderRadius.circular(90.r),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 3.h),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                chip(
-                  label: 'Verified',
-                  value: EducationTutorFlowMode.verified,
-                  width: 62.w,
-                ),
-                chip(
-                  label: 'Unverified',
-                  value: EducationTutorFlowMode.unverified,
-                  width: 74.w,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

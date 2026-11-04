@@ -182,18 +182,33 @@ class EducationFeesRecipientView extends HookConsumerWidget {
         lastVerifiedBankKey.value = null;
         return null;
       }
-      final key = '$accountNo|$ifsc|$recipientName';
+      // The unverified tutor flow verifies banks through the tutor recipient
+      // endpoint, which requires the reference stored by a successful PAN
+      // verification; without one, nothing is ever sent.
+      final reference = state.recipientReference;
+      if (unverifiedFlow && (reference == null || reference.isEmpty)) {
+        lastVerifiedBankKey.value = null;
+        return null;
+      }
+      final key =
+          '$accountNo|$ifsc|$recipientName|${unverifiedFlow ? reference : ''}';
       if (key == lastVerifiedBankKey.value) {
         return null;
       }
       lastVerifiedBankKey.value = key;
-      Future.microtask(controller.verifyBank);
+      Future.microtask(
+        () => unverifiedFlow
+            ? controller.verifyTutorBank()
+            : controller.verifyBank(),
+      );
       return null;
     }, [
       state.accountNumber,
       state.ifsc,
       state.accountType,
-      state.recipientName
+      state.recipientName,
+      state.recipientReference,
+      unverifiedFlow,
     ]);
 
     final lastVerifiedPanKey = useRef<String?>(null);
@@ -214,9 +229,11 @@ class EducationFeesRecipientView extends HookConsumerWidget {
         return null;
       }
       lastVerifiedPanKey.value = key;
-      Future.microtask(controller.verifyPan);
+      Future.microtask(
+        unverifiedFlow ? controller.verifyTutorPan : controller.verifyPan,
+      );
       return null;
-    }, [state.recipientName, state.pan, showFields]);
+    }, [state.recipientName, state.pan, showFields, unverifiedFlow]);
 
     void openContacts() {
       context.push(RouteConstants.educationSearchRecipient);
@@ -362,7 +379,9 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                                 canVerify:
                                     state.recipientName.trim().isNotEmpty &&
                                         isValidPanFormat(state.pan),
-                                onVerify: controller.verifyPan,
+                                onVerify: unverifiedFlow
+                                    ? controller.verifyTutorPan
+                                    : controller.verifyPan,
                               ),
                             ),
                             onSubmitted: (_) =>
@@ -642,7 +661,9 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                                           amount: amountValue,
                                           amountLabel:
                                               '\u20B9${amountValue.toStringAsFixed(0)}',
-                                          panDetails: state.pan,
+                                          panDetails: unverifiedFlow
+                                              ? state.panMasked
+                                              : state.pan,
                                           accountNumber: state.accountNumber,
                                           ifscCode: state.ifsc,
                                           branch: null,

@@ -21,6 +21,11 @@ class _E2ERepo extends EducationFeesRepository {
   bool saveOk;
 
   int saveCount = 0;
+  int tutorBankCount = 0;
+
+  /// Every tutor bank verification request the widget issued, so tests can
+  /// assert the reference and account values are passed dynamically.
+  final tutorBankRequests = <EducationTutorVerifyBankRequest>[];
 
   @override
   Future<EducationCheckMobileResponse> checkMobile(String mobile) async =>
@@ -38,6 +43,27 @@ class _E2ERepo extends EducationFeesRepository {
       );
 
   @override
+  Future<EducationTutorVerifyPanResponse> verifyTutorPan(String pan) async {
+    if (!panOk) {
+      return const EducationTutorVerifyPanResponse(
+        status: false,
+        message: 'PAN and name do not match.',
+      );
+    }
+    return const EducationTutorVerifyPanResponse(
+      status: true,
+      message: 'Tutor PAN already verified.',
+      data: EducationTutorVerifyPanData(
+        recipientReference: 'EDUTUTTESTREF',
+        beneficiaryId: 39,
+        name: 'Ravi Kumar',
+        panMasked: 'ABCDE****F',
+        panVerified: true,
+      ),
+    );
+  }
+
+  @override
   Future<EducationVerifyBankResponse> verifyBank({
     required String accountNo,
     required String ifsc,
@@ -48,6 +74,41 @@ class _E2ERepo extends EducationFeesRepository {
         bankAccountId: bankOk ? 1 : null,
         message: bankOk ? null : 'Name does not match bank records.',
       );
+
+  @override
+  Future<EducationTutorVerifyBankResponse> verifyTutorBank({
+    required String recipientReference,
+    required String accountNo,
+    required String ifsc,
+  }) async {
+    tutorBankCount++;
+    tutorBankRequests.add(
+      EducationTutorVerifyBankRequest(
+        recipientReference: recipientReference,
+        accountNo: accountNo,
+        ifsc: ifsc,
+      ),
+    );
+    if (!bankOk) {
+      return const EducationTutorVerifyBankResponse(
+        status: false,
+        message: 'Name does not match bank records.',
+      );
+    }
+    return const EducationTutorVerifyBankResponse(
+      status: true,
+      message: 'Tutor recipient bank account verified successfully.',
+      data: EducationTutorVerifyBankData(
+        recipientReference: 'EDUTUTTESTREF',
+        beneficiaryId: 39,
+        name: 'Ravi Kumar',
+        accountNumber: 'XXXXXX7890',
+        ifsc: 'HDFC0001234',
+        transactionReference: 1474338350,
+        bankVerified: true,
+      ),
+    );
+  }
 
   @override
   Future<EducationSaveBeneficiaryResponse> saveBeneficiary({
@@ -122,6 +183,23 @@ void main() {
 
     expect(repo.saveCount, 1);
     expect(find.byType(EducationTutorProfileView), findsOneWidget);
+  });
+
+  testWidgets('unverified flow: bank verify uses the stored reference',
+      (tester) async {
+    final repo = _E2ERepo();
+    await tester.pumpWidget(_app(repo, unverified: true));
+    await tester.pump();
+
+    await _fillUnverifiedForm(tester);
+
+    // The tutor recipient endpoint is used, never the legacy bank verify.
+    expect(repo.tutorBankCount, 1);
+    final request = repo.tutorBankRequests.single;
+    // The reference comes from the successful PAN verification, verbatim.
+    expect(request.recipientReference, 'EDUTUTTESTREF');
+    expect(request.accountNo, '1234567890');
+    expect(request.ifsc, 'HDFC0001234');
   });
 
   testWidgets('unverified flow: missing PAN verification blocks with reason',

@@ -77,6 +77,208 @@ class EducationFeesService {
     }
   }
 
+  Future<EducationTutorDetailsResponse> fetchTutorDetails({
+    required String mobile,
+    required int amount,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.educationTutorDetailsEndpoint,
+        data: {
+          'mobile': mobile,
+          'amount': amount,
+        },
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorDetailsResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorDetailsResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to fetch tutor details: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<EducationTutorSendRequestResponse> sendTutorRequest({
+    required String mobile,
+    required int amount,
+    required String subject,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.educationTutorSendRequestEndpoint,
+        data: {
+          'mobile': mobile,
+          'amount': amount,
+          'subject': subject,
+        },
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorSendRequestResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorSendRequestResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to send tutor request: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<EducationTutorRequestStatusResponse> fetchTutorRequestStatus(
+    String requestReference,
+  ) async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.educationTutorRequestStatusEndpoint(requestReference),
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorRequestStatusResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorRequestStatusResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to fetch tutor request status: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<EducationTutorReceivedRequestsResponse> fetchTutorReceivedRequests({
+    required int page,
+    required int perPage,
+    String? status,
+  }) async {
+    try {
+      final queryParameters = <String, dynamic>{
+        'page': page,
+        'per_page': perPage,
+      };
+      if (status != null && status.isNotEmpty) {
+        queryParameters['status'] = status;
+      }
+
+      final response = await _dio.get(
+        ApiConstants.educationTutorReceivedRequestsEndpoint,
+        queryParameters: queryParameters,
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorReceivedRequestsResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorReceivedRequestsResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to fetch tutor received requests: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<EducationTutorRespondToRequestResponse> respondToTutorRequest({
+    required String requestReference,
+    required String action,
+  }) async {
+    try {
+      final request = EducationTutorRespondToRequestRequest(
+        requestReference: requestReference,
+        action: action,
+      );
+      final response = await _dio.post(
+        ApiConstants.educationTutorRespondToRequestEndpoint(requestReference),
+        data: request.toJson(),
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorRespondToRequestResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorRespondToRequestResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to respond to tutor request: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<EducationTutorVerifyPanResponse> verifyTutorPan(String pan) async {
+    try {
+      final request = EducationTutorVerifyPanRequest(pan: pan);
+      final response = await _dio.post(
+        ApiConstants.educationTutorVerifyPanEndpoint,
+        data: request.toJson(),
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorVerifyPanResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorVerifyPanResponse.fromJson(data);
+        }
+        logger.error(
+          'Failed to verify tutor PAN: type=${e.type.name} '
+          'httpStatus=${e.response?.statusCode}',
+        );
+      } else {
+        logger.error('Failed to verify tutor PAN: ${e.runtimeType}');
+      }
+      rethrow;
+    }
+  }
+
+  /// Tutor recipient bank verification
+  /// (`POST /api/education/tutor/recipient/verify-bank`).
+  ///
+  /// All three values arrive dynamically from the flow: the
+  /// [recipientReference] stored by a successful PAN verification and the
+  /// account number / IFSC from the form. Raw account numbers are never
+  /// interpolated into logs — the failure log carries only the Dio exception
+  /// type and HTTP status, never the request or response body.
+  Future<EducationTutorVerifyBankResponse> verifyTutorBank({
+    required String recipientReference,
+    required String accountNo,
+    required String ifsc,
+  }) async {
+    try {
+      final request = EducationTutorVerifyBankRequest(
+        recipientReference: recipientReference,
+        accountNo: accountNo,
+        ifsc: ifsc,
+      );
+      final response = await _dio.post(
+        ApiConstants.educationTutorVerifyBankEndpoint,
+        data: request.toJson(),
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorVerifyBankResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorVerifyBankResponse.fromJson(data);
+        }
+        logger.error(
+          'Failed to verify tutor bank: type=${e.type.name} '
+          'httpStatus=${e.response?.statusCode}',
+        );
+      } else {
+        logger.error('Failed to verify tutor bank: ${e.runtimeType}');
+      }
+      rethrow;
+    }
+  }
+
   Future<EducationVerifyPanResponse> verifyPan({
     required String name,
     required String pan,
@@ -307,6 +509,87 @@ class EducationFeesService {
         }
       }
       logger.error('Failed to save beneficiary: $e', error: e);
+      rethrow;
+    }
+  }
+
+  /// Tutor recipient save beneficiary for unverified tutor flow
+  /// (`POST /api/education/save-beneficiary`).
+  ///
+  /// The [recipientReference] is the exact value stored by a successful tutor
+  /// PAN verification; it is never hardcoded, reconstructed or replaced by the
+  /// beneficiary id. Raw account numbers are never interpolated into logs.
+  Future<EducationTutorSaveBeneficiaryResponse> saveTutorBeneficiary({
+    required String recipientReference,
+  }) async {
+    logger.info('EDU_TUTOR_SAVE SERVICE_CALLED');
+    try {
+      final request = EducationTutorSaveBeneficiaryRequest(
+        recipientReference: recipientReference,
+      );
+      final response = await _dio.post(
+        ApiConstants.educationSaveBeneficiaryEndpoint,
+        data: request.toJson(),
+      );
+      logger.info(
+        'EDU_TUTOR_SAVE DIO_RESPONSE_RECEIVED httpStatus=${response.statusCode}',
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorSaveBeneficiaryResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        logger.info(
+          'EDU_TUTOR_SAVE DIO_RESPONSE_RECEIVED '
+          'httpStatus=${e.response?.statusCode} error=${e.type.name}',
+        );
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorSaveBeneficiaryResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to save tutor beneficiary: ${e.runtimeType}');
+      rethrow;
+    }
+  }
+
+  /// Registered/verified tutor Save Beneficiary API
+  /// (`POST /api/education/save-beneficiary`).
+  ///
+  /// The [requestReference] MUST come from the Tutor Send Request response
+  /// (`data.request_reference`). It is never hardcoded, reconstructed or replaced
+  /// by recipient_reference or beneficiary_id. Raw account numbers are never
+  /// interpolated into logs.
+  Future<EducationTutorSaveBeneficiaryRegisteredResponse>
+      saveTutorBeneficiaryRegistered({
+    required String requestReference,
+  }) async {
+    logger.info('EDU_TUTOR_SAVE_REGISTERED SERVICE_CALLED');
+    try {
+      final request = EducationTutorSaveBeneficiaryRegisteredRequest(
+        requestReference: requestReference,
+      );
+      final response = await _dio.post(
+        ApiConstants.educationSaveBeneficiaryEndpoint,
+        data: request.toJson(),
+      );
+      logger.info(
+        'EDU_TUTOR_SAVE_REGISTERED DIO_RESPONSE_RECEIVED '
+        'httpStatus=${response.statusCode}',
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorSaveBeneficiaryRegisteredResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        logger.info(
+          'EDU_TUTOR_SAVE_REGISTERED DIO_RESPONSE_RECEIVED '
+          'httpStatus=${e.response?.statusCode} error=${e.type.name}',
+        );
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorSaveBeneficiaryRegisteredResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to save registered tutor beneficiary: ${e.runtimeType}');
       rethrow;
     }
   }

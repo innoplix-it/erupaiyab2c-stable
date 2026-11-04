@@ -28,6 +28,20 @@ class _FakeRepo extends EducationFeesRepository {
       const EducationVerifyPanResponse(status: true);
 
   @override
+  Future<EducationTutorVerifyPanResponse> verifyTutorPan(String pan) async =>
+      const EducationTutorVerifyPanResponse(
+        status: true,
+        message: 'Tutor PAN already verified.',
+        data: EducationTutorVerifyPanData(
+          recipientReference: 'EDUTUTTESTREF',
+          beneficiaryId: 39,
+          name: 'Ravi Kumar',
+          panMasked: 'ABCDE****F',
+          panVerified: true,
+        ),
+      );
+
+  @override
   Future<EducationVerifyBankResponse> verifyBank({
     required String accountNo,
     required String ifsc,

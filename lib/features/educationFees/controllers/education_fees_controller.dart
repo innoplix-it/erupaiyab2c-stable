@@ -31,6 +31,13 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   /// has already edited away from are discarded instead of being shown.
   int _panVerifyRequestId = 0;
 
+  /// Identifies the newest tutor recipient PAN verification.
+  int _tutorPanVerifyRequestId = 0;
+
+  /// Identifies the newest tutor recipient bank verification so a response
+  /// for an account/IFSC the user already edited away from is discarded.
+  int _tutorBankVerifyRequestId = 0;
+
   /// Discards stale [checkMobile] responses when the user edits the mobile number.
   int _checkMobileRequestId = 0;
 
@@ -50,6 +57,8 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     // Invalidate any in-flight PAN verification so a late response cannot
     // write state after the flow has been cleared.
     _panVerifyRequestId++;
+    _tutorPanVerifyRequestId++;
+    _tutorBankVerifyRequestId++;
     state = const EducationFeesState();
   }
 
@@ -62,11 +71,20 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     // Invalidate any in-flight PAN verification so a late response cannot
     // re-mark the freshly-cleared form as verified.
     _panVerifyRequestId++;
+    _tutorPanVerifyRequestId++;
+    _tutorBankVerifyRequestId++;
     state = state.copyWith(
       pan: '',
       isVerifyingPan: false,
       panVerified: false,
       panErrorMessage: null,
+      recipientReference: null,
+      panMasked: null,
+      verifiedPanName: null,
+      beneficiaryId: null,
+      bankAccountMasked: null,
+      bankVerifiedIfsc: null,
+      bankTransactionReference: null,
       accountNumber: '',
       ifsc: '',
       isVerifyingBank: false,
@@ -199,6 +217,44 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
+  /// Tutor KYC check for the Add-Tutor flow (`POST /api/education/tutor/verify`).
+  ///
+  /// Returns null when the number is incomplete or the request failed so the
+  /// caller can fail closed instead of guessing a verification status. The
+  /// tutor outcome itself lives in [EducationTutorVerifyResponse.verificationStatus];
+  /// `status` only reports whether the API call succeeded.
+  Future<EducationTutorVerifyResponse?> verifyTutor(String mobile) async {
+    final digits = _normalizeMobile(mobile).replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 10) return null;
+    try {
+      return await _repository.verifyTutor(digits);
+    } catch (_) {
+      // The service already logged and rethrew. A failed check is never
+      // treated as an unverified tutor.
+      return null;
+    }
+  }
+
+  /// Fetches verified tutor details after successful verification.
+  ///
+  /// Calls `POST /api/education/tutor/details` with the verified mobile number
+  /// and the current tuition amount from the flow.
+  Future<EducationTutorDetailsResponse?> fetchTutorDetails({
+    required String mobile,
+    required int amount,
+  }) async {
+    final digits = _normalizeMobile(mobile).replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 10) return null;
+    try {
+      return await _repository.fetchTutorDetails(
+          mobile: digits, amount: amount);
+    } catch (e) {
+      // The service already logged and rethrew.
+      logger.error('Failed to fetch tutor details: $e', error: e);
+      rethrow;
+    }
+  }
+
   Future<void> checkMobile() async {
     final digits =
         _normalizeMobile(state.mobileInput).replaceAll(RegExp(r'\D'), '');
@@ -228,6 +284,8 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       }
 
       final notRegistered = response.status && !response.exists;
+      _tutorPanVerifyRequestId++;
+      _tutorBankVerifyRequestId++;
       state = state.copyWith(
         isCheckingMobile: false,
         showRecipientFields: false,
@@ -240,6 +298,13 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         isVerifyingPan: false,
         panVerified: false,
         panErrorMessage: null,
+        recipientReference: null,
+        panMasked: null,
+        verifiedPanName: null,
+        beneficiaryId: null,
+        bankAccountMasked: null,
+        bankVerifiedIfsc: null,
+        bankTransactionReference: null,
         accountType: EducationAccountType.none,
         accountNumber: '',
         ifsc: '',
@@ -248,6 +313,8 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       );
     } catch (e) {
       if (requestId != _checkMobileRequestId) return;
+      _tutorPanVerifyRequestId++;
+      _tutorBankVerifyRequestId++;
       state = state.copyWith(
         isCheckingMobile: false,
         showRecipientFields: false,
@@ -260,6 +327,13 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         isVerifyingPan: false,
         panVerified: false,
         panErrorMessage: null,
+        recipientReference: null,
+        panMasked: null,
+        verifiedPanName: null,
+        beneficiaryId: null,
+        bankAccountMasked: null,
+        bankVerifiedIfsc: null,
+        bankTransactionReference: null,
         accountType: EducationAccountType.none,
         accountNumber: '',
         ifsc: '',
@@ -270,11 +344,24 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   }
 
   void updateRecipientName(String value) {
+    final nameChanged = value != state.recipientName;
+    if (nameChanged) {
+      _tutorPanVerifyRequestId++;
+      _tutorBankVerifyRequestId++;
+    }
     state = state.copyWith(
       recipientName: value,
       isVerifyingPan: false,
       panVerified: false,
       panErrorMessage: null,
+      recipientReference: nameChanged ? null : state.recipientReference,
+      panMasked: nameChanged ? null : state.panMasked,
+      verifiedPanName: nameChanged ? null : state.verifiedPanName,
+      beneficiaryId: nameChanged ? null : state.beneficiaryId,
+      bankAccountMasked: nameChanged ? null : state.bankAccountMasked,
+      bankVerifiedIfsc: nameChanged ? null : state.bankVerifiedIfsc,
+      bankTransactionReference:
+          nameChanged ? null : state.bankTransactionReference,
       bankVerified: false,
       bankErrorMessage: null,
       saveErrorMessage: null,
@@ -282,11 +369,24 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   }
 
   void updatePan(String value) {
+    final panChanged = value != state.pan;
+    if (panChanged) {
+      _tutorPanVerifyRequestId++;
+      _tutorBankVerifyRequestId++;
+    }
     state = state.copyWith(
       pan: value,
       isVerifyingPan: false,
       panVerified: false,
       panErrorMessage: null,
+      recipientReference: panChanged ? null : state.recipientReference,
+      panMasked: panChanged ? null : state.panMasked,
+      verifiedPanName: panChanged ? null : state.verifiedPanName,
+      beneficiaryId: panChanged ? null : state.beneficiaryId,
+      bankAccountMasked: panChanged ? null : state.bankAccountMasked,
+      bankVerifiedIfsc: panChanged ? null : state.bankVerifiedIfsc,
+      bankTransactionReference:
+          panChanged ? null : state.bankTransactionReference,
       bankVerified: false,
       bankErrorMessage: null,
       saveErrorMessage: null,
@@ -345,28 +445,182 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
+  /// Verifies a tutor recipient PAN via
+  /// `POST /api/education/tutor/recipient/verify-pan`.
+  ///
+  /// Only a complete PAN in the existing format is sent. A second call while
+  /// that request is running is ignored. [recipientReference] is kept for the
+  /// following tutor bank-verification request.
+  Future<void> verifyTutorPan() async {
+    final pan = state.pan.trim().toUpperCase();
+    if (!isValidPanFormat(pan)) return;
+    if (state.isVerifyingPan) return;
+
+    final requestId = ++_tutorPanVerifyRequestId;
+    state = state.copyWith(
+      isVerifyingPan: true,
+      panErrorMessage: null,
+      panVerified: false,
+    );
+    try {
+      final response = await _repository.verifyTutorPan(pan);
+      if (requestId != _tutorPanVerifyRequestId) return;
+      final data = response.data;
+      if (response.confirmsVerifiedPan && data != null) {
+        state = state.copyWith(
+          isVerifyingPan: false,
+          panVerified: true,
+          panErrorMessage: null,
+          recipientReference: data.recipientReference,
+          beneficiaryId: data.beneficiaryId,
+          panMasked: data.panMasked,
+          verifiedPanName: data.name,
+        );
+        return;
+      }
+      state = state.copyWith(
+        isVerifyingPan: false,
+        panVerified: false,
+        panErrorMessage:
+            response.message ?? 'PAN verification failed. Please try again.',
+        recipientReference: null,
+        beneficiaryId: null,
+        panMasked: null,
+        verifiedPanName: null,
+      );
+    } catch (e) {
+      if (requestId != _tutorPanVerifyRequestId) return;
+      state = state.copyWith(
+        isVerifyingPan: false,
+        panVerified: false,
+        panErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Unable to verify PAN. Please try again.',
+        ),
+        recipientReference: null,
+        beneficiaryId: null,
+        panMasked: null,
+        verifiedPanName: null,
+      );
+    }
+  }
+
+  /// Verifies a tutor recipient bank account via
+  /// `POST /api/education/tutor/recipient/verify-bank`.
+  ///
+  /// Runs only for the unverified Add Details flow and only with the
+  /// [recipientReference] stored by a successful PAN verification, so a
+  /// missing or stale reference can never reach the backend and the
+  /// beneficiary id is never used in its place. Account number and IFSC are
+  /// read live from the form fields. A second call while a request is
+  /// running is ignored and only the newest response may write state.
+  /// Business success requires `status == true`, usable `data` and
+  /// `bank_verified == true`; the backend message is surfaced otherwise.
+  /// The raw account number is never logged.
+  Future<void> verifyTutorBank() async {
+    if (state.accountType != EducationAccountType.bankDetails) return;
+    final recipientReference = state.recipientReference;
+    if (recipientReference == null || recipientReference.isEmpty) return;
+    final accountNo = state.accountNumber.trim();
+    final ifsc = state.ifsc.trim().toUpperCase();
+    if (accountNo.isEmpty || ifsc.isEmpty) return;
+    // Re-entry guard: never issue a second request while one is in flight.
+    if (state.isVerifyingBank) return;
+
+    final requestId = ++_tutorBankVerifyRequestId;
+    state = state.copyWith(
+      isVerifyingBank: true,
+      bankErrorMessage: null,
+      bankVerified: false,
+      bankAccountMasked: null,
+      bankVerifiedIfsc: null,
+      bankTransactionReference: null,
+    );
+    try {
+      final response = await _repository.verifyTutorBank(
+        recipientReference: recipientReference,
+        accountNo: accountNo,
+        ifsc: ifsc,
+      );
+      if (requestId != _tutorBankVerifyRequestId) return;
+      final data = response.data;
+      if (response.confirmsVerifiedBank && data != null) {
+        state = state.copyWith(
+          isVerifyingBank: false,
+          bankVerified: true,
+          bankErrorMessage: null,
+          recipientReference: data.recipientReference.isNotEmpty
+              ? data.recipientReference
+              : state.recipientReference,
+          beneficiaryId: data.beneficiaryId ?? state.beneficiaryId,
+          verifiedPanName:
+              data.name.isNotEmpty ? data.name : state.verifiedPanName,
+          bankAccountMasked: data.accountNumber,
+          bankVerifiedIfsc: data.ifsc,
+          bankTransactionReference: data.transactionReference,
+        );
+        return;
+      }
+      state = state.copyWith(
+        isVerifyingBank: false,
+        bankVerified: false,
+        bankErrorMessage:
+            response.message ?? 'Bank verification failed. Please try again.',
+      );
+    } catch (e) {
+      if (requestId != _tutorBankVerifyRequestId) return;
+      state = state.copyWith(
+        isVerifyingBank: false,
+        bankVerified: false,
+        bankErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to verify bank details.',
+        ),
+      );
+    }
+  }
+
   void updateAccountType(EducationAccountType value) {
     state = state.copyWith(
       accountType: value,
       bankVerified: false,
+      bankAccountMasked: null,
+      bankVerifiedIfsc: null,
+      bankTransactionReference: null,
       bankErrorMessage: null,
       saveErrorMessage: null,
     );
   }
 
   void updateAccountNumber(String value) {
+    if (value != state.accountNumber) {
+      _tutorBankVerifyRequestId++;
+    }
     state = state.copyWith(
       accountNumber: value,
+      // Editing releases the in-flight flag (same convention as updatePan)
+      // so the newest value can always be verified again.
+      isVerifyingBank: false,
       bankVerified: false,
+      bankAccountMasked: null,
+      bankVerifiedIfsc: null,
+      bankTransactionReference: null,
       bankErrorMessage: null,
       saveErrorMessage: null,
     );
   }
 
   void updateIfsc(String value) {
+    if (value != state.ifsc) {
+      _tutorBankVerifyRequestId++;
+    }
     state = state.copyWith(
       ifsc: value,
+      isVerifyingBank: false,
       bankVerified: false,
+      bankAccountMasked: null,
+      bankVerifiedIfsc: null,
+      bankTransactionReference: null,
       bankErrorMessage: null,
       saveErrorMessage: null,
     );
@@ -459,6 +713,15 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       );
       return false;
     }
+
+    // Unverified tutor flow: use the tutor-specific save beneficiary API
+    // which only requires the recipient_reference from PAN verification.
+    if (unverifiedFlow) {
+      return _saveTutorBeneficiary();
+    }
+
+    // Registered recipient flow: use the existing save beneficiary API
+    // with full details.
     final name = state.recipientName.trim();
     final mobile = _normalizeMobile(state.mobileInput);
     final pan = state.pan.trim().toUpperCase();
@@ -494,7 +757,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
         logger.info('EDU_SAVE SAVE_SUCCESS');
         state = state.copyWith(
           isSavingBeneficiary: false,
-          beneficiaryId: response.beneficiaryId,
+          beneficiaryId: response.beneficiaryId ?? state.beneficiaryId,
           saveErrorMessage: null,
         );
         return true;
@@ -509,6 +772,139 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     } catch (e) {
       logger.info(
         'EDU_SAVE SAVE_FAILED reason=exception type=${e.runtimeType}',
+      );
+      state = state.copyWith(
+        isSavingBeneficiary: false,
+        saveErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to save beneficiary details.',
+        ),
+      );
+      return false;
+    }
+  }
+
+  /// Saves a tutor beneficiary for the unverified "Add Details" flow.
+  ///
+  /// Requires successful PAN and bank verification, and a valid
+  /// [recipientReference] stored by the PAN verification. Uses the
+  /// tutor-specific save beneficiary API which only sends the
+  /// recipient_reference to the backend.
+  Future<bool> _saveTutorBeneficiary() async {
+    logger.info('EDU_TUTOR_SAVE SAVE_BENEFICIARY_ENTERED');
+    final recipientReference = state.recipientReference;
+    if (recipientReference == null || recipientReference.isEmpty) {
+      logger.info('EDU_TUTOR_SAVE SAVE_GUARD_BLOCKED reason=no_recipient_reference');
+      state = state.copyWith(
+        saveErrorMessage: 'PAN verification incomplete. Please verify PAN.',
+      );
+      return false;
+    }
+
+    state = state.copyWith(
+      isSavingBeneficiary: true,
+      saveErrorMessage: null,
+    );
+    try {
+      logger.info('EDU_TUTOR_SAVE REPOSITORY_CALLED');
+      final response = await _repository.saveTutorBeneficiary(
+        recipientReference: recipientReference,
+      );
+      if (response.status) {
+        logger.info('EDU_TUTOR_SAVE SAVE_SUCCESS');
+        state = state.copyWith(
+          isSavingBeneficiary: false,
+          beneficiaryId: response.beneficiaryId ?? state.beneficiaryId,
+          recipientReference:
+              response.recipientReference?.isNotEmpty == true
+                  ? response.recipientReference
+                  : state.recipientReference,
+          saveErrorMessage: null,
+        );
+        return true;
+      }
+      logger.info('EDU_TUTOR_SAVE SAVE_FAILED reason=server_status');
+      state = state.copyWith(
+        isSavingBeneficiary: false,
+        saveErrorMessage:
+            response.message ?? 'Failed to save beneficiary details.',
+      );
+      return false;
+    } catch (e) {
+      logger.info(
+        'EDU_TUTOR_SAVE SAVE_FAILED reason=exception type=${e.runtimeType}',
+      );
+      state = state.copyWith(
+        isSavingBeneficiary: false,
+        saveErrorMessage: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to save beneficiary details.',
+        ),
+      );
+      return false;
+    }
+  }
+
+  /// Saves a registered/verified tutor beneficiary after request acceptance.
+  ///
+  /// The [requestReference] MUST come from the Tutor Send Request response
+  /// (`data.request_reference`). It is never hardcoded, reconstructed or replaced
+  /// by recipient_reference or beneficiary_id.
+  ///
+  /// This should be called after the tutor accepts the payment request, before
+  /// navigating to the tutor profile screen.
+  Future<bool> saveTutorBeneficiaryRegistered({
+    required String requestReference,
+  }) async {
+    logger.info('EDU_TUTOR_SAVE_REGISTERED SAVE_BENEFICIARY_ENTERED');
+    if (requestReference.isEmpty) {
+      logger.info(
+        'EDU_TUTOR_SAVE_REGISTERED SAVE_GUARD_BLOCKED reason=no_request_reference',
+      );
+      state = state.copyWith(
+        saveErrorMessage: 'Request reference missing. Please try again.',
+      );
+      return false;
+    }
+
+    if (state.isSavingBeneficiary) {
+      logger.info(
+        'EDU_TUTOR_SAVE_REGISTERED SAVE_GUARD_BLOCKED reason=in_flight',
+      );
+      return false;
+    }
+
+    // Store the request reference in state for tracking
+    state = state.copyWith(
+      requestReference: requestReference,
+      isSavingBeneficiary: true,
+      saveErrorMessage: null,
+    );
+    try {
+      logger.info('EDU_TUTOR_SAVE_REGISTERED REPOSITORY_CALLED');
+      final response = await _repository.saveTutorBeneficiaryRegistered(
+        requestReference: requestReference,
+      );
+      if (response.status && response.data != null) {
+        logger.info('EDU_TUTOR_SAVE_REGISTERED SAVE_SUCCESS');
+        state = state.copyWith(
+          isSavingBeneficiary: false,
+          beneficiaryId: response.data!.beneficiaryId,
+          recipientReference: response.data!.recipientReference,
+          saveErrorMessage: null,
+        );
+        return true;
+      }
+      logger.info('EDU_TUTOR_SAVE_REGISTERED SAVE_FAILED reason=server_status');
+      state = state.copyWith(
+        isSavingBeneficiary: false,
+        saveErrorMessage:
+            response.message ?? 'Failed to save beneficiary details.',
+      );
+      return false;
+    } catch (e) {
+      logger.info(
+        'EDU_TUTOR_SAVE_REGISTERED SAVE_FAILED reason=exception type=${e.runtimeType}',
       );
       state = state.copyWith(
         isSavingBeneficiary: false,

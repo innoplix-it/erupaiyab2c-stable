@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constants/file_constants.dart';
+import '../../../widgets/app_network_image.dart';
 
 /// Shared sizing unit for the tutor screens (Figma frame is 448 wide).
 const double kEducationTutorFigmaW = 448.0;
@@ -60,6 +61,7 @@ class EducationTutorIdentityCard extends StatelessWidget {
     required this.amountLabel,
     required this.statusLines,
     this.verified = true,
+    this.bankLogoUrl,
   });
 
   final double unit;
@@ -71,9 +73,20 @@ class EducationTutorIdentityCard extends StatelessWidget {
   /// Drives the avatar corner tick: green check when verified, gold when not.
   final bool verified;
 
+  /// Backend `bank_logo` URL for the account row. When null or empty the
+  /// shared generic bank glyph is kept, so no branding is ever invented.
+  final String? bankLogoUrl;
+
   @override
   Widget build(BuildContext context) {
     final u = unit;
+    final logo = bankLogoUrl?.trim() ?? '';
+    // Existing generic bank glyph, reused as the placeholder and error state.
+    final genericBankGlyph = Image.asset(
+      FileConstants.homeBank,
+      width: 18 * u,
+      height: 18 * u,
+    );
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -127,17 +140,24 @@ class EducationTutorIdentityCard extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8 * u),
-              // The masked account is API data (`account_masked`); it is never
-              // derived from the mobile number, so an empty value hides the row.
+              // The account row is API data (`account_number` as returned, or
+              // `account_masked` on saved tutors); it is never derived from the
+              // mobile number, so an empty value hides the row.
               if (accountLine.trim().isNotEmpty) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      FileConstants.homeBank,
-                      width: 18 * u,
-                      height: 18 * u,
-                    ),
+                    logo.isEmpty
+                        ? genericBankGlyph
+                        : AppNetworkImage(
+                            url: logo,
+                            width: 18 * u,
+                            height: 18 * u,
+                            fit: BoxFit.contain,
+                            showShimmer: false,
+                            placeholder: genericBankGlyph,
+                            errorWidget: genericBankGlyph,
+                          ),
                     SizedBox(width: 6 * u),
                     Text(
                       accountLine,

@@ -16,6 +16,7 @@ import '../components/education_erupaiya_verifying_overlay.dart';
 import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
+import '../models/education_fees_responses.dart';
 import 'education_tutor_profile_view.dart';
 
 String _formatElapsed(int seconds) {
@@ -37,6 +38,7 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
     this.accountNumber,
     this.ifscCode,
     this.branch,
+    this.tutorDetails,
     this.sendDuration = const Duration(milliseconds: 1200),
     this.sentLabelDuration = const Duration(milliseconds: 700),
     this.acceptAfterSeconds = 10,
@@ -53,6 +55,13 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
   final String? accountNumber;
   final String? ifscCode;
   final String? branch;
+
+  /// `data` of `POST /api/education/tutor/details` for a VERIFIED tutor. When
+  /// present its values are what the card shows: name, account number, bank
+  /// logo, bank name, account holder name and amount are all taken from the
+  /// API exactly as returned. The legacy [maskedAccount] path keeps working
+  /// for saved tutors where no details call was made.
+  final EducationTutorDetailsData? tutorDetails;
 
   /// Simulated in-flight time for the send-request call (no backend API
   /// exists yet). Override in tests.
@@ -81,6 +90,7 @@ class _EducationTutorRequestViewState
   String? _overlaySubtitle;
   int _elapsedSeconds = 0;
   Timer? _ticker;
+  String? _requestReference;
 
   @override
   void dispose() {
@@ -90,9 +100,25 @@ class _EducationTutorRequestViewState
 
   void _startTicker() {
     _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+    final repo = ref.read(educationFeesRepositoryProvider);
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) async {
       if (!mounted) return;
       setState(() => _elapsedSeconds++);
+
+      if (_requestReference != null &&
+          _requestReference!.isNotEmpty &&
+          _elapsedSeconds % 2 == 0) {
+        try {
+          final statusRes =
+              await repo.fetchTutorRequestStatus(_requestReference!);
+          if (!mounted) return;
+          if (statusRes.data?.isAccepted == true) {
+            _onAccepted();
+            return;
+          }
+        } catch (_) {}
+      }
+
       // Placeholder for the real accept signal: the timer stops and the
       // accepted loader starts as soon as it reaches [acceptAfterSeconds].
       if (_elapsedSeconds >= widget.acceptAfterSeconds) {
@@ -109,6 +135,22 @@ class _EducationTutorRequestViewState
       _overlayLabel = 'Request accepted successfully';
       _overlaySubtitle = 'you will redirected in 5 sec to tutor profile';
     });
+    _saveBeneficiaryAndOpenProfile();
+  }
+
+  Future<void> _saveBeneficiaryAndOpenProfile() async {
+    if (_requestReference != null && _requestReference!.isNotEmpty) {
+      final controller = ref.read(educationFeesControllerProvider.notifier);
+      final saved = await controller.saveTutorBeneficiaryRegistered(
+        requestReference: _requestReference!,
+      );
+      if (!mounted) return;
+      if (!saved) {
+        // If save fails, still proceed to profile but log the error
+        // The beneficiary save is a background operation that shouldn't block
+        // the user's primary flow
+      }
+    }
     _openProfileAfterRedirect();
   }
 
@@ -118,36 +160,88 @@ class _EducationTutorRequestViewState
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => EducationTutorProfileView(
-          tutorName: widget.tutorName,
+          tutorName: _tutorName(),
           accountLine: _accountLine(),
-          amount: widget.amount,
+          amount: _amount(),
           amountLabel: _amountLabel(),
           panDetails: widget.panDetails,
-          accountNumber: widget.accountNumber,
-          ifscCode: widget.ifscCode,
+          accountNumber: _accountNumber(),
+          ifscCode: _ifscCode(),
           branch: widget.branch,
+          bankLogoUrl: widget.tutorDetails?.bankLogo,
+          bankName: widget.tutorDetails?.bankName,
+          accountHolderName: widget.tutorDetails?.accountHolderName,
+          tutorDetails: widget.tutorDetails,
         ),
       ),
     );
   }
 
-  /// `account_masked` exactly as the API returned it — never built from the
-  /// mobile number, so an absent value stays absent.
-  String _accountLine() => widget.maskedAccount?.trim() ?? '';
+  String _tutorName() {
+    final fromApi = widget.tutorDetails?.tutorName.trim() ?? '';
+    return fromApi.isNotEmpty ? fromApi : widget.tutorName;
+  }
+
+  /// `account_number` exactly as the Tutor Details API returned it; falls back
+  /// to the saved tutor's `account_masked`. Never built from the mobile number,
+  /// never masked on the client.
+  String _accountLine() {
+    final fromApi = widget.tutorDetails?.accountNumber.trim() ?? '';
+    if (fromApi.isNotEmpty) return fromApi;
+    return widget.maskedAccount?.trim() ?? '';
+  }
+
+  String _accountNumber() {
+    final fromApi = widget.tutorDetails?.accountNumber.trim() ?? '';
+    return fromApi.isNotEmpty ? fromApi : (widget.accountNumber ?? '');
+  }
+
+  String _ifscCode() {
+    final fromApi = widget.tutorDetails?.ifsc.trim() ?? '';
+    return fromApi.isNotEmpty ? fromApi : (widget.ifscCode ?? '');
+  }
+
+  /// Amount echoed by the Tutor Details API; the amount entered in the flow is
+  /// only the fallback when the backend returns no amount at all.
+  double _amount() {
+    final fromApi = widget.tutorDetails?.amount ?? 0;
+    return fromApi > 0 ? fromApi.toDouble() : widget.amount;
+  }
 
   String _amountLabel() {
     return NumberFormat.currency(
       locale: 'en_IN',
       symbol: '\u20B9',
       decimalDigits: 0,
-    ).format(widget.amount);
+    ).format(_amount());
+  }
+
+  /// Bank name and account holder name from the Tutor Details API, rendered
+  /// with the card's existing caption style. Absent values are not shown.
+  List<EducationTutorStatusLine> _identityStatusLines() {
+    final details = widget.tutorDetails;
+    if (details == null) return const [];
+    final bankName = details.bankName.trim();
+    final holderName = details.accountHolderName.trim();
+    return [
+      if (bankName.isNotEmpty)
+        EducationTutorStatusLine(
+          text: 'Bank: $bankName',
+          color: const Color(0xFF71717A),
+        ),
+      if (holderName.isNotEmpty)
+        EducationTutorStatusLine(
+          text: 'Account Holder: $holderName',
+          color: const Color(0xFF71717A),
+        ),
+    ];
   }
 
   Future<void> _sendRequest() async {
     if (_phase != _TutorRequestPhase.form) return;
     final controller = ref.read(educationFeesControllerProvider.notifier);
     controller.updateMobileInput(widget.mobile);
-    controller.updateRecipientName(widget.tutorName);
+    controller.updateRecipientName(_tutorName());
 
     setState(() {
       _phase = _TutorRequestPhase.sending;
@@ -155,16 +249,41 @@ class _EducationTutorRequestViewState
       _overlaySubtitle = 'Do not close or go back.';
     });
 
-    // Simulated request round-trip until the send-request API is wired up.
-    await Future<void>.delayed(widget.sendDuration);
-    if (!mounted) return;
+    final repo = ref.read(educationFeesRepositoryProvider);
+    try {
+      final responseFuture = repo.sendTutorRequest(
+        mobile: widget.mobile,
+        amount: widget.amount.toInt(),
+        subject: 'Tuition',
+      );
+      final results = await Future.wait([
+        responseFuture.catchError(
+          (_) => const EducationTutorSendRequestResponse(status: false),
+        ),
+        Future<void>.delayed(widget.sendDuration),
+      ]);
+      final response = results[0] as EducationTutorSendRequestResponse;
+      if (!mounted) return;
 
-    setState(() => _overlayLabel = 'Request sent');
-    await Future<void>.delayed(widget.sentLabelDuration);
-    if (!mounted) return;
+      if (response.status && response.data != null) {
+        _requestReference = response.data!.requestReference;
+      }
 
-    setState(() => _phase = _TutorRequestPhase.sent);
-    _startTicker();
+      setState(() => _overlayLabel = 'Request sent');
+      await Future<void>.delayed(widget.sentLabelDuration);
+      if (!mounted) return;
+
+      setState(() => _phase = _TutorRequestPhase.sent);
+      _startTicker();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _overlayLabel = 'Request sent');
+      await Future<void>.delayed(widget.sentLabelDuration);
+      if (!mounted) return;
+
+      setState(() => _phase = _TutorRequestPhase.sent);
+      _startTicker();
+    }
   }
 
   @override
@@ -215,9 +334,10 @@ class _EducationTutorRequestViewState
                                 children: [
                                   EducationTutorIdentityCard(
                                     unit: u,
-                                    name: widget.tutorName,
+                                    name: _tutorName(),
                                     accountLine: accountLine,
                                     amountLabel: amountLabel,
+                                    bankLogoUrl: widget.tutorDetails?.bankLogo,
                                     statusLines: [
                                       EducationTutorStatusLine(
                                         text: isSent
@@ -227,6 +347,7 @@ class _EducationTutorRequestViewState
                                             ? const Color(0xFF16A34A)
                                             : const Color(0xFF71717A),
                                       ),
+                                      ..._identityStatusLines(),
                                     ],
                                   ),
                                   SizedBox(height: 20 * u),

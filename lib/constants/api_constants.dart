@@ -1,7 +1,5 @@
 class ApiConstants {
-
   static const String baseUrl = 'https://erupaiya.com'; //after
-
 
   static const String loginEndpoint = '$baseUrl/api/auth/login';
   static const String checkLoginEndpoint = '$baseUrl/api/auth/check-login';
@@ -54,6 +52,21 @@ class ApiConstants {
       '$baseUrl/api/education/check-mobile';
   static const String educationTutorVerifyEndpoint =
       '$baseUrl/api/education/tutor/verify';
+  static const String educationTutorDetailsEndpoint =
+      '$baseUrl/api/education/tutor/details';
+  static const String educationTutorSendRequestEndpoint =
+      '$baseUrl/api/education/tutor/send-request';
+  static String educationTutorRequestStatusEndpoint(String requestReference) =>
+      '$baseUrl/api/education/tutor/request-status/$requestReference';
+  static String educationTutorRespondToRequestEndpoint(
+          String requestReference) =>
+      '$baseUrl/api/education/tutor/request-status/$requestReference';
+  static const String educationTutorReceivedRequestsEndpoint =
+      '$baseUrl/api/education/tutor/received-requests';
+  static const String educationTutorVerifyPanEndpoint =
+      '$baseUrl/api/education/tutor/recipient/verify-pan';
+  static const String educationTutorVerifyBankEndpoint =
+      '$baseUrl/api/education/tutor/recipient/verify-bank';
   static const String educationVerifyPanEndpoint =
       '$baseUrl/api/education/verify-pan';
   static const String educationVerifyBankEndpoint =

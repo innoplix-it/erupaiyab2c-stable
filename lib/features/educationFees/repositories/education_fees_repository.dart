@@ -19,6 +19,69 @@ class EducationFeesRepository {
     return _service.verifyTutor(mobile);
   }
 
+  Future<EducationTutorDetailsResponse> fetchTutorDetails({
+    required String mobile,
+    required int amount,
+  }) {
+    return _service.fetchTutorDetails(mobile: mobile, amount: amount);
+  }
+
+  Future<EducationTutorSendRequestResponse> sendTutorRequest({
+    required String mobile,
+    required int amount,
+    required String subject,
+  }) {
+    return _service.sendTutorRequest(
+      mobile: mobile,
+      amount: amount,
+      subject: subject,
+    );
+  }
+
+  Future<EducationTutorRequestStatusResponse> fetchTutorRequestStatus(
+    String requestReference,
+  ) {
+    return _service.fetchTutorRequestStatus(requestReference);
+  }
+
+  Future<EducationTutorReceivedRequestsResponse> fetchTutorReceivedRequests({
+    required int page,
+    required int perPage,
+    String? status,
+  }) {
+    return _service.fetchTutorReceivedRequests(
+      page: page,
+      perPage: perPage,
+      status: status,
+    );
+  }
+
+  Future<EducationTutorRespondToRequestResponse> respondToTutorRequest({
+    required String requestReference,
+    required String action,
+  }) {
+    return _service.respondToTutorRequest(
+      requestReference: requestReference,
+      action: action,
+    );
+  }
+
+  Future<EducationTutorVerifyPanResponse> verifyTutorPan(String pan) {
+    return _service.verifyTutorPan(pan);
+  }
+
+  Future<EducationTutorVerifyBankResponse> verifyTutorBank({
+    required String recipientReference,
+    required String accountNo,
+    required String ifsc,
+  }) {
+    return _service.verifyTutorBank(
+      recipientReference: recipientReference,
+      accountNo: accountNo,
+      ifsc: ifsc,
+    );
+  }
+
   Future<EducationVerifyPanResponse> verifyPan({
     required String name,
     required String pan,
@@ -102,6 +165,23 @@ class EducationFeesRepository {
       accountType: accountType,
       accountNo: accountNo,
       ifsc: ifsc,
+    );
+  }
+
+  Future<EducationTutorSaveBeneficiaryResponse> saveTutorBeneficiary({
+    required String recipientReference,
+  }) {
+    return _service.saveTutorBeneficiary(
+      recipientReference: recipientReference,
+    );
+  }
+
+  Future<EducationTutorSaveBeneficiaryRegisteredResponse>
+      saveTutorBeneficiaryRegistered({
+    required String requestReference,
+  }) {
+    return _service.saveTutorBeneficiaryRegistered(
+      requestReference: requestReference,
     );
   }
 }
