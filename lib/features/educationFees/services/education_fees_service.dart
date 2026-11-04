@@ -55,6 +55,28 @@ class EducationFeesService {
     }
   }
 
+  Future<EducationTutorVerifyResponse> verifyTutor(String mobile) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.educationTutorVerifyEndpoint,
+        data: {
+          'mobile': mobile,
+        },
+      );
+      final payload = response.data as Map<String, dynamic>? ?? {};
+      return EducationTutorVerifyResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          return EducationTutorVerifyResponse.fromJson(data);
+        }
+      }
+      logger.error('Failed to verify tutor: $e', error: e);
+      rethrow;
+    }
+  }
+
   Future<EducationVerifyPanResponse> verifyPan({
     required String name,
     required String pan,

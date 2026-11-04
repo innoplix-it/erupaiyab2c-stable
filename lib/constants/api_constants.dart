@@ -52,6 +52,8 @@ class ApiConstants {
       '$baseUrl/api/education/validate-amount';
   static const String educationCheckMobileEndpoint =
       '$baseUrl/api/education/check-mobile';
+  static const String educationTutorVerifyEndpoint =
+      '$baseUrl/api/education/tutor/verify';
   static const String educationVerifyPanEndpoint =
       '$baseUrl/api/education/verify-pan';
   static const String educationVerifyBankEndpoint =

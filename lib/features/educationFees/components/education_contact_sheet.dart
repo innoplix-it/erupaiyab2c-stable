@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -13,9 +14,11 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/file_constants.dart';
 import '../../../services/permission_service.dart';
 import '../../../widgets/app_search_bar.dart';
+import '../../../widgets/app_search_mode_toggle.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/contacts_permission_card.dart';
 import '../../../widgets/search_textfield.dart';
+import '../../auth/components/auth_step_parts.dart';
 import '../../mobile_prepaid/controllers/contacts_cache_controller.dart';
 
 List<int> _filterContactIndices(Map<String, dynamic> payload) {
@@ -42,7 +45,7 @@ String normalizeEducationMobile(String input) {
   if (digits.length > 10 && digits.startsWith('91')) {
     return digits.substring(digits.length - 10);
   }
-  return digits;
+  return digits;  
 }
 
 String educationContactDisplayPhone(String phone) {
@@ -57,6 +60,42 @@ typedef EducationContactPickedHandler = void Function(
   String mobile,
   String displayName,
 );
+
+/// Search-field modes of the search-recipient layout, mirroring the Mobile
+/// Prepaid ABC / 123 switch: ABC filters the contact list by name or number,
+/// 123 takes a manually typed +91 number and continues with it.
+enum _EducationContactSearchMode { abc, numeric }
+
+/// ABC mode stays free-text for name search, but a typed number never grows
+/// past 10 digits: extra digits are dropped, whether typed one by one or
+/// pasted in bulk.
+class _TenDigitNumberFormatter extends TextInputFormatter {
+  static final RegExp _digit = RegExp(r'\d');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length <= 10) return newValue;
+    // Keep every non-digit and only the first 10 digits.
+    final kept = StringBuffer();
+    var seen = 0;
+    for (final char in newValue.text.split('')) {
+      if (_digit.hasMatch(char)) {
+        seen++;
+        if (seen > 10) continue;
+      }
+      kept.write(char);
+    }
+    final text = kept.toString();
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
 
 class EducationContactSheet extends HookConsumerWidget {
   const EducationContactSheet({
@@ -89,6 +128,11 @@ class EducationContactSheet extends HookConsumerWidget {
     final contactSearchController = useTextEditingController();
     final isMounted = useIsMounted();
     final filterToken = useRef(0);
+
+    // ABC / 123 state for the search-recipient layout (Mobile Prepaid UI).
+    final searchMode = useState(_EducationContactSearchMode.abc);
+    final numericController = useTextEditingController();
+    final numericFocusNode = useFocusNode();
 
     Future<void> loadContacts() async {
       await contactsController.fetchIfNeeded();
@@ -162,6 +206,44 @@ class EducationContactSheet extends HookConsumerWidget {
       }
     };
 
+    // Lookup in the whole device list (not the filtered view) by 10-digit no.
+    Contact? contactForMobile(String mobile) {
+      for (final contact in contactsState.contacts) {
+        for (final phone in contact.phones) {
+          if (normalizeEducationMobile(phone.number) == mobile) {
+            return contact;
+          }
+        }
+      }
+      return null;
+    }
+
+    // 123 mode: continue with the typed number. It goes through the very same
+    // picked-contact path, so the app-bar Verified / Unverified selector still
+    // decides which tutor flow runs after the verification overlay.
+    void handleNumericContinue() {
+      final mobile = normalizeEducationMobile(numericController.text);
+      if (mobile.length != 10) return;
+      onPickContact(mobile, contactForMobile(mobile)?.displayName ?? '');
+    }
+
+    // ABC mode: a 10-digit number that has no contact jumps to 123 on its own,
+    // which reveals the Continue button and then runs the identical flow.
+    void handleQueryChange(String value) {
+      contactQuery.value = value;
+      if (!searchRecipientLayout) return;
+      if (RegExp(r'[A-Za-z]').hasMatch(value)) return;
+      final digits = normalizeEducationMobile(value);
+      if (digits.length != 10) return;
+      if (contactForMobile(digits) != null) return;
+      searchMode.value = _EducationContactSearchMode.numeric;
+      numericController.value = TextEditingValue(
+        text: digits,
+        selection: TextSelection.collapsed(offset: digits.length),
+      );
+      FocusScope.of(context).requestFocus(numericFocusNode);
+    }
+
     return SafeArea(
       top: false,
       child: Container(
@@ -177,7 +259,7 @@ class EducationContactSheet extends HookConsumerWidget {
                 contacts: filteredContacts.value,
                 visibleCount: visibleCount.value,
                 contactSearchController: contactSearchController,
-                onQueryChange: (value) => contactQuery.value = value,
+                onQueryChange: handleQueryChange,
                 onLoadMore: () {
                   if (visibleCount.value >= filteredContacts.value.length) {
                     return;
@@ -189,6 +271,18 @@ class EducationContactSheet extends HookConsumerWidget {
                 onSelect: onPickContact,
                 matchInviteContactAvatarStyle: matchInviteContactAvatarStyle,
                 searchRecipientLayout: searchRecipientLayout,
+                searchMode: searchMode.value,
+                onSearchModeChange: (mode) {
+                  searchMode.value = mode;
+                  if (mode == _EducationContactSearchMode.numeric) {
+                    FocusScope.of(context).requestFocus(numericFocusNode);
+                  } else {
+                    numericFocusNode.unfocus();
+                  }
+                },
+                numericController: numericController,
+                numericFocusNode: numericFocusNode,
+                onNumericContinue: handleNumericContinue,
               )
             : _PermissionEmptyState(onAllow: handleRequestPermission),
       ),
@@ -296,6 +390,11 @@ class _ContactsListSection extends StatelessWidget {
     required this.searchHint,
     required this.matchInviteContactAvatarStyle,
     required this.searchRecipientLayout,
+    required this.searchMode,
+    required this.onSearchModeChange,
+    required this.numericController,
+    required this.numericFocusNode,
+    required this.onNumericContinue,
   });
 
   final bool isLoading;
@@ -308,6 +407,11 @@ class _ContactsListSection extends StatelessWidget {
   final String searchHint;
   final bool matchInviteContactAvatarStyle;
   final bool searchRecipientLayout;
+  final _EducationContactSearchMode searchMode;
+  final ValueChanged<_EducationContactSearchMode> onSearchModeChange;
+  final TextEditingController numericController;
+  final FocusNode numericFocusNode;
+  final VoidCallback onNumericContinue;
 
   Widget _buildContactBody(BuildContext context) {
     if (isLoading) {
@@ -340,6 +444,7 @@ class _ContactsListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (searchRecipientLayout) {
+      final isNumeric = searchMode == _EducationContactSearchMode.numeric;
       return NotificationListener<ScrollNotification>(
         onNotification: (notification) {
           if (notification.metrics.pixels >=
@@ -352,22 +457,86 @@ class _ContactsListSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AppSearchBar(
-              // Common bar styling (same defaults as the credit card
-              // listing search); only the leading glyph is Education's own.
-              hintText: searchHint,
-              controller: contactSearchController,
-              onChanged: onQueryChange,
+              // Same field as the Mobile Prepaid recharge search: +91 number
+              // entry with the ABC / 123 switch in the trailing slot, or name
+              // filtering of the contact list.
+              hintText: isNumeric ? 'Enter mobile number' : searchHint,
+              controller: isNumeric
+                  ? numericController
+                  : contactSearchController,
+              focusNode: isNumeric ? numericFocusNode : null,
+              keyboardType:
+                  isNumeric ? TextInputType.phone : TextInputType.text,
+              textInputAction:
+                  isNumeric ? TextInputAction.done : TextInputAction.search,
+              inputFormatters: isNumeric
+                  ? [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ]
+                  : [_TenDigitNumberFormatter()],
+              onChanged: isNumeric ? null : onQueryChange,
+              prefixText: isNumeric ? '+91 ' : null,
+              prefixStyle: GoogleFonts.plusJakartaSans(
+                color: Colors.black,
+                fontWeight: FontWeight.w700,
+                fontSize: 14.sp,
+              ),
+              textStyle: GoogleFonts.plusJakartaSans(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w400,
+                fontSize: 14.sp,
+              ),
               showSearchIcon: false,
-              prefixIcon: Padding(
-                padding: EdgeInsets.only(left: 14.w, right: 4.w),
-                child: SvgPicture.asset(
-                  FileConstants.educationSearchIconSvg,
-                  width: 18.w,
-                  height: 18.w,
-                  fit: BoxFit.contain,
-                ),
+              prefixIcon: isNumeric
+                  ? null
+                  : Padding(
+                      padding: EdgeInsets.only(left: 14.w, right: 4.w),
+                      child: SvgPicture.asset(
+                        FileConstants.educationSearchIconSvg,
+                        width: 18.w,
+                        height: 18.w,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+              trailing: AppSearchModeToggle<_EducationContactSearchMode>(
+                mode: searchMode,
+                onChanged: onSearchModeChange,
+                options: const [
+                  AppSearchModeOption(
+                    label: 'ABC',
+                    value: _EducationContactSearchMode.abc,
+                  ),
+                  AppSearchModeOption(
+                    label: '123',
+                    value: _EducationContactSearchMode.numeric,
+                  ),
+                ],
               ),
             ),
+            // 123 mode gets the CTA, exactly like Mobile Prepaid; it stays
+            // hidden while browsing the contact list in ABC mode.
+            if (isNumeric)
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: numericController,
+                builder: (context, value, _) {
+                  final enabled =
+                      normalizeEducationMobile(value.text).length == 10;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: 14.h),
+                      CustomElevatedButton(
+                        onPressed: enabled ? onNumericContinue : null,
+                        label: 'Continue',
+                        uppercaseLabel: false,
+                        // Shared CTA size (same as the auth flow buttons).
+                        height: authButtonHeight(context),
+                      ),
+                    ],
+                  );
+                },
+              ),
             SizedBox(height: 16.h),
             Expanded(child: _buildContactBody(context)),
           ],

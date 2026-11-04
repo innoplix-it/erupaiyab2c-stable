@@ -15,6 +15,10 @@ class EducationFeesRepository {
     return _service.checkMobile(mobile);
   }
 
+  Future<EducationTutorVerifyResponse> verifyTutor(String mobile) {
+    return _service.verifyTutor(mobile);
+  }
+
   Future<EducationVerifyPanResponse> verifyPan({
     required String name,
     required String pan,

@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../widgets/app_snackbar.dart';
+import '../../../widgets/my_app_bar.dart';
 
 class ReceiptViewerScreen extends StatefulWidget {
   const ReceiptViewerScreen({
@@ -99,9 +100,10 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Receipt',
-          style: TextStyle(color: Colors.white),
+          // Common app-bar title typography, white on the orange bar.
+          style: MyAppBar.sharedTitleStyle(context, color: Colors.white),
         ),
         actions: [
           IconButton(

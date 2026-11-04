@@ -17,6 +17,7 @@ import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../../auth/components/auth_step_parts.dart';
 import '../../mobile_prepaid/components/recharge_quick_action_card.dart';
 import '../../profile/controllers/profile_controller.dart';
 import '../../profile/models/profile_model.dart';
@@ -32,7 +33,7 @@ import '../views/select_bank_view.dart';
 /// chrome and [CustomElevatedButton]) and is sized through
 /// [CreditCardFigmaMetrics] (440-wide Figma frame scaled by MediaQuery), so
 /// every device gets the same proportions. Verification / save payloads and
-/// the two-step flow are untouched.
+/// the two-step flow are untouched; the KYC attestation checkbox is removed.
 class AddBankAccountView extends HookConsumerWidget {
   const AddBankAccountView({
     super.key,
@@ -68,7 +69,6 @@ class AddBankAccountView extends HookConsumerWidget {
     useListenable(bankNameController);
     final pickedBank = useState<BankListItem?>(selectedBank);
 
-    final confirmChecked = useState(isEdit);
     final isVerifying = useState(false);
     final isSaving = useState(false);
     final referenceId = useState(existingAccount?.referenceId ?? '');
@@ -284,25 +284,33 @@ class AddBankAccountView extends HookConsumerWidget {
             CreditCardFigmaMetrics.s(context, 24),
             CreditCardFigmaMetrics.sy(context, 20),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomElevatedButton(
-                onPressed:
-                    step.value == _BankStep.verify ? handleVerify : handleSave,
-                label: step.value == _BankStep.verify
-                    ? 'Proceed'
-                    : (isEdit ? 'Update Bank Account' : 'Save Bank Account'),
-                isLoading: step.value == _BankStep.verify
-                    ? isVerifying.value
-                    : isSaving.value,
-                uppercaseLabel: false,
-                height: CreditCardFigmaMetrics.primaryButtonHeight(context),
-                borderRadius: CreditCardFigmaMetrics.s(context, 28),
-                labelStyle:
-                    CreditCardFigmaMetrics.primaryButtonLabelStyle(context),
+          child: AuthButtonTheme(
+            child: CustomElevatedButton(
+              onPressed:
+                  step.value == _BankStep.verify ? handleVerify : handleSave,
+              label: step.value == _BankStep.verify
+                  ? 'Proceed'
+                  : (isEdit ? 'Update Bank Account' : 'Save Bank Account'),
+              isLoading: step.value == _BankStep.verify
+                  ? isVerifying.value
+                  : isSaving.value,
+              uppercaseLabel: false,
+              // Every property of the auth flow "Continue" CTA: same width
+              // driven height (48/360 clamped 40-56), flat brand fill, white
+              // Plus Jakarta Sans 12 / w500 label and the rim-free button
+              // theme, so both buttons render identically on every device.
+              height: authButtonHeight(context),
+              backgroundColor: AppColors.primary,
+              labelColor: Colors.white,
+              labelStyle: TextStyle(
+                fontFamily: authFontFamily,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                height: 1,
+                letterSpacing: 0,
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -366,64 +374,9 @@ class _FieldLabel extends StatelessWidget {
           fontWeight: FontWeight.w600,
           fontSize: CreditCardFigmaMetrics.s(context, 14),
           height: 1,
-          color: AppColors.textPrimary,
+          color: const Color(0xFF000000),
         ),
       );
-}
-
-/// KYC attestation shown above the CTA on the verify step.
-class _ConfirmCheckbox extends StatelessWidget {
-  const _ConfirmCheckbox({
-    required this.value,
-    required this.onChanged,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: CreditCardFigmaMetrics.s(context, 12),
-        vertical: CreditCardFigmaMetrics.sy(context, 10),
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F1F1),
-        borderRadius: BorderRadius.circular(
-          CreditCardFigmaMetrics.s(context, 10),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: CreditCardFigmaMetrics.s(context, 20),
-            width: CreditCardFigmaMetrics.s(context, 20),
-            child: Checkbox(
-              value: value,
-              onChanged: (next) => onChanged(next ?? false),
-              activeColor: const Color(0xFFE85A2C),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
-          SizedBox(width: CreditCardFigmaMetrics.s(context, 8)),
-          Expanded(
-            child: Text(
-              'I Confirm That The Bank Account Details Are Correct And Match '
-              'My KYC Information.',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w600,
-                fontSize: CreditCardFigmaMetrics.s(context, 12),
-                height: 1.35,
-                color: AppColors.textPrimary.withOpacity(0.7),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _VerifyBankForm extends HookWidget {
@@ -616,18 +569,18 @@ class _InputField extends HookWidget {
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w500,
             fontSize: fontSize,
-            color: const Color(0xFF7C7C7C),
+            color: AppColors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w400,
               fontSize: fontSize,
-              color: AppColors.textPrimary.withOpacity(0.45),
+              color: const Color(0xFF7C7C7C),
             ),
             counterText: '',
             filled: true,
-            fillColor: const Color(0xFF000000),
+            fillColor: Colors.white,
             isDense: true,
             contentPadding: EdgeInsets.symmetric(
               horizontal: CreditCardFigmaMetrics.billFieldHorizontalInset(

@@ -89,10 +89,6 @@ void main() {
         expect(find.text('Selected Bank'), findsOneWidget);
         expect(find.text('Tap to select bank'), findsOneWidget);
         expect(find.text('Select'), findsOneWidget);
-        expect(
-          find.textContaining('I Confirm That The Bank Account Details'),
-          findsOneWidget,
-        );
         // Two text fields for account number + IFSC.
         expect(find.byType(TextField), findsNWidgets(2));
       });
@@ -110,7 +106,6 @@ void main() {
           find.text('IFSC Code'),
           find.text('Proceed'),
           find.text('Selected Bank'),
-          find.textContaining('I Confirm That The Bank Account Details'),
         ]) {
           final rect = tester.getRect(finder);
           expect(rect.left, greaterThanOrEqualTo(0));
@@ -161,17 +156,6 @@ void main() {
     expect(find.text('Proceed'), findsOneWidget);
     expect(find.text('ICICI Bank'), findsOneWidget);
     expect(find.text('Change'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('checkbox toggles on tap', (tester) async {
-    await _pumpAddBank(tester, size: const Size(390, 844));
-    final checkbox = find.byType(Checkbox);
-    expect(checkbox, findsOneWidget);
-    expect(tester.widget<Checkbox>(checkbox).value, false);
-    await tester.tap(checkbox);
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(tester.widget<Checkbox>(checkbox).value, true);
     expect(tester.takeException(), isNull);
   });
 

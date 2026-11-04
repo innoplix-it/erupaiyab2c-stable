@@ -11,6 +11,7 @@ import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../widgets/my_app_bar.dart';
 import '../models/offer_model.dart';
 
 class OfferDetailView extends StatelessWidget {
@@ -30,10 +31,8 @@ class OfferDetailView extends StatelessWidget {
         ),
         title: Text(
           offer.title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
+          // Common app-bar title typography used across the Profile screens.
+          style: MyAppBar.sharedTitleStyle(context),
         ),
         actions: [
           IconButton(

@@ -21,7 +21,6 @@ class SimpleQuickActionCard extends StatelessWidget {
     this.showShadow = true,
     this.operatorStyle = false,
     this.creditCardStyle = false,
-    this.backgroundColor,
   });
 
   final String title;
@@ -43,9 +42,6 @@ class SimpleQuickActionCard extends StatelessWidget {
 
   /// Credit Card Pay Bill / Pay Now provider row (440×956 metrics).
   final bool creditCardStyle;
-
-  /// Custom background color for the card. Defaults to white.
-  final Color? backgroundColor;
 
   /// Figma soft elevation for the Maharashtra / operator card (440 frame):
   /// 0 10 22 #7070701A, 0 41 41 #70707017, 0 91 55 #7070700D,
@@ -167,7 +163,7 @@ class SimpleQuickActionCard extends StatelessWidget {
                   )
                 : EdgeInsets.symmetric(horizontal: 14.w),
         decoration: BoxDecoration(
-          color: backgroundColor ?? const Color(0xFFFFFFFF),
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(
             useCredit
                 ? CreditCardFigmaMetrics.providerCardRadius(context)
@@ -264,7 +260,7 @@ class SimpleQuickActionCard extends StatelessWidget {
                             ? CreditCardFigmaMetrics.s(context, 12)
                             : 11.sp,
                         height: 1.2,
-                        color: const Color(0xFF71717A),
+                        color: const Color(0xFF000000),
                       ),
                     ),
                     SizedBox(height: 2.h),

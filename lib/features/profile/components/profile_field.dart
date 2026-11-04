@@ -99,7 +99,7 @@ class ProfileField extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
+                color: const Color(0xFF000000),
                 fontWeight: FontWeight.w600,
               ),
         ),

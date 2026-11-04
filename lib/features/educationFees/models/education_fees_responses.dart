@@ -162,6 +162,77 @@ class EducationCheckMobileResponse {
   bool get confirmsRegisteredUser => status && exists;
 }
 
+/// Tutor verification outcomes of `POST /api/education/tutor/verify`.
+///
+/// `unknown` is the fail-closed default for a missing, malformed or newly added
+/// backend status string, so the client never guesses a verification result.
+enum EducationTutorVerificationStatus {
+  verified,
+  notVerified,
+  notFound,
+  unknown,
+}
+
+class EducationTutorVerifyResponse {
+  const EducationTutorVerifyResponse({
+    required this.status,
+    required this.verificationStatus,
+    this.message,
+  });
+
+  factory EducationTutorVerifyResponse.fromJson(Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+    return EducationTutorVerifyResponse(
+      status: json['status'] == true,
+      verificationStatus: _readTutorVerificationStatus(
+        json['verification_status'],
+      ),
+      message: message,
+    );
+  }
+
+  final bool status;
+
+  /// The actual tutor verification result. `status == true` only means the API
+  /// call itself succeeded, so this field alone decides the tutor's outcome.
+  final EducationTutorVerificationStatus verificationStatus;
+  final String? message;
+
+  bool get isVerified =>
+      verificationStatus == EducationTutorVerificationStatus.verified;
+  bool get isNotVerified =>
+      verificationStatus == EducationTutorVerificationStatus.notVerified;
+  bool get isNotFound =>
+      verificationStatus == EducationTutorVerificationStatus.notFound;
+  bool get hasKnownVerificationStatus =>
+      verificationStatus != EducationTutorVerificationStatus.unknown;
+
+  /// Convenience gate for callers: the request succeeded and the tutor is
+  /// fully verified (KYC complete). NOT_VERIFIED and NOT_FOUND both return
+  /// false here and must be distinguished through [verificationStatus].
+  bool get confirmsVerifiedTutor => status && isVerified;
+}
+
+EducationTutorVerificationStatus _readTutorVerificationStatus(Object? raw) {
+  final value = raw?.toString().trim().toUpperCase();
+  switch (value) {
+    case 'VERIFIED':
+      return EducationTutorVerificationStatus.verified;
+    case 'NOT_VERIFIED':
+      return EducationTutorVerificationStatus.notVerified;
+    case 'NOT_FOUND':
+      return EducationTutorVerificationStatus.notFound;
+    default:
+      return EducationTutorVerificationStatus.unknown;
+  }
+}
+
 class EducationVerifyPanResponse {
   const EducationVerifyPanResponse({
     required this.status,
