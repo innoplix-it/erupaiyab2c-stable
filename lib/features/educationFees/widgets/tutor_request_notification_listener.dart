@@ -14,6 +14,8 @@ import '../services/tutor_request_notification_service.dart';
 /// Root listener: shows the Received popup for a NEW tutor request
 /// (foreground FCM, notification tap, or a not-yet-shown pending request found
 /// on startup / resume). Accept / Decline call the respond-request API.
+/// After a successful Decline, the declined popup is shown on the RECEIVER
+/// device only (the sender never sees it).
 class TutorRequestNotificationListener extends ConsumerStatefulWidget {
   const TutorRequestNotificationListener({
     super.key,
@@ -308,6 +310,7 @@ class _TutorRequestNotificationListenerState
 
   /// Accept -> ACCEPTED, Decline -> REJECTED via
   /// POST /api/education/tutor/respond-request.
+  /// A successful Decline shows the declined popup on THIS (receiver) device.
   Future<void> _handlePopupResult(
       TutorRequestEvent event,
       bool? result,
@@ -320,6 +323,8 @@ class _TutorRequestNotificationListenerState
     final action = result == true
         ? TutorNotificationConstants.statusAccepted
         : TutorNotificationConstants.statusRejected;
+
+    var declinedOk = false;
     try {
       logger.info(
         'RESPOND_REQUEST_CALL: ${event.requestReference} action=$action',
@@ -333,6 +338,7 @@ class _TutorRequestNotificationListenerState
             'status=${res.status} message=${res.message} '
             'requestStatus=${res.data?.requestStatus ?? res.requestStatus}',
       );
+      declinedOk = result == false && res.status == true;
     } catch (e) {
       logger.error(
         'Failed to submit tutor request response: $e',
@@ -340,6 +346,34 @@ class _TutorRequestNotificationListenerState
       );
     } finally {
       _responding.remove(event.requestReference);
+    }
+
+    if (declinedOk) {
+      await _showDeclinedPopup(event);
+    }
+  }
+
+  /// Declined popup, shown only on the receiver device after a successful
+  /// Decline.
+  Future<void> _showDeclinedPopup(TutorRequestEvent event) async {
+    final popupContext = _resolvePopupContext();
+    if (popupContext == null) {
+      logger.warning('DECLINED_POPUP_NO_CONTEXT: ${event.requestReference}');
+      return;
+    }
+    final amount = double.tryParse(event.amount.trim());
+    final requesterName =
+    event.requesterName.trim().isEmpty ? null : event.requesterName.trim();
+    try {
+      logger.info('SHOW_DECLINED_POPUP: ${event.requestReference}');
+      await showEducationTuitionRequestPopup(
+        popupContext,
+        state: EducationTuitionPopupState.declined,
+        amount: amount,
+        requesterName: requesterName,
+      );
+    } catch (e) {
+      logger.error('Failed to show declined popup: $e', error: e);
     }
   }
 

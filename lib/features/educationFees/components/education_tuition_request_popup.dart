@@ -18,8 +18,15 @@ import 'education_tutor_identity.dart';
 enum EducationTuitionPopupState { request, received, accepted, declined }
 
 /// Reusable Tuition Fee Request popup, shared by the verified and the
-/// unverified tutor flows. Accept/Decline currently just close the popup —
-/// the real routing is wired in later.
+/// unverified tutor flows.
+///
+/// For the result states ([EducationTuitionPopupState.accepted] /
+/// [EducationTuitionPopupState.declined]) the copy depends on who is looking:
+///
+/// * Receiver (tutor, `isSenderView == false`): "You have declined ... from
+///   <requester>."
+/// * Sender (`isSenderView == true`): "<tutor> has declined your ... request."
+///   In this case [requesterName] carries the TUTOR's name.
 class EducationTuitionRequestPopup extends StatelessWidget {
   const EducationTuitionRequestPopup({
     super.key,
@@ -29,6 +36,7 @@ class EducationTuitionRequestPopup extends StatelessWidget {
     this.paymentPurpose,
     this.paymentMethod,
     this.requestStatusLabel,
+    this.isSenderView = false,
     this.onAccept,
     this.onDecline,
   });
@@ -38,7 +46,8 @@ class EducationTuitionRequestPopup extends StatelessWidget {
   /// Plain amount in rupees. Hidden when the API did not send one.
   final double? amount;
 
-  /// Who raised the request ("Requested By ..."). Hidden when empty.
+  /// Other party's name. Receiver view: who raised the request.
+  /// Sender view: the tutor who responded. Hidden when empty.
   final String? requesterName;
 
   /// Shown only when the payload includes a subject or purpose.
@@ -50,12 +59,16 @@ class EducationTuitionRequestPopup extends StatelessWidget {
   /// Shown only when the payload includes a request status string.
   final String? requestStatusLabel;
 
+  /// true  -> popup is shown on the sender's device (result states only).
+  /// false -> popup is shown on the receiver's device (default).
+  final bool isSenderView;
+
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
 
   bool get _isResult =>
       state == EducationTuitionPopupState.accepted ||
-      state == EducationTuitionPopupState.declined;
+          state == EducationTuitionPopupState.declined;
 
   bool get _accepted => state == EducationTuitionPopupState.accepted;
 
@@ -68,7 +81,20 @@ class EducationTuitionRequestPopup extends StatelessWidget {
     ).format(amount);
   }
 
-  String get _requester => requesterName?.trim() ?? '';
+  /// Display name in Title Case ("darshan nikam innoplix" ->
+  /// "Darshan Nikam Innoplix").
+  String get _requester {
+    final raw = requesterName?.trim() ?? '';
+    if (raw.isEmpty) return '';
+    return raw
+        .split(RegExp(r'\s+'))
+        .map(
+          (word) => word.isEmpty
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+    )
+        .join(' ');
+  }
 
   bool get _hasDetails {
     bool present(String? value) => value != null && value.trim().isNotEmpty;
@@ -85,7 +111,7 @@ class EducationTuitionRequestPopup extends StatelessWidget {
     // and fall back to the Material 40px default when there is no inset.
     final viewPadding = MediaQuery.viewPaddingOf(context);
     final verticalInset =
-        math.max(40 * u, math.max(viewPadding.top, viewPadding.bottom) + 8 * u);
+    math.max(40 * u, math.max(viewPadding.top, viewPadding.bottom) + 8 * u);
     return Dialog(
       backgroundColor: Colors.white,
       insetPadding: EdgeInsets.symmetric(
@@ -212,14 +238,12 @@ class EducationTuitionRequestPopup extends StatelessWidget {
             child: _OutlineButton(
               unit: u,
               label: 'Decline',
-              // TODO(routing): wire to the decline-request API later.
               onPressed: onDecline ?? () => Navigator.of(context).pop(),
             ),
           ),
           SizedBox(width: 12 * u),
           Expanded(
             child: CustomElevatedButton(
-              // TODO(routing): wire to the accept-request API later.
               onPressed: onAccept ?? () => Navigator.of(context).pop(),
               label: 'Accept Request',
               showArrow: false,
@@ -237,8 +261,44 @@ class EducationTuitionRequestPopup extends StatelessWidget {
     ];
   }
 
+  /// Main sentence under the title of the result popup.
+  String get _resultBodyText {
+    final name = _requester;
+    if (_accepted) {
+      if (isSenderView) {
+        return name.isEmpty
+            ? 'Your tuition fee payment request has been accepted.'
+            : '$name has accepted your tuition fee payment request.';
+      }
+      return name.isEmpty
+          ? 'You have accepted the tuition fee payment request.'
+          : 'You have accepted the tuition fee payment request from $name.';
+    }
+    if (isSenderView) {
+      return name.isEmpty
+          ? 'Your tuition fee payment request has been declined.'
+          : '$name has declined your tuition fee payment request.';
+    }
+    return name.isEmpty
+        ? 'You have declined the tuition fee payment request.'
+        : 'You have declined the tuition fee payment request from $name.';
+  }
+
+  /// Small grey line above the Done button. Null = hidden.
+  /// Receiver declined: hidden (no "will be notified" line).
+  String? get _resultFooterText {
+    if (_accepted) {
+      return 'You can now proceed to the next step.';
+    }
+    if (isSenderView) {
+      return 'You can send a new request or try another tutor.';
+    }
+    return null;
+  }
+
   /// Image-4/image-5 body: status icon, copy, amount pill, Done.
   List<Widget> _resultBody(BuildContext context, double u) {
+    final footer = _resultFooterText;
     return [
       SvgPicture.asset(
         _accepted
@@ -259,13 +319,7 @@ class EducationTuitionRequestPopup extends StatelessWidget {
       ),
       SizedBox(height: 8 * u),
       Text(
-        _accepted
-            ? (_requester.isEmpty
-                ? 'You have accepted the tuition fee payment request.'
-                : 'You have accepted the tuition fee payment request from $_requester.')
-            : (_requester.isEmpty
-                ? 'You have declined the tuition fee payment request.'
-                : 'You have declined the tuition fee payment request from $_requester.'),
+        _resultBodyText,
         textAlign: TextAlign.center,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 13 * u,
@@ -291,25 +345,23 @@ class EducationTuitionRequestPopup extends StatelessWidget {
         unit: u,
         text: _accepted ? 'Request Accepted' : 'Request Declined',
         background:
-            _accepted ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+        _accepted ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
         foreground:
-            _accepted ? const Color(0xFF16A34A) : const Color(0xFF870002),
+        _accepted ? const Color(0xFF16A34A) : const Color(0xFF870002),
       ),
-      SizedBox(height: 16 * u),
-      Text(
-        _accepted
-            ? 'You can now proceed with the next step.\nContinue'
-            : (_requester.isEmpty
-                ? 'The requester will be notified about your decision.'
-                : '$_requester will be notified about your decision.'),
-        textAlign: TextAlign.center,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 13 * u,
-          fontWeight: FontWeight.w400,
-          height: 1.4,
-          color: const Color(0xFF71717A),
+      if (footer != null) ...[
+        SizedBox(height: 16 * u),
+        Text(
+          footer,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13 * u,
+            fontWeight: FontWeight.w400,
+            height: 1.4,
+            color: const Color(0xFF71717A),
+          ),
         ),
-      ),
+      ],
       SizedBox(height: 22 * u),
       SizedBox(
         width: double.infinity,
@@ -327,15 +379,18 @@ class EducationTuitionRequestPopup extends StatelessWidget {
 
 /// Shows the shared popup; returns true on Accept, false on Decline and
 /// null when dismissed via the close button or the barrier.
+///
+/// [isSenderView] only affects the accepted / declined result copy.
 Future<bool?> showEducationTuitionRequestPopup(
-  BuildContext context, {
-  required EducationTuitionPopupState state,
-  double? amount,
-  String? requesterName,
-  String? paymentPurpose,
-  String? paymentMethod,
-  String? requestStatusLabel,
-}) {
+    BuildContext context, {
+      required EducationTuitionPopupState state,
+      double? amount,
+      String? requesterName,
+      String? paymentPurpose,
+      String? paymentMethod,
+      String? requestStatusLabel,
+      bool isSenderView = false,
+    }) {
   return showDialog<bool>(
     context: context,
     useRootNavigator: true,
@@ -346,6 +401,7 @@ Future<bool?> showEducationTuitionRequestPopup(
       paymentPurpose: paymentPurpose,
       paymentMethod: paymentMethod,
       requestStatusLabel: requestStatusLabel,
+      isSenderView: isSenderView,
       onAccept: () => Navigator.of(dialogContext).pop(true),
       onDecline: () => Navigator.of(dialogContext).pop(false),
     ),

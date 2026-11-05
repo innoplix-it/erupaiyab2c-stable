@@ -13,8 +13,8 @@ import '../../../constants/routes_constant.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/education_erupaiya_verifying_overlay.dart';
-import '../components/education_tutor_identity.dart';
 import '../components/education_tuition_request_popup.dart';
+import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
@@ -26,7 +26,13 @@ String _formatElapsed(int seconds) {
   return '$m:$s';
 }
 
-enum _TutorRequestPhase { form, sending, sent, accepted, saveFailed }
+enum _TutorRequestPhase {
+  form,
+  sending,
+  sent,
+  accepted,
+  saveFailed,
+}
 
 class EducationTutorRequestView extends ConsumerStatefulWidget {
   const EducationTutorRequestView({
@@ -57,7 +63,8 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
   final String? ifscCode;
   final String? branch;
 
-  /// `data` of `POST /api/education/tutor/details` for a VERIFIED tutor.
+  /// `data` of `POST /api/education/tutor/details`
+  /// for a VERIFIED tutor.
   final EducationTutorDetailsData? tutorDetails;
 
   /// Subject/fee type selected by the user in the amount screen.
@@ -77,9 +84,12 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
 class _EducationTutorRequestViewState
     extends ConsumerState<EducationTutorRequestView> {
   _TutorRequestPhase _phase = _TutorRequestPhase.form;
+
   String? _overlayLabel;
   String? _overlaySubtitle;
+
   int _elapsedSeconds = 0;
+
   Timer? _ticker;
 
   /// Guards: one status call at a time, accept/reject handled only once.
@@ -99,31 +109,44 @@ class _EducationTutorRequestViewState
   }
 
   // ---------------------------------------------------------------------------
-  // Polling (sender side). request-status works for the sender (HTTP 200).
+  // Polling (sender side).
   // ---------------------------------------------------------------------------
 
   void _startTicker() {
     _ticker?.cancel();
+
     final repo = ref.read(educationFeesRepositoryProvider);
+
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) async {
       if (!mounted) return;
+
       setState(() => _elapsedSeconds++);
 
-      if (_resultHandled || _polling || _elapsedSeconds % 2 != 0) return;
+      if (_resultHandled || _polling || _elapsedSeconds % 2 != 0) {
+        return;
+      }
+
       final requestReference =
           ref.read(educationFeesControllerProvider).requestReference;
-      if (requestReference == null || requestReference.isEmpty) return;
+
+      if (requestReference == null || requestReference.isEmpty) {
+        return;
+      }
 
       _polling = true;
+
       try {
-        final statusRes = await repo.fetchTutorRequestStatus(requestReference);
+        final statusRes =
+        await repo.fetchTutorRequestStatus(requestReference);
+
         if (!mounted || _resultHandled) return;
+
         if (statusRes.data?.isAccepted == true) {
           _resultHandled = true;
           _onAccepted();
         } else if (statusRes.data?.isRejected == true) {
           _resultHandled = true;
-          _onRejected();
+          unawaited(_onRejected());
         }
       } catch (_) {
         // Keep polling until the backend reports accepted / rejected.
@@ -133,42 +156,57 @@ class _EducationTutorRequestViewState
     });
   }
 
-  void _onRejected() {
+  /// Tutor declined: show the declined popup with SENDER wording
+  /// ("<Tutor> has declined your tuition fee payment request."), then go back
+  /// once the popup is closed (Done / X / tap outside).
+  Future<void> _onRejected() async {
     _ticker?.cancel();
+
     if (!mounted) return;
-    showEducationTuitionRequestPopup(
+
+    await showEducationTuitionRequestPopup(
       context,
       state: EducationTuitionPopupState.declined,
-      amount: widget.amount,
-      requesterName: widget.tutorName,
-    ).then((_) {
-      if (mounted) Navigator.of(context).pop();
-    });
+      amount: _amount(),
+      requesterName: _tutorName(),
+      isSenderView: true,
+    );
+
+    if (!mounted) return;
+
+    Navigator.of(context).pop();
   }
 
   /// Tutor accepted: show loader, refresh bank details, save beneficiary and
   /// open the tutor profile screen directly (no intermediate popup).
   void _onAccepted() {
     _ticker?.cancel();
+
     if (!mounted) return;
+
     setState(() {
       _phase = _TutorRequestPhase.accepted;
       _overlayLabel = 'Request accepted successfully';
       _overlaySubtitle = 'Fetching bank details...';
     });
+
     _fetchDetailsSaveAndOpenProfile();
   }
 
-  /// Re-fetches tutor/details (bank name, account, IFSC, holder). Any failure
-  /// falls back to the details we already have, so the flow never blocks.
+  /// Re-fetches tutor/details (bank name, account, IFSC, holder).
+  /// Any failure falls back to the details we already have,
+  /// so the flow never blocks.
   Future<void> _refreshTutorDetails() async {
     try {
       final repo = ref.read(educationFeesRepositoryProvider);
+
       final res = await repo.fetchTutorDetails(
         mobile: widget.mobile,
         amount: _amount().toInt(),
       );
+
       final EducationTutorDetailsData? fresh = res.data;
+
       if (fresh != null && mounted) {
         _freshDetails = fresh;
       }
@@ -179,6 +217,7 @@ class _EducationTutorRequestViewState
 
   Future<void> _fetchDetailsSaveAndOpenProfile() async {
     await _refreshTutorDetails();
+
     if (!mounted) return;
 
     setState(() {
@@ -187,7 +226,9 @@ class _EducationTutorRequestViewState
     });
 
     final controller = ref.read(educationFeesControllerProvider.notifier);
+
     final saved = await controller.saveTutorBeneficiaryRegistered();
+
     if (!mounted) return;
 
     if (saved) {
@@ -195,12 +236,16 @@ class _EducationTutorRequestViewState
         _overlayLabel = 'Beneficiary saved successfully';
         _overlaySubtitle = 'Opening tutor profile...';
       });
+
       await Future<void>.delayed(widget.redirectDuration);
+
       if (!mounted) return;
+
       _openProfile();
     } else {
       final saveErrorMessage =
           ref.read(educationFeesControllerProvider).saveErrorMessage;
+
       setState(() {
         _phase = _TutorRequestPhase.saveFailed;
         _overlayLabel = 'Failed to save beneficiary';
@@ -216,11 +261,13 @@ class _EducationTutorRequestViewState
       _overlayLabel = 'Retrying save beneficiary...';
       _overlaySubtitle = 'Please wait';
     });
+
     _fetchDetailsSaveAndOpenProfile();
   }
 
   void _openProfile() {
     final details = _details;
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => EducationTutorProfileView(
@@ -247,43 +294,52 @@ class _EducationTutorRequestViewState
 
   String _tutorName() {
     final fromApi = _details?.tutorName.trim() ?? '';
+
     return fromApi.isNotEmpty ? fromApi : widget.tutorName;
   }
 
   String _accountLine() {
     final fromApi = _details?.accountNumber.trim() ?? '';
+
     if (fromApi.isNotEmpty) return fromApi;
+
     return widget.maskedAccount?.trim() ?? '';
   }
 
   String _accountNumber() {
     final fromApi = _details?.accountNumber.trim() ?? '';
+
     return fromApi.isNotEmpty ? fromApi : (widget.accountNumber ?? '');
   }
 
   String _ifscCode() {
     final fromApi = _details?.ifsc.trim() ?? '';
+
     return fromApi.isNotEmpty ? fromApi : (widget.ifscCode ?? '');
   }
 
   double _amount() {
     final fromApi = _details?.amount ?? 0;
+
     return fromApi > 0 ? fromApi.toDouble() : widget.amount;
   }
 
   String _amountLabel() {
     return NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '\u20B9',
+      symbol: '₹',
       decimalDigits: 0,
     ).format(_amount());
   }
 
   List<EducationTutorStatusLine> _identityStatusLines() {
     final details = _details;
+
     if (details == null) return const [];
+
     final bankName = details.bankName.trim();
     final holderName = details.accountHolderName.trim();
+
     return [
       if (bankName.isNotEmpty)
         EducationTutorStatusLine(
@@ -300,10 +356,14 @@ class _EducationTutorRequestViewState
 
   String? _subjectForRequest() {
     final explicit = widget.subject?.trim() ?? '';
+
     if (explicit.isNotEmpty) return explicit;
+
     final selected =
         ref.read(educationFeesControllerProvider).feeType?.trim() ?? '';
+
     if (selected.isNotEmpty) return selected;
+
     return null;
   }
 
@@ -313,16 +373,21 @@ class _EducationTutorRequestViewState
 
   Future<void> _sendRequest() async {
     if (_phase != _TutorRequestPhase.form) return;
+
     final subject = _subjectForRequest();
+
     if (subject == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Select a subject before sending the request.'),
         ),
       );
+
       return;
     }
+
     final controller = ref.read(educationFeesControllerProvider.notifier);
+
     controller.updateMobileInput(widget.mobile);
     controller.updateRecipientName(_tutorName());
 
@@ -333,38 +398,53 @@ class _EducationTutorRequestViewState
     });
 
     final repo = ref.read(educationFeesRepositoryProvider);
+
     try {
       final responseFuture = repo.sendTutorRequest(
         mobile: widget.mobile,
         amount: widget.amount.toInt(),
         subject: subject,
       );
+
       final results = await Future.wait([
         responseFuture.catchError(
-              (_) => const EducationTutorSendRequestResponse(status: false),
+              (_) => const EducationTutorSendRequestResponse(
+            status: false,
+          ),
         ),
         Future<void>.delayed(widget.sendDuration),
       ]);
+
       final response = results[0] as EducationTutorSendRequestResponse;
+
       if (!mounted) return;
 
       if (response.status && response.data != null) {
-        controller.storeTutorRequestReference(response.data!.requestReference);
+        controller.storeTutorRequestReference(
+          response.data!.requestReference,
+        );
       }
 
       setState(() => _overlayLabel = 'Request sent');
+
       await Future<void>.delayed(widget.sentLabelDuration);
+
       if (!mounted) return;
 
       setState(() => _phase = _TutorRequestPhase.sent);
+
       _startTicker();
     } catch (_) {
       if (!mounted) return;
+
       setState(() => _overlayLabel = 'Request sent');
+
       await Future<void>.delayed(widget.sentLabelDuration);
+
       if (!mounted) return;
 
       setState(() => _phase = _TutorRequestPhase.sent);
+
       _startTicker();
     }
   }
@@ -377,10 +457,13 @@ class _EducationTutorRequestViewState
   Widget build(BuildContext context) {
     final u = educationTutorUnit(context);
     final inset = 16 * u;
+
     final amountLabel = _amountLabel();
     final accountLine = _accountLine();
+
     final isSent = _phase == _TutorRequestPhase.sent ||
         _phase == _TutorRequestPhase.accepted;
+
     final isLoading = _phase == _TutorRequestPhase.sending ||
         _phase == _TutorRequestPhase.accepted;
 
@@ -405,7 +488,8 @@ class _EducationTutorRequestViewState
                 children: [
                   DecoratedBox(
                     decoration: const BoxDecoration(
-                        gradient: kEducationTutorBackgroundGradient),
+                      gradient: kEducationTutorBackgroundGradient,
+                    ),
                     child: SafeArea(
                       top: false,
                       child: Column(
@@ -413,7 +497,11 @@ class _EducationTutorRequestViewState
                           Expanded(
                             child: SingleChildScrollView(
                               padding: EdgeInsets.fromLTRB(
-                                  inset, 8 * u, inset, 16 * u),
+                                inset,
+                                8 * u,
+                                inset,
+                                16 * u,
+                              ),
                               child: Column(
                                 children: [
                                   EducationTutorIdentityCard(
@@ -450,7 +538,8 @@ class _EducationTutorRequestViewState
                                         Text(
                                           _formatElapsed(_elapsedSeconds),
                                           key: const ValueKey(
-                                              'tutorRequestTimer'),
+                                            'tutorRequestTimer',
+                                          ),
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 24 * u,
                                             fontWeight: FontWeight.w700,
@@ -477,7 +566,9 @@ class _EducationTutorRequestViewState
                           ),
                           if (isSent)
                             Padding(
-                              padding: EdgeInsets.only(bottom: 10 * u),
+                              padding: EdgeInsets.only(
+                                bottom: 10 * u,
+                              ),
                               child: Text(
                                 'go back and relax , will notify you once accept',
                                 style: GoogleFonts.plusJakartaSans(
@@ -488,8 +579,12 @@ class _EducationTutorRequestViewState
                               ),
                             ),
                           Padding(
-                            padding:
-                            EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
+                            padding: EdgeInsets.fromLTRB(
+                              inset,
+                              0,
+                              inset,
+                              24 * u,
+                            ),
                             child: _phase == _TutorRequestPhase.saveFailed
                                 ? CustomElevatedButton(
                               onPressed: _retrySaveBeneficiary,
@@ -527,7 +622,8 @@ class _EducationTutorRequestViewState
                                       shape: RoundedRectangleBorder(
                                         borderRadius:
                                         BorderRadius.circular(
-                                            28 * u),
+                                          28 * u,
+                                        ),
                                       ),
                                     ),
                                     child: Text(
