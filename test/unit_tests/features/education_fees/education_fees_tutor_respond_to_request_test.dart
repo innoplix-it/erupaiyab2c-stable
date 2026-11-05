@@ -72,9 +72,8 @@ void main() {
 
   const requestReference = 'EDUTR20261103180707F4A2C57A';
 
-  group('POST /api/education/tutor/request-status/{request_reference} request contract',
-      () {
-    test('uses POST method and correct dynamic endpoint', () async {
+  group('POST /api/education/tutor/respond-request request contract', () {
+    test('uses POST method and correct endpoint', () async {
       final (adapter, repository) = _repository(
         payload: const {
           'status': true,
@@ -98,11 +97,12 @@ void main() {
       expect(options!.method, 'POST');
       expect(
         options.uri.toString(),
-        ApiConstants.educationTutorRespondToRequestEndpoint(requestReference),
+        ApiConstants.educationTutorRespondToRequestEndpoint,
       );
+      expect(options.uri.toString(), isNot(contains(requestReference)));
     });
 
-    test('includes request_reference in URL path', () async {
+    test('keeps request_reference out of the URL path', () async {
       final (adapter, repository) = _repository(
         payload: const {
           'status': true,
@@ -122,8 +122,8 @@ void main() {
       );
 
       expect(
-        adapter.options!.uri.toString(),
-        contains(requestReference),
+        adapter.options!.uri.path,
+        '/api/education/tutor/respond-request',
       );
     });
 

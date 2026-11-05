@@ -329,6 +329,27 @@ void main() {
       ),
     ));
     
+    when(() => mockRepo.fetchTutorDetails(
+          mobile: any(named: 'mobile'),
+          amount: any(named: 'amount'),
+        )).thenAnswer((_) async => const EducationTutorDetailsResponse(
+          status: true,
+          verificationStatus: EducationTutorVerificationStatus.verified,
+          data: EducationTutorDetailsData(
+            tutorId: 456,
+            tutorName: 'Test Tutor Name',
+            bankName: 'Test Bank',
+            accountNumber: '1234567890101234',
+            accountHolderName: 'Test Tutor Name',
+            ifsc: 'TEST0001234',
+            bankLogo: null,
+            amount: 2000,
+            panMasked: 'FNVPP3865B',
+            branch: 'Nashik',
+            accountMasked: 'XXXXXXX4582',
+          ),
+        ));
+
     when(() => mockRepo.saveTutorBeneficiaryRegistered(
           requestReference: any(named: 'requestReference'),
         )).thenAnswer((_) async =>
@@ -396,37 +417,35 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    // First poll is still PENDING. The next even second returns ACCEPTED.
-    await tester.pump(const Duration(seconds: 4));
-    await tester.pump();
-    
-    // Accepted popup should appear
-    expect(find.text('Request Accepted Successfully'), findsOneWidget);
-    
-    // Close the popup
-    await tester.tap(find.text('Done'));
-    await tester.pump();
-    await tester.pump();
+    var sawLoader = false;
+    for (var i = 0; i < 40 && !sawLoader; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      sawLoader =
+          find.text('Request accepted successfully').evaluate().isNotEmpty;
+    }
 
-    expect(find.text('you will redirected in 5 sec to tutor profile'),
-        findsOneWidget);
+    expect(sawLoader, isTrue);
+    expect(find.text('Do not close or go back.'), findsOneWidget);
+    expect(find.text('Test Tutor Name'), findsWidgets);
+    expect(find.text('BANK DETAILS'), findsNothing);
 
-    // Redirect fires after the announced 5 seconds.
-    await tester.pump(const Duration(seconds: 6));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      if (find.text('BANK DETAILS').evaluate().isNotEmpty) break;
+    }
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('BANK DETAILS'), findsOneWidget);
     expect(find.text('Subject (Optional)'), findsOneWidget);
+    expect(find.text('Mathematics'), findsOneWidget);
     expect(find.text('Proceed to Pay'), findsOneWidget);
-    // The profile card no longer renders static status copy.
     expect(
       find.text('Test Tutor has accepted your request now you \n can sent tution fees'),
       findsNothing,
     );
     expect(
       find.text('tutor will be saved for future payments'),
-      findsNothing,
+      findsOneWidget,
     );
     // The shared identity card is reused, so the amount pill stays the same.
     expect(find.text('\u20B92,000'), findsOneWidget);

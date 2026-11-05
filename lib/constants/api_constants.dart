@@ -59,8 +59,8 @@ class ApiConstants {
   static String educationTutorRequestStatusEndpoint(String requestReference) =>
       '$baseUrl/api/education/tutor/request-status/$requestReference';
   // POST body: {"request_reference": "...", "action": "ACCEPTED" | "REJECTED"}
-  static String educationTutorRespondToRequestEndpoint(
-      String requestReference) =>
+  // Reference stays in the body. The path has no id — that URL 404s.
+  static const String educationTutorRespondToRequestEndpoint =
       '$baseUrl/api/education/tutor/respond-request';
   static const String educationTutorReceivedRequestsEndpoint =
       '$baseUrl/api/education/tutor/received-requests';

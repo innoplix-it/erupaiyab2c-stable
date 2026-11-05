@@ -519,6 +519,22 @@ void main() {
   });
 
   group('API and network failures', () {
+    test('409 receiver PAN unavailable is parsed and not thrown', () async {
+      final (_, repository) = _repository(
+        statusCode: 409,
+        payload: const {
+          'status': false,
+          'message': 'Receiver PAN details are unavailable.',
+        },
+      );
+
+      final response = await repository.fetchTutorRequestStatus(requestReference);
+
+      expect(response.status, isFalse);
+      expect(response.message, 'Receiver PAN details are unavailable.');
+      expect(response.data, isNull);
+    });
+
     test('error payload with a non-2xx status is still parsed', () async {
       final (_, repository) = _repository(
         statusCode: 400,

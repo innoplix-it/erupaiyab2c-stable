@@ -486,6 +486,29 @@ void main() {
       expect(response.data!.amount, 500);
     });
 
+    test('reads account and IFSC from alternate keys', () async {
+      final (_, repository) = _repository(
+        payload: const {
+          'status': true,
+          'verification_status': 'VERIFIED',
+          'data': {
+            'tutor_name': 'Darshan Nikam',
+            'account_no': '123456789012',
+            'ifsc_code': 'BARB0NASHIK',
+            'amount': 1.0,
+          },
+        },
+      );
+
+      final response =
+          await repository.fetchTutorDetails(mobile: mobile, amount: amount);
+
+      expect(response.data!.tutorName, 'Darshan Nikam');
+      expect(response.data!.accountNumber, '123456789012');
+      expect(response.data!.ifsc, 'BARB0NASHIK');
+      expect(response.data!.amount, 1);
+    });
+
     test('handles missing nested fields with defaults', () async {
       final (_, repository) = _repository(
         payload: const {

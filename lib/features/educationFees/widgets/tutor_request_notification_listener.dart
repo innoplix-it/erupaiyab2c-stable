@@ -309,7 +309,8 @@ class _TutorRequestNotificationListenerState
   }
 
   /// Accept -> ACCEPTED, Decline -> REJECTED via
-  /// POST /api/education/tutor/respond-request.
+  /// POST /api/education/tutor/respond-request
+  /// with body {"request_reference", "action"}.
   /// A successful Decline shows the declined popup on THIS (receiver) device.
   Future<void> _handlePopupResult(
       TutorRequestEvent event,

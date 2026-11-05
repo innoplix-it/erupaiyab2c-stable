@@ -96,8 +96,14 @@ class _EducationTutorRequestViewState
   bool _polling = false;
   bool _resultHandled = false;
 
+  /// Accept loader sits on this screen so the tutor card stays visible.
+  bool _acceptLoader = false;
+
   /// Fresh tutor details fetched right after the tutor accepts.
   EducationTutorDetailsData? _freshDetails;
+
+  /// Subject returned by the accept status call, when the backend sends one.
+  String? _acceptedSubject;
 
   EducationTutorDetailsData? get _details =>
       _freshDetails ?? widget.tutorDetails;
@@ -141,8 +147,14 @@ class _EducationTutorRequestViewState
 
         if (!mounted || _resultHandled) return;
 
-        if (statusRes.data?.isAccepted == true) {
+        // After accept the status API can return 409 when the tutor has no
+        // PAN on file. Stop polling and open the profile with tutor/details.
+        final panUnavailable = _receiverPanUnavailable(statusRes);
+
+        if (statusRes.data?.isAccepted == true || panUnavailable) {
           _resultHandled = true;
+          final subject = statusRes.data?.subject.trim() ?? '';
+          if (subject.isNotEmpty) _acceptedSubject = subject;
           _onAccepted();
         } else if (statusRes.data?.isRejected == true) {
           _resultHandled = true;
@@ -177,20 +189,54 @@ class _EducationTutorRequestViewState
     Navigator.of(context).pop();
   }
 
-  /// Tutor accepted: show loader, refresh bank details, save beneficiary and
-  /// open the tutor profile screen directly (no intermediate popup).
+  bool _receiverPanUnavailable(EducationTutorRequestStatusResponse response) {
+    final message = response.message?.toLowerCase() ?? '';
+    return response.status == false &&
+        message.contains('receiver pan details are unavailable');
+  }
+
+  /// Tutor accepted: same verifying loader on this screen, then the profile.
   void _onAccepted() {
     _ticker?.cancel();
 
     if (!mounted) return;
 
     setState(() {
-      _phase = _TutorRequestPhase.accepted;
+      _acceptLoader = true;
       _overlayLabel = 'Request accepted successfully';
-      _overlaySubtitle = 'Fetching bank details...';
+      _overlaySubtitle = 'Do not close or go back.';
     });
 
-    _fetchDetailsSaveAndOpenProfile();
+    unawaited(_showAcceptedLoaderThenProfile());
+  }
+
+  Future<void> _showAcceptedLoaderThenProfile() async {
+    try {
+      await Future.wait<void>([
+        _prepareAcceptedProfile(),
+        Future<void>.delayed(widget.redirectDuration),
+      ]);
+    } catch (_) {
+      // Open the profile with whatever details are already on screen.
+    }
+
+    if (!mounted) return;
+
+    _openProfile();
+  }
+
+  Future<void> _prepareAcceptedProfile() async {
+    await _refreshTutorDetails();
+
+    if (!mounted) return;
+
+    try {
+      await ref
+          .read(educationFeesControllerProvider.notifier)
+          .saveTutorBeneficiaryRegistered();
+    } catch (_) {
+      // The profile still opens with the tutor details already fetched.
+    }
   }
 
   /// Re-fetches tutor/details (bank name, account, IFSC, holder).
@@ -215,54 +261,8 @@ class _EducationTutorRequestViewState
     }
   }
 
-  Future<void> _fetchDetailsSaveAndOpenProfile() async {
-    await _refreshTutorDetails();
-
-    if (!mounted) return;
-
-    setState(() {
-      _overlayLabel = 'Request accepted successfully';
-      _overlaySubtitle = 'Saving beneficiary details...';
-    });
-
-    final controller = ref.read(educationFeesControllerProvider.notifier);
-
-    final saved = await controller.saveTutorBeneficiaryRegistered();
-
-    if (!mounted) return;
-
-    if (saved) {
-      setState(() {
-        _overlayLabel = 'Beneficiary saved successfully';
-        _overlaySubtitle = 'Opening tutor profile...';
-      });
-
-      await Future<void>.delayed(widget.redirectDuration);
-
-      if (!mounted) return;
-
-      _openProfile();
-    } else {
-      final saveErrorMessage =
-          ref.read(educationFeesControllerProvider).saveErrorMessage;
-
-      setState(() {
-        _phase = _TutorRequestPhase.saveFailed;
-        _overlayLabel = 'Failed to save beneficiary';
-        _overlaySubtitle =
-            saveErrorMessage ?? 'Please retry saving beneficiary details';
-      });
-    }
-  }
-
   void _retrySaveBeneficiary() {
-    setState(() {
-      _phase = _TutorRequestPhase.accepted;
-      _overlayLabel = 'Retrying save beneficiary...';
-      _overlaySubtitle = 'Please wait';
-    });
-
-    _fetchDetailsSaveAndOpenProfile();
+    unawaited(_showAcceptedLoaderThenProfile());
   }
 
   void _openProfile() {
@@ -275,14 +275,16 @@ class _EducationTutorRequestViewState
           accountLine: _accountLine(),
           amount: _amount(),
           amountLabel: _amountLabel(),
-          panDetails: widget.panDetails,
+          panDetails: _pan(),
           accountNumber: _accountNumber(),
           ifscCode: _ifscCode(),
-          branch: widget.branch,
+          branch: _branch(),
+          subject: _subjectForProfile(),
           bankLogoUrl: details?.bankLogo,
           bankName: details?.bankName,
           accountHolderName: details?.accountHolderName,
           tutorDetails: details,
+          mobile: widget.mobile,
         ),
       ),
     );
@@ -299,11 +301,47 @@ class _EducationTutorRequestViewState
   }
 
   String _accountLine() {
-    final fromApi = _details?.accountNumber.trim() ?? '';
+    final masked = _details?.accountMasked?.trim() ?? '';
+
+    if (masked.isNotEmpty) return masked;
+
+    final widgetMasked = widget.maskedAccount?.trim() ?? '';
+
+    if (widgetMasked.isNotEmpty) return widgetMasked;
+
+    return _accountNumber();
+  }
+
+  String? _pan() {
+    final masked = _details?.panMasked?.trim() ?? '';
+
+    if (masked.isNotEmpty) return masked;
+
+    final pan = _details?.pan?.trim() ?? '';
+
+    if (pan.isNotEmpty) return pan;
+
+    final widgetPan = widget.panDetails?.trim() ?? '';
+
+    return widgetPan.isEmpty ? null : widgetPan;
+  }
+
+  String? _branch() {
+    final fromApi = _details?.branch?.trim() ?? '';
 
     if (fromApi.isNotEmpty) return fromApi;
 
-    return widget.maskedAccount?.trim() ?? '';
+    final widgetBranch = widget.branch?.trim() ?? '';
+
+    return widgetBranch.isEmpty ? null : widgetBranch;
+  }
+
+  String? _subjectForProfile() {
+    final accepted = _acceptedSubject?.trim() ?? '';
+
+    if (accepted.isNotEmpty) return accepted;
+
+    return _subjectForRequest();
   }
 
   String _accountNumber() {
@@ -464,15 +502,14 @@ class _EducationTutorRequestViewState
     final isSent = _phase == _TutorRequestPhase.sent ||
         _phase == _TutorRequestPhase.accepted;
 
-    final isLoading = _phase == _TutorRequestPhase.sending ||
-        _phase == _TutorRequestPhase.accepted;
+    final isLoading =
+        _phase == _TutorRequestPhase.sending || _acceptLoader;
 
     return Stack(
       children: [
         EducationFeesTheme(
           child: PopScope(
-            canPop: _phase != _TutorRequestPhase.sending &&
-                _phase != _TutorRequestPhase.accepted,
+            canPop: _phase != _TutorRequestPhase.sending && !_acceptLoader,
             child: Scaffold(
               backgroundColor: const Color(0xFFB5FFDA),
               appBar: MyAppBar(

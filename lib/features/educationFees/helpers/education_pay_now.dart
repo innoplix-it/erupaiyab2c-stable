@@ -26,6 +26,7 @@ Future<void> runEducationPayNow({
   String? recipientName,
   String? accountNo,
   String? ifsc,
+  String? feeType,
 }) async {
   if (!await RazorpayGuard.ensureProfileReadyAndNotPaused(ref)) return;
 
@@ -42,7 +43,7 @@ Future<void> runEducationPayNow({
       accountNo: account,
       ifsc: ifscCode,
       amount: amount,
-      feeType: state.feeType,
+      feeType: _firstNonEmpty(feeType, state.feeType ?? ''),
     );
   } catch (e) {
     AppSnackbar.show(

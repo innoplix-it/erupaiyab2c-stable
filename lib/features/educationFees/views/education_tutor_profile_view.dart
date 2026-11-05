@@ -9,9 +9,9 @@ import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/k_dialog.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/education_payment_sheets.dart';
-import '../components/education_tuition_request_popup.dart';
 import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
+import '../repositories/education_fees_repository.dart';
 import '../education_fees_typography.dart';
 import '../helpers/education_pay_now.dart';
 import '../models/education_fees_responses.dart';
@@ -36,6 +36,8 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
     this.bankName,
     this.accountHolderName,
     this.tutorDetails,
+    this.subject,
+    this.mobile,
   });
 
   final String tutorName;
@@ -59,6 +61,12 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
   final String? accountHolderName;
   final EducationTutorDetailsData? tutorDetails;
 
+  /// Subject the sender already chose. Shown in the subject field.
+  final String? subject;
+
+  /// Tutor mobile, used to re-read `POST /api/education/tutor/details` at pay.
+  final String? mobile;
+
   @override
   ConsumerState<EducationTutorProfileView> createState() =>
       _EducationTutorProfileViewState();
@@ -68,6 +76,15 @@ class _EducationTutorProfileViewState
     extends ConsumerState<EducationTutorProfileView> {
   final TextEditingController _subjectController = TextEditingController();
   bool _openingSummary = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final subject = widget.subject?.trim() ?? '';
+    if (subject.isNotEmpty) {
+      _subjectController.text = subject;
+    }
+  }
 
   @override
   void dispose() {
@@ -82,10 +99,14 @@ class _EducationTutorProfileViewState
     setState(() => _openingSummary = true);
 
     final repository = ref.read(educationFeesRepositoryProvider);
+    final details = await _tutorDetailsFromApi(repository);
+    final amount = details != null && details.amount > 0
+        ? details.amount.toDouble()
+        : widget.amount;
     EducationPaymentSummaryData? summary;
     try {
       final response = await repository.fetchPaymentSummary(
-        amount: widget.amount.round(),
+        amount: amount.round(),
       );
       if (response.status) summary = response.data;
     } catch (_) {
@@ -104,24 +125,60 @@ class _EducationTutorProfileViewState
     }
 
     final state = ref.read(educationFeesControllerProvider);
+    // tutor/details is the only source: tutor_name, account_number, ifsc, amount.
+    final recipientName = _filled([details?.tutorName, widget.tutorName]);
+    final accountNo = _filled([details?.accountNumber, widget.accountNumber]);
+    final ifsc = _filled([details?.ifsc, widget.ifscCode]);
+    final feeType = _filled([widget.subject, state.feeType]);
     KDialog.instance.openSheet(
       dialog: EducationPaymentSummarySheet(
-        amount: widget.amount,
+        amount: amount,
         initialSummary: summary,
         onPayNow: (payable) => runEducationPayNow(
           context: context,
           ref: ref,
           repository: repository,
           state: state,
-          amount: widget.amount,
+          amount: amount,
           payable: payable,
-          // Recipient details come from this screen's API data.
-          recipientName: widget.tutorName,
-          accountNo: widget.accountNumber,
-          ifsc: widget.ifscCode,
+          recipientName: recipientName,
+          accountNo: accountNo,
+          ifsc: ifsc,
+          feeType: feeType,
         ),
       ),
     );
+  }
+
+  /// Latest `POST /api/education/tutor/details` body. The screen copy is the
+  /// same API from when the profile opened.
+  Future<EducationTutorDetailsData?> _tutorDetailsFromApi(
+    EducationFeesRepository repository,
+  ) async {
+    final mobile = widget.mobile?.replaceAll(RegExp(r'\D'), '') ?? '';
+    if (mobile.length == 10) {
+      try {
+        final amount = widget.tutorDetails?.amount ?? widget.amount.round();
+        final response = await repository.fetchTutorDetails(
+          mobile: mobile,
+          amount: amount > 0 ? amount : widget.amount.round(),
+        );
+        if (response.status && response.data != null) return response.data;
+      } catch (_) {
+        // Keep the tutor-details payload already on this screen.
+      }
+    }
+    return widget.tutorDetails;
+  }
+
+  /// First non-empty value. "NA" is only a display placeholder.
+  String _filled(List<String?> values) {
+    for (final value in values) {
+      final text = value?.trim() ?? '';
+      if (text.isEmpty || text.toLowerCase() == 'na') continue;
+      return text;
+    }
+    return '';
   }
 
   /// Backend values are shown verbatim; a missing (null/empty) field is
@@ -170,7 +227,12 @@ class _EducationTutorProfileViewState
                           verified: widget.verified,
                           bankLogoUrl: widget.bankLogoUrl ??
                               widget.tutorDetails?.bankLogo,
-                          statusLines: const [],
+                          statusLines: const [
+                            EducationTutorStatusLine(
+                              text: 'tutor will be saved for future payments',
+                              color: Color(0xFF71717A),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 22 * u),
                         Text(
@@ -331,14 +393,6 @@ class _EducationTutorProfileViewState
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(inset, 0, inset, 12 * u),
-                  child: _TuitionPopupTriggers(
-                    unit: u,
-                    amount: widget.amount,
-                    requesterName: widget.tutorName,
-                  ),
-                ),
-                Padding(
                   padding: EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
                   child: CustomElevatedButton(
                     onPressed: _proceedToPay,
@@ -354,71 +408,6 @@ class _EducationTutorProfileViewState
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Row of text triggers above "Proceed to Pay" that open each state of the
-/// shared [EducationTuitionRequestPopup].
-/// TODO(routing): replace the demo triggers with the real request-state flow.
-class _TuitionPopupTriggers extends StatelessWidget {
-  const _TuitionPopupTriggers({
-    required this.unit,
-    required this.amount,
-    required this.requesterName,
-  });
-
-  final double unit;
-  final double amount;
-  final String requesterName;
-
-  static const List<String> _labels = [
-    'Received',
-    'Accepted',
-    'Declined',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final u = unit;
-    return Row(
-      children: [
-        for (var i = 0; i < _labels.length; i++) ...[
-          if (i > 0) SizedBox(width: 8 * u),
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              // +1: the request state's own trigger was removed; the
-              // remaining chips map to received/accepted/declined.
-              onTap: () => showEducationTuitionRequestPopup(
-                context,
-                state: EducationTuitionPopupState.values[i + 1],
-                amount: amount,
-                requesterName: requesterName,
-              ),
-              child: Container(
-                key: ValueKey('tuitionPopupTrigger_${_labels[i]}'),
-                padding: EdgeInsets.symmetric(vertical: 9 * u),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(20 * u),
-                  border: Border.all(color: const Color(0xFFE4E4E7)),
-                ),
-                child: Text(
-                  _labels[i],
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12 * u,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF3F3F46),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

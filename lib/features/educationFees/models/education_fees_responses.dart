@@ -260,18 +260,36 @@ class EducationTutorDetailsData {
     required this.ifsc,
     required this.bankLogo,
     required this.amount,
+    this.pan,
+    this.panMasked,
+    this.branch,
+    this.accountMasked,
   });
 
   factory EducationTutorDetailsData.fromJson(Map<String, dynamic> json) {
     return EducationTutorDetailsData(
-      tutorId: json['tutor_id'] as int? ?? 0,
-      tutorName: json['tutor_name']?.toString() ?? '',
-      bankName: json['bank_name']?.toString() ?? '',
-      accountNumber: json['account_number']?.toString() ?? '',
-      accountHolderName: json['account_holder_name']?.toString() ?? '',
-      ifsc: json['ifsc']?.toString() ?? '',
-      bankLogo: json['bank_logo']?.toString(),
-      amount: json['amount'] as int? ?? 0,
+      tutorId: _asInt(json['tutor_id']),
+      tutorName: _firstText(json, const ['tutor_name', 'name']),
+      bankName: _firstText(json, const ['bank_name', 'bank']),
+      accountNumber: _firstText(json, const [
+        'account_number',
+        'account_no',
+        'accountNo',
+        'account_no_unmasked',
+      ]),
+      accountHolderName: _firstText(
+        json,
+        const ['account_holder_name', 'account_holder', 'holder_name'],
+      ),
+      ifsc: _firstText(json, const ['ifsc', 'ifsc_code', 'ifscCode']),
+      bankLogo: _optionalText(json['bank_logo']),
+      amount: _asInt(json['amount']),
+      pan: _optionalText(json['pan'] ?? json['pan_number']),
+      panMasked: _optionalText(json['pan_masked']),
+      branch: _optionalText(json['branch'] ?? json['branch_name']),
+      accountMasked: _optionalText(
+        json['account_masked'] ?? json['masked_account'],
+      ),
     );
   }
 
@@ -283,6 +301,30 @@ class EducationTutorDetailsData {
   final String ifsc;
   final String? bankLogo;
   final int amount;
+  final String? pan;
+  final String? panMasked;
+  final String? branch;
+  final String? accountMasked;
+}
+
+String? _optionalText(Object? value) {
+  final text = value?.toString().trim() ?? '';
+  if (text.isEmpty || text.toLowerCase() == 'null') return null;
+  return text;
+}
+
+String _firstText(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final text = _optionalText(json[key]);
+    if (text != null) return text;
+  }
+  return '';
+}
+
+int _asInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.round();
+  return int.tryParse(value?.toString().trim() ?? '') ?? 0;
 }
 
 class EducationTutorDetailsResponse {
@@ -304,8 +346,10 @@ class EducationTutorDetailsResponse {
 
     final dataJson = json['data'];
     EducationTutorDetailsData? data;
-    if (dataJson is Map<String, dynamic>) {
-      data = EducationTutorDetailsData.fromJson(dataJson);
+    if (dataJson is Map) {
+      data = EducationTutorDetailsData.fromJson(
+        Map<String, dynamic>.from(dataJson),
+      );
     }
 
     return EducationTutorDetailsResponse(

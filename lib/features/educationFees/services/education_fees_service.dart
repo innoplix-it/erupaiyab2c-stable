@@ -152,8 +152,12 @@ class EducationFeesService {
           rethrow;
         }
         final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          return EducationTutorRequestStatusResponse.fromJson(data);
+        // Dio can hand back Map<dynamic, dynamic>. A 409 such as
+        // "Receiver PAN details are unavailable." is still a status payload.
+        if (data is Map) {
+          return EducationTutorRequestStatusResponse.fromJson(
+            Map<String, dynamic>.from(data),
+          );
         }
       }
       logger.error('Failed to fetch tutor request status: $e', error: e);
@@ -203,7 +207,7 @@ class EducationFeesService {
         action: action,
       );
       final response = await _dio.post(
-        ApiConstants.educationTutorRespondToRequestEndpoint(requestReference),
+        ApiConstants.educationTutorRespondToRequestEndpoint,
         data: request.toJson(),
       );
       final payload = response.data as Map<String, dynamic>? ?? {};
