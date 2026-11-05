@@ -11,7 +11,7 @@ import '../controllers/education_fees_controller.dart';
 import '../repositories/education_fees_repository.dart';
 import '../services/tutor_request_notification_service.dart';
 
-/// Root listener that turns PENDING tutor-request events into the existing
+/// Root listener that turns tutor-request events into the existing
 /// Received popup, regardless of the current GoRouter location.
 class TutorRequestNotificationListener extends ConsumerStatefulWidget {
   const TutorRequestNotificationListener({
@@ -29,7 +29,7 @@ class TutorRequestNotificationListener extends ConsumerStatefulWidget {
 class _TutorRequestNotificationListenerState
     extends ConsumerState<TutorRequestNotificationListener> {
   final TutorRequestNotificationService _notificationService =
-      TutorRequestNotificationService();
+  TutorRequestNotificationService();
 
   StreamSubscription<TutorRequestEvent>? _subscription;
   StreamSubscription<void>? _attentionSubscription;
@@ -58,8 +58,8 @@ class _TutorRequestNotificationListenerState
         _notificationService.requestEvents.listen(_onRequestEvent);
     _attentionSubscription =
         _notificationService.presentationAttention.listen((_) {
-      _armAuthRetry();
-    });
+          _armAuthRetry();
+        });
 
     _lifecycle = AppLifecycleListener(
       onResume: () {
@@ -70,11 +70,13 @@ class _TutorRequestNotificationListenerState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_flushPendingAndProcess(isStartup: true));
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduleProcessDisplayQueue();
+    });
   }
 
   Future<void> _flushPendingAndProcess({bool isStartup = false}) async {
     await _notificationService.flushAuthDeferredRequests();
-    // Background-verified PENDING entries → popup without a duplicate GET.
     await _notificationService.flushPersistedPendingRequests();
     if (isStartup) {
       await _notificationService.checkPendingRequestsOnStartup();
@@ -107,22 +109,23 @@ class _TutorRequestNotificationListenerState
 
   void _onRequestEvent(TutorRequestEvent event) {
     logger.info('GLOBAL_LISTENER_EVENT_RECEIVED: ${event.requestReference}');
-    logger.info('TUTOR_POPUP_QUEUED: ${event.requestReference}');
-    // A fresh event must be allowed to present even after an earlier
-    // navigator retry gave up.
     _navigatorRetryAttempts = 0;
     _pendingUntilNavigator.removeWhere(
-      (queued) => queued.requestReference == event.requestReference,
+          (queued) => queued.requestReference == event.requestReference,
     );
     _enqueueForDisplay(event);
-    // Defer out of the sync stream callback so we never call showDialog
-    // during build. Microtask covers the common ready-navigator path;
-    // post-frame is a backup when the first attempt races a frame.
     scheduleMicrotask(() {
       if (!mounted) return;
       unawaited(_processDisplayQueue());
     });
     _scheduleProcessDisplayQueue();
+    // Extra safety net for a tap that arrives while the app is still resuming
+    // (navigator / overlay not attached yet).
+    Future<void>.delayed(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      _enqueueNavigatorDeferred();
+      unawaited(_processDisplayQueue());
+    });
   }
 
   void _scheduleProcessDisplayQueue() {
@@ -135,9 +138,9 @@ class _TutorRequestNotificationListenerState
   void _enqueueForDisplay(TutorRequestEvent event) {
     final alreadyQueued = _displayQueue.any(
           (queued) => queued.requestReference == event.requestReference,
-        ) ||
+    ) ||
         _pendingUntilNavigator.any(
-          (queued) => queued.requestReference == event.requestReference,
+              (queued) => queued.requestReference == event.requestReference,
         );
     if (alreadyQueued) return;
     _displayQueue.add(event);
@@ -155,7 +158,7 @@ class _TutorRequestNotificationListenerState
   void _queueUntilNavigatorReady(TutorRequestEvent event) {
     _notificationService.releaseForRetry(event.requestReference);
     if (!_pendingUntilNavigator.any(
-      (queued) => queued.requestReference == event.requestReference,
+          (queued) => queued.requestReference == event.requestReference,
     )) {
       _pendingUntilNavigator.add(event);
     }
@@ -171,28 +174,27 @@ class _TutorRequestNotificationListenerState
     }
 
     _navigatorRetryAttempts++;
-    if (_navigatorRetryAttempts > TutorNotificationConstants.navigatorRetryLimit) {
+    if (_navigatorRetryAttempts >
+        TutorNotificationConstants.navigatorRetryLimit) {
       logger.warning(
         'ROOT_NAVIGATOR_RETRY_EXHAUSTED: ${_pendingUntilNavigator.map((e) => e.requestReference).join(",")}',
       );
       for (final event in _pendingUntilNavigator) {
-        logger.info(
-          'TUTOR_POPUP_PRESENTATION_FAILED: ${event.requestReference}',
-        );
         _notificationService.releaseForRetry(event.requestReference);
       }
       return;
     }
 
     _navigatorRetryTimer?.cancel();
-    _navigatorRetryTimer = Timer(TutorNotificationConstants.navigatorRetryDelay, () {
-      if (!mounted) return;
-      _enqueueNavigatorDeferred();
-      _scheduleProcessDisplayQueue();
-      if (_pendingUntilNavigator.isNotEmpty) {
-        _armNavigatorRetry();
-      }
-    });
+    _navigatorRetryTimer =
+        Timer(TutorNotificationConstants.navigatorRetryDelay, () {
+          if (!mounted) return;
+          _enqueueNavigatorDeferred();
+          _scheduleProcessDisplayQueue();
+          if (_pendingUntilNavigator.isNotEmpty) {
+            _armNavigatorRetry();
+          }
+        });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -215,8 +217,8 @@ class _TutorRequestNotificationListenerState
   }
 
   Future<void> _presentReceivedPopup(TutorRequestEvent event) async {
-    // Skip only when this reference was already handled or is actively on screen.
-    // Fresh PENDING-verified events live in awaiting and must still present.
+    logger.info('PRESENT_RECEIVED_POPUP_CALLED: ${event.requestReference}');
+
     if (!_notificationService.shouldPresentPopup(event.requestReference) &&
         _notificationService.shownRequestReferences
             .contains(event.requestReference)) {
@@ -226,41 +228,40 @@ class _TutorRequestNotificationListenerState
       return;
     }
 
-    final sentReference =
-        ref.read(educationFeesControllerProvider).requestReference;
-    if (sentReference != null &&
-        sentReference.isNotEmpty &&
-        sentReference == event.requestReference) {
-      logger.info(
-        'SKIP_RECEIVED_POPUP_SENDER_DEVICE: ${event.requestReference}',
-      );
-      _notificationService.markRequestHandled(event.requestReference);
-      return;
+    // Sender device must not see the receiver popup — but a tapped /
+    // foreground (forced) notification always shows it.
+    if (!event.forced) {
+      final sentReference =
+          ref.read(educationFeesControllerProvider).requestReference;
+      if (sentReference != null &&
+          sentReference.isNotEmpty &&
+          sentReference == event.requestReference) {
+        logger.info(
+          'SKIP_RECEIVED_POPUP_SENDER_DEVICE: ${event.requestReference}',
+        );
+        _notificationService.markRequestHandled(event.requestReference);
+        return;
+      }
     }
 
     final popupContext = _resolvePopupContext();
     if (popupContext == null) {
-      logger.warning(
-        'ROOT_NAVIGATOR_NOT_READY: ${event.requestReference}',
-      );
+      logger.warning('ROOT_NAVIGATOR_NOT_READY: ${event.requestReference}');
       _queueUntilNavigatorReady(event);
       return;
     }
 
-    logger.info('ROOT_NAVIGATOR_READY: ${event.requestReference}');
-    logger.info('TUTOR_POPUP_NAVIGATOR_READY: ${event.requestReference}');
-    logger.info('RECEIVED_POPUP_OPEN_REQUESTED: ${event.requestReference}');
-
     final amount = double.tryParse(event.amount.trim());
     final requesterName =
-        event.requesterName.trim().isEmpty ? null : event.requesterName.trim();
+    event.requesterName.trim().isEmpty ? null : event.requesterName.trim();
     final purpose =
-        event.subject.trim().isEmpty ? null : event.subject.trim();
+    event.subject.trim().isEmpty ? null : event.subject.trim();
     final statusLabel = event.requestStatus.trim().isEmpty
         ? null
         : event.requestStatus.trim();
 
     try {
+      logger.info('CALLING_SHOW_DIALOG: ${event.requestReference}');
       final resultFuture = showEducationTuitionRequestPopup(
         popupContext,
         state: EducationTuitionPopupState.received,
@@ -272,14 +273,19 @@ class _TutorRequestNotificationListenerState
       _notificationService.markPopupPresented(event.requestReference);
       _navigatorRetryAttempts = 0;
       logger.info('RECEIVED_POPUP_PRESENTED: ${event.requestReference}');
-      logger.info('TUTOR_RECEIVED_POPUP_PRESENTED: ${event.requestReference}');
 
       final result = await resultFuture;
+      logger.info(
+        'POPUP_RESULT_RECEIVED: ${event.requestReference} result=$result',
+      );
       await _handlePopupResult(event, result);
       _notificationService.markRequestHandled(event.requestReference);
-    } catch (e) {
-      logger.error('Error presenting received popup: $e', error: e);
-      logger.info('TUTOR_POPUP_PRESENTATION_FAILED: ${event.requestReference}');
+    } catch (e, stackTrace) {
+      logger.error(
+        'Error presenting received popup: $e',
+        error: e,
+        stackTrace: stackTrace,
+      );
       _queueUntilNavigatorReady(event);
     }
   }
@@ -313,23 +319,18 @@ class _TutorRequestNotificationListenerState
   }
 
   Future<void> _handlePopupResult(
-    TutorRequestEvent event,
-    bool? result,
-  ) async {
+      TutorRequestEvent event,
+      bool? result,
+      ) async {
     if (result == null) return;
     if (!_responding.add(event.requestReference)) return;
     try {
-      if (result == true) {
-        await _repository.respondToTutorRequest(
-          requestReference: event.requestReference,
-          action: TutorNotificationConstants.statusAccepted,
-        );
-      } else {
-        await _repository.respondToTutorRequest(
-          requestReference: event.requestReference,
-          action: TutorNotificationConstants.statusRejected,
-        );
-      }
+      await _repository.respondToTutorRequest(
+        requestReference: event.requestReference,
+        action: result == true
+            ? TutorNotificationConstants.statusAccepted
+            : TutorNotificationConstants.statusRejected,
+      );
     } catch (e) {
       logger.error(
         'Failed to submit tutor request response: $e',
@@ -341,22 +342,22 @@ class _TutorRequestNotificationListenerState
   }
 
   BuildContext? _resolvePopupContext() {
-    // Prefer the NavigatorState context attached to the shared root key —
-    // MaterialApp.router's builder context sits ABOVE the Router and cannot
-    // resolve a Navigator via Navigator.of.
     final navigatorState = navigatorKey.currentState;
+
+    // Overlay sits inside the root navigator → dialog opens above the
+    // current route without navigating anywhere.
+    final overlayContext = navigatorState?.overlay?.context;
+    if (overlayContext != null && overlayContext.mounted) {
+      logger.info('POPUP_CONTEXT_SOURCE: overlay');
+      return overlayContext;
+    }
+
     if (navigatorState != null && navigatorState.mounted) {
       final navigatorContext = navigatorState.context;
       if (navigatorContext.mounted) {
         logger.info('POPUP_CONTEXT_SOURCE: navigatorKey.state');
         return navigatorContext;
       }
-    }
-
-    final overlayContext = navigatorState?.overlay?.context;
-    if (overlayContext != null && overlayContext.mounted) {
-      logger.info('POPUP_CONTEXT_SOURCE: overlay');
-      return overlayContext;
     }
 
     final keyContext = navigatorKey.currentContext;

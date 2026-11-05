@@ -11,7 +11,6 @@ import 'package:go_router/go_router.dart';
 import '../constants/routes_constant.dart';
 import '../constants/storage_keys.dart';
 import '../config/app_env.dart';
-import '../features/educationFees/constants/tutor_notification_constants.dart';
 import '../features/profile/repositories/profile_repository.dart';
 import '../features/educationFees/services/tutor_request_background_processor.dart';
 import '../features/educationFees/services/tutor_request_notification_service.dart';
@@ -334,7 +333,7 @@ class PushNotificationService {
       if (TutorRequestNotificationService.isTutorRequestPayload(mapped)) {
         unawaited(
           TutorRequestNotificationService().handleOpenedData(
-            decoded.map((key, value) => MapEntry('$key', value)),
+            mapped,
             messageId: 'local_notification_tap',
           ),
         );
@@ -465,6 +464,8 @@ class PushNotificationService {
         ?.toString()
         .trim();
     if (route != null && route.isNotEmpty) {
+      // This route is not a screen to open. The tap shows the Received popup.
+      if (route == RouteConstants.tutorReceivedRequests) return null;
       // Preferred: backend sends a full app route, e.g. "/mobile-prepaid".
       if (route.startsWith('/')) return route;
       // Backwards compat: allow shorthand identifiers.
@@ -475,17 +476,8 @@ class PushNotificationService {
       if (route == RouteConstants.mobilePrepaid) return route;
     }
 
-    // Handle tutor request notifications
-    final requestReference = (data['request_reference'] ?? 
-                             data['requestReference'] ?? 
-                             data['reference'])?.toString().trim();
-    final type = (data['type'] ?? data['notification_type'])?.toString().trim().toLowerCase();
-    
-    if (requestReference != null && requestReference.isNotEmpty && 
-        type != null && (type.contains(TutorNotificationConstants.typeTutor) || type.contains(TutorNotificationConstants.typeRequest))) {
-      return RouteConstants.tutorReceivedRequests;
-    }
-
+    // Tutor request taps open the Received popup on the current screen.
+    // They must not be turned into a route.
     return null;
   }
 

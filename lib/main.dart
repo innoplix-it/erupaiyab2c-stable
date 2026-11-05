@@ -20,6 +20,7 @@ import 'services/navigation_interaction_lock.dart';
 import 'services/push_notification_service.dart';
 import 'services/screen_security_service.dart';
 import 'widgets/app_snackbar.dart';
+import 'widgets/k_dialog.dart' show navigatorKey;
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -27,8 +28,6 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
   FlutterNativeSplash.preserve(widgetsBinding: binding);
-  // Kick off the Developer Options app-lock probe before the first frame so
-  // the router guard has a resolved state as early as possible.
   DeveloperModeGuard.instance.recheck();
   runApp(
     const ProviderScope(
@@ -67,7 +66,7 @@ class MyApp extends HookConsumerWidget {
     final themeMode = ref.watch(themeModeControllerProvider);
     final appLockService = ref.read(appLockServiceProvider);
     final navigationInteractionLock =
-        ref.watch(navigationInteractionLockProvider);
+    ref.watch(navigationInteractionLockProvider);
     useListenable(navigationInteractionLock);
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -83,7 +82,6 @@ class MyApp extends HookConsumerWidget {
     }, const []);
     useEffect(() {
       appLockService.init();
-      // Initialize centralized screenshot protection based on AppEnv configuration
       ScreenSecurityService.initialize();
       return appLockService.dispose;
     }, const []);
@@ -94,17 +92,20 @@ class MyApp extends HookConsumerWidget {
       return null;
     }, const []);
     useEffect(() {
-      // Single lifecycle observer: re-probe Developer Options only when we
-      // are actually locked (e.g. returning from system settings). This is how
-      // "Open Settings -> disable -> resume" unlocks the app without a loop.
       final lifecycleListener = AppLifecycleListener(
         onResume: () => DeveloperModeGuard.instance.recheckIfLocked(),
       );
       return lifecycleListener.dispose;
     }, const []);
     useEffect(() {
-      // Allows PushNotificationService to navigate after notification taps.
-      PushNotificationService.markUiReady();
+      // CHANGED: mark UI ready only after the first frame, when the router
+      // and navigator are attached, so queued notification taps can navigate.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        logger.info(
+          'NAVIGATOR_KEY_ATTACHED: ${navigatorKey.currentState != null}',
+        );
+        PushNotificationService.markUiReady();
+      });
       return null;
     }, const []);
     return ScreenUtilInit(
@@ -115,69 +116,69 @@ class MyApp extends HookConsumerWidget {
       fontSizeResolver: FontSizeResolvers.radius,
       builder: (context, child) {
         return MaterialApp.router(
-            debugShowCheckedModeBanner: false,
-            builder: (context, widget) {
-              final mediaQuery = MediaQuery.of(context);
-              return MediaQuery(
-                data: mediaQuery.copyWith(
-                  textScaler: mediaQuery.textScaler.clamp(
-                    minScaleFactor: 0.85,
-                    maxScaleFactor: 1.15,
-                  ),
+          debugShowCheckedModeBanner: false,
+          builder: (context, widget) {
+            final mediaQuery = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: mediaQuery.textScaler.clamp(
+                  minScaleFactor: 0.85,
+                  maxScaleFactor: 1.15,
                 ),
-                child: TutorRequestNotificationListener(
-                  child: Listener(
-                    behavior: HitTestBehavior.translucent,
-                    onPointerDown: (_) => appLockService.onUserActivity(),
-                    child: Stack(
-                      children: [
-                        widget ?? const SizedBox.shrink(),
-                        if (navigationInteractionLock.isLocked)
-                          const Positioned.fill(
-                            child: AbsorbPointer(
-                              absorbing: true,
-                              child: ColoredBox(color: Colors.transparent),
-                            ),
+              ),
+              child: TutorRequestNotificationListener(
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) => appLockService.onUserActivity(),
+                  child: Stack(
+                    children: [
+                      widget ?? const SizedBox.shrink(),
+                      if (navigationInteractionLock.isLocked)
+                        const Positioned.fill(
+                          child: AbsorbPointer(
+                            absorbing: true,
+                            child: ColoredBox(color: Colors.transparent),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                 ),
-              );
-            },
-            scaffoldMessengerKey: AppSnackbar.messengerKey,
-            title: 'eRupaiya',
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color.fromARGB(255, 203, 137, 115)),
-              textTheme: GoogleFonts.plusJakartaSansTextTheme(
-                ThemeData.light().textTheme,
               ),
-              primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
-                ThemeData.light().primaryTextTheme,
-              ),
-              fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-              extensions: const [
-                SkeletonizerConfigData(),
-              ],
+            );
+          },
+          scaffoldMessengerKey: AppSnackbar.messengerKey,
+          title: 'eRupaiya',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color.fromARGB(255, 203, 137, 115)),
+            textTheme: GoogleFonts.plusJakartaSansTextTheme(
+              ThemeData.light().textTheme,
             ),
-            darkTheme: ThemeData(
-              brightness: Brightness.dark,
-              textTheme: GoogleFonts.plusJakartaSansTextTheme(
-                ThemeData.dark().textTheme,
-              ),
-              primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
-                ThemeData.dark().primaryTextTheme,
-              ),
-              fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-              extensions: const [
-                SkeletonizerConfigData.dark(),
-              ],
+            primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
+              ThemeData.light().primaryTextTheme,
             ),
-            themeMode: themeMode,
-            routerConfig: router,
-          );
-        },
-      );
+            fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+            extensions: const [
+              SkeletonizerConfigData(),
+            ],
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            textTheme: GoogleFonts.plusJakartaSansTextTheme(
+              ThemeData.dark().textTheme,
+            ),
+            primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
+              ThemeData.dark().primaryTextTheme,
+            ),
+            fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+            extensions: const [
+              SkeletonizerConfigData.dark(),
+            ],
+          ),
+          themeMode: themeMode,
+          routerConfig: router,
+        );
+      },
+    );
   }
 }

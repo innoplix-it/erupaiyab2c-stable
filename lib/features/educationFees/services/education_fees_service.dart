@@ -142,6 +142,15 @@ class EducationFeesService {
       return EducationTutorRequestStatusResponse.fromJson(payload);
     } catch (e) {
       if (e is DioException) {
+        final code = e.response?.statusCode;
+        // 404 is not a status payload. Callers must not treat it as success.
+        if (code == 404) {
+          logger.error(
+            'Tutor request status not found: $code',
+            error: e,
+          );
+          rethrow;
+        }
         final data = e.response?.data;
         if (data is Map<String, dynamic>) {
           return EducationTutorRequestStatusResponse.fromJson(data);
