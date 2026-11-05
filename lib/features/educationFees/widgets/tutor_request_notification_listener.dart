@@ -11,8 +11,9 @@ import '../controllers/education_fees_controller.dart';
 import '../repositories/education_fees_repository.dart';
 import '../services/tutor_request_notification_service.dart';
 
-/// Root listener that turns tutor-request events into the existing
-/// Received popup, regardless of the current GoRouter location.
+/// Root listener: shows the Received popup for a NEW tutor request
+/// (foreground FCM, notification tap, or a not-yet-shown pending request found
+/// on startup / resume). Accept / Decline call the respond-request API.
 class TutorRequestNotificationListener extends ConsumerStatefulWidget {
   const TutorRequestNotificationListener({
     super.key,
@@ -63,26 +64,19 @@ class _TutorRequestNotificationListenerState
 
     _lifecycle = AppLifecycleListener(
       onResume: () {
-        unawaited(_flushPendingAndProcess());
+        unawaited(_checkNewAndProcess());
       },
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_flushPendingAndProcess(isStartup: true));
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scheduleProcessDisplayQueue();
+      if (!mounted) return;
+      unawaited(_checkNewAndProcess(isStartup: true));
     });
   }
 
-  Future<void> _flushPendingAndProcess({bool isStartup = false}) async {
-    await _notificationService.flushAuthDeferredRequests();
-    await _notificationService.flushPersistedPendingRequests();
-    if (isStartup) {
-      await _notificationService.checkPendingRequestsOnStartup();
-    } else {
-      await _notificationService.checkPendingRequestsOnResume();
-    }
+  /// Startup / resume: retries deferred taps and shows only NEW requests.
+  Future<void> _checkNewAndProcess({bool isStartup = false}) async {
+    await _notificationService.checkNewRequests(isStartup: isStartup);
     _enqueueNavigatorDeferred();
     _scheduleProcessDisplayQueue();
     if (_notificationService.hasAuthDeferred) {
@@ -92,7 +86,6 @@ class _TutorRequestNotificationListenerState
 
   Future<void> _flushAuthDeferredOnly() async {
     await _notificationService.flushAuthDeferredRequests();
-    await _notificationService.flushPersistedPendingRequests();
     _enqueueNavigatorDeferred();
     _scheduleProcessDisplayQueue();
   }
@@ -119,8 +112,6 @@ class _TutorRequestNotificationListenerState
       unawaited(_processDisplayQueue());
     });
     _scheduleProcessDisplayQueue();
-    // Extra safety net for a tap that arrives while the app is still resuming
-    // (navigator / overlay not attached yet).
     Future<void>.delayed(const Duration(milliseconds: 600), () {
       if (!mounted) return;
       _enqueueNavigatorDeferred();
@@ -228,20 +219,17 @@ class _TutorRequestNotificationListenerState
       return;
     }
 
-    // Sender device must not see the receiver popup — but a tapped /
-    // foreground (forced) notification always shows it.
-    if (!event.forced) {
-      final sentReference =
-          ref.read(educationFeesControllerProvider).requestReference;
-      if (sentReference != null &&
-          sentReference.isNotEmpty &&
-          sentReference == event.requestReference) {
-        logger.info(
-          'SKIP_RECEIVED_POPUP_SENDER_DEVICE: ${event.requestReference}',
-        );
-        _notificationService.markRequestHandled(event.requestReference);
-        return;
-      }
+    // The sender's own device never shows the receiver popup.
+    final sentReference =
+        ref.read(educationFeesControllerProvider).requestReference;
+    if (sentReference != null &&
+        sentReference.isNotEmpty &&
+        sentReference == event.requestReference) {
+      logger.info(
+        'SKIP_RECEIVED_POPUP_SENDER_DEVICE: ${event.requestReference}',
+      );
+      _notificationService.markRequestHandled(event.requestReference);
+      return;
     }
 
     final popupContext = _resolvePopupContext();
@@ -318,18 +306,32 @@ class _TutorRequestNotificationListenerState
     });
   }
 
+  /// Accept -> ACCEPTED, Decline -> REJECTED via
+  /// POST /api/education/tutor/respond-request.
   Future<void> _handlePopupResult(
       TutorRequestEvent event,
       bool? result,
       ) async {
+    logger.info(
+      'HANDLE_POPUP_RESULT: ${event.requestReference} result=$result',
+    );
     if (result == null) return;
     if (!_responding.add(event.requestReference)) return;
+    final action = result == true
+        ? TutorNotificationConstants.statusAccepted
+        : TutorNotificationConstants.statusRejected;
     try {
-      await _repository.respondToTutorRequest(
+      logger.info(
+        'RESPOND_REQUEST_CALL: ${event.requestReference} action=$action',
+      );
+      final res = await _repository.respondToTutorRequest(
         requestReference: event.requestReference,
-        action: result == true
-            ? TutorNotificationConstants.statusAccepted
-            : TutorNotificationConstants.statusRejected,
+        action: action,
+      );
+      logger.info(
+        'RESPOND_REQUEST_RESULT: ${event.requestReference} '
+            'status=${res.status} message=${res.message} '
+            'requestStatus=${res.data?.requestStatus ?? res.requestStatus}',
       );
     } catch (e) {
       logger.error(
@@ -344,8 +346,6 @@ class _TutorRequestNotificationListenerState
   BuildContext? _resolvePopupContext() {
     final navigatorState = navigatorKey.currentState;
 
-    // Overlay sits inside the root navigator → dialog opens above the
-    // current route without navigating anywhere.
     final overlayContext = navigatorState?.overlay?.context;
     if (overlayContext != null && overlayContext.mounted) {
       logger.info('POPUP_CONTEXT_SOURCE: overlay');

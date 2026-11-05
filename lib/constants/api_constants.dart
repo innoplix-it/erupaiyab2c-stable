@@ -58,9 +58,10 @@ class ApiConstants {
       '$baseUrl/api/education/tutor/send-request';
   static String educationTutorRequestStatusEndpoint(String requestReference) =>
       '$baseUrl/api/education/tutor/request-status/$requestReference';
+  // POST body: {"request_reference": "...", "action": "ACCEPTED" | "REJECTED"}
   static String educationTutorRespondToRequestEndpoint(
-          String requestReference) =>
-      '$baseUrl/api/education/tutor/request-status/$requestReference';
+      String requestReference) =>
+      '$baseUrl/api/education/tutor/respond-request';
   static const String educationTutorReceivedRequestsEndpoint =
       '$baseUrl/api/education/tutor/received-requests';
   static const String educationTutorVerifyPanEndpoint =

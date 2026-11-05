@@ -5,18 +5,19 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../services/logger_service.dart';
+import '../../../services/secure_storage_service.dart';
 import '../../../utils/utils.dart';
 import '../constants/tutor_notification_constants.dart';
-import '../models/education_fees_responses.dart';
 import '../repositories/education_fees_repository.dart';
 import 'tutor_request_pending_store.dart';
 
-/// Handles tutor payment-request FCM events.
+/// Tutor (receiver) side popup source.
 ///
-/// NOTE: backend `GET request-status/{ref}` works only for the SENDER and
-/// returns 404 for the tutor (receiver). So the tutor side never depends on
-/// it: startup/resume use the received-requests (PENDING) list, and tap /
-/// foreground FCM (FORCE mode) always end in a popup (list or FCM payload).
+/// - Foreground FCM / notification tap -> popup (tap is validated against the
+///   received PENDING list so an already answered request never reopens).
+/// - Startup / resume -> only requests NOT shown before (persisted "seen" set).
+///   The first run stores a baseline so old requests never pop up.
+/// - `request-status` is sender-only on the backend, so it is never used here.
 class TutorRequestNotificationService {
   TutorRequestNotificationService._() {
     _eventController = StreamController<TutorRequestEvent>.broadcast(
@@ -29,18 +30,14 @@ class TutorRequestNotificationService {
   TutorRequestNotificationService._();
   factory TutorRequestNotificationService() => _instance;
 
+  static const _storage = SecureStorageService.instance;
+  static const String _seenKey = 'tutor_seen_request_refs';
+  static const String _baselineKey = 'tutor_seen_baseline_done';
+  static const int _seenLimit = 300;
+
   EducationFeesRepository _repository = EducationFeesRepository();
   Future<bool> Function() _authChecker = Utils.checkAuthentication;
   Future<String?> Function() _currentUserId = Utils.getUserId;
-
-  static const Set<String> _terminalStatuses = {
-    'ACCEPTED',
-    'REJECTED',
-    'DECLINED',
-    'EXPIRED',
-    'CANCELLED',
-    'CANCELED',
-  };
 
   final Set<String> _inFlight = {};
   final Set<String> _awaitingPopup = {};
@@ -50,15 +47,19 @@ class TutorRequestNotificationService {
 
   final StreamController<void> _presentationAttention =
   StreamController<void>.broadcast();
-
   final List<_DeferredTutorRequest> _authDeferred = [];
-
   late final StreamController<TutorRequestEvent> _eventController;
-
   final List<TutorRequestEvent> _eventQueue = [];
 
   bool _hasRunStartupCheck = false;
   bool _isShowingPopup = false;
+  bool _checkRunning = false;
+
+  Set<String>? _seenCache;
+
+  // ---------------------------------------------------------------------------
+  // Wiring / test hooks
+  // ---------------------------------------------------------------------------
 
   void bindRepository(EducationFeesRepository repository) {
     _repository = repository;
@@ -86,12 +87,9 @@ class TutorRequestNotificationService {
     Future<String?> Function()? currentUserId,
   }) {
     clearShownRequests();
-    if (repository != null) {
-      _repository = repository;
-    }
-    if (authChecker != null) {
-      _authChecker = authChecker;
-    }
+    _seenCache = <String>{};
+    if (repository != null) _repository = repository;
+    if (authChecker != null) _authChecker = authChecker;
     _currentUserId = currentUserId ?? (() async => null);
   }
 
@@ -102,64 +100,157 @@ class TutorRequestNotificationService {
   });
 
   Stream<TutorRequestEvent> get requestEvents => _eventController.stream;
-
   Stream<void> get presentationAttention => _presentationAttention.stream;
-
   bool get hasAuthDeferred => _authDeferred.isNotEmpty;
-
   bool get isShowingPopup => _isShowingPopup;
 
   void initialize() {}
 
-  Future<void> checkPendingRequestsOnStartup() async {
-    await _checkPendingRequestsInternal(isStartup: true);
+  // ---------------------------------------------------------------------------
+  // Persisted "seen" set (a request popup is shown only once)
+  // ---------------------------------------------------------------------------
+
+  Future<Set<String>> _loadSeen() async {
+    final cached = _seenCache;
+    if (cached != null) return cached;
+    final set = <String>{};
+    try {
+      final raw = await _storage.read(key: _seenKey);
+      if (raw != null && raw.trim().isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final e in decoded) {
+            final s = '$e'.trim();
+            if (s.isNotEmpty) set.add(s);
+          }
+        }
+      }
+    } catch (e) {
+      logger.error('SEEN_LOAD_ERROR: $e', error: e);
+    }
+    _seenCache = set;
+    return set;
   }
 
-  Future<void> checkPendingRequestsOnResume() async {
-    await _checkPendingRequestsInternal(isStartup: false);
+  Future<void> _markSeen(Iterable<String> refs) async {
+    final seen = await _loadSeen();
+    var changed = false;
+    for (final r in refs) {
+      if (r.isNotEmpty && seen.add(r)) changed = true;
+    }
+    if (!changed) return;
+    while (seen.length > _seenLimit) {
+      seen.remove(seen.first);
+    }
+    try {
+      await _storage.write(key: _seenKey, value: jsonEncode(seen.toList()));
+    } catch (e) {
+      logger.error('SEEN_WRITE_ERROR: $e', error: e);
+    }
+  }
+
+  Future<bool> _baselineDone() async {
+    try {
+      return (await _storage.read(key: _baselineKey)) == '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _setBaselineDone() async {
+    try {
+      await _storage.write(key: _baselineKey, value: '1');
+    } catch (_) {}
+  }
+
+  // ---------------------------------------------------------------------------
+  // Startup / resume: only NEW (never shown) pending requests
+  // ---------------------------------------------------------------------------
+
+  Future<void> checkPendingRequestsOnStartup() =>
+      checkNewRequests(isStartup: true);
+
+  Future<void> checkPendingRequestsOnResume() =>
+      checkNewRequests(isStartup: false);
+
+  Future<void> checkNewRequests({required bool isStartup}) async {
+    if (_checkRunning) return;
+    if (isStartup && _hasRunStartupCheck) return;
+    _checkRunning = true;
+    try {
+      final isAuthenticated = await _authChecker();
+      if (!isAuthenticated) {
+        logger.info('NEW_REQUEST_CHECK_SKIPPED: not authenticated');
+        return;
+      }
+
+      await flushAuthDeferredRequests();
+
+      final response = await _repository.fetchTutorReceivedRequests(
+        page: TutorNotificationConstants.defaultPage,
+        perPage: TutorNotificationConstants.defaultPerPage,
+        status: TutorNotificationConstants.statusPending,
+      );
+      if (!response.status || response.data == null) {
+        logger.warning('NEW_REQUEST_CHECK_FAILED: list fetch failed');
+        return;
+      }
+      if (isStartup) _hasRunStartupCheck = true;
+
+      final items = <Map<String, dynamic>>[];
+      for (final raw in response.data!.requests) {
+        final map = _asStringMap(raw);
+        if (map != null && _refFromMap(map) != null) items.add(map);
+      }
+      logger.info('NEW_REQUEST_CHECK: pending=${items.length}');
+
+      // First run on this install: everything pending is "old". Remember it,
+      // show nothing.
+      if (!await _baselineDone()) {
+        await _markSeen(items.map((m) => _refFromMap(m)!));
+        await _setBaselineDone();
+        logger.info('NEW_REQUEST_BASELINE_SAVED: ${items.length}');
+        return;
+      }
+
+      final seen = await _loadSeen();
+      for (final map in items) {
+        final ref = _refFromMap(map)!;
+        if (seen.contains(ref)) continue;
+        final messageId =
+            '${isStartup ? "startup" : "resume"}_${DateTime.now().millisecondsSinceEpoch}';
+        await _processRequestReference(
+          ref,
+          messageId: messageId,
+          fallback: _eventFromMap(ref, messageId, map, false),
+          trustFallback: true,
+        );
+      }
+    } catch (e) {
+      logger.error('NEW_REQUEST_CHECK_ERROR: $e', error: e);
+    } finally {
+      _checkRunning = false;
+    }
   }
 
   Future<void> flushAuthDeferredRequests() async {
     if (_authDeferred.isEmpty) return;
     final pending = List<_DeferredTutorRequest>.from(_authDeferred);
     _authDeferred.clear();
-    for (final deferred in pending) {
+    for (final d in pending) {
       await _processRequestReference(
-        deferred.requestReference,
-        messageId: deferred.messageId,
-        force: deferred.force,
-        fallback: deferred.fallback,
+        d.requestReference,
+        messageId: d.messageId,
+        force: d.force,
+        fallback: d.fallback,
+        fromTap: d.fromTap,
       );
     }
   }
 
-  Future<void> flushPersistedPendingRequests() async {
-    final entries = await TutorRequestPendingStore.loadAll();
-    if (entries.isEmpty) return;
-
-    logger.info(
-      'FLUSH_PERSISTED_PENDING_REQUESTS: count=${entries.length}',
-    );
-
-    for (final entry in entries) {
-      if (entry.verified) {
-        await ingestVerifiedPending(
-          requestReference: entry.requestReference,
-          amount: entry.amount,
-          subject: entry.subject,
-          requesterName: entry.requesterName,
-          requesterUserId: entry.requesterUserId,
-          requestStatus: entry.requestStatus,
-          messageId: 'background_verified',
-        );
-      } else {
-        await _processRequestReference(
-          entry.requestReference,
-          messageId: 'background_unverified',
-        );
-      }
-    }
-  }
+  /// Kept for compatibility. Background-persisted entries are no longer used
+  /// to open popups (they caused old requests to reappear).
+  Future<void> flushPersistedPendingRequests() async {}
 
   Future<void> ingestVerifiedPending({
     required String requestReference,
@@ -174,22 +265,14 @@ class TutorRequestNotificationService {
     if (_handledReferences.contains(requestReference) ||
         _presentedReferences.contains(requestReference) ||
         _awaitingPopup.contains(requestReference)) {
-      logger.info(
-        'INGEST_VERIFIED_SKIP_ALREADY_QUEUED: $requestReference',
-      );
       await TutorRequestPendingStore.remove(requestReference);
       return;
     }
     if (await _isCurrentUserTheRequester(requesterUserId)) {
-      logger.info(
-        'SKIP_RECEIVED_POPUP_REQUESTER_USER: $requestReference',
-      );
       _handledReferences.add(requestReference);
       await TutorRequestPendingStore.remove(requestReference);
       return;
     }
-
-    logger.info('INGEST_VERIFIED_PENDING: $requestReference');
     _queuePopup(
       TutorRequestEvent(
         requestReference: requestReference,
@@ -203,76 +286,17 @@ class TutorRequestNotificationService {
     await TutorRequestPendingStore.remove(requestReference);
   }
 
-  /// Startup / resume: the received-requests PENDING list IS the source of
-  /// truth for the tutor. No request-status GET (it 404s for the receiver).
-  Future<void> _checkPendingRequestsInternal({required bool isStartup}) async {
-    if (isStartup && _hasRunStartupCheck) {
-      logger.info('Startup check already ran, skipping');
-      return;
-    }
+  // ---------------------------------------------------------------------------
+  // FCM entry points
+  // ---------------------------------------------------------------------------
 
-    final isAuthenticated = await _authChecker();
-    if (!isAuthenticated) {
-      logger.info(
-        'User not authenticated, skipping ${isStartup ? "startup" : "resume"} check',
-      );
-      return;
-    }
-
-    await flushAuthDeferredRequests();
-
-    try {
-      final response = await _repository.fetchTutorReceivedRequests(
-        page: TutorNotificationConstants.defaultPage,
-        perPage: TutorNotificationConstants.defaultPerPage,
-        status: TutorNotificationConstants.statusPending,
-      );
-
-      if (!response.status || response.data == null) {
-        logger.warning(
-          'Failed to fetch pending requests on ${isStartup ? "startup" : "resume"}',
-        );
-        return;
-      }
-
-      final requests = response.data!.requests;
-      logger.info(
-        'Found ${requests.length} pending requests on ${isStartup ? "startup" : "resume"}',
-      );
-
-      if (isStartup) {
-        _hasRunStartupCheck = true;
-      }
-
-      for (final item in requests) {
-        final map = _asStringMap(item);
-        if (map == null) continue;
-        final requestReference = _refFromMap(map);
-        if (requestReference == null || requestReference.isEmpty) continue;
-
-        final messageId =
-            '${isStartup ? "startup" : "resume"}_${DateTime.now().millisecondsSinceEpoch}';
-        await _processRequestReference(
-          requestReference,
-          messageId: messageId,
-          fallback: _eventFromMap(requestReference, messageId, map, false),
-          trustFallback: true,
-        );
-      }
-    } catch (e) {
-      logger.error(
-        'Error checking pending requests on ${isStartup ? "startup" : "resume"}: $e',
-        error: e,
-      );
-    }
-  }
-
-  /// Foreground FCM entry point (FORCE mode).
+  /// Foreground FCM: a brand new request, always show.
   Future<void> handleForegroundMessage(RemoteMessage message) async {
     logger.info('FCM_RECEIVED: ${message.messageId}');
     await handleIncomingFromData(
       message.data,
       messageId: message.messageId ?? '',
+      fromTap: false,
     );
   }
 
@@ -283,7 +307,7 @@ class TutorRequestNotificationService {
     );
   }
 
-  /// Notification TAP entry point (FORCE mode).
+  /// Notification TAP.
   Future<void> handleOpenedData(
       Map<String, dynamic> raw, {
         String messageId = 'notification_tap',
@@ -293,7 +317,7 @@ class TutorRequestNotificationService {
     logger.info(
       'TUTOR_NOTIFICATION_PAYLOAD_EXTRACTED: keys=${data.keys.join(',')}',
     );
-    return handleIncomingFromData(data, messageId: messageId);
+    return handleIncomingFromData(data, messageId: messageId, fromTap: true);
   }
 
   static Map<String, dynamic> notificationDataFromPayload(Object? decoded) {
@@ -326,29 +350,29 @@ class TutorRequestNotificationService {
       Map<String, dynamic> data, {
         String messageId = '',
         bool force = true,
+        bool fromTap = false,
       }) async {
     if (!isTutorRequestPayload(data)) {
       logger.info('FCM payload is not a tutor request, skipping');
       return;
     }
-
     final requestReference = extractRequestReference(data);
     if (requestReference == null || requestReference.isEmpty) {
       logger.warning('No request reference in notification data');
       return;
     }
-
     logger.info('TUTOR_REQUEST_REFERENCE_EXTRACTED: $requestReference');
     await _processRequestReference(
       requestReference,
       messageId: messageId,
       force: force,
+      fromTap: fromTap,
       fallback: _eventFromMap(requestReference, messageId, data, force),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // Helpers: map -> event
+  // Map helpers
   // ---------------------------------------------------------------------------
 
   static Map<String, dynamic>? _asStringMap(Object? value) {
@@ -433,9 +457,9 @@ class TutorRequestNotificationService {
     );
   }
 
-  /// Finds the request in the tutor's received PENDING list (used to enrich
-  /// a tapped notification when the FCM payload has no amount / name).
-  Future<TutorRequestEvent?> _lookupInReceivedList(
+  /// Looks the request up in the tutor's received PENDING list.
+  /// `ok == false` means the list could not be fetched (unknown).
+  Future<_ListLookup> _lookupInReceivedList(
       String requestReference,
       String messageId,
       ) async {
@@ -445,20 +469,26 @@ class TutorRequestNotificationService {
         perPage: 50,
         status: TutorNotificationConstants.statusPending,
       );
-      if (!res.status || res.data == null) return null;
+      if (!res.status || res.data == null) {
+        return const _ListLookup(ok: false);
+      }
       for (final item in res.data!.requests) {
         final map = _asStringMap(item);
         if (map == null) continue;
         if (_refFromMap(map) == requestReference) {
           logger.info('RECEIVED_LIST_LOOKUP_HIT: $requestReference');
-          return _eventFromMap(requestReference, messageId, map, true);
+          return _ListLookup(
+            ok: true,
+            event: _eventFromMap(requestReference, messageId, map, true),
+          );
         }
       }
       logger.info('RECEIVED_LIST_LOOKUP_MISS: $requestReference');
+      return const _ListLookup(ok: true);
     } catch (e) {
       logger.error('RECEIVED_LIST_LOOKUP_ERROR: $e', error: e);
+      return const _ListLookup(ok: false);
     }
-    return null;
   }
 
   // ---------------------------------------------------------------------------
@@ -469,6 +499,7 @@ class TutorRequestNotificationService {
       String requestReference, {
         required String messageId,
         bool force = false,
+        bool fromTap = false,
         TutorRequestEvent? fallback,
         bool trustFallback = false,
       }) async {
@@ -484,60 +515,18 @@ class TutorRequestNotificationService {
       _awaitingPopup.remove(requestReference);
       _needsPresentationRetry.remove(requestReference);
       _presentedReferences.remove(requestReference);
-      _eventQueue.removeWhere(
-            (e) => e.requestReference == requestReference,
-      );
+      _eventQueue.removeWhere((e) => e.requestReference == requestReference);
     } else {
-      if (_handledReferences.contains(requestReference)) {
-        logger.info('Request $requestReference already handled, skipping');
-        return;
-      }
-      if (_presentedReferences.contains(requestReference) &&
-          _isShowingPopup) {
-        return;
-      }
-      if (_needsPresentationRetry.contains(requestReference) &&
-          !_isShowingPopup) {
-        _rebroadcastAwaitingPopup(requestReference, messageId);
-        return;
-      }
+      if (_handledReferences.contains(requestReference)) return;
       if (_presentedReferences.contains(requestReference) ||
           _awaitingPopup.contains(requestReference)) {
         return;
       }
-      if (_inFlight.contains(requestReference)) {
-        return;
-      }
+      if (_inFlight.contains(requestReference)) return;
     }
 
     _inFlight.add(requestReference);
     try {
-      // 1) Background-verified entry.
-      final persisted =
-      await TutorRequestPendingStore.takeVerified(requestReference);
-      if (persisted != null) {
-        if (!force &&
-            await _isCurrentUserTheRequester(persisted.requesterUserId)) {
-          _handledReferences.add(requestReference);
-          return;
-        }
-        _queuePopup(
-          TutorRequestEvent(
-            requestReference: requestReference,
-            messageId: messageId.isNotEmpty
-                ? messageId
-                : 'background_verified_reuse',
-            amount: persisted.amount,
-            subject: persisted.subject,
-            requesterName: persisted.requesterName,
-            requestStatus: persisted.requestStatus,
-            forced: force,
-          ),
-        );
-        return;
-      }
-
-      // 2) Auth gate.
       final isAuthenticated = await _authChecker();
       if (!isAuthenticated) {
         _authDeferred.removeWhere(
@@ -548,13 +537,8 @@ class TutorRequestNotificationService {
             requestReference: requestReference,
             messageId: messageId,
             force: force,
+            fromTap: fromTap,
             fallback: fallback,
-          ),
-        );
-        await TutorRequestPendingStore.upsert(
-          TutorRequestPendingEntry(
-            requestReference: requestReference,
-            verified: false,
           ),
         );
         logger.info('AUTH_NOT_READY queued: $requestReference');
@@ -564,104 +548,46 @@ class TutorRequestNotificationService {
         return;
       }
 
-      // 2b) Item came from the received PENDING list -> already verified.
+      // Item already came from the received PENDING list.
       if (trustFallback && fallback != null) {
         logger.info('POPUP_FROM_RECEIVED_LIST: $requestReference');
-        await TutorRequestPendingStore.remove(requestReference);
         _queuePopup(fallback);
         return;
       }
 
-      // 3) Request Status API (sender-only on backend; may 404 for tutor).
-      logger.info('TUTOR_REQUEST_STATUS_API_STARTED: $requestReference');
-      EducationTutorRequestStatusResponse? response;
-      try {
-        response = await _repository.fetchTutorRequestStatus(requestReference);
-      } catch (e) {
-        logger.error('REQUEST_STATUS_API_ERROR: $e', error: e);
-      }
+      final lookup = await _lookupInReceivedList(requestReference, messageId);
 
-      final data = response?.data;
-      final apiOk = response != null && response.status == true && data != null;
-
-      if (apiOk) {
-        final statusText = data.requestStatus.trim().toUpperCase();
-        if (data.isAccepted ||
-            data.isRejected ||
-            _terminalStatuses.contains(statusText)) {
-          logger.info(
-            'Request $requestReference is $statusText, skipping popup',
-          );
-          _handledReferences.add(requestReference);
-          await TutorRequestPendingStore.remove(requestReference);
-          return;
-        }
-
-        if (!force && !_isStrictPending(response, requestReference)) {
-          logger.info('Request $requestReference not strict pending, skip');
-          await TutorRequestPendingStore.remove(requestReference);
-          return;
-        }
-
-        if (!force && await _isCurrentUserTheRequester(data.requesterUserId)) {
-          _handledReferences.add(requestReference);
-          await TutorRequestPendingStore.remove(requestReference);
-          return;
-        }
-
-        String pick(String a, String? b) => a.trim().isNotEmpty ? a : (b ?? '');
-
-        await TutorRequestPendingStore.remove(requestReference);
+      if (lookup.event != null) {
         _queuePopup(
-          TutorRequestEvent(
-            requestReference: requestReference,
-            messageId: messageId,
-            amount: pick(data.amount, fallback?.amount),
-            subject: pick(data.subject, fallback?.subject),
-            requesterName: pick(data.requesterName, fallback?.requesterName),
-            requestStatus: pick(data.requestStatus, fallback?.requestStatus),
+          _merge(
+            requestReference,
+            messageId,
+            lookup.event,
+            fallback,
             forced: force,
           ),
         );
         return;
       }
 
-      // 4) Status API failed / 404 (normal for the tutor).
-      if (!force) {
-        logger.info('REQUEST_STATUS_API_FAILURE: $requestReference');
+      // List says: not pending any more -> already answered.
+      if (lookup.ok && fromTap) {
+        logger.info('TAP_REQUEST_NOT_PENDING_SKIP: $requestReference');
+        _handledReferences.add(requestReference);
+        await _markSeen([requestReference]);
         return;
       }
 
-      // FORCE: payload first, enrich missing fields from the received list.
-      logger.info('FORCE_FALLBACK_POPUP: $requestReference');
-      final needsEnrich = fallback == null ||
-          fallback.amount.trim().isEmpty ||
-          fallback.requesterName.trim().isEmpty;
-      final fromList = needsEnrich
-          ? await _lookupInReceivedList(requestReference, messageId)
-          : null;
-      await TutorRequestPendingStore.remove(requestReference);
-      _queuePopup(
-        _merge(
-          requestReference,
-          messageId,
-          fallback,
-          fromList,
-          forced: true,
-        ),
-      );
+      // Foreground FCM, or list unavailable: show from the FCM payload.
+      if (force && fallback != null) {
+        logger.info('FORCE_FALLBACK_POPUP: $requestReference');
+        _queuePopup(fallback);
+        return;
+      }
+      logger.info('NO_POPUP_FOR_REQUEST: $requestReference');
     } catch (e) {
       logger.error('PROCESS_REQUEST_ERROR: $e', error: e);
-      if (force) {
-        _queuePopup(
-          fallback ??
-              TutorRequestEvent(
-                requestReference: requestReference,
-                messageId: messageId,
-                forced: true,
-              ),
-        );
-      }
+      if (force && fallback != null) _queuePopup(fallback);
     } finally {
       _inFlight.remove(requestReference);
     }
@@ -674,23 +600,13 @@ class TutorRequestNotificationService {
       return;
     }
     _awaitingPopup.add(ref);
+    unawaited(_markSeen([ref]));
     _broadcast(event);
   }
 
-  bool _isStrictPending(
-      EducationTutorRequestStatusResponse response,
-      String incomingRequestReference,
-      ) {
-    final data = response.data;
-    return response.status == true &&
-        data != null &&
-        data.requestReference == incomingRequestReference &&
-        data.requestStatus.trim().toUpperCase() ==
-            TutorNotificationConstants.statusPending &&
-        data.isPending == true &&
-        data.isAccepted == false &&
-        data.isRejected == false;
-  }
+  // ---------------------------------------------------------------------------
+  // Request payload detection
+  // ---------------------------------------------------------------------------
 
   static bool isTutorRequestPayload(Map<String, dynamic> data) {
     final requestReference = extractRequestReference(data);
@@ -700,9 +616,7 @@ class TutorRequestNotificationService {
         ?.toString()
         .trim()
         .toLowerCase();
-    if (type == null || type.isEmpty) {
-      return true;
-    }
+    if (type == null || type.isEmpty) return true;
     if (type.contains(TutorNotificationConstants.typeTutor) ||
         type.contains(TutorNotificationConstants.typeTuition) ||
         type.contains(TutorNotificationConstants.typeEducation) ||
@@ -749,6 +663,10 @@ class TutorRequestNotificationService {
     return null;
   }
 
+  // ---------------------------------------------------------------------------
+  // Event bus / state
+  // ---------------------------------------------------------------------------
+
   void _broadcast(TutorRequestEvent event) {
     _eventQueue.removeWhere(
           (queued) => queued.requestReference == event.requestReference,
@@ -758,24 +676,6 @@ class TutorRequestNotificationService {
       _eventController.add(event);
     }
     logger.info('POPUP_EVENT_BROADCAST: ${event.requestReference}');
-  }
-
-  void _rebroadcastAwaitingPopup(String requestReference, String messageId) {
-    TutorRequestEvent? existing;
-    for (final event in _eventQueue) {
-      if (event.requestReference == requestReference) {
-        existing = event;
-      }
-    }
-    _needsPresentationRetry.remove(requestReference);
-    _awaitingPopup.add(requestReference);
-    _broadcast(
-      existing ??
-          TutorRequestEvent(
-            requestReference: requestReference,
-            messageId: messageId,
-          ),
-    );
   }
 
   void _replayQueuedEvents() {
@@ -835,6 +735,7 @@ class TutorRequestNotificationService {
           (event) => event.requestReference == requestReference,
     );
     _isShowingPopup = false;
+    unawaited(_markSeen([requestReference]));
     logger.info('Request $requestReference marked as handled');
   }
 
@@ -885,17 +786,25 @@ class TutorRequestNotificationService {
   }
 }
 
+class _ListLookup {
+  const _ListLookup({required this.ok, this.event});
+  final bool ok;
+  final TutorRequestEvent? event;
+}
+
 class _DeferredTutorRequest {
   const _DeferredTutorRequest({
     required this.requestReference,
     required this.messageId,
     this.force = false,
+    this.fromTap = false,
     this.fallback,
   });
 
   final String requestReference;
   final String messageId;
   final bool force;
+  final bool fromTap;
   final TutorRequestEvent? fallback;
 }
 

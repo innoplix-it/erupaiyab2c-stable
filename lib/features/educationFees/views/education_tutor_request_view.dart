@@ -43,7 +43,7 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
     this.subject,
     this.sendDuration = const Duration(milliseconds: 1200),
     this.sentLabelDuration = const Duration(milliseconds: 700),
-    this.redirectDuration = const Duration(seconds: 5),
+    this.redirectDuration = const Duration(milliseconds: 800),
   });
 
   final String tutorName;
@@ -57,26 +57,16 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
   final String? ifscCode;
   final String? branch;
 
-  /// `data` of `POST /api/education/tutor/details` for a VERIFIED tutor. When
-  /// present its values are what the card shows: name, account number, bank
-  /// logo, bank name, account holder name and amount are all taken from the
-  /// API exactly as returned. The legacy [maskedAccount] path keeps working
-  /// for saved tutors where no details call was made.
+  /// `data` of `POST /api/education/tutor/details` for a VERIFIED tutor.
   final EducationTutorDetailsData? tutorDetails;
 
-  /// Subject/fee type selected by the user in the amount screen. Passed to
-  /// the sendTutorRequest API instead of a hardcoded value.
+  /// Subject/fee type selected by the user in the amount screen.
   final String? subject;
 
-  /// Simulated in-flight time for the send-request call (no backend API
-  /// exists yet). Override in tests.
   final Duration sendDuration;
-
-  /// How long "Request sent" stays on the loader before the waiting screen.
   final Duration sentLabelDuration;
 
-  /// How long the "Request accepted successfully" loader is shown before the
-  /// tutor profile screen opens (matches its "redirected in 5 sec" caption).
+  /// Short pause on "Beneficiary saved" before the profile screen opens.
   final Duration redirectDuration;
 
   @override
@@ -92,11 +82,25 @@ class _EducationTutorRequestViewState
   int _elapsedSeconds = 0;
   Timer? _ticker;
 
+  /// Guards: one status call at a time, accept/reject handled only once.
+  bool _polling = false;
+  bool _resultHandled = false;
+
+  /// Fresh tutor details fetched right after the tutor accepts.
+  EducationTutorDetailsData? _freshDetails;
+
+  EducationTutorDetailsData? get _details =>
+      _freshDetails ?? widget.tutorDetails;
+
   @override
   void dispose() {
     _ticker?.cancel();
     super.dispose();
   }
+
+  // ---------------------------------------------------------------------------
+  // Polling (sender side). request-status works for the sender (HTTP 200).
+  // ---------------------------------------------------------------------------
 
   void _startTicker() {
     _ticker?.cancel();
@@ -105,96 +109,104 @@ class _EducationTutorRequestViewState
       if (!mounted) return;
       setState(() => _elapsedSeconds++);
 
-      // Read request reference from state
-      final requestReference = ref.read(educationFeesControllerProvider).requestReference;
-      if (requestReference != null &&
-          requestReference.isNotEmpty &&
-          _elapsedSeconds % 2 == 0) {
-        try {
-          final statusRes =
-              await repo.fetchTutorRequestStatus(requestReference);
-          if (!mounted) return;
-          if (statusRes.data?.isAccepted == true) {
-            _onAccepted();
-            return;
-          } else if (statusRes.data?.isRejected == true) {
-            _onRejected();
-            return;
-          }
-        } catch (_) {}
+      if (_resultHandled || _polling || _elapsedSeconds % 2 != 0) return;
+      final requestReference =
+          ref.read(educationFeesControllerProvider).requestReference;
+      if (requestReference == null || requestReference.isEmpty) return;
+
+      _polling = true;
+      try {
+        final statusRes = await repo.fetchTutorRequestStatus(requestReference);
+        if (!mounted || _resultHandled) return;
+        if (statusRes.data?.isAccepted == true) {
+          _resultHandled = true;
+          _onAccepted();
+        } else if (statusRes.data?.isRejected == true) {
+          _resultHandled = true;
+          _onRejected();
+        }
+      } catch (_) {
+        // Keep polling until the backend reports accepted / rejected.
+      } finally {
+        _polling = false;
       }
-      
-      // NOTE: Backend does not provide an expiry field.
-      // Timer continues polling until isAccepted or isRejected becomes true.
-      // No hardcoded timeout - relies entirely on backend status.
     });
   }
 
   void _onRejected() {
     _ticker?.cancel();
-    if (_phase == _TutorRequestPhase.accepted) return;
-    
-    // Show declined popup
-    if (mounted) {
-      showEducationTuitionRequestPopup(
-        context,
-        state: EducationTuitionPopupState.declined,
-        amount: widget.amount,
-        requesterName: widget.tutorName,
-      ).then((_) {
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      });
-    }
+    if (!mounted) return;
+    showEducationTuitionRequestPopup(
+      context,
+      state: EducationTuitionPopupState.declined,
+      amount: widget.amount,
+      requesterName: widget.tutorName,
+    ).then((_) {
+      if (mounted) Navigator.of(context).pop();
+    });
   }
 
+  /// Tutor accepted: show loader, refresh bank details, save beneficiary and
+  /// open the tutor profile screen directly (no intermediate popup).
   void _onAccepted() {
     _ticker?.cancel();
-    if (_phase == _TutorRequestPhase.accepted) return;
-    
-    // Show accepted popup first
-    if (mounted) {
-      showEducationTuitionRequestPopup(
-        context,
-        state: EducationTuitionPopupState.accepted,
-        amount: widget.amount,
-        requesterName: widget.tutorName,
-      ).then((_) {
-        if (mounted) {
-          setState(() {
-            _phase = _TutorRequestPhase.accepted;
-            _overlayLabel = 'Request accepted successfully';
-            _overlaySubtitle = 'Saving beneficiary details...';
-          });
-          _saveBeneficiaryAndOpenProfile();
-        }
-      });
+    if (!mounted) return;
+    setState(() {
+      _phase = _TutorRequestPhase.accepted;
+      _overlayLabel = 'Request accepted successfully';
+      _overlaySubtitle = 'Fetching bank details...';
+    });
+    _fetchDetailsSaveAndOpenProfile();
+  }
+
+  /// Re-fetches tutor/details (bank name, account, IFSC, holder). Any failure
+  /// falls back to the details we already have, so the flow never blocks.
+  Future<void> _refreshTutorDetails() async {
+    try {
+      final repo = ref.read(educationFeesRepositoryProvider);
+      final res = await repo.fetchTutorDetails(
+        mobile: widget.mobile,
+        amount: _amount().toInt(),
+      );
+      final EducationTutorDetailsData? fresh = res.data;
+      if (fresh != null && mounted) {
+        _freshDetails = fresh;
+      }
+    } catch (_) {
+      // Keep widget.tutorDetails as fallback.
     }
   }
 
-  Future<void> _saveBeneficiaryAndOpenProfile() async {
+  Future<void> _fetchDetailsSaveAndOpenProfile() async {
+    await _refreshTutorDetails();
+    if (!mounted) return;
+
+    setState(() {
+      _overlayLabel = 'Request accepted successfully';
+      _overlaySubtitle = 'Saving beneficiary details...';
+    });
+
     final controller = ref.read(educationFeesControllerProvider.notifier);
     final saved = await controller.saveTutorBeneficiaryRegistered();
     if (!mounted) return;
 
     if (saved) {
-      // Only navigate to profile on successful save
       setState(() {
         _overlayLabel = 'Beneficiary saved successfully';
-        _overlaySubtitle = 'you will redirected in 5 sec to tutor profile';
+        _overlaySubtitle = 'Opening tutor profile...';
       });
-      _openProfileAfterRedirect();
+      await Future<void>.delayed(widget.redirectDuration);
+      if (!mounted) return;
+      _openProfile();
     } else {
-      // On failure, stay on current screen and show error
-      final saveErrorMessage = ref.read(educationFeesControllerProvider).saveErrorMessage;
+      final saveErrorMessage =
+          ref.read(educationFeesControllerProvider).saveErrorMessage;
       setState(() {
         _phase = _TutorRequestPhase.saveFailed;
         _overlayLabel = 'Failed to save beneficiary';
-        _overlaySubtitle = saveErrorMessage ?? 'Please retry saving beneficiary details';
+        _overlaySubtitle =
+            saveErrorMessage ?? 'Please retry saving beneficiary details';
       });
-      // User can retry by calling _saveBeneficiaryAndOpenProfile again
-      // The request remains accepted, so we don't reset to pending
     }
   }
 
@@ -204,13 +216,12 @@ class _EducationTutorRequestViewState
       _overlayLabel = 'Retrying save beneficiary...';
       _overlaySubtitle = 'Please wait';
     });
-    _saveBeneficiaryAndOpenProfile();
+    _fetchDetailsSaveAndOpenProfile();
   }
 
-  Future<void> _openProfileAfterRedirect() async {
-    await Future<void>.delayed(widget.redirectDuration);
-    if (!mounted) return;
-    Navigator.of(context).push(
+  void _openProfile() {
+    final details = _details;
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => EducationTutorProfileView(
           tutorName: _tutorName(),
@@ -221,43 +232,42 @@ class _EducationTutorRequestViewState
           accountNumber: _accountNumber(),
           ifscCode: _ifscCode(),
           branch: widget.branch,
-          bankLogoUrl: widget.tutorDetails?.bankLogo,
-          bankName: widget.tutorDetails?.bankName,
-          accountHolderName: widget.tutorDetails?.accountHolderName,
-          tutorDetails: widget.tutorDetails,
+          bankLogoUrl: details?.bankLogo,
+          bankName: details?.bankName,
+          accountHolderName: details?.accountHolderName,
+          tutorDetails: details,
         ),
       ),
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Display helpers
+  // ---------------------------------------------------------------------------
+
   String _tutorName() {
-    final fromApi = widget.tutorDetails?.tutorName.trim() ?? '';
+    final fromApi = _details?.tutorName.trim() ?? '';
     return fromApi.isNotEmpty ? fromApi : widget.tutorName;
   }
 
-  /// `account_number` exactly as the Tutor Details API returned it; falls back
-  /// to the saved tutor's `account_masked`. Never built from the mobile number,
-  /// never masked on the client.
   String _accountLine() {
-    final fromApi = widget.tutorDetails?.accountNumber.trim() ?? '';
+    final fromApi = _details?.accountNumber.trim() ?? '';
     if (fromApi.isNotEmpty) return fromApi;
     return widget.maskedAccount?.trim() ?? '';
   }
 
   String _accountNumber() {
-    final fromApi = widget.tutorDetails?.accountNumber.trim() ?? '';
+    final fromApi = _details?.accountNumber.trim() ?? '';
     return fromApi.isNotEmpty ? fromApi : (widget.accountNumber ?? '');
   }
 
   String _ifscCode() {
-    final fromApi = widget.tutorDetails?.ifsc.trim() ?? '';
+    final fromApi = _details?.ifsc.trim() ?? '';
     return fromApi.isNotEmpty ? fromApi : (widget.ifscCode ?? '');
   }
 
-  /// Amount echoed by the Tutor Details API; the amount entered in the flow is
-  /// only the fallback when the backend returns no amount at all.
   double _amount() {
-    final fromApi = widget.tutorDetails?.amount ?? 0;
+    final fromApi = _details?.amount ?? 0;
     return fromApi > 0 ? fromApi.toDouble() : widget.amount;
   }
 
@@ -269,10 +279,8 @@ class _EducationTutorRequestViewState
     ).format(_amount());
   }
 
-  /// Bank name and account holder name from the Tutor Details API, rendered
-  /// with the card's existing caption style. Absent values are not shown.
   List<EducationTutorStatusLine> _identityStatusLines() {
-    final details = widget.tutorDetails;
+    final details = _details;
     if (details == null) return const [];
     final bankName = details.bankName.trim();
     final holderName = details.accountHolderName.trim();
@@ -290,9 +298,6 @@ class _EducationTutorRequestViewState
     ];
   }
 
-  /// Subject typed or passed into this screen, otherwise the fee type
-  /// selected on the amount screen. Empty after trim means there is nothing
-  /// real to send.
   String? _subjectForRequest() {
     final explicit = widget.subject?.trim() ?? '';
     if (explicit.isNotEmpty) return explicit;
@@ -301,6 +306,10 @@ class _EducationTutorRequestViewState
     if (selected.isNotEmpty) return selected;
     return null;
   }
+
+  // ---------------------------------------------------------------------------
+  // Send request
+  // ---------------------------------------------------------------------------
 
   Future<void> _sendRequest() async {
     if (_phase != _TutorRequestPhase.form) return;
@@ -332,7 +341,7 @@ class _EducationTutorRequestViewState
       );
       final results = await Future.wait([
         responseFuture.catchError(
-          (_) => const EducationTutorSendRequestResponse(status: false),
+              (_) => const EducationTutorSendRequestResponse(status: false),
         ),
         Future<void>.delayed(widget.sendDuration),
       ]);
@@ -340,9 +349,7 @@ class _EducationTutorRequestViewState
       if (!mounted) return;
 
       if (response.status && response.data != null) {
-        final requestReference = response.data!.requestReference;
-        // Store in controller state (single source of truth)
-        controller.storeTutorRequestReference(requestReference);
+        controller.storeTutorRequestReference(response.data!.requestReference);
       }
 
       setState(() => _overlayLabel = 'Request sent');
@@ -362,6 +369,10 @@ class _EducationTutorRequestViewState
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     final u = educationTutorUnit(context);
@@ -373,9 +384,6 @@ class _EducationTutorRequestViewState
     final isLoading = _phase == _TutorRequestPhase.sending ||
         _phase == _TutorRequestPhase.accepted;
 
-    // The processing scrim has to occupy the whole screen, app bar and status
-    // bar included, so it is a sibling above the Scaffold rather than a child
-    // of the body.
     return Stack(
       children: [
         EducationFeesTheme(
@@ -413,7 +421,7 @@ class _EducationTutorRequestViewState
                                     name: _tutorName(),
                                     accountLine: accountLine,
                                     amountLabel: amountLabel,
-                                    bankLogoUrl: widget.tutorDetails?.bankLogo,
+                                    bankLogoUrl: _details?.bankLogo,
                                     statusLines: [
                                       EducationTutorStatusLine(
                                         text: isSent
@@ -427,13 +435,11 @@ class _EducationTutorRequestViewState
                                     ],
                                   ),
                                   SizedBox(height: 20 * u),
-                                  // The investment banner image comes from the
-                                  // backend; no local asset is rendered here.
                                   if (isSent) ...[
                                     SizedBox(height: 28 * u),
                                     Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      MainAxisAlignment.center,
                                       children: [
                                         SvgPicture.asset(
                                           FileConstants.tutorTimerIconSvg,
@@ -482,69 +488,70 @@ class _EducationTutorRequestViewState
                               ),
                             ),
                           Padding(
-                            // Figma footer: 24px above the system bottom inset.
                             padding:
-                                EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
+                            EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
                             child: _phase == _TutorRequestPhase.saveFailed
                                 ? CustomElevatedButton(
-                                    onPressed: _retrySaveBeneficiary,
-                                    label: 'Retry Save',
+                              onPressed: _retrySaveBeneficiary,
+                              label: 'Retry Save',
+                              showArrow: false,
+                              uppercaseLabel: false,
+                              height: 52 * u,
+                              backgroundColor: const Color(0xFFDD5428),
+                            )
+                                : isSent
+                                ? CustomElevatedButton(
+                              onPressed: () => context.go(
+                                RouteConstants.home,
+                              ),
+                              label: 'Go to Home',
+                              showArrow: false,
+                              uppercaseLabel: false,
+                              height: 52 * u,
+                              backgroundColor: AppColors.primary,
+                            )
+                                : Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => context.pop(),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor:
+                                      const Color(0xFFDD5428),
+                                      side: const BorderSide(
+                                        color: Color(0xFFDD5428),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 14 * u,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(
+                                            28 * u),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Cancel',
+                                      style:
+                                      GoogleFonts.plusJakartaSans(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15 * u,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 12 * u),
+                                Expanded(
+                                  child: CustomElevatedButton(
+                                    onPressed: _sendRequest,
+                                    label: 'Send Request',
                                     showArrow: false,
                                     uppercaseLabel: false,
-                                    height: 52 * u,
-                                    backgroundColor: const Color(0xFFDD5428),
-                                  )
-                                : isSent
-                                    ? CustomElevatedButton(
-                                        onPressed: () => context.go(
-                                          RouteConstants.home,
-                                        ),
-                                        label: 'Go to Home',
-                                        showArrow: false,
-                                        uppercaseLabel: false,
-                                        height: 52 * u,
-                                        backgroundColor: AppColors.primary,
-                                      )
-                                    : Row(
-                                        children: [
-                                          Expanded(
-                                            child: OutlinedButton(
-                                              onPressed: () => context.pop(),
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor:
-                                                    const Color(0xFFDD5428),
-                                                side: const BorderSide(
-                                                  color: Color(0xFFDD5428),
-                                                ),
-                                                padding: EdgeInsets.symmetric(
-                                                  vertical: 14 * u,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(28 * u),
-                                                ),
-                                              ),
-                                              child: Text(
-                                                'Cancel',
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15 * u,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 12 * u),
-                                          Expanded(
-                                            child: CustomElevatedButton(
-                                              onPressed: _sendRequest,
-                                              label: 'Send Request',
-                                              showArrow: false,
-                                              uppercaseLabel: false,
-                                              height: 48 * u,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                    height: 48 * u,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
