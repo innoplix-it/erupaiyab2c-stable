@@ -244,11 +244,20 @@ void main() {
   });
 
   group('DioInterceptors - HTTP 404 handler restoration verification', () {
-    test('Source code contains 404 logout branch (restored from AUD-008)', () {
-      // This test verifies that the 404 logout branch has been restored
-      // per user request to restore previous auto-logout behavior
-      // The branch triggers logout on any 404 response
-      expect(true, isTrue);
+    test('Session Expired message on 404 is the logout contract', () {
+      expect(
+        DioInterceptors.isSessionExpiredNotFound(
+          const {'message': 'Session Expired. Please login again.'},
+        ),
+        isTrue,
+      );
+      expect(
+        DioInterceptors.isSessionExpiredNotFound(
+          const {'message': 'Beneficiary not found'},
+        ),
+        isFalse,
+      );
+      expect(DioInterceptors.isSessionExpiredNotFound(null), isFalse);
     });
   });
 

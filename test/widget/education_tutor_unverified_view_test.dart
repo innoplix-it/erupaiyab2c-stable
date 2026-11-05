@@ -15,7 +15,7 @@ Widget _wrap(Widget child) => ScreenUtilInit(
     );
 
 Widget _view() => const EducationTutorUnverifiedView(
-      tutorName: 'Supriya Sarang Ithape',
+      tutorName: 'Test Tutor Name',
       amount: 2000,
       amountLabel: '\u20B92000',
     );
@@ -32,7 +32,7 @@ void main() {
     await tester.pumpWidget(_wrap(_view()));
     await tester.pump();
 
-    expect(find.text('Supriya Sarang Ithape'), findsOneWidget);
+    expect(find.text('Test Tutor Name'), findsOneWidget);
     expect(find.text('Unverified'), findsOneWidget);
     expect(find.text('Ask for KYC'), findsOneWidget);
     expect(find.text('Add Details'), findsOneWidget);

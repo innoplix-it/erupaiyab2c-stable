@@ -29,7 +29,7 @@ class _FakeTutorSaveBeneficiaryRepository extends EducationFeesRepository {
       data: EducationTutorVerifyPanData(
         recipientReference: _panReference,
         beneficiaryId: 39,
-        name: 'SUPRIYA SARANG ITHAPE',
+        name: 'TEST TUTOR NAME',
         panMasked: 'ABXPI****E',
         panVerified: true,
       ),
@@ -49,7 +49,7 @@ class _FakeTutorSaveBeneficiaryRepository extends EducationFeesRepository {
       data: EducationTutorVerifyBankData(
         recipientReference: _panReference,
         beneficiaryId: 39,
-        name: 'SUPRIYA SARANG ITHAPE',
+        name: 'TEST TUTOR NAME',
         accountNumber: 'XXXXXX7911',
         ifsc: 'UBIN0546771',
         transactionReference: 1474338350,
@@ -99,11 +99,11 @@ void main() {
   /// Drives the controller into the exact state the Add Details form
   /// reaches after successful PAN and bank verification.
   Future<void> readyForm({
-    String account = '91201000123457911',
-    String ifsc = 'ubin0546771',
+    String account = '1234567890123456',
+    String ifsc = 'TEST0001234',
   }) async {
-    controller.updateRecipientName('SUPRIYA SARANG ITHAPE');
-    controller.updatePan('ABXPI7963E');
+    controller.updateRecipientName('TEST TUTOR NAME');
+    controller.updatePan('ABCDE1234F');
     await controller.verifyTutorPan();
     controller.updateAccountType(EducationAccountType.bankDetails);
     controller.updateAccountNumber(account);
@@ -293,7 +293,7 @@ void main() {
       final registeredController =
           EducationFeesController(repository: registeredRepository);
       registeredController.updateRecipientName('Ravi Kumar');
-      registeredController.updateMobileInput('9876543210');
+      registeredController.updateMobileInput('9000000001');
       registeredController.updatePan('ABCDE1234F');
       registeredController.updateAccountType(EducationAccountType.bankDetails);
       registeredController.updateAccountNumber('91201000123457911');
@@ -314,11 +314,11 @@ void main() {
 
 /// Helper to ready a different controller instance for the hanging test.
 Future<void> readyFormForController(EducationFeesController ctrl) async {
-  ctrl.updateRecipientName('SUPRIYA SARANG ITHAPE');
-  ctrl.updatePan('ABXPI7963E');
+  ctrl.updateRecipientName('TEST TUTOR NAME');
+  ctrl.updatePan('ABCDE1234F');
   await ctrl.verifyTutorPan();
   ctrl.updateAccountType(EducationAccountType.bankDetails);
-  ctrl.updateAccountNumber('91201000123457911');
-  ctrl.updateIfsc('ubin0546771');
+  ctrl.updateAccountNumber('1234567890123456');
+  ctrl.updateIfsc('TEST0001234');
   await ctrl.verifyTutorBank();
 }

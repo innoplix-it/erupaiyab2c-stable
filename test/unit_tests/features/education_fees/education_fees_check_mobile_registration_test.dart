@@ -54,7 +54,7 @@ void main() {
       );
       final controller = _controller(repo);
 
-      controller.updateMobileInput('9876543210');
+      controller.updateMobileInput('9000000001');
       await controller.checkMobile();
 
       expect(repo.checkMobileCallCount, 1);
@@ -72,7 +72,7 @@ void main() {
       );
       final controller = _controller(repo);
 
-      controller.updateMobileInput('9876543210');
+      controller.updateMobileInput('9000000001');
       await controller.checkMobile();
 
       expect(controller.state.showRecipientFields, isFalse);
@@ -84,7 +84,7 @@ void main() {
         ..checkMobileError = Exception('timeout');
       final controller = _controller(repo);
 
-      controller.updateMobileInput('9876543210');
+      controller.updateMobileInput('9000000001');
       await controller.checkMobile();
 
       expect(controller.state.showRecipientFields, isFalse);
@@ -105,7 +105,7 @@ void main() {
       );
       final controller = _controller(repo);
 
-      controller.updateMobileInput('9876543210');
+      controller.updateMobileInput('9000000001');
       await controller.checkMobile();
 
       expect(controller.state.showRecipientFields, isFalse);
@@ -129,7 +129,7 @@ void main() {
       );
       final controller = EducationFeesController(repository: delayedRepo);
 
-      controller.updateMobileInput('9876543210');
+      controller.updateMobileInput('9000000001');
       final first = controller.checkMobile();
       controller.updateMobileInput('9876543211');
       await controller.checkMobile();
@@ -152,7 +152,7 @@ void main() {
       );
       final controller = _controller(repo);
 
-      controller.updateMobileInput('9876543210');
+      controller.updateMobileInput('9000000001');
       await controller.checkMobile();
       controller.updateRecipientName('Tutor');
       controller.updatePan('ABCDE1234F');

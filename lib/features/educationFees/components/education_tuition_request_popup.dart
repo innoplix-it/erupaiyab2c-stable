@@ -24,19 +24,31 @@ class EducationTuitionRequestPopup extends StatelessWidget {
   const EducationTuitionRequestPopup({
     super.key,
     required this.state,
-    required this.amount,
+    this.amount,
     this.requesterName,
+    this.paymentPurpose,
+    this.paymentMethod,
+    this.requestStatusLabel,
     this.onAccept,
     this.onDecline,
   });
 
   final EducationTuitionPopupState state;
 
-  /// Plain amount in rupees; rendered with the shared en_IN currency format.
-  final double amount;
+  /// Plain amount in rupees. Hidden when the API did not send one.
+  final double? amount;
 
   /// Who raised the request ("Requested By ..."). Hidden when empty.
   final String? requesterName;
+
+  /// Shown only when the payload includes a subject or purpose.
+  final String? paymentPurpose;
+
+  /// Shown only when the payload includes a payment method.
+  final String? paymentMethod;
+
+  /// Shown only when the payload includes a request status string.
+  final String? requestStatusLabel;
 
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
@@ -47,13 +59,23 @@ class EducationTuitionRequestPopup extends StatelessWidget {
 
   bool get _accepted => state == EducationTuitionPopupState.accepted;
 
-  String get _amountLabel => NumberFormat.currency(
-        locale: 'en_IN',
-        symbol: '\u20B9',
-        decimalDigits: 0,
-      ).format(amount);
+  String? get _amountLabel {
+    if (amount == null) return null;
+    return NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '\u20B9',
+      decimalDigits: 0,
+    ).format(amount);
+  }
 
   String get _requester => requesterName?.trim() ?? '';
+
+  bool get _hasDetails {
+    bool present(String? value) => value != null && value.trim().isNotEmpty;
+    return present(paymentPurpose) ||
+        present(paymentMethod) ||
+        present(requestStatusLabel);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,15 +147,17 @@ class EducationTuitionRequestPopup extends StatelessWidget {
           ),
         ),
       ],
-      SizedBox(height: 8 * u),
-      Text(
-        _amountLabel,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 26 * u,
-          fontWeight: FontWeight.w700,
-          color: Colors.black,
+      if (_amountLabel != null) ...[
+        SizedBox(height: 8 * u),
+        Text(
+          _amountLabel!,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 26 * u,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
         ),
-      ),
+      ],
       // Static "Pending" status badge (SVG) — becomes status-aware later.
       SizedBox(height: 10 * u),
       SvgPicture.asset(
@@ -172,8 +196,15 @@ class EducationTuitionRequestPopup extends StatelessWidget {
         width: double.infinity,
         color: const Color(0xFFF4F4F5),
       ),
-      SizedBox(height: 16 * u),
-      _DetailsCard(unit: u),
+      if (_hasDetails) ...[
+        SizedBox(height: 16 * u),
+        _DetailsCard(
+          unit: u,
+          purpose: paymentPurpose,
+          method: paymentMethod,
+          status: requestStatusLabel,
+        ),
+      ],
       SizedBox(height: 20 * u),
       Row(
         children: [
@@ -229,8 +260,12 @@ class EducationTuitionRequestPopup extends StatelessWidget {
       SizedBox(height: 8 * u),
       Text(
         _accepted
-            ? 'You have accepted the tuition fee payment request from $_requester.'
-            : 'You have declined the tuition fee payment request from $_requester.',
+            ? (_requester.isEmpty
+                ? 'You have accepted the tuition fee payment request.'
+                : 'You have accepted the tuition fee payment request from $_requester.')
+            : (_requester.isEmpty
+                ? 'You have declined the tuition fee payment request.'
+                : 'You have declined the tuition fee payment request from $_requester.'),
         textAlign: TextAlign.center,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 13 * u,
@@ -240,15 +275,17 @@ class EducationTuitionRequestPopup extends StatelessWidget {
           color: const Color(0xFF27272A),
         ),
       ),
-      SizedBox(height: 14 * u),
-      Text(
-        _amountLabel,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 26 * u,
-          fontWeight: FontWeight.w600,
-          color: Colors.black,
+      if (_amountLabel != null) ...[
+        SizedBox(height: 14 * u),
+        Text(
+          _amountLabel!,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 26 * u,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
         ),
-      ),
+      ],
       SizedBox(height: 10 * u),
       _Pill(
         unit: u,
@@ -262,7 +299,9 @@ class EducationTuitionRequestPopup extends StatelessWidget {
       Text(
         _accepted
             ? 'You can now proceed with the next step.\nContinue'
-            : '$_requester will be notified about your decision.',
+            : (_requester.isEmpty
+                ? 'The requester will be notified about your decision.'
+                : '$_requester will be notified about your decision.'),
         textAlign: TextAlign.center,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 13 * u,
@@ -291,8 +330,11 @@ class EducationTuitionRequestPopup extends StatelessWidget {
 Future<bool?> showEducationTuitionRequestPopup(
   BuildContext context, {
   required EducationTuitionPopupState state,
-  required double amount,
+  double? amount,
   String? requesterName,
+  String? paymentPurpose,
+  String? paymentMethod,
+  String? requestStatusLabel,
 }) {
   return showDialog<bool>(
     context: context,
@@ -301,6 +343,9 @@ Future<bool?> showEducationTuitionRequestPopup(
       state: state,
       amount: amount,
       requesterName: requesterName,
+      paymentPurpose: paymentPurpose,
+      paymentMethod: paymentMethod,
+      requestStatusLabel: requestStatusLabel,
       onAccept: () => Navigator.of(dialogContext).pop(true),
       onDecline: () => Navigator.of(dialogContext).pop(false),
     ),
@@ -417,16 +462,38 @@ class _IllustrationHeader extends StatelessWidget {
   }
 }
 
-/// Payment Purpose / Method / Status rows on the gray card.
-/// Placeholder values until the request-details API provides real ones.
+/// Payment Purpose / Method / Status rows. A row is omitted when the
+/// request payload did not include that field.
 class _DetailsCard extends StatelessWidget {
-  const _DetailsCard({required this.unit});
+  const _DetailsCard({
+    required this.unit,
+    this.purpose,
+    this.method,
+    this.status,
+  });
 
   final double unit;
+  final String? purpose;
+  final String? method;
+  final String? status;
 
   @override
   Widget build(BuildContext context) {
     final u = unit;
+    final rows = <Widget>[];
+    void add(String label, String? value) {
+      final text = value?.trim() ?? '';
+      if (text.isEmpty) return;
+      if (rows.isNotEmpty) rows.add(SizedBox(height: 14 * u));
+      rows.add(_detailRow(u, label, text));
+    }
+
+    add('Payment Purpose', purpose);
+    add('Payment Method', method);
+    add('Request Status', status);
+    if (rows.isEmpty) return const SizedBox.shrink();
+    rows.add(SizedBox(height: 6 * u));
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16 * u, vertical: 6 * u),
@@ -434,16 +501,7 @@ class _DetailsCard extends StatelessWidget {
         color: const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(14 * u),
       ),
-      child: Column(
-        children: [
-          _detailRow(u, 'Payment Purpose', 'Tuition Fees'),
-          SizedBox(height: 14 * u),
-          _detailRow(u, 'Payment Method', 'Credit Card'),
-          SizedBox(height: 14 * u),
-          _detailRow(u, 'Request Status', 'Awaiting Your Approval'),
-          SizedBox(height: 6 * u),
-        ],
-      ),
+      child: Column(children: rows),
     );
   }
 

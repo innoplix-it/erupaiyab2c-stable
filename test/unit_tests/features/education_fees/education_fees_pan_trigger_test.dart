@@ -54,7 +54,7 @@ void main() {
   setUp(() {
     repository = _FakeEducationRepository();
     controller = EducationFeesController(repository: repository);
-    controller.updateMobileInput('9876543210');
+    controller.updateMobileInput('9000000001');
     controller.updateRecipientName('Ravi Kumar');
   });
 

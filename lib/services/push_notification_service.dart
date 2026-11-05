@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/routes_constant.dart';
 import '../constants/storage_keys.dart';
 import '../config/app_env.dart';
+import '../features/educationFees/constants/tutor_notification_constants.dart';
 import '../features/profile/repositories/profile_repository.dart';
 import '../features/educationFees/services/tutor_request_background_processor.dart';
 import '../features/educationFees/services/tutor_request_notification_service.dart';
@@ -282,33 +283,17 @@ class PushNotificationService {
 
     await _localNotifications.initialize(
       settings,
-      onDidReceiveNotificationResponse: (response) {
-        logger.info('Local notification tapped: ${response.payload}');
-        final payload = response.payload;
-        if (payload == null || payload.trim().isEmpty) return;
-        try {
-          final decoded = jsonDecode(payload);
-          if (decoded is Map) {
-            final data = decoded['data'];
-            final mapped = data is Map
-                ? data.map((k, v) => MapEntry('$k', v))
-                : const <String, dynamic>{};
-            if (TutorRequestNotificationService.isTutorRequestPayload(mapped)) {
-              unawaited(
-                TutorRequestNotificationService().handleIncomingFromData(
-                  mapped,
-                  messageId: 'local_notification_tap',
-                ),
-              );
-              return;
-            }
-            _handleNotificationTap(data: mapped);
-          }
-        } catch (e) {
-          logger.error('Failed to parse local notification payload: $e');
-        }
-      },
+      onDidReceiveNotificationResponse: _onLocalNotificationResponse,
     );
+
+    final launchDetails =
+        await _localNotifications.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp ?? false) {
+      final response = launchDetails?.notificationResponse;
+      if (response != null) {
+        _onLocalNotificationResponse(response);
+      }
+    }
 
     const androidChannel = AndroidNotificationChannel(
       _defaultChannelId,
@@ -337,21 +322,53 @@ class PushNotificationService {
     await _showLocalNotification(message);
   }
 
+  static void _onLocalNotificationResponse(NotificationResponse response) {
+    logger.info('Local notification tapped: ${response.payload}');
+    final payload = response.payload;
+    if (payload == null || payload.trim().isEmpty) return;
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) return;
+      final mapped =
+          TutorRequestNotificationService.notificationDataFromPayload(decoded);
+      if (TutorRequestNotificationService.isTutorRequestPayload(mapped)) {
+        unawaited(
+          TutorRequestNotificationService().handleOpenedData(
+            decoded.map((key, value) => MapEntry('$key', value)),
+            messageId: 'local_notification_tap',
+          ),
+        );
+        return;
+      }
+      _handleNotificationTap(data: mapped);
+    } catch (e) {
+      logger.error('Failed to parse local notification payload: $e');
+    }
+  }
+
   static void _handleMessageOpenedApp(RemoteMessage message) {
     logger.info('FCM opened app message: ${message.messageId}');
 
-    if (TutorRequestNotificationService.isTutorRequestPayload(message.data)) {
+    final data = TutorRequestNotificationService.notificationDataFromPayload(
+      message.data,
+    );
+    if (TutorRequestNotificationService.isTutorRequestPayload(data)) {
       logger.info(
         'FCM_RECEIVED tutor_request opened/terminated id=${message.messageId}',
       );
+      // Tutor taps stay on the current route. Do not hand them to the
+      // generic navigator, which would open the received-requests screen.
       unawaited(
-        TutorRequestNotificationService().handleOpenedMessage(message),
+        TutorRequestNotificationService().handleOpenedData(
+          data,
+          messageId: message.messageId ?? 'opened',
+        ),
       );
       return;
     }
 
     _handleNotificationTap(
-      data: message.data,
+      data: data,
     );
   }
 
@@ -465,7 +482,7 @@ class PushNotificationService {
     final type = (data['type'] ?? data['notification_type'])?.toString().trim().toLowerCase();
     
     if (requestReference != null && requestReference.isNotEmpty && 
-        type != null && (type.contains('tutor') || type.contains('request'))) {
+        type != null && (type.contains(TutorNotificationConstants.typeTutor) || type.contains(TutorNotificationConstants.typeRequest))) {
       return RouteConstants.tutorReceivedRequests;
     }
 

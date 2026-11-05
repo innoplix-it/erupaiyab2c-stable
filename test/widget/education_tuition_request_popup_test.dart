@@ -18,7 +18,13 @@ Future<void> _openPopup(
   WidgetTester tester,
   EducationTuitionPopupState state, {
   void Function(Future<bool?> result)? onResult,
+  double? amount = 2000,
+  String? requesterName = 'Test Requester Name',
+  String? paymentPurpose,
+  String? requestStatusLabel,
 }) async {
+  await tester.binding.setSurfaceSize(const Size(800, 1400));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     _host(
       Scaffold(
@@ -28,8 +34,10 @@ Future<void> _openPopup(
               final result = showEducationTuitionRequestPopup(
                 tester.element(find.byType(ElevatedButton)),
                 state: state,
-                amount: 2000,
-                requesterName: 'Darshan Nikam',
+                amount: amount,
+                requesterName: requesterName,
+                paymentPurpose: paymentPurpose,
+                requestStatusLabel: requestStatusLabel,
               );
               onResult?.call(result);
             },
@@ -46,16 +54,25 @@ Future<void> _openPopup(
 void main() {
   testWidgets('request state renders avatar header, details and both actions',
       (tester) async {
-    await _openPopup(tester, EducationTuitionPopupState.request);
+    await _openPopup(
+      tester,
+      EducationTuitionPopupState.request,
+      paymentPurpose: 'Maths',
+      requestStatusLabel: 'PENDING',
+    );
 
     expect(find.text('Tuition Fee Amount'), findsOneWidget);
     expect(find.text('\u20B92,000'), findsOneWidget);
-    expect(find.text('Requested By Darshan Nikam'), findsOneWidget);
-    expect(find.text('Awaiting Your Approval'), findsOneWidget);
+    expect(find.text('Requested By Test Requester Name'), findsOneWidget);
+    expect(find.text('Maths'), findsOneWidget);
+    expect(find.text('PENDING'), findsOneWidget);
+    expect(find.text('Tuition Fees'), findsNothing);
+    expect(find.text('Credit Card'), findsNothing);
+    expect(find.text('Awaiting Your Approval'), findsNothing);
     expect(find.text('Decline'), findsOneWidget);
     expect(find.text('Accept Request'), findsOneWidget);
     // Initials come from the requester name, same helper as the cards.
-    expect(find.text('DN'), findsOneWidget);
+    expect(find.text('TN'), findsOneWidget);
   });
 
   testWidgets('received state renders the new-request copy', (tester) async {
@@ -83,7 +100,7 @@ void main() {
     await _openPopup(tester, EducationTuitionPopupState.declined);
 
     expect(find.text('Request Declined'), findsWidgets);
-    expect(find.text('Darshan Nikam will be notified about your decision.'),
+    expect(find.text('Test Requester Name will be notified about your decision.'),
         findsOneWidget);
     expect(find.text('Done'), findsOneWidget);
   });
@@ -109,5 +126,22 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('tuitionPopupClose')));
     await tester.pumpAndSettle();
     expect(await result, isNull);
+  });
+
+  testWidgets('omitted amount, name and details stay hidden', (tester) async {
+    await _openPopup(
+      tester,
+      EducationTuitionPopupState.received,
+      amount: null,
+      requesterName: null,
+    );
+
+    expect(find.text('Tuition Fee Request'), findsOneWidget);
+    expect(find.text('Requested By'), findsNothing);
+    expect(find.text('Student'), findsNothing);
+    expect(find.text('Tuition Fees'), findsNothing);
+    expect(find.text('Credit Card'), findsNothing);
+    expect(find.text('Awaiting Your Approval'), findsNothing);
+    expect(find.textContaining('\u20B9'), findsNothing);
   });
 }

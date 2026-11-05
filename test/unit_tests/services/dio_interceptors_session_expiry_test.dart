@@ -163,6 +163,82 @@ void main() {
       }
     });
 
+    test('Session Expired 404 clears the session without the 401 reset hook',
+        () async {
+      expect(navigatorKey.currentContext, isNull);
+      seedFullSession(
+        refreshExpiresAt: DateTime.now().add(const Duration(days: 1)),
+      );
+      var localResetCalls = 0;
+      DioInterceptors.onLocalSessionExpired = () => localResetCalls++;
+
+      final interceptor = DioInterceptors();
+      final handler = MockErrorHandler();
+      when(() => handler.next(any())).thenAnswer((_) {});
+
+      final options = RequestOptions(path: 'https://api.test/session');
+      await interceptor.onError(
+        DioException(
+          requestOptions: options,
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(
+            requestOptions: options,
+            statusCode: 404,
+            data: const <String, dynamic>{
+              'status': false,
+              'message': 'Session Expired. Please login again.',
+            },
+          ),
+        ),
+        handler,
+      );
+
+      for (final key in sessionStorageKeys) {
+        expect(store.containsKey(key), isFalse, reason: '$key must be cleared');
+      }
+      expect(store['deviceToken'], 'device-token-value');
+      expect(store['themeMode'], 'light');
+      // 404 session expiry uses the 2474709 clear path, not the 401 hook.
+      expect(localResetCalls, 0);
+      verify(() => handler.next(any())).called(1);
+    });
+
+    test('a normal API 404 does not clear the session', () async {
+      seedFullSession(
+        refreshExpiresAt: DateTime.now().add(const Duration(days: 1)),
+      );
+      var localResetCalls = 0;
+      DioInterceptors.onLocalSessionExpired = () => localResetCalls++;
+
+      final interceptor = DioInterceptors();
+      final handler = MockErrorHandler();
+      when(() => handler.next(any())).thenAnswer((_) {});
+
+      final options = RequestOptions(path: 'https://api.test/beneficiaries/9');
+      await interceptor.onError(
+        DioException(
+          requestOptions: options,
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(
+            requestOptions: options,
+            statusCode: 404,
+            data: const <String, dynamic>{
+              'status': false,
+              'message': 'Beneficiary not found',
+            },
+          ),
+        ),
+        handler,
+      );
+
+      expect(localResetCalls, 0);
+      for (final key in sessionStorageKeys) {
+        expect(store.containsKey(key), isTrue, reason: '$key must survive');
+      }
+      expect(store['deviceToken'], 'device-token-value');
+      verify(() => handler.next(any())).called(1);
+    });
+
     test('HTTP 500 and 503 never clear the session or fire the reset hook',
         () async {
       seedFullSession(

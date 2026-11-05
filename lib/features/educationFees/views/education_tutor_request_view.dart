@@ -40,6 +40,7 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
     this.ifscCode,
     this.branch,
     this.tutorDetails,
+    this.subject,
     this.sendDuration = const Duration(milliseconds: 1200),
     this.sentLabelDuration = const Duration(milliseconds: 700),
     this.redirectDuration = const Duration(seconds: 5),
@@ -62,6 +63,10 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
   /// API exactly as returned. The legacy [maskedAccount] path keeps working
   /// for saved tutors where no details call was made.
   final EducationTutorDetailsData? tutorDetails;
+
+  /// Subject/fee type selected by the user in the amount screen. Passed to
+  /// the sendTutorRequest API instead of a hardcoded value.
+  final String? subject;
 
   /// Simulated in-flight time for the send-request call (no backend API
   /// exists yet). Override in tests.
@@ -285,8 +290,29 @@ class _EducationTutorRequestViewState
     ];
   }
 
+  /// Subject typed or passed into this screen, otherwise the fee type
+  /// selected on the amount screen. Empty after trim means there is nothing
+  /// real to send.
+  String? _subjectForRequest() {
+    final explicit = widget.subject?.trim() ?? '';
+    if (explicit.isNotEmpty) return explicit;
+    final selected =
+        ref.read(educationFeesControllerProvider).feeType?.trim() ?? '';
+    if (selected.isNotEmpty) return selected;
+    return null;
+  }
+
   Future<void> _sendRequest() async {
     if (_phase != _TutorRequestPhase.form) return;
+    final subject = _subjectForRequest();
+    if (subject == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Select a subject before sending the request.'),
+        ),
+      );
+      return;
+    }
     final controller = ref.read(educationFeesControllerProvider.notifier);
     controller.updateMobileInput(widget.mobile);
     controller.updateRecipientName(_tutorName());
@@ -302,7 +328,7 @@ class _EducationTutorRequestViewState
       final responseFuture = repo.sendTutorRequest(
         mobile: widget.mobile,
         amount: widget.amount.toInt(),
-        subject: 'Tuition',
+        subject: subject,
       );
       final results = await Future.wait([
         responseFuture.catchError(

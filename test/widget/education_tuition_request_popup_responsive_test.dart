@@ -71,7 +71,7 @@ void _setSize(WidgetTester tester, Size size) {
 Widget _host(
   EducationTuitionPopupState state, {
   double textScale = 1.0,
-  String requesterName = 'Darshan Nikam',
+  String requesterName = 'Test Requester Name',
   double amount = 2000,
 }) {
   return ScreenUtilInit(
@@ -113,7 +113,7 @@ Future<void> _openPopup(
   EducationTuitionPopupState state, {
   required Size size,
   double textScale = 1.0,
-  String requesterName = 'Darshan Nikam',
+  String requesterName = 'Test Requester Name',
   double amount = 2000,
 }) async {
   _setSize(tester, size);
@@ -205,11 +205,11 @@ void main() {
       EducationTuitionPopupState.request,
       size: const Size(320, 568),
       amount: 9999999,
-      requesterName: 'Ramachandran Venkataramanagramanathan',
+      requesterName: 'Test Long Name',
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('Ramachandran'), findsOneWidget);
+    expect(find.textContaining('Test Long Name'), findsOneWidget);
     _expectDialogInsideViewport(tester, const Size(320, 568));
   });
 

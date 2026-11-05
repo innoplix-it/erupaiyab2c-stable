@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../services/logger_service.dart';
 import '../../../utils/utils.dart';
+import '../constants/tutor_notification_constants.dart';
 import '../models/education_fees_responses.dart';
 import '../repositories/education_fees_repository.dart';
 import 'tutor_request_pending_store.dart';
@@ -28,6 +30,7 @@ class TutorRequestNotificationService {
 
   EducationFeesRepository _repository = EducationFeesRepository();
   Future<bool> Function() _authChecker = Utils.checkAuthentication;
+  Future<String?> Function() _currentUserId = Utils.getUserId;
 
   /// In-progress Request Status GET calls, keyed by request_reference.
   final Set<String> _inFlight = {};
@@ -40,6 +43,13 @@ class TutorRequestNotificationService {
 
   /// Requests that were dismissed or actioned this session.
   final Set<String> _handledReferences = {};
+
+  /// Verified requests whose popup was not presented (navigator/listener miss).
+  /// A later notification tap must re-deliver these instead of skipping them.
+  final Set<String> _needsPresentationRetry = {};
+
+  final StreamController<void> _presentationAttention =
+      StreamController<void>.broadcast();
 
   /// FCM/open events received before authentication was ready.
   final List<_DeferredTutorRequest> _authDeferred = [];
@@ -71,9 +81,15 @@ class TutorRequestNotificationService {
   }
 
   @visibleForTesting
+  void debugSetCurrentUserId(Future<String?> Function() reader) {
+    _currentUserId = reader;
+  }
+
+  @visibleForTesting
   void debugReset({
     EducationFeesRepository? repository,
     Future<bool> Function()? authChecker,
+    Future<String?> Function()? currentUserId,
   }) {
     clearShownRequests();
     if (repository != null) {
@@ -82,6 +98,8 @@ class TutorRequestNotificationService {
     if (authChecker != null) {
       _authChecker = authChecker;
     }
+    // Tests must not touch secure storage unless they pass a reader.
+    _currentUserId = currentUserId ?? (() async => null);
   }
 
   /// Union of awaiting / presented / handled references for tests.
@@ -92,6 +110,11 @@ class TutorRequestNotificationService {
       });
 
   Stream<TutorRequestEvent> get requestEvents => _eventController.stream;
+
+  /// Fires when a tap or FCM event is waiting on authentication.
+  Stream<void> get presentationAttention => _presentationAttention.stream;
+
+  bool get hasAuthDeferred => _authDeferred.isNotEmpty;
 
   bool get isShowingPopup => _isShowingPopup;
 
@@ -137,6 +160,9 @@ class TutorRequestNotificationService {
           requestReference: entry.requestReference,
           amount: entry.amount,
           subject: entry.subject,
+          requesterName: entry.requesterName,
+          requesterUserId: entry.requesterUserId,
+          requestStatus: entry.requestStatus,
           messageId: 'background_verified',
         );
       } else {
@@ -155,6 +181,9 @@ class TutorRequestNotificationService {
     required String requestReference,
     required String amount,
     required String subject,
+    String requesterName = '',
+    String requesterUserId = '',
+    String requestStatus = '',
     String messageId = 'background_verified',
   }) async {
     if (requestReference.isEmpty) return;
@@ -167,6 +196,14 @@ class TutorRequestNotificationService {
       await TutorRequestPendingStore.remove(requestReference);
       return;
     }
+    if (await _isCurrentUserTheRequester(requesterUserId)) {
+      logger.info(
+        'SKIP_RECEIVED_POPUP_REQUESTER_USER: $requestReference',
+      );
+      _handledReferences.add(requestReference);
+      await TutorRequestPendingStore.remove(requestReference);
+      return;
+    }
 
     logger.info('INGEST_VERIFIED_PENDING: $requestReference');
     _awaitingPopup.add(requestReference);
@@ -176,6 +213,8 @@ class TutorRequestNotificationService {
         messageId: messageId,
         amount: amount,
         subject: subject,
+        requesterName: requesterName,
+        requestStatus: requestStatus,
       ),
     );
     await TutorRequestPendingStore.remove(requestReference);
@@ -203,9 +242,9 @@ class TutorRequestNotificationService {
       );
 
       final response = await _repository.fetchTutorReceivedRequests(
-        page: 1,
-        perPage: 20,
-        status: 'PENDING',
+        page: TutorNotificationConstants.defaultPage,
+        perPage: TutorNotificationConstants.defaultPerPage,
+        status: TutorNotificationConstants.statusPending,
       );
 
       if (!response.status || response.data == null) {
@@ -254,9 +293,58 @@ class TutorRequestNotificationService {
     );
   }
 
-  /// Same path as [handleForegroundMessage] for OS notification taps.
+  /// OS notification tap (background [FirebaseMessaging.onMessageOpenedApp],
+  /// terminated [FirebaseMessaging.instance.getInitialMessage], or a local
+  /// notification response).
   Future<void> handleOpenedMessage(RemoteMessage message) {
-    return handleForegroundMessage(message);
+    return handleOpenedData(
+      message.data,
+      messageId: message.messageId ?? 'opened',
+    );
+  }
+
+  /// Normalizes a raw FCM map or a local-notification JSON payload, then
+  /// runs the same status → popup path as [handleOpenedMessage].
+  Future<void> handleOpenedData(
+    Map<String, dynamic> raw, {
+    String messageId = 'notification_tap',
+  }) {
+    logger.info('TUTOR_NOTIFICATION_TAP_RECEIVED: $messageId');
+    final data = notificationDataFromPayload(raw);
+    logger.info(
+      'TUTOR_NOTIFICATION_PAYLOAD_EXTRACTED: keys=${data.keys.join(',')}',
+    );
+    return handleIncomingFromData(data, messageId: messageId);
+  }
+
+  /// Accepts either a flat FCM `data` map or a local-notification envelope
+  /// `{"data": {...}}` (map or JSON string). Does not invent fields.
+  static Map<String, dynamic> notificationDataFromPayload(Object? decoded) {
+    if (decoded is! Map) return const {};
+    final root = decoded.map((key, value) => MapEntry('$key', value));
+    final nested = root['data'];
+    final data = <String, dynamic>{};
+    if (nested is Map) {
+      nested.forEach((key, value) {
+        data['$key'] = value;
+      });
+    } else if (nested is String && nested.trim().isNotEmpty) {
+      try {
+        final parsed = jsonDecode(nested);
+        if (parsed is Map) {
+          parsed.forEach((key, value) {
+            data['$key'] = value;
+          });
+        }
+      } catch (_) {
+        // Leave data empty and fall through to top-level keys.
+      }
+    }
+    root.forEach((key, value) {
+      if (key == 'data' || key == 'title' || key == 'body') return;
+      data.putIfAbsent(key, () => value);
+    });
+    return data;
   }
 
   Future<void> handleIncomingFromData(
@@ -275,6 +363,7 @@ class TutorRequestNotificationService {
     }
 
     logger.info('REQUEST_REFERENCE_EXTRACTED: $requestReference');
+    logger.info('TUTOR_REQUEST_REFERENCE_EXTRACTED: $requestReference');
     await _processRequestReference(
       requestReference,
       messageId: messageId,
@@ -287,11 +376,33 @@ class TutorRequestNotificationService {
   }) async {
     if (requestReference.isEmpty) return;
 
-    if (_handledReferences.contains(requestReference) ||
-        _presentedReferences.contains(requestReference) ||
+    if (_handledReferences.contains(requestReference)) {
+      logger.info(
+        'Request $requestReference already handled, skipping',
+      );
+      return;
+    }
+
+    if (_presentedReferences.contains(requestReference) && _isShowingPopup) {
+      logger.info(
+        'Request $requestReference popup already visible, skipping duplicate',
+      );
+      return;
+    }
+
+    // A previous attempt verified PENDING but the popup never stayed on
+    // screen (navigator not ready, listener missed the event). A tap must
+    // deliver that popup instead of being swallowed by the awaiting set.
+    if (_needsPresentationRetry.contains(requestReference) &&
+        !_isShowingPopup) {
+      _rebroadcastAwaitingPopup(requestReference, messageId);
+      return;
+    }
+
+    if (_presentedReferences.contains(requestReference) ||
         _awaitingPopup.contains(requestReference)) {
       logger.info(
-        'Request $requestReference already queued, shown or handled, skipping',
+        'Request $requestReference already queued or shown, skipping',
       );
       return;
     }
@@ -312,6 +423,13 @@ class TutorRequestNotificationService {
         logger.info(
           'REQUEST_STATUS_SKIPPED_BACKGROUND_VERIFIED: $requestReference',
         );
+        if (await _isCurrentUserTheRequester(persisted.requesterUserId)) {
+          logger.info(
+            'SKIP_RECEIVED_POPUP_REQUESTER_USER: $requestReference',
+          );
+          _handledReferences.add(requestReference);
+          return;
+        }
         _awaitingPopup.add(requestReference);
         _broadcast(
           TutorRequestEvent(
@@ -321,6 +439,8 @@ class TutorRequestNotificationService {
                 : 'background_verified_reuse',
             amount: persisted.amount,
             subject: persisted.subject,
+            requesterName: persisted.requesterName,
+            requestStatus: persisted.requestStatus,
           ),
         );
         return;
@@ -337,18 +457,43 @@ class TutorRequestNotificationService {
             messageId: messageId,
           ),
         );
+        await TutorRequestPendingStore.upsert(
+          TutorRequestPendingEntry(
+            requestReference: requestReference,
+            verified: false,
+          ),
+        );
         logger.info('AUTH_NOT_READY queued: $requestReference');
+        logger.info('TUTOR_POPUP_QUEUED: $requestReference auth_deferred');
+        if (!_presentationAttention.isClosed) {
+          _presentationAttention.add(null);
+        }
         return;
       }
 
       logger.info('REQUEST_STATUS_API_STARTED: $requestReference');
+      logger.info('TUTOR_REQUEST_STATUS_API_STARTED: $requestReference');
       final response =
           await _repository.fetchTutorRequestStatus(requestReference);
-      logger.info('REQUEST_STATUS_API_SUCCESS: $requestReference');
+
+      // Log success only after a successful response (status == true)
+      // 404 and other errors return status == false and must not log success
+      if (response.status == true) {
+        logger.info('REQUEST_STATUS_API_SUCCESS: $requestReference');
+        logger.info('TUTOR_REQUEST_STATUS_API_SUCCESS: $requestReference');
+      } else {
+        logger.info('REQUEST_STATUS_API_FAILURE: $requestReference status=false');
+      }
 
       if (!_isStrictPending(response, requestReference)) {
-        logger.info('Request $requestReference is not pending, skipping popup');
         final data = response.data;
+        logger.info(
+          'Request $requestReference is not pending, skipping popup '
+          'envelope=${response.status} '
+          'mappedRef=${data?.requestReference} '
+          'requestStatus=${data?.requestStatus} '
+          'isPending=${data?.isPending}',
+        );
         if (data != null && (data.isAccepted || data.isRejected)) {
           _handledReferences.add(requestReference);
         }
@@ -357,8 +502,17 @@ class TutorRequestNotificationService {
       }
 
       logger.info('REQUEST_STATUS_PENDING_CONFIRMED: $requestReference');
+      logger.info('TUTOR_REQUEST_PENDING_CONFIRMED: $requestReference');
 
       final data = response.data!;
+      if (await _isCurrentUserTheRequester(data.requesterUserId)) {
+        logger.info(
+          'SKIP_RECEIVED_POPUP_REQUESTER_USER: $requestReference',
+        );
+        _handledReferences.add(requestReference);
+        await TutorRequestPendingStore.remove(requestReference);
+        return;
+      }
       _awaitingPopup.add(requestReference);
       await TutorRequestPendingStore.remove(requestReference);
       _broadcast(
@@ -367,6 +521,8 @@ class TutorRequestNotificationService {
           messageId: messageId,
           amount: data.amount,
           subject: data.subject,
+          requesterName: data.requesterName,
+          requestStatus: data.requestStatus,
         ),
       );
     } catch (e) {
@@ -385,7 +541,7 @@ class TutorRequestNotificationService {
     return response.status == true &&
         data != null &&
         data.requestReference == incomingRequestReference &&
-        data.requestStatus.trim().toUpperCase() == 'PENDING' &&
+        data.requestStatus.trim().toUpperCase() == TutorNotificationConstants.statusPending &&
         data.isPending == true &&
         data.isAccepted == false &&
         data.isRejected == false;
@@ -402,10 +558,10 @@ class TutorRequestNotificationService {
     if (type == null || type.isEmpty) {
       return true;
     }
-    if (type.contains('tutor') ||
-        type.contains('tuition') ||
-        type.contains('education') ||
-        type.contains('request')) {
+    if (type.contains(TutorNotificationConstants.typeTutor) ||
+        type.contains(TutorNotificationConstants.typeTuition) ||
+        type.contains(TutorNotificationConstants.typeEducation) ||
+        type.contains(TutorNotificationConstants.typeRequest)) {
       return true;
     }
 
@@ -416,16 +572,7 @@ class TutorRequestNotificationService {
         data.containsKey('tutor_request_reference');
     if (!hasTutorRefKey) return false;
 
-    const excluded = <String>[
-      'wallet',
-      'kyc',
-      'spin',
-      'gold',
-      'recharge',
-      'bbps',
-      'credit_card',
-    ];
-    return !excluded.any(type.contains);
+    return !TutorNotificationConstants.excludedTypes.any(type.contains);
   }
 
   static String? extractRequestReference(Map<String, dynamic> data) {
@@ -441,9 +588,9 @@ class TutorRequestNotificationService {
         .trim()
         .toLowerCase();
     final isTutorType = type != null &&
-        (type.contains('tutor') ||
-            type.contains('tuition') ||
-            type.contains('education'));
+        (type.contains(TutorNotificationConstants.typeTutor) ||
+            type.contains(TutorNotificationConstants.typeTuition) ||
+            type.contains(TutorNotificationConstants.typeEducation));
     if (isTutorType) {
       final fallback = data['reference']?.toString().trim();
       if (fallback != null && fallback.isNotEmpty) return fallback;
@@ -460,6 +607,26 @@ class TutorRequestNotificationService {
       _eventController.add(event);
     }
     logger.info('POPUP_EVENT_BROADCAST: ${event.requestReference}');
+    logger.info('TUTOR_POPUP_QUEUED: ${event.requestReference}');
+  }
+
+  void _rebroadcastAwaitingPopup(String requestReference, String messageId) {
+    TutorRequestEvent? existing;
+    for (final event in _eventQueue) {
+      if (event.requestReference == requestReference) {
+        existing = event;
+      }
+    }
+    _needsPresentationRetry.remove(requestReference);
+    _awaitingPopup.add(requestReference);
+    logger.info('TUTOR_POPUP_QUEUED: $requestReference retry');
+    _broadcast(
+      existing ??
+          TutorRequestEvent(
+            requestReference: requestReference,
+            messageId: messageId,
+          ),
+    );
   }
 
   void _replayQueuedEvents() {
@@ -486,9 +653,11 @@ class TutorRequestNotificationService {
   /// Called by the listener after [showDialog] has inserted the route.
   void markPopupPresented(String requestReference) {
     _awaitingPopup.remove(requestReference);
+    _needsPresentationRetry.remove(requestReference);
     _presentedReferences.add(requestReference);
     _isShowingPopup = true;
     logger.info('POPUP_PRESENTATION_LOCKED: $requestReference');
+    logger.info('TUTOR_RECEIVED_POPUP_PRESENTED: $requestReference');
   }
 
   /// Navigator was not ready. Keep the verified request until it is.
@@ -497,8 +666,10 @@ class TutorRequestNotificationService {
     _isShowingPopup = false;
     if (!_handledReferences.contains(requestReference)) {
       _awaitingPopup.add(requestReference);
+      _needsPresentationRetry.add(requestReference);
     }
     logger.info('POPUP_PRESENTATION_RELEASED_FOR_RETRY: $requestReference');
+    logger.info('TUTOR_POPUP_PRESENTATION_FAILED: $requestReference');
   }
 
   /// Re-broadcast awaiting events so the listener can present them later.
@@ -515,6 +686,7 @@ class TutorRequestNotificationService {
   void markRequestHandled(String requestReference) {
     _inFlight.remove(requestReference);
     _awaitingPopup.remove(requestReference);
+    _needsPresentationRetry.remove(requestReference);
     _presentedReferences.remove(requestReference);
     _handledReferences.add(requestReference);
     _eventQueue.removeWhere(
@@ -541,6 +713,7 @@ class TutorRequestNotificationService {
   void clearShownRequests() {
     _inFlight.clear();
     _awaitingPopup.clear();
+    _needsPresentationRetry.clear();
     _presentedReferences.clear();
     _handledReferences.clear();
     _authDeferred.clear();
@@ -562,6 +735,17 @@ class TutorRequestNotificationService {
   void dispose() {
     // Singleton stream stays open for the process lifetime.
   }
+
+  Future<bool> _isCurrentUserTheRequester(String requesterUserId) async {
+    final requester = requesterUserId.trim();
+    if (requester.isEmpty) return false;
+    try {
+      final current = (await _currentUserId())?.trim() ?? '';
+      return current.isNotEmpty && current == requester;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 class _DeferredTutorRequest {
@@ -580,12 +764,16 @@ class TutorRequestEvent {
   const TutorRequestEvent({
     required this.requestReference,
     required this.messageId,
-    this.amount = '0',
+    this.amount = '',
     this.subject = '',
+    this.requesterName = '',
+    this.requestStatus = '',
   });
 
   final String requestReference;
   final String messageId;
   final String amount;
   final String subject;
+  final String requesterName;
+  final String requestStatus;
 }

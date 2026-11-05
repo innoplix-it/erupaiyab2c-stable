@@ -8,6 +8,7 @@ import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../constants/app_colors.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../constants/tutor_notification_constants.dart';
 import '../controllers/education_fees_controller.dart';
 import '../controllers/tutor_received_requests_controller.dart';
 import '../components/education_tuition_request_popup.dart';
@@ -116,7 +117,7 @@ class _TutorReceivedRequestsViewState
       }
 
       final status = data.requestStatus.trim().toUpperCase();
-      if (status != 'PENDING' ||
+      if (status != TutorNotificationConstants.statusPending ||
           !data.isPending ||
           data.isAccepted ||
           data.isRejected) {
@@ -128,9 +129,9 @@ class _TutorReceivedRequestsViewState
 
       logger.info('NOTIFICATION_TAP_PENDING_CONFIRMED: $requestReference');
 
-      final amount = double.tryParse(data.amount) ?? 0;
+      final amount = double.tryParse(data.amount.trim());
       final requesterName =
-          data.subject.isNotEmpty ? data.subject : 'Student';
+          data.requesterName.trim().isEmpty ? null : data.requesterName.trim();
 
       if (!mounted) return;
 
@@ -139,6 +140,11 @@ class _TutorReceivedRequestsViewState
         state: EducationTuitionPopupState.received,
         amount: amount,
         requesterName: requesterName,
+        paymentPurpose:
+            data.subject.trim().isEmpty ? null : data.subject.trim(),
+        requestStatusLabel: data.requestStatus.trim().isEmpty
+            ? null
+            : data.requestStatus.trim(),
       );
       _hasAutoShownPopup = true;
       notificationService.markPopupPresented(requestReference);
@@ -151,7 +157,7 @@ class _TutorReceivedRequestsViewState
         if (result == true) {
           await _repository.respondToTutorRequest(
             requestReference: requestReference,
-            action: 'ACCEPTED',
+            action: TutorNotificationConstants.statusAccepted,
           );
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -165,7 +171,7 @@ class _TutorReceivedRequestsViewState
         } else if (result == false) {
           await _repository.respondToTutorRequest(
             requestReference: requestReference,
-            action: 'REJECTED',
+            action: TutorNotificationConstants.statusRejected,
           );
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -195,16 +201,24 @@ class _TutorReceivedRequestsViewState
       orElse: () => <String, dynamic>{},
     );
     
-    final amountStr = request['amount']?.toString() ?? '0';
-    final amount = double.tryParse(amountStr) ?? 0;
-    final requesterName = request['requester_name']?.toString() ?? 
-                          request['student_name']?.toString() ?? 'Student';
+    final amount = double.tryParse(request['amount']?.toString().trim() ?? '');
+    final requesterName = _firstText(request, const [
+      'requester_name',
+      'student_name',
+    ]);
+    final purpose = _firstText(request, const ['subject']);
+    final statusLabel = _firstText(request, const [
+      'request_status',
+      'status',
+    ]);
 
     final result = await showEducationTuitionRequestPopup(
       context,
       state: EducationTuitionPopupState.received,
       amount: amount,
       requesterName: requesterName,
+      paymentPurpose: purpose,
+      requestStatusLabel: statusLabel,
     );
 
     if (result == true) {
@@ -264,9 +278,18 @@ class _TutorReceivedRequestsViewState
     }
   }
 
+  String? _firstText(Map<String, dynamic> request, List<String> keys) {
+    for (final key in keys) {
+      final value = request[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty && value.toLowerCase() != 'null') return value;
+    }
+    return null;
+  }
+
   String _formatAmount(dynamic amount) {
-    final amountStr = amount?.toString() ?? '0';
-    final amountValue = double.tryParse(amountStr) ?? 0;
+    final amountStr = amount?.toString().trim() ?? '';
+    final amountValue = double.tryParse(amountStr);
+    if (amountValue == null) return '';
     return NumberFormat.currency(
       locale: 'en_IN',
       symbol: '₹',
@@ -373,8 +396,13 @@ class _TutorReceivedRequestsViewState
 
   Widget _buildRequestCard(double u, Map<String, dynamic> request) {
     final requestReference = request['request_reference']?.toString() ?? '';
-    final amount = request['amount']?.toString() ?? '0';
-    final subject = request['subject']?.toString() ?? 'Tuition';
+    final amount = request['amount']?.toString().trim() ?? '';
+    final subject = request['subject']?.toString().trim() ?? '';
+    final statusLabel = _firstText(request, const [
+          'request_status',
+          'status',
+        ]) ??
+        '';
     final createdAt = request['created_at']?.toString() ?? '';
 
     return Card(
@@ -396,7 +424,7 @@ class _TutorReceivedRequestsViewState
                 children: [
                   Expanded(
                     child: Text(
-                      subject,
+                      subject.isEmpty ? requestReference : subject,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16 * u,
                         fontWeight: FontWeight.w600,
@@ -404,45 +432,48 @@ class _TutorReceivedRequestsViewState
                       ),
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8 * u,
-                      vertical: 4 * u,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.circular(12 * u),
-                    ),
-                    child: Text(
-                      'PENDING',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11 * u,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFD97706),
+                  if (statusLabel.isNotEmpty)
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8 * u,
+                        vertical: 4 * u,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(12 * u),
+                      ),
+                      child: Text(
+                        statusLabel,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11 * u,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFD97706),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
-              SizedBox(height: 12 * u),
-              Row(
-                children: [
-                  Icon(
-                    Icons.payments_outlined,
-                    size: 20 * u,
-                    color: const Color(0xFF71717A),
-                  ),
-                  SizedBox(width: 8 * u),
-                  Text(
-                    _formatAmount(amount),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18 * u,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+              if (_formatAmount(amount).isNotEmpty) ...[
+                SizedBox(height: 12 * u),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.payments_outlined,
+                      size: 20 * u,
+                      color: const Color(0xFF71717A),
                     ),
-                  ),
-                ],
-              ),
+                    SizedBox(width: 8 * u),
+                    Text(
+                      _formatAmount(amount),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18 * u,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               SizedBox(height: 8 * u),
               Row(
                 children: [

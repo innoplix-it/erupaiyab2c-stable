@@ -621,5 +621,54 @@ void main() {
 
       expect(response.data!.requestStatus, 'CANCELLED');
     });
+
+    test('maps the live request object that uses status PENDING', () async {
+      const liveReference = 'EDUTR2026110504443591AAB581';
+      final (_, repository) = _repository(
+        payload: const {
+          'request_reference': liveReference,
+          'requester_user_id': '303',
+          'amount': '1.00',
+          'status': 'PENDING',
+        },
+      );
+
+      final response = await repository.fetchTutorRequestStatus(liveReference);
+
+      expect(response.status, isTrue);
+      expect(response.data, isNotNull);
+      expect(response.data!.requestReference, liveReference);
+      expect(response.data!.amount, '1.00');
+      expect(response.data!.requesterUserId, '303');
+      expect(response.data!.requesterName, isEmpty);
+      expect(response.data!.subject, isEmpty);
+      expect(response.data!.requestStatus, 'PENDING');
+      expect(response.data!.isPending, isTrue);
+      expect(response.data!.isAccepted, isFalse);
+      expect(response.data!.isRejected, isFalse);
+    });
+
+    test('maps status PENDING when the same object is nested under data',
+        () async {
+      const liveReference = 'EDUTR2026110504443591AAB581';
+      final (_, repository) = _repository(
+        payload: const {
+          'status': true,
+          'data': {
+            'request_reference': liveReference,
+            'requester_user_id': '303',
+            'amount': '1.00',
+            'status': 'PENDING',
+          },
+        },
+      );
+
+      final response = await repository.fetchTutorRequestStatus(liveReference);
+
+      expect(response.status, isTrue);
+      expect(response.data!.requestReference, liveReference);
+      expect(response.data!.requestStatus, 'PENDING');
+      expect(response.data!.isPending, isTrue);
+    });
   });
 }

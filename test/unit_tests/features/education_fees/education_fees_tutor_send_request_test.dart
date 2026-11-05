@@ -71,7 +71,7 @@ Map<String, dynamic> _requestedBody(RequestOptions options) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const mobile = '9284354642';
+  const mobile = '9000000002';
   const amount = 5000;
   const subject = 'Maths';
 
@@ -131,13 +131,13 @@ void main() {
       );
 
       await repository.sendTutorRequest(
-        mobile: '9876543210',
+        mobile: '9000000001',
         amount: 10000,
         subject: 'Physics',
       );
 
       expect(_requestedBody(adapter.options!), {
-        'mobile': '9876543210',
+        'mobile': '9000000001',
         'amount': 10000,
         'subject': 'Physics',
       });

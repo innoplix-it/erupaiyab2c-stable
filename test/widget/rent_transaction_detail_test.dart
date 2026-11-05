@@ -26,7 +26,7 @@ import 'package:dio/dio.dart';
 Map<String, dynamic> _rentJson({
   required String paymentType,
   String? feeType,
-  String recipient = 'Darshan Rajendra Nikam',
+  String recipient = 'Test Recipient Name',
 }) {
   final json = <String, dynamic>{
     'payment_status': 'SUCCESS',
@@ -34,7 +34,7 @@ Map<String, dynamic> _rentJson({
     'biller_name': recipient,
     'masked_identifier': 'XXXXXX4455',
     'amount': 12000,
-    'customer_mobile': '9800012345',
+    'customer_mobile': '9876500006',
     'pg_transaction_id': 'pay_RENT001',
     'transaction_time': '08 Oct 2026, 07:26am',
     'method': 'upi',
@@ -207,7 +207,7 @@ void main() {
       final entry = TransactionHistoryEntry.fromJson({
         'payment_status': 'PENDING',
         'payment_type': '',
-        'biller_name': 'Darshan Rajendra Nikam',
+        'biller_name': 'Test Recipient Name',
         'amount': 1,
         'data': const {'fee_type': 'House Rent'},
       });
@@ -229,7 +229,7 @@ void main() {
       expect(find.text('Type'), findsOneWidget);
       // The dynamic fee_type value is shown, and the recipient value is shown
       // once (not repeated on the right).
-      expect(find.text('Darshan Rajendra Nikam'), findsOneWidget);
+      expect(find.text('Test Recipient Name'), findsOneWidget);
       expect(find.text('House Rent'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
@@ -256,7 +256,7 @@ void main() {
       final entry = TransactionHistoryEntry.fromJson({
         'payment_status': 'PENDING',
         'payment_type': '',
-        'biller_name': 'Darshan Rajendra Nikam',
+        'biller_name': 'Test Recipient Name',
         'masked_identifier': 'XXXXXX4455',
         'amount': 1,
         'total_amount_charged': '1',
@@ -265,14 +265,14 @@ void main() {
         'payment_mode': 'ECOINS',
         'data': const {'fee_type': 'House Rent'},
         'customer_params': const [
-          {'label': 'Recipient Name', 'value': 'Darshan Rajendra Nikam'},
+          {'label': 'Recipient Name', 'value': 'Test Recipient Name'},
         ],
       });
       await _pumpDetail(tester, entry);
 
       expect(find.text('Recipient Name'), findsOneWidget);
       expect(find.text('Type'), findsOneWidget);
-      expect(find.text('Darshan Rajendra Nikam'), findsOneWidget);
+      expect(find.text('Test Recipient Name'), findsOneWidget);
       expect(find.text('House Rent'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
@@ -288,7 +288,7 @@ void main() {
 
       expect(find.text('Recipient Name'), findsOneWidget);
       expect(find.text('Type'), findsOneWidget);
-      expect(find.text('Darshan Rajendra Nikam'), findsOneWidget);
+      expect(find.text('Test Recipient Name'), findsOneWidget);
       expect(find.text('Shop Rent'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
@@ -353,12 +353,12 @@ void main() {
         'payment_status': 'SUCCESS',
         'payment_type': 'Rent',
         'fee_type': 'House Rent',
-        'biller_name': 'Darshan Rajendra Nikam',
+        'biller_name': 'Test Recipient Name',
         'amount': '12000',
         'total_amount_charged': '12000',
         'transaction_time': '08 Oct 2026, 07:26am',
         'customer_params': [
-          {'label': 'Recipient Name', 'value': 'Darshan Rajendra Nikam'},
+          {'label': 'Recipient Name', 'value': 'Test Recipient Name'},
         ],
       });
 
@@ -375,12 +375,12 @@ void main() {
         'payment_status': 'SUCCESS',
         'payment_type': 'Rent',
         'fee_type': 'Shop Rent',
-        'biller_name': 'Darshan Rajendra Nikam',
+        'biller_name': 'Test Recipient Name',
         'amount': '15000',
         'total_amount_charged': '15000',
         'transaction_time': '08 Oct 2026, 07:26am',
         'customer_params': [
-          {'label': 'Recipient Name', 'value': 'Darshan Rajendra Nikam'},
+          {'label': 'Recipient Name', 'value': 'Test Recipient Name'},
         ],
       });
 
@@ -439,7 +439,7 @@ void main() {
       final dio = Dio()..httpClientAdapter = adapter;
       final service = EducationFeesService(dio: dio);
       await service.createOrder(
-        recipientName: 'Darshan Rajendra Nikam',
+        recipientName: 'Test Recipient Name',
         accountNo: 'XXXXXX4455',
         ifsc: 'HDFC0001234',
         amount: 12000,

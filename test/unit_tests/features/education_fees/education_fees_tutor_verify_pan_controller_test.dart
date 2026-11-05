@@ -37,8 +37,8 @@ class _FakeTutorPanRepository extends EducationFeesRepository {
           data: EducationTutorVerifyPanData(
             recipientReference: 'EDUTUT180D00AA6BBCBE0C941904F1',
             beneficiaryId: 39,
-            name: 'SUPRIYA SARANG ITHAPE',
-            panMasked: 'ABXPI****E',
+            name: 'TEST TUTOR NAME',
+            panMasked: 'ABCDE****F',
             panVerified: true,
           ),
         );
@@ -83,11 +83,11 @@ void main() {
 
     test('a valid PAN is sent in uppercase and stored from the response',
         () async {
-      controller.updatePan('abxpi7963e');
+      controller.updatePan('abcde1234f');
       await controller.verifyTutorPan();
 
       expect(repository.callCount, 1);
-      expect(repository.pans, ['ABXPI7963E']);
+      expect(repository.pans, ['ABCDE1234F']);
       expect(repository.verifyPanCallCount, 0);
       expect(controller.state.isVerifyingPan, isFalse);
       expect(controller.state.panVerified, isTrue);
@@ -97,9 +97,9 @@ void main() {
         'EDUTUT180D00AA6BBCBE0C941904F1',
       );
       expect(controller.state.beneficiaryId, 39);
-      expect(controller.state.panMasked, 'ABXPI****E');
-      expect(controller.state.verifiedPanName, 'SUPRIYA SARANG ITHAPE');
-      expect(controller.state.pan, 'abxpi7963e');
+      expect(controller.state.panMasked, 'ABCDE****F');
+      expect(controller.state.verifiedPanName, 'TEST TUTOR NAME');
+      expect(controller.state.pan, 'abcde1234f');
     });
 
     test('status false does not keep the reference or mark PAN verified',
@@ -110,12 +110,12 @@ void main() {
         data: EducationTutorVerifyPanData(
           recipientReference: 'EDUTUT180D00AA6BBCBE0C941904F1',
           beneficiaryId: 39,
-          name: 'SUPRIYA SARANG ITHAPE',
-          panMasked: 'ABXPI****E',
+          name: 'TEST TUTOR NAME',
+          panMasked: 'ABCDE****F',
           panVerified: true,
         ),
       );
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
 
       await controller.verifyTutorPan();
 
@@ -132,7 +132,7 @@ void main() {
         status: true,
         message: 'Tutor PAN already verified.',
       );
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
 
       await controller.verifyTutorPan();
 
@@ -156,7 +156,7 @@ void main() {
           panVerified: false,
         ),
       );
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
 
       await controller.verifyTutorPan();
 
@@ -172,7 +172,7 @@ void main() {
         type: DioExceptionType.connectionError,
         requestOptions: RequestOptions(path: ''),
       );
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
 
       await controller.verifyTutorPan();
 
@@ -185,7 +185,7 @@ void main() {
 
     test('a second call while loading does not send another request', () async {
       repository.hangNext = true;
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
 
       final first = controller.verifyTutorPan();
       expect(controller.state.isVerifyingPan, isTrue);
@@ -198,8 +198,8 @@ void main() {
           data: EducationTutorVerifyPanData(
             recipientReference: 'EDUTUT180D00AA6BBCBE0C941904F1',
             beneficiaryId: 39,
-            name: 'SUPRIYA SARANG ITHAPE',
-            panMasked: 'ABXPI****E',
+            name: 'TEST TUTOR NAME',
+            panMasked: 'ABCDE****F',
             panVerified: true,
           ),
         ),
@@ -218,7 +218,7 @@ void main() {
     test('a late response for a previous PAN cannot replace the new one',
         () async {
       repository.hangNext = true;
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
       final first = controller.verifyTutorPan();
       controller.updatePan('XYZAB1234C');
       final second = controller.verifyTutorPan();
@@ -255,7 +255,7 @@ void main() {
     });
 
     test('editing the PAN drops the stored recipient reference', () async {
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
       await controller.verifyTutorPan();
       expect(controller.state.recipientReference, isNotNull);
 
@@ -269,7 +269,7 @@ void main() {
 
     test('existing education verifyPan does not call tutor PAN verify',
         () async {
-      controller.updatePan('ABCDE1234F');
+      controller.updatePan('FGHIJ5678K');
 
       await controller.verifyPan();
 

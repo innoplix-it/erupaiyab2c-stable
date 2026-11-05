@@ -15,13 +15,13 @@ class _FakeProfileRepository extends ProfileRepository {
   @override
   Future<ProfileModel> fetchProfile() async => const ProfileModel(
         id: '1',
-        name: 'Darshan Rajendra Nikam',
-        mobile: '1234567890',
+        name: 'Test User Name',
+        mobile: '9876500002',
         email: 'user@gmail.com',
         kycStatus: ProfileKycStatus.verified,
-        aadhaarMasked: 'XXXX XXXX XXXX 1234',
-        panMasked: 'XXXXX1234X',
-        dob: '27-07-1999',
+        aadhaarMasked: 'XXXX XXXX XXXX 9999',
+        panMasked: 'XXXXX9999X',
+        dob: '01-01-2000',
         permanentAddress:
             'Office No 2, 2nd Floor, Mahesh Plaza, Bengaluru - Mumbai Hwy, '
             'Above KTM Showroom, Near Lodha Hospital, Popular Nagar, Girdhar '
@@ -34,13 +34,13 @@ void main() {
 
   const cannedProfile = ProfileModel(
     id: '1',
-    name: 'Darshan Rajendra Nikam',
-    mobile: '1234567890',
+    name: 'Test User Name',
+    mobile: '9876500002',
     email: 'user@gmail.com',
     kycStatus: ProfileKycStatus.verified,
-    aadhaarMasked: 'XXXX XXXX XXXX 1234',
-    panMasked: 'XXXXX1234X',
-    dob: '27-07-1999',
+    aadhaarMasked: 'XXXX XXXX XXXX 9999',
+    panMasked: 'XXXXX9999X',
+    dob: '01-01-2000',
     permanentAddress: 'Warje, Pune, Maharashtra 411058',
   );
 
@@ -85,16 +85,17 @@ void main() {
           'Personal & Banking',
           'Billing Address',
           'Full name (as per PAN)',
-          'Darshan Rajendra Nikam',
+          'Test User Name',
           'Mobile Number',
-          '+91 1234567890',
+          '+91 9876500002',
           'Email ID',
           'user@gmail.com',
           'Adhaar Number',
-          'XXXX XXXX XXXX 1234',
+          'XXXX XXXX XXXX 9999',
           'PAN Number',
+          'XXXXX9999X',
           'Date Of Birth',
-          '27-07-1999',
+          '01-01-2000',
           'Permanent Address',
         ]) {
           expect(

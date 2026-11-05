@@ -250,15 +250,15 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         const EducationTutorRequestView(
-          tutorName: 'Supriya Sarang Ithape',
-          mobile: '9876544582',
+          tutorName: 'Test Tutor Name',
+          mobile: '9876500001',
           amount: 2000,
         ),
       ),
     );
     await tester.pump();
 
-    expect(find.text('Supriya Sarang Ithape'), findsOneWidget);
+    expect(find.text('Test Tutor Name'), findsOneWidget);
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.textContaining('Send Request'), findsOneWidget);
     expect(
@@ -287,10 +287,10 @@ void main() {
     );
     const tutorDetails = EducationTutorDetailsData(
       tutorId: 7,
-      tutorName: 'Prof. Anita Deshpande',
+      tutorName: 'Test Tutor Name',
       bankName: 'HDFC Bank',
       accountNumber: '50213456789012',
-      accountHolderName: 'ANITA SADANA DESHPANDE',
+      accountHolderName: 'TEST TUTOR NAME',
       ifsc: 'HDFC0001234',
       bankLogo: 'https://cdn.example/hdfc.png',
       amount: 2500,
@@ -348,10 +348,10 @@ void main() {
         detailsResponse: details(tutorDetails),
       );
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
-      expect(repo.verifyCalls, ['8055851920']);
-      expect(repo.detailsMobiles, ['8055851920']);
+      expect(repo.verifyCalls, ['9876500003']);
+      expect(repo.detailsMobiles, ['9876500003']);
       expect(repo.detailsAmounts, [2000]);
       expect(find.byType(EducationTutorRequestView), findsOneWidget);
       expect(find.byType(EducationTutorUnverifiedView), findsNothing);
@@ -363,13 +363,13 @@ void main() {
       await openScreen(tester, verified,
           detailsResponse: details(tutorDetails));
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
-      expect(find.text('Prof. Anita Deshpande'), findsOneWidget);
+      expect(find.text('Test Tutor Name'), findsOneWidget);
       expect(find.text('50213456789012'), findsOneWidget);
       expect(find.text('Bank: HDFC Bank'), findsOneWidget);
       expect(
-        find.text('Account Holder: ANITA SADANA DESHPANDE'),
+        find.text('Account Holder: TEST TUTOR NAME'),
         findsOneWidget,
       );
       // Amount echoed by the Tutor Details API, not the amount entered.
@@ -380,7 +380,7 @@ void main() {
       await openScreen(tester, verified,
           detailsResponse: details(tutorDetails));
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
       expect(_networkLogoUrls(tester), ['https://cdn.example/hdfc.png']);
       // The verified badge stays on the shared identity card.
@@ -416,7 +416,7 @@ void main() {
         ),
       );
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
       expect(find.byType(EducationTutorRequestView), findsOneWidget);
       // No branding is invented: no network image, only the shared glyph.
@@ -437,7 +437,7 @@ void main() {
         ),
       );
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
       expect(repo.verifyCalls, ['8055851920']);
       // Details are only fetched for a VERIFIED tutor.
@@ -449,7 +449,7 @@ void main() {
     testWidgets('NOT_FOUND opens the same unverified screen', (tester) async {
       final repo = await openScreen(tester, notFound);
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
       expect(repo.verifyCalls, ['8055851920']);
       expect(repo.detailsMobiles, isEmpty);
@@ -471,7 +471,7 @@ void main() {
         detailsResponse: details(tutorDetails),
       );
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
       expect(repo.verifyCalls, ['8055851920']);
       expect(repo.detailsMobiles, isEmpty);
@@ -489,7 +489,7 @@ void main() {
         error: Exception('network down'),
       );
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
       expect(repo.verifyCalls, ['8055851920']);
       expect(find.byType(EducationTutorRequestView), findsNothing);
@@ -506,10 +506,10 @@ void main() {
         detailsError: Exception('details timeout'),
       );
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
 
-      expect(repo.verifyCalls, ['8055851920']);
-      expect(repo.detailsMobiles, ['8055851920']);
+      expect(repo.verifyCalls, ['9876500003']);
+      expect(repo.detailsMobiles, ['9876500003']);
       // No fake bank data is shown and the KYC screen is never opened.
       expect(find.byType(EducationTutorRequestView), findsNothing);
       expect(find.byType(EducationTutorUnverifiedView), findsNothing);
@@ -525,12 +525,12 @@ void main() {
         error: Exception('network down'),
       );
 
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
       expect(repo.verifyCalls, ['8055851920']);
 
       // The screen is preserved and the guards are released, so Continue works
       // again as the retry path.
-      await _pickNumber(tester, '8055851920');
+      await _pickNumber(tester, '9876500003');
       expect(repo.verifyCalls, ['8055851920', '8055851920']);
       expect(find.byType(EducationTutorRequestView), findsNothing);
     });
@@ -556,8 +556,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 10));
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(repo.verifyCalls, ['8055851920']);
-      expect(repo.detailsMobiles, ['8055851920']);
+      expect(repo.verifyCalls, ['9876500003']);
+      expect(repo.detailsMobiles, ['9876500003']);
       expect(find.byType(EducationTutorRequestView), findsOneWidget);
     });
 
@@ -569,8 +569,8 @@ void main() {
         detailsResponse: details(tutorDetails),
         contacts: [
           Contact(
-            displayName: 'Anita Deshpande',
-            phones: [Phone('8055851920')],
+            displayName: 'Test Contact Name',
+            phones: [Phone('9876500003')],
           ),
         ],
       );
@@ -595,12 +595,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 10));
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(repo.verifyCalls, ['8055851920']);
-      expect(repo.detailsMobiles, ['8055851920']);
+      expect(repo.verifyCalls, ['9876500003']);
+      expect(repo.detailsMobiles, ['9876500003']);
       expect(repo.detailsAmounts, [2000]);
       expect(find.byType(EducationTutorRequestView), findsOneWidget);
       // The API name wins over the device contact name on the card.
-      expect(find.text('Prof. Anita Deshpande'), findsOneWidget);
+      expect(find.text('Test Tutor Name'), findsOneWidget);
     });
   });
 }

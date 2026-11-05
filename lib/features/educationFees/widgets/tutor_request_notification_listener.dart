@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../services/logger_service.dart';
 import '../../../widgets/k_dialog.dart';
+import '../constants/tutor_notification_constants.dart';
 import '../components/education_tuition_request_popup.dart';
 import '../controllers/education_fees_controller.dart';
 import '../repositories/education_fees_repository.dart';
@@ -31,14 +32,17 @@ class _TutorRequestNotificationListenerState
       TutorRequestNotificationService();
 
   StreamSubscription<TutorRequestEvent>? _subscription;
+  StreamSubscription<void>? _attentionSubscription;
   AppLifecycleListener? _lifecycle;
   Timer? _navigatorRetryTimer;
+  Timer? _authRetryTimer;
 
   final List<TutorRequestEvent> _displayQueue = [];
   final List<TutorRequestEvent> _pendingUntilNavigator = [];
   bool _processingQueue = false;
   final Set<String> _responding = {};
   int _navigatorRetryAttempts = 0;
+  int _authRetryAttempts = 0;
 
   EducationFeesRepository get _repository =>
       ref.read(educationFeesRepositoryProvider);
@@ -52,6 +56,10 @@ class _TutorRequestNotificationListenerState
     _notificationService.initialize();
     _subscription =
         _notificationService.requestEvents.listen(_onRequestEvent);
+    _attentionSubscription =
+        _notificationService.presentationAttention.listen((_) {
+      _armAuthRetry();
+    });
 
     _lifecycle = AppLifecycleListener(
       onResume: () {
@@ -75,18 +83,37 @@ class _TutorRequestNotificationListenerState
     }
     _enqueueNavigatorDeferred();
     _scheduleProcessDisplayQueue();
+    if (_notificationService.hasAuthDeferred) {
+      _armAuthRetry();
+    }
+  }
+
+  Future<void> _flushAuthDeferredOnly() async {
+    await _notificationService.flushAuthDeferredRequests();
+    await _notificationService.flushPersistedPendingRequests();
+    _enqueueNavigatorDeferred();
+    _scheduleProcessDisplayQueue();
   }
 
   @override
   void dispose() {
     _navigatorRetryTimer?.cancel();
+    _authRetryTimer?.cancel();
     _lifecycle?.dispose();
+    _attentionSubscription?.cancel();
     _subscription?.cancel();
     super.dispose();
   }
 
   void _onRequestEvent(TutorRequestEvent event) {
     logger.info('GLOBAL_LISTENER_EVENT_RECEIVED: ${event.requestReference}');
+    logger.info('TUTOR_POPUP_QUEUED: ${event.requestReference}');
+    // A fresh event must be allowed to present even after an earlier
+    // navigator retry gave up.
+    _navigatorRetryAttempts = 0;
+    _pendingUntilNavigator.removeWhere(
+      (queued) => queued.requestReference == event.requestReference,
+    );
     _enqueueForDisplay(event);
     // Defer out of the sync stream callback so we never call showDialog
     // during build. Microtask covers the common ready-navigator path;
@@ -144,15 +171,21 @@ class _TutorRequestNotificationListenerState
     }
 
     _navigatorRetryAttempts++;
-    if (_navigatorRetryAttempts > 40) {
+    if (_navigatorRetryAttempts > TutorNotificationConstants.navigatorRetryLimit) {
       logger.warning(
         'ROOT_NAVIGATOR_RETRY_EXHAUSTED: ${_pendingUntilNavigator.map((e) => e.requestReference).join(",")}',
       );
+      for (final event in _pendingUntilNavigator) {
+        logger.info(
+          'TUTOR_POPUP_PRESENTATION_FAILED: ${event.requestReference}',
+        );
+        _notificationService.releaseForRetry(event.requestReference);
+      }
       return;
     }
 
     _navigatorRetryTimer?.cancel();
-    _navigatorRetryTimer = Timer(const Duration(milliseconds: 250), () {
+    _navigatorRetryTimer = Timer(TutorNotificationConstants.navigatorRetryDelay, () {
       if (!mounted) return;
       _enqueueNavigatorDeferred();
       _scheduleProcessDisplayQueue();
@@ -215,11 +248,17 @@ class _TutorRequestNotificationListenerState
     }
 
     logger.info('ROOT_NAVIGATOR_READY: ${event.requestReference}');
+    logger.info('TUTOR_POPUP_NAVIGATOR_READY: ${event.requestReference}');
     logger.info('RECEIVED_POPUP_OPEN_REQUESTED: ${event.requestReference}');
 
-    final amount = double.tryParse(event.amount) ?? 0;
+    final amount = double.tryParse(event.amount.trim());
     final requesterName =
-        event.subject.isNotEmpty ? event.subject : 'Student';
+        event.requesterName.trim().isEmpty ? null : event.requesterName.trim();
+    final purpose =
+        event.subject.trim().isEmpty ? null : event.subject.trim();
+    final statusLabel = event.requestStatus.trim().isEmpty
+        ? null
+        : event.requestStatus.trim();
 
     try {
       final resultFuture = showEducationTuitionRequestPopup(
@@ -227,18 +266,50 @@ class _TutorRequestNotificationListenerState
         state: EducationTuitionPopupState.received,
         amount: amount,
         requesterName: requesterName,
+        paymentPurpose: purpose,
+        requestStatusLabel: statusLabel,
       );
       _notificationService.markPopupPresented(event.requestReference);
       _navigatorRetryAttempts = 0;
       logger.info('RECEIVED_POPUP_PRESENTED: ${event.requestReference}');
+      logger.info('TUTOR_RECEIVED_POPUP_PRESENTED: ${event.requestReference}');
 
       final result = await resultFuture;
       await _handlePopupResult(event, result);
       _notificationService.markRequestHandled(event.requestReference);
     } catch (e) {
       logger.error('Error presenting received popup: $e', error: e);
+      logger.info('TUTOR_POPUP_PRESENTATION_FAILED: ${event.requestReference}');
       _queueUntilNavigatorReady(event);
     }
+  }
+
+  void _armAuthRetry() {
+    if (!_notificationService.hasAuthDeferred) {
+      _authRetryTimer?.cancel();
+      _authRetryTimer = null;
+      _authRetryAttempts = 0;
+      return;
+    }
+    _authRetryAttempts++;
+    if (_authRetryAttempts > TutorNotificationConstants.authRetryLimit) {
+      logger.info(
+        'TUTOR_POPUP_PRESENTATION_FAILED: auth_deferred_retry_exhausted',
+      );
+      return;
+    }
+    _authRetryTimer?.cancel();
+    _authRetryTimer = Timer(TutorNotificationConstants.authRetryDelay, () {
+      if (!mounted) return;
+      unawaited(_flushAuthDeferredOnly().whenComplete(() {
+        if (!mounted) return;
+        if (_notificationService.hasAuthDeferred) {
+          _armAuthRetry();
+        } else {
+          _authRetryAttempts = 0;
+        }
+      }));
+    });
   }
 
   Future<void> _handlePopupResult(
@@ -251,12 +322,12 @@ class _TutorRequestNotificationListenerState
       if (result == true) {
         await _repository.respondToTutorRequest(
           requestReference: event.requestReference,
-          action: 'ACCEPTED',
+          action: TutorNotificationConstants.statusAccepted,
         );
       } else {
         await _repository.respondToTutorRequest(
           requestReference: event.requestReference,
-          action: 'REJECTED',
+          action: TutorNotificationConstants.statusRejected,
         );
       }
     } catch (e) {

@@ -5,11 +5,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Figma reference values for the "Bank Account" tab of Personal Details.
-const _kBankName = 'HDFC Bank';
-const _kMasked = 'XXXX XXXX 1234';
-const _kHolder = 'Darshan Nikam';
-const _kIfsc = 'HDFC0001234';
-const _kBranch = 'Warje, Pune';
+const _kBankName = 'Test Bank';
+const _kMasked = 'XXXX XXXX 9999';
+const _kHolder = 'Test Account Holder';
+const _kIfsc = 'TEST0001234';
+const _kBranch = 'Test City, State';
 
 /// Matches a card painted with the Figma hairline: 1px solid #E4E4E4.
 const _hairlineSide = BorderSide(width: 1, color: Color(0xFFE4E4E4));

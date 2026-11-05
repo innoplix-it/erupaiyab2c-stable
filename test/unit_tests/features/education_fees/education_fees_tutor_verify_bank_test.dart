@@ -77,9 +77,9 @@ void main() {
 
   const reference = 'EDUTUT180D00AA6BBCBE0C941904F1';
   const otherReference = 'EDUTUT999Z00BBBBBBBB0000000000';
-  const account = '91201000123457911';
-  const otherAccount = '12345678901234';
-  const ifsc = 'UBIN0546771';
+  const account = '1234567890123456';
+  const otherAccount = '90000000011234';
+  const ifsc = 'TEST0001234';
 
   Map<String, dynamic> successPayload({
     bool status = true,
@@ -91,8 +91,8 @@ void main() {
       'data': {
         'recipient_reference': reference,
         'beneficiary_id': 39,
-        'name': 'SUPRIYA SARANG ITHAPE',
-        'account_number': 'XXXXXX7911',
+        'name': 'TEST TUTOR NAME',
+        'account_number': 'XXXXXX3456',
         'ifsc': ifsc,
         'transaction_reference': 1474338350,
         'bank_verified': true,
@@ -178,9 +178,9 @@ void main() {
       expect(data, isNotNull);
       expect(data!.recipientReference, reference);
       expect(data.beneficiaryId, 39);
-      expect(data.name, 'SUPRIYA SARANG ITHAPE');
+      expect(data.name, 'TEST TUTOR NAME');
       // Masked account number is preserved exactly as returned.
-      expect(data.accountNumber, 'XXXXXX7911');
+      expect(data.accountNumber, 'XXXXXX3456');
       expect(data.ifsc, ifsc);
       expect(data.transactionReference, 1474338350);
       expect(data.bankVerified, isTrue);
@@ -206,7 +206,7 @@ void main() {
           'status': true,
           'data': {
             'recipient_reference': reference,
-            'name': 'SUPRIYA SARANG ITHAPE',
+            'name': 'TEST TUTOR NAME',
             'account_number': 'XXXXXX7911',
             'ifsc': ifsc,
             'bank_verified': true,

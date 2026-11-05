@@ -67,17 +67,17 @@ Map<String, dynamic> _requestedBody(RequestOptions options) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const enteredPan = 'ABXPI7963E';
-  const otherPan = 'ABCDE1234F';
+  const enteredPan = 'ABCDE1234F';
+  const otherPan = 'FGHIJ5678K';
 
-  Map<String, dynamic> successPayload({String panMasked = 'ABXPI****E'}) {
+  Map<String, dynamic> successPayload({String panMasked = 'ABCDE****F'}) {
     return {
       'status': true,
       'message': 'Tutor PAN already verified.',
       'data': {
         'recipient_reference': 'EDUTUT180D00AA6BBCBE0C941904F1',
         'beneficiary_id': 39,
-        'name': 'SUPRIYA SARANG ITHAPE',
+        'name': 'TEST TUTOR NAME',
         'pan_masked': panMasked,
         'pan_verified': true,
       },
@@ -128,19 +128,19 @@ void main() {
       expect(data, isNotNull);
       expect(data!.recipientReference, 'EDUTUT180D00AA6BBCBE0C941904F1');
       expect(data.beneficiaryId, 39);
-      expect(data.name, 'SUPRIYA SARANG ITHAPE');
-      expect(data.panMasked, 'ABXPI****E');
+      expect(data.name, 'TEST TUTOR NAME');
+      expect(data.panMasked, 'ABCDE****F');
       expect(data.panVerified, isTrue);
     });
 
     test('keeps pan_masked exactly as the backend sent it', () async {
       final (_, repository) = _repository(
-        payload: successPayload(panMasked: 'ABXP*****E'),
+        payload: successPayload(panMasked: 'ABCDE*****F'),
       );
 
       final response = await repository.verifyTutorPan(enteredPan);
 
-      expect(response.data?.panMasked, 'ABXP*****E');
+      expect(response.data?.panMasked, 'ABCDE*****F');
     });
 
     test('parses pan_verified false without treating status as success',
@@ -210,7 +210,7 @@ void main() {
           'data': {
             'recipient_reference': 'EDUTUT180D00AA6BBCBE0C941904F1',
             'beneficiary_id': 39,
-            'name': 'SUPRIYA SARANG ITHAPE',
+            'name': 'TEST TUTOR NAME',
             'pan_masked': 'ABXPI****E',
             'pan_verified': true,
           },

@@ -238,6 +238,294 @@ void main() {
       );
     });
 
+    test('live status PENDING object broadcasts the Received popup event',
+        () async {
+      const liveReference = 'EDUTR2026110504443591AAB581';
+      when(() => mockRepo.fetchTutorRequestStatus(liveReference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': liveReference,
+          'requester_user_id': '303',
+          'amount': '1.00',
+          'status': 'PENDING',
+        }),
+      );
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+
+      await service.handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': liveReference,
+          'type': 'tutor_request',
+        }),
+      );
+
+      expect(events, hasLength(1));
+      expect(events.single.requestReference, liveReference);
+      expect(events.single.amount, '1.00');
+      verify(() => mockRepo.fetchTutorRequestStatus(liveReference)).called(1);
+      await subscription.cancel();
+    });
+
+    testWidgets('live status PENDING object opens the Received popup',
+        (tester) async {
+      const liveReference = 'EDUTR2026110504443591AAB581';
+      when(() => mockRepo.fetchTutorRequestStatus(liveReference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': liveReference,
+          'requester_user_id': '303',
+          'amount': '1.00',
+          'status': 'PENDING',
+        }),
+      );
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+
+      await TutorRequestNotificationService().handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': liveReference,
+          'type': 'tutor_request',
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('HOME_SCREEN'), findsOneWidget);
+      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Accept Request'), findsOneWidget);
+      verify(() => mockRepo.fetchTutorRequestStatus(liveReference)).called(1);
+    });
+
+    test('maps distinct amounts, subjects, names and references', () async {
+      const reference = 'EDUTR-CHEM-250';
+      when(() => mockRepo.fetchTutorRequestStatus(reference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': reference,
+          'requester_user_id': '808',
+          'requester_name': 'Asha Patil',
+          'amount': '250.00',
+          'subject': 'Chemistry',
+          'status': 'PENDING',
+        }),
+      );
+      service.debugSetCurrentUserId(() async => '411');
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+      await service.handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': reference,
+          'type': 'tutor_request',
+          'title': 'New tuition request',
+          'body': 'Asha Patil sent ₹250',
+        }),
+      );
+
+      expect(events, hasLength(1));
+      expect(events.single.requestReference, reference);
+      expect(events.single.amount, '250.00');
+      expect(events.single.subject, 'Chemistry');
+      expect(events.single.requesterName, 'Asha Patil');
+      expect(events.single.requestStatus, 'PENDING');
+      await subscription.cancel();
+    });
+
+    test('keeps missing status fields empty', () async {
+      const reference = 'EDUTR-BARE';
+      when(() => mockRepo.fetchTutorRequestStatus(reference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': reference,
+          'status': 'PENDING',
+        }),
+      );
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+      await service.handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': reference,
+          'type': 'tutor_request',
+        }),
+      );
+
+      expect(events, hasLength(1));
+      expect(events.single.amount, isEmpty);
+      expect(events.single.subject, isEmpty);
+      expect(events.single.requesterName, isEmpty);
+      await subscription.cancel();
+    });
+
+    test('skips the Received popup when the logged-in user is the requester',
+        () async {
+      const reference = 'EDUTR-SENDER';
+      when(() => mockRepo.fetchTutorRequestStatus(reference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': reference,
+          'requester_user_id': '303',
+          'amount': '1.00',
+          'status': 'PENDING',
+        }),
+      );
+      service.debugSetCurrentUserId(() async => '303');
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+      await service.handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': reference,
+          'type': 'tutor_request',
+        }),
+      );
+
+      expect(events, isEmpty);
+      await subscription.cancel();
+    });
+
+    test('parses flat, nested and JSON-string FCM data', () {
+      expect(
+        TutorRequestNotificationService.notificationDataFromPayload({
+          'request_reference': 'FLAT-1',
+          'type': 'tutor_request',
+        })['request_reference'],
+        'FLAT-1',
+      );
+      expect(
+        TutorRequestNotificationService.notificationDataFromPayload({
+          'data': {
+            'request_reference': 'NESTED-2',
+            'type': 'tutor_request',
+          },
+        })['request_reference'],
+        'NESTED-2',
+      );
+      expect(
+        TutorRequestNotificationService.notificationDataFromPayload({
+          'data': '{"request_reference":"JSON-3","type":"tutor_request"}',
+        })['request_reference'],
+        'JSON-3',
+      );
+    });
+
+    testWidgets('Received popup shows payload values and hides invented ones',
+        (tester) async {
+      const reference = 'EDUTR-CHEM-250';
+      when(() => mockRepo.fetchTutorRequestStatus(reference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': reference,
+          'requester_user_id': '808',
+          'requester_name': 'Asha Patil',
+          'amount': '250',
+          'subject': 'Chemistry',
+          'status': 'PENDING',
+        }),
+      );
+      service.debugSetCurrentUserId(() async => '411');
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+      await TutorRequestNotificationService().handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': reference,
+          'type': 'tutor_request',
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Requested By Asha Patil'), findsOneWidget);
+      expect(find.text('Chemistry'), findsOneWidget);
+      expect(find.textContaining('\u20B9250'), findsOneWidget);
+      expect(find.text('Student'), findsNothing);
+      expect(find.text('Tuition Fees'), findsNothing);
+      expect(find.text('Credit Card'), findsNothing);
+      expect(find.text('Awaiting Your Approval'), findsNothing);
+    });
+
+    testWidgets('missing fields do not invent a name, amount or purpose',
+        (tester) async {
+      const reference = 'EDUTR-BARE-UI';
+      when(() => mockRepo.fetchTutorRequestStatus(reference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': reference,
+          'requester_user_id': '808',
+          'status': 'PENDING',
+        }),
+      );
+      service.debugSetCurrentUserId(() async => '411');
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+      await TutorRequestNotificationService().handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': reference,
+          'type': 'tutor_request',
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Student'), findsNothing);
+      expect(find.text('Tuition'), findsNothing);
+      expect(find.text('Tuition Fees'), findsNothing);
+      expect(find.text('Credit Card'), findsNothing);
+      expect(find.textContaining('\u20B9'), findsNothing);
+    });
+
+    testWidgets('does not show Received popup to the requester',
+        (tester) async {
+      const reference = 'EDUTR-SENDER-UI';
+      when(() => mockRepo.fetchTutorRequestStatus(reference)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'request_reference': reference,
+          'requester_user_id': '303',
+          'amount': '1.00',
+          'status': 'PENDING',
+        }),
+      );
+      service.debugSetCurrentUserId(() async => '303');
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+      await TutorRequestNotificationService().handleForegroundMessage(
+        MockRemoteMessage({
+          'request_reference': reference,
+          'type': 'tutor_request',
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('HOME_SCREEN'), findsOneWidget);
+      expect(find.text('Tuition Fee Request'), findsNothing);
+    });
+
     test('PENDING validation accepts string/int boolean flags from API', () async {
       when(() => mockRepo.fetchTutorRequestStatus('REF123')).thenAnswer(
         (_) async => EducationTutorRequestStatusResponse.fromJson({
@@ -1996,6 +2284,229 @@ void main() {
 
       expect(find.text('Tuition Fee Request'), findsNothing);
       expect(find.text('SENDER_HOME'), findsOneWidget);
+    });
+  });
+
+  group('Notification tap payload and retry', () {
+    late MockEducationFeesRepository mockRepo;
+
+    setUp(() {
+      mockRepo = MockEducationFeesRepository();
+      _configureService(mockRepo);
+      when(() => mockRepo.fetchTutorRequestStatus('REF123')).thenAnswer(
+        (_) async => _pendingStatus('REF123'),
+      );
+    });
+
+    test('extracts request_reference from flat, nested and JSON-string payloads',
+        () {
+      expect(
+        TutorRequestNotificationService.notificationDataFromPayload({
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+        })['request_reference'],
+        'REF123',
+      );
+      expect(
+        TutorRequestNotificationService.notificationDataFromPayload({
+          'title': 'New Tuition Request',
+          'data': {
+            'request_reference': 'REF123',
+            'type': 'tutor_request',
+          },
+        })['request_reference'],
+        'REF123',
+      );
+      final encoded = TutorRequestNotificationService.notificationDataFromPayload({
+        'data': '{"request_reference":"REF123","type":"tutor_request"}',
+      });
+      expect(
+        TutorRequestNotificationService.extractRequestReference(encoded),
+        'REF123',
+      );
+      expect(
+        TutorRequestNotificationService.isTutorRequestPayload(encoded),
+        isTrue,
+      );
+    });
+
+    testWidgets('local notification envelope opens the Received popup',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+
+      await TutorRequestNotificationService().handleOpenedData(
+        {
+          'title': 'New Tuition Request',
+          'body': 'You have received a new tuition payment request',
+          'data': {
+            'request_reference': 'REF123',
+            'type': 'tutor_request',
+            'route': '/education-tutor/received-requests',
+          },
+        },
+        messageId: 'local_notification_tap',
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('HOME_SCREEN'), findsOneWidget);
+      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
+    });
+
+    testWidgets('onMessageOpenedApp data opens the Received popup on the current screen',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+
+      await TutorRequestNotificationService().handleOpenedMessage(
+        MockRemoteMessage({
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+          'route': '/education-tutor/received-requests',
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(TutorReceivedRequestsView), findsNothing);
+      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
+    });
+
+    test('tap after a missed presentation does not call status again', () async {
+      final service = TutorRequestNotificationService();
+      await service.handleOpenedMessage(
+        MockRemoteMessage({
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+        }),
+      );
+
+      service.releaseForRetry('REF123');
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+      await service.handleOpenedData(
+        {
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+        },
+        messageId: 'notification_tap_retry',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await subscription.cancel();
+
+      expect(events.map((event) => event.requestReference), contains('REF123'));
+      verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
+    });
+
+    testWidgets('auth not ready keeps the tap and opens the popup once auth is ready',
+        (tester) async {
+      var authed = false;
+      TutorRequestNotificationService().debugSetAuthChecker(() async => authed);
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+
+      await TutorRequestNotificationService().handleOpenedMessage(
+        MockRemoteMessage({
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+        }),
+      );
+      expect(find.text('Tuition Fee Request'), findsNothing);
+      verifyNever(() => mockRepo.fetchTutorRequestStatus('REF123'));
+
+      authed = true;
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
+    });
+
+    testWidgets('non-PENDING opened notification does not open the popup',
+        (tester) async {
+      when(() => mockRepo.fetchTutorRequestStatus('REF123')).thenAnswer(
+        (_) async => _statusResponse(
+          requestReference: 'REF123',
+          requestStatus: 'ACCEPTED',
+          isPending: false,
+          isAccepted: true,
+          isRejected: false,
+        ),
+      );
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+
+      await TutorRequestNotificationService().handleOpenedMessage(
+        MockRemoteMessage({
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Tuition Fee Request'), findsNothing);
+    });
+
+    testWidgets('duplicate notification tap does not open a second popup',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        _wrapWithListener(
+          const Center(child: Text('HOME_SCREEN')),
+          mockRepo: mockRepo,
+        ),
+      );
+      await tester.pump();
+
+      final service = TutorRequestNotificationService();
+      await service.handleOpenedMessage(
+        MockRemoteMessage({
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+        }),
+      );
+      await service.handleOpenedMessage(
+        MockRemoteMessage({
+          'request_reference': 'REF123',
+          'type': 'tutor_request',
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
     });
   });
 }

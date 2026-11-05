@@ -18,7 +18,7 @@ void main() {
         'biller_name': 'Airtel Payments Bank NETC FASTag',
         'masked_identifier': '******4040',
         'amount': 10,
-        'customer_mobile': '8055851920',
+        'customer_mobile': '9876500004',
         'pg_transaction_id': 'pay_TexqmkYOdFBZmn',
         'ecoins_transaction_id': null,
         'bank_reference_id': null,
@@ -28,7 +28,7 @@ void main() {
         'method_icon':
             'https://test.erupaiya.com/assets/images/google-pay-icon.png',
         'payment_mode': 'Google Pay',
-        'vpa': 'darshannikam8055@okhdfcbank',
+        'vpa': 'testuser8055@okhdfcbank',
         'rrn': '130039530481',
         'icon':
             'https://test.erupaiya.com/assets/images/fastag_recharge/aitel-payments-bank.png',
@@ -65,7 +65,7 @@ void main() {
               },
               {
                 'paramName': 'Registered Mobile Number',
-                'paramValue': '9876543210',
+                'paramValue': '9876500005',
               },
             ],
           },
@@ -78,7 +78,7 @@ void main() {
       expect(entry.customerParams[0].label, 'Vehicle Registration Number');
       expect(entry.customerParams[0].value, 'MH14EU1234');
       expect(entry.customerParams[1].label, 'Registered Mobile Number');
-      expect(entry.customerParams[1].value, '9876543210');
+      expect(entry.customerParams[1].value, '9876500005');
     });
 
     testWidgets(
@@ -96,12 +96,12 @@ void main() {
         'biller_name': 'Airtel Payments Bank NETC FASTag',
         'masked_identifier': '******4040',
         'amount': 10,
-        'customer_mobile': '8055851920',
+        'customer_mobile': '9876500004',
         'pg_transaction_id': 'pay_TexqmkYOdFBZmn',
         'transaction_time': '22 Sep 2026, 10:47am',
         'method': 'upi',
         'payment_mode': 'Google Pay',
-        'vpa': 'darshannikam8055@okhdfcbank',
+        'vpa': 'testuser8055@okhdfcbank',
         'rrn': '130039530481',
         'amount_breakdown': {'Bill Amount': 10, 'Total': 10},
         'customer_params': [
@@ -150,7 +150,7 @@ void main() {
           'biller_name': 'Airtel Payments Bank NETC FASTag',
           'masked_identifier': '******4040',
           'amount': 100,
-          'customer_mobile': '8055851920',
+          'customer_mobile': '9876500004',
           'pg_transaction_id': 'pay_TexqmkYOdFBZmn',
           'transaction_time': '22 Sep 2026, 10:47am',
           'method': 'upi',

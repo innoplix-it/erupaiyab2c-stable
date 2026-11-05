@@ -71,7 +71,7 @@ Map<String, dynamic> _requestedBody(RequestOptions options) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const mobile = '8055851920';
+  const mobile = '9000000003';
 
   group('POST /api/education/tutor/verify request contract', () {
     test('posts the mobile number to the tutor verify endpoint', () async {
@@ -97,9 +97,9 @@ void main() {
         payload: const {'status': true, 'verification_status': 'NOT_FOUND'},
       );
 
-      await repository.verifyTutor('9876543210');
+      await repository.verifyTutor('9000000001');
 
-      expect(_requestedBody(adapter.options!), {'mobile': '9876543210'});
+      expect(_requestedBody(adapter.options!), {'mobile': '9000000001'});
     });
   });
 

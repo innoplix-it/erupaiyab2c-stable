@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../constants/api_constants.dart';
 import '../../../services/logger_service.dart';
 import '../../../services/secure_storage_service.dart';
+import '../constants/tutor_notification_constants.dart';
 import '../models/education_fees_responses.dart';
 import '../repositories/education_fees_repository.dart';
 import 'education_fees_service.dart';
@@ -67,7 +68,7 @@ class TutorRequestBackgroundProcessor {
       return;
     }
 
-    final tokenType = await _storage.read(key: 'tokenType') ?? 'Bearer';
+    final tokenType = await _storage.read(key: 'tokenType') ?? TutorNotificationConstants.defaultTokenType;
     try {
       logger.info('BACKGROUND_REQUEST_STATUS_API_STARTED: $requestReference');
       final repository = EducationFeesRepository(
@@ -75,12 +76,12 @@ class TutorRequestBackgroundProcessor {
           dio: Dio(
             BaseOptions(
               baseUrl: ApiConstants.baseUrl,
-              connectTimeout: const Duration(seconds: 15),
-              sendTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(seconds: 30),
+              connectTimeout: TutorNotificationConstants.backgroundConnectTimeout,
+              sendTimeout: TutorNotificationConstants.backgroundSendTimeout,
+              receiveTimeout: TutorNotificationConstants.backgroundReceiveTimeout,
               headers: {
                 'Authorization': '$tokenType ${accessToken.trim()}',
-                'Accept': 'application/json',
+                'Accept': TutorNotificationConstants.acceptHeader,
               },
             ),
           ),
@@ -106,6 +107,9 @@ class TutorRequestBackgroundProcessor {
           verified: true,
           amount: dataPayload.amount,
           subject: dataPayload.subject,
+          requesterName: dataPayload.requesterName,
+          requesterUserId: dataPayload.requesterUserId,
+          requestStatus: dataPayload.requestStatus,
         ),
       );
       logger.info(

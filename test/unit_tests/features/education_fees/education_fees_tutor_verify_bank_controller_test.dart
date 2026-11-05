@@ -32,7 +32,7 @@ class _FakeTutorBankRepository extends EducationFeesRepository {
       data: EducationTutorVerifyPanData(
         recipientReference: _panReference,
         beneficiaryId: 39,
-        name: 'SUPRIYA SARANG ITHAPE',
+        name: 'TEST TUTOR NAME',
         panMasked: 'ABXPI****E',
         panVerified: true,
       ),
@@ -67,7 +67,7 @@ class _FakeTutorBankRepository extends EducationFeesRepository {
           data: EducationTutorVerifyBankData(
             recipientReference: _panReference,
             beneficiaryId: 39,
-            name: 'SUPRIYA SARANG ITHAPE',
+            name: 'TEST TUTOR NAME',
             accountNumber: 'XXXXXX7911',
             ifsc: 'UBIN0546771',
             transactionReference: 1474338350,
@@ -103,11 +103,11 @@ void main() {
   /// Drives the controller into the exact state the Add Details form
   /// reaches after a successful tutor PAN verification.
   Future<void> readyForm({
-    String account = '91201000123457911',
-    String ifsc = 'ubin0546771',
+    String account = '1234567890123456',
+    String ifsc = 'TEST0001234',
   }) async {
-    controller.updateRecipientName('SUPRIYA SARANG ITHAPE');
-    controller.updatePan('ABXPI7963E');
+    controller.updateRecipientName('TEST TUTOR NAME');
+    controller.updatePan('ABCDE1234F');
     await controller.verifyTutorPan();
     controller.updateAccountType(EducationAccountType.bankDetails);
     controller.updateAccountNumber(account);
@@ -167,8 +167,8 @@ void main() {
       expect(repository.callCount, 1);
       expect(repository.requests.single.toJson(), {
         'recipient_reference': _panReference,
-        'account_no': '91201000123457911',
-        'ifsc': 'UBIN0546771',
+        'account_no': '1234567890123456',
+        'ifsc': 'TEST0001234',
       });
       // The stored PAN-verification reference is reused verbatim; the
       // beneficiary id is never substituted for it.
@@ -203,7 +203,7 @@ void main() {
         data: EducationTutorVerifyBankData(
           recipientReference: _panReference,
           beneficiaryId: 39,
-          name: 'SUPRIYA SARANG ITHAPE',
+          name: 'TEST TUTOR NAME',
           accountNumber: 'XXXXXX7911',
           ifsc: 'UBIN0546771',
           transactionReference: 1,
@@ -300,7 +300,7 @@ void main() {
           data: EducationTutorVerifyBankData(
             recipientReference: _panReference,
             beneficiaryId: 39,
-            name: 'SUPRIYA SARANG ITHAPE',
+            name: 'TEST TUTOR NAME',
             accountNumber: 'XXXXXX7911',
             ifsc: 'UBIN0546771',
             transactionReference: 1474338350,
@@ -328,7 +328,7 @@ void main() {
           data: EducationTutorVerifyBankData(
             recipientReference: _panReference,
             beneficiaryId: 39,
-            name: 'SUPRIYA SARANG ITHAPE',
+            name: 'TEST TUTOR NAME',
             accountNumber: 'XXXXXX7911',
             ifsc: 'UBIN0546771',
             transactionReference: 1474338350,
@@ -355,7 +355,7 @@ void main() {
       await controller.verifyTutorBank();
       expect(controller.state.bankVerified, isTrue);
 
-      controller.updatePan('ABXPI7963F');
+      controller.updatePan('FGHIJ5678K');
 
       // A new PAN has no reference yet, so the stale one can never be sent.
       await controller.verifyTutorBank();

@@ -434,10 +434,17 @@ class EducationTutorRequestStatusData {
     required this.rejectionReason,
     required this.createdAt,
     required this.respondedAt,
+    this.requesterUserId = '',
+    this.requesterName = '',
   });
 
   factory EducationTutorRequestStatusData.fromJson(Map<String, dynamic> json) {
-    final requestStatus = json['request_status']?.toString() ?? '';
+    // Live request-status bodies use `status: "PENDING"`. Older bodies use
+    // `request_status`. A boolean envelope flag is not a request status.
+    final explicit = json['request_status']?.toString().trim() ?? '';
+    final requestStatus = explicit.isNotEmpty
+        ? explicit
+        : (_tutorRequestStatusText(json['status']) ?? '');
     final statusUpper = requestStatus.trim().toUpperCase();
     final isAccepted = _tutorStatusAsBool(json['is_accepted']);
     final isRejected = _tutorStatusAsBool(json['is_rejected']);
@@ -448,8 +455,13 @@ class EducationTutorRequestStatusData {
         : statusUpper == 'PENDING' && !isAccepted && !isRejected;
     return EducationTutorRequestStatusData(
       requestReference: json['request_reference']?.toString() ?? '',
-      amount: json['amount']?.toString() ?? '0',
-      subject: json['subject']?.toString() ?? '',
+      amount: json['amount']?.toString().trim() ?? '',
+      subject: json['subject']?.toString().trim() ?? '',
+      requesterUserId: json['requester_user_id']?.toString().trim() ?? '',
+      requesterName: _firstNonEmptyText(json, const [
+        'requester_name',
+        'student_name',
+      ]),
       requestStatus: requestStatus,
       isAccepted: isAccepted,
       isRejected: isRejected,
@@ -470,6 +482,20 @@ class EducationTutorRequestStatusData {
   final String? rejectionReason;
   final String createdAt;
   final String? respondedAt;
+
+  /// Sender id from the status payload. Not a display name.
+  final String requesterUserId;
+
+  /// Present only when the payload includes `requester_name` or `student_name`.
+  final String requesterName;
+}
+
+String _firstNonEmptyText(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key]?.toString().trim() ?? '';
+    if (value.isNotEmpty) return value;
+  }
+  return '';
 }
 
 class EducationTutorRequestStatusResponse {
@@ -491,15 +517,28 @@ class EducationTutorRequestStatusResponse {
 
     final dataJson = json['data'];
     EducationTutorRequestStatusData? data;
+    var bodyIsRequest = false;
     // Dio/json may yield Map<dynamic, dynamic>; require a Map, then normalize.
     if (dataJson is Map) {
       data = EducationTutorRequestStatusData.fromJson(
         Map<String, dynamic>.from(dataJson),
       );
+    } else if ((json['request_reference']?.toString().trim().isNotEmpty ??
+        false)) {
+      // The request object is the body itself:
+      // {request_reference, requester_user_id, amount, status: "PENDING"}.
+      bodyIsRequest = true;
+      data = EducationTutorRequestStatusData.fromJson(
+        Map<String, dynamic>.from(json),
+      );
     }
 
+    final envelopeOk = bodyIsRequest
+        ? data != null && data.requestStatus.isNotEmpty
+        : _tutorStatusAsBool(json['status']);
+
     return EducationTutorRequestStatusResponse(
-      status: _tutorStatusAsBool(json['status']),
+      status: envelopeOk,
       message: message,
       data: data,
     );
@@ -508,6 +547,24 @@ class EducationTutorRequestStatusResponse {
   final bool status;
   final String? message;
   final EducationTutorRequestStatusData? data;
+}
+
+/// Request-status text such as PENDING. Boolean envelope values are ignored.
+String? _tutorRequestStatusText(dynamic value) {
+  if (value is! String) return null;
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return null;
+  switch (trimmed.toLowerCase()) {
+    case 'true':
+    case 'false':
+    case '1':
+    case '0':
+    case 'yes':
+    case 'no':
+      return null;
+    default:
+      return trimmed;
+  }
 }
 
 bool _tutorStatusAsBool(dynamic value) {

@@ -52,7 +52,7 @@ EducationFeesController _controllerWithValidForm(
   bool bankVerified = true,
   String accountNumber = '1234567890',
   String ifsc = 'HDFC0001234',
-  String mobileInput = '9876543210',
+  String mobileInput = '9000000001',
 }) {
   final controller = EducationFeesController(repository: repo);
   controller.state = controller.state.copyWith(
@@ -83,7 +83,7 @@ void main() {
       expect(ok, isTrue);
       expect(repo.callCount, 1);
       expect(repo.lastPayload!['name'], 'Ravi Kumar');
-      expect(repo.lastPayload!['mobile'], '9876543210');
+      expect(repo.lastPayload!['mobile'], '9000000001');
       expect(repo.lastPayload!['pan'], 'ABCDE1234F');
       expect(repo.lastPayload!['account_type'], 'bank');
       expect(repo.lastPayload!['account_no'], '1234567890');

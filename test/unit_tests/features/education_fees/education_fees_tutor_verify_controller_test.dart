@@ -52,9 +52,9 @@ void main() {
       final repo = _FakeVerifyRepository(verifyResponse: verified);
       final controller = EducationFeesController(repository: repo);
 
-      final response = await controller.verifyTutor('8055851920');
+      final response = await controller.verifyTutor('9000000003');
 
-      expect(repo.calls, ['verify:8055851920']);
+      expect(repo.calls, ['verify:9000000003']);
       expect(response, isNotNull);
       expect(response!.status, isTrue);
       expect(response.verificationStatus,
@@ -71,7 +71,7 @@ void main() {
         verificationStatus: EducationTutorVerificationStatus.notVerified,
         message: 'This user is registered but KYC is not completed.',
       );
-      final notVerified = await controller.verifyTutor('8055851920');
+      final notVerified = await controller.verifyTutor('9000000003');
       expect(
         notVerified!.verificationStatus,
         EducationTutorVerificationStatus.notVerified,
@@ -83,7 +83,7 @@ void main() {
         verificationStatus: EducationTutorVerificationStatus.notFound,
         message: 'This mobile number is not registered in eRupaiya.',
       );
-      final notFound = await controller.verifyTutor('8055851920');
+      final notFound = await controller.verifyTutor('9000000003');
       expect(
         notFound!.verificationStatus,
         EducationTutorVerificationStatus.notFound,
@@ -96,16 +96,16 @@ void main() {
       final repo = _FakeVerifyRepository(verifyResponse: verified);
       final controller = EducationFeesController(repository: repo);
 
-      await controller.verifyTutor('+91 80558-51920');
+      await controller.verifyTutor('+91 90000-00003');
 
-      expect(repo.calls, ['verify:8055851920']);
+      expect(repo.calls, ['verify:9000000003']);
     });
 
     test('incomplete mobile does not call the API', () async {
       final repo = _FakeVerifyRepository(verifyResponse: verified);
       final controller = EducationFeesController(repository: repo);
 
-      final response = await controller.verifyTutor('80558519');
+      final response = await controller.verifyTutor('90000000');
 
       expect(response, isNull);
       expect(repo.calls, isEmpty);
@@ -115,10 +115,10 @@ void main() {
       final repo = _FakeVerifyRepository(error: Exception('timeout'));
       final controller = EducationFeesController(repository: repo);
 
-      final response = await controller.verifyTutor('8055851920');
+      final response = await controller.verifyTutor('9000000003');
 
       expect(response, isNull);
-      expect(repo.calls, ['verify:8055851920']);
+      expect(repo.calls, ['verify:9000000003']);
     });
 
     test('status false and unknown status are surfaced for the caller',
@@ -131,7 +131,7 @@ void main() {
         verificationStatus: EducationTutorVerificationStatus.verified,
         message: 'Invalid request',
       );
-      final failedRequest = await controller.verifyTutor('8055851920');
+      final failedRequest = await controller.verifyTutor('9000000003');
       expect(failedRequest!.status, isFalse);
       expect(failedRequest.confirmsVerifiedTutor, isFalse);
 
@@ -139,7 +139,7 @@ void main() {
         status: true,
         verificationStatus: EducationTutorVerificationStatus.unknown,
       );
-      final unknown = await controller.verifyTutor('8055851920');
+      final unknown = await controller.verifyTutor('9000000003');
       expect(unknown!.hasKnownVerificationStatus, isFalse);
     });
   });
@@ -147,11 +147,11 @@ void main() {
   group('EducationFeesController.fetchTutorDetails', () {
     const detailsData = EducationTutorDetailsData(
       tutorId: 1,
-      tutorName: 'John Doe',
+      tutorName: 'TEST TUTOR ONE',
       accountNumber: '1234567890123456',
       bankName: 'HDFC Bank',
       bankLogo: 'https://example.com/bank-logo.png',
-      accountHolderName: 'John Doe',
+      accountHolderName: 'TEST TUTOR ONE',
       ifsc: 'HDFC0001234',
       amount: 2000,
     );
@@ -167,15 +167,15 @@ void main() {
       final controller = EducationFeesController(repository: repo);
 
       final response = await controller.fetchTutorDetails(
-        mobile: '8055851920',
+        mobile: '9000000003',
         amount: 2000,
       );
 
-      expect(repo.calls, ['details:8055851920:2000']);
+      expect(repo.calls, ['details:9000000003:2000']);
       expect(response, isNotNull);
       expect(response!.status, isTrue);
       expect(response.data, isNotNull);
-      expect(response.data!.tutorName, 'John Doe');
+      expect(response.data!.tutorName, 'TEST TUTOR ONE');
     });
 
     test('mobile is normalised to 10 digits before the POST', () async {
@@ -183,11 +183,11 @@ void main() {
       final controller = EducationFeesController(repository: repo);
 
       await controller.fetchTutorDetails(
-        mobile: '+91 80558-51920',
+        mobile: '+91 90000-00003',
         amount: 2000,
       );
 
-      expect(repo.calls, ['details:8055851920:2000']);
+      expect(repo.calls, ['details:9000000003:2000']);
     });
 
     test('incomplete mobile does not call the API', () async {
@@ -195,7 +195,7 @@ void main() {
       final controller = EducationFeesController(repository: repo);
 
       final response = await controller.fetchTutorDetails(
-        mobile: '80558519',
+        mobile: '90000000',
         amount: 2000,
       );
 
@@ -208,11 +208,11 @@ void main() {
       final controller = EducationFeesController(repository: repo);
 
       await expectLater(
-        controller.fetchTutorDetails(mobile: '8055851920', amount: 2000),
+        controller.fetchTutorDetails(mobile: '9000000003', amount: 2000),
         throwsA(isA<Exception>()),
       );
 
-      expect(repo.calls, ['details:8055851920:2000']);
+      expect(repo.calls, ['details:9000000003:2000']);
     });
   });
 }

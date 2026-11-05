@@ -14,6 +14,7 @@ import 'package:http_certificate_pinning/http_certificate_pinning.dart';
 import '../config/app_env.dart';
 import '../config/ssl_pinning_config.dart';
 import '../constants/app_error_messages.dart';
+import '../utils/error_message_utils.dart';
 import '../widgets/app_snackbar.dart';
 import 'secure_storage_service.dart';
 
@@ -405,7 +406,12 @@ class DioInterceptors extends InterceptorsWrapper {
       } else {
         _showAppError(AppErrorMessages.sessionRefreshFailed);
       }
-    } else if (err.response?.statusCode == 404) {
+    } else if (err.response?.statusCode == 404 &&
+        _isSessionExpiredNotFound(err.response?.data)) {
+      // Commit 2474709: Session Expired 404 shows the session-expired
+      // message, logs out, and returns to Login. The same commit keyed that
+      // path only on HTTP 404. Genuine not-found responses (a different
+      // message, or no session-expired message) stay on the normal error path.
       _showAppError(AppErrorMessages.sessionExpired);
       final context = navigatorKey.currentContext;
       if (context != null) {
@@ -429,6 +435,24 @@ class DioInterceptors extends InterceptorsWrapper {
       _showAppError(AppErrorMessages.secureConnection);
     }
     super.onError(err, handler);
+  }
+
+  /// Session-expired 404 contract from commit `2474709`.
+  ///
+  /// That commit showed [AppErrorMessages.sessionExpired] for HTTP 404 and
+  /// logged the user out. A 404 is that contract only when the response
+  /// message itself says the session expired. Any other 404 (missing
+  /// resource, unknown route, empty body) is not a session expiry.
+  @visibleForTesting
+  static bool isSessionExpiredNotFound(Object? data) =>
+      _isSessionExpiredNotFound(data);
+
+  static bool _isSessionExpiredNotFound(Object? data) {
+    final message = ErrorMessageUtils.fromResponseData(data);
+    if (message == null || message.isEmpty) return false;
+    final normalized =
+        message.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+    return normalized.contains('session expired');
   }
 
   void _showAppError(String message) {

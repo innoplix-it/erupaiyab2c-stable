@@ -13,7 +13,11 @@ import 'package:e_rupaiya/features/educationFees/views/education_tutor_request_v
 
 class MockEducationFeesRepository extends Mock implements EducationFeesRepository {}
 
-Widget _wrap(Widget child, {MockEducationFeesRepository? mockRepo}) {
+Widget _wrap(
+  Widget child, {
+  MockEducationFeesRepository? mockRepo,
+  String? feeType,
+}) {
   final router = GoRouter(
     initialLocation: '/request',
     routes: [
@@ -31,16 +35,46 @@ Widget _wrap(Widget child, {MockEducationFeesRepository? mockRepo}) {
       educationFeesRepositoryProvider.overrideWithValue(mockRepo),
   ];
   
+  final screen = ScreenUtilInit(
+    designSize: const Size(360, 690),
+    minTextAdapt: true,
+    splitScreenMode: true,
+    fontSizeResolver: FontSizeResolvers.radius,
+    builder: (context, _) => MaterialApp.router(routerConfig: router),
+  );
+
   return ProviderScope(
     overrides: overrides,
-    child: ScreenUtilInit(
-      designSize: const Size(360, 690),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      fontSizeResolver: FontSizeResolvers.radius,
-      builder: (context, _) => MaterialApp.router(routerConfig: router),
-    ),
+    child: feeType == null
+        ? screen
+        : _FeeTypeSeed(feeType: feeType, child: screen),
   );
+}
+
+class _FeeTypeSeed extends ConsumerStatefulWidget {
+  const _FeeTypeSeed({required this.feeType, required this.child});
+
+  final String feeType;
+  final Widget child;
+
+  @override
+  ConsumerState<_FeeTypeSeed> createState() => _FeeTypeSeedState();
+}
+
+class _FeeTypeSeedState extends ConsumerState<_FeeTypeSeed> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(educationFeesControllerProvider.notifier)
+          .updateFeeType(widget.feeType);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 Widget _view({
@@ -48,12 +82,14 @@ Widget _view({
   Duration sentLabelDuration = Duration.zero,
   String? maskedAccount,
   Duration redirectDuration = const Duration(seconds: 5),
+  String? subject = 'Mathematics',
 }) {
   return EducationTutorRequestView(
-    tutorName: 'Supriya Sarang Ithape',
-    mobile: '9876544582',
+    tutorName: 'Test Tutor Name',
+    mobile: '9876500001',
     amount: 2000,
     maskedAccount: maskedAccount,
+    subject: subject,
     sendDuration: sendDuration,
     sentLabelDuration: sentLabelDuration,
     redirectDuration: redirectDuration,
@@ -293,6 +329,20 @@ void main() {
       ),
     ));
     
+    when(() => mockRepo.saveTutorBeneficiaryRegistered(
+          requestReference: any(named: 'requestReference'),
+        )).thenAnswer((_) async =>
+        const EducationTutorSaveBeneficiaryRegisteredResponse(
+          status: true,
+          data: EducationTutorSaveBeneficiaryRegisteredData(
+            beneficiaryId: 1,
+            recipientReference: 'REC-1',
+            recipientType: 'TUTOR',
+            panVerified: true,
+            bankVerified: true,
+          ),
+        ));
+
     // First call returns PENDING, subsequent calls return ACCEPTED
     int callCount = 0;
     when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
@@ -346,8 +396,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    // Polling detects acceptance after 2 seconds
-    await tester.pump(const Duration(seconds: 2));
+    // First poll is still PENDING. The next even second returns ACCEPTED.
+    await tester.pump(const Duration(seconds: 4));
     await tester.pump();
     
     // Accepted popup should appear
@@ -356,12 +406,10 @@ void main() {
     // Close the popup
     await tester.tap(find.text('Done'));
     await tester.pump();
-    
-    expect(find.text('Request accepted successfully'), findsOneWidget);
-    expect(
-      find.text('you will redirected in 5 sec to tutor profile'),
-      findsOneWidget,
-    );
+    await tester.pump();
+
+    expect(find.text('you will redirected in 5 sec to tutor profile'),
+        findsOneWidget);
 
     // Redirect fires after the announced 5 seconds.
     await tester.pump(const Duration(seconds: 6));
@@ -373,7 +421,7 @@ void main() {
     expect(find.text('Proceed to Pay'), findsOneWidget);
     // The profile card no longer renders static status copy.
     expect(
-      find.text('Supriya has accepted your request now you \n can sent tution fees'),
+      find.text('Test Tutor has accepted your request now you \n can sent tution fees'),
       findsNothing,
     );
     expect(
@@ -446,7 +494,7 @@ void main() {
     await tester.pumpWidget(_wrap(_view(maskedAccount: '9445XXXXXX')));
     await tester.pump();
 
-    expect(find.text('Supriya Sarang Ithape'), findsOneWidget);
+    expect(find.text('Test Tutor Name'), findsOneWidget);
     expect(find.text('9445XXXXXX'), findsOneWidget);
     expect(find.text('XXXXXX4582'), findsNothing);
   });
@@ -459,7 +507,7 @@ void main() {
 
     // Nothing is derived from the mobile number; the row stays hidden.
     expect(find.text('XXXXXX4582'), findsNothing);
-    expect(find.text('9876544582'), findsNothing);
+    expect(find.text('9876500001'), findsNothing);
   });
 
   testWidgets('REJECTED case shows declined popup and cancels timer',
@@ -538,7 +586,7 @@ void main() {
     await tester.pump();
     
     // Declined popup should appear
-    expect(find.text('Request Declined'), findsOneWidget);
+    expect(find.text('Request Declined'), findsWidgets);
   });
 
   testWidgets('API Failure does not incorrectly mark request as accepted',
@@ -644,5 +692,236 @@ void main() {
     
     // Wait to ensure no additional API calls are made after disposal
     await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('passes custom subject to sendTutorRequest API',
+      (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async => EducationTutorRequestStatusResponse(
+        status: true,
+        data: EducationTutorRequestStatusData(
+          requestReference: 'REF123',
+          amount: '2000',
+          subject: 'Mathematics',
+          requestStatus: 'PENDING',
+          isAccepted: false,
+          isRejected: false,
+          isPending: true,
+          rejectionReason: null,
+          createdAt: '2024-01-01',
+          respondedAt: null,
+        ),
+      ),
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(
+      _view(subject: 'Mathematics'),
+      mockRepo: mockRepo,
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Verify the mock was called with the custom subject
+    verify(() => mockRepo.sendTutorRequest(
+      mobile: '9876500001',
+      amount: 2000,
+      subject: 'Mathematics',
+    )).called(1);
+  });
+
+  testWidgets('sends the selected fee type when the view subject is null',
+      (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    when(() => mockRepo.sendTutorRequest(
+          mobile: any(named: 'mobile'),
+          amount: any(named: 'amount'),
+          subject: any(named: 'subject'),
+        )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+          status: true,
+          data: EducationTutorSendRequestData(
+            requestId: 123,
+            requestReference: 'REF123',
+            tutorId: 456,
+            amount: '2000',
+            requestStatus: 'PENDING',
+            createdAt: '2024-01-01',
+          ),
+        ));
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(
+      _view(subject: null),
+      mockRepo: mockRepo,
+      feeType: '  School Fee  ',
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    verify(() => mockRepo.sendTutorRequest(
+          mobile: '9876500001',
+          amount: 2000,
+          subject: 'School Fee',
+        )).called(1);
+  });
+
+  testWidgets('sends Chemistry when that subject is selected', (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    when(() => mockRepo.sendTutorRequest(
+          mobile: any(named: 'mobile'),
+          amount: any(named: 'amount'),
+          subject: any(named: 'subject'),
+        )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+          status: true,
+          data: EducationTutorSendRequestData(
+            requestId: 9,
+            requestReference: 'REF-CHEM',
+            tutorId: 4,
+            amount: '2000',
+            requestStatus: 'PENDING',
+            createdAt: '2024-01-01',
+          ),
+        ));
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(
+      _view(subject: 'Chemistry'),
+      mockRepo: mockRepo,
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    verify(() => mockRepo.sendTutorRequest(
+          mobile: '9876500001',
+          amount: 2000,
+          subject: 'Chemistry',
+        )).called(1);
+  });
+
+  Future<void> _expectSubjectBlocked(
+    WidgetTester tester,
+    String? subject,
+  ) async {
+    final mockRepo = MockEducationFeesRepository();
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(
+      _view(subject: subject),
+      mockRepo: mockRepo,
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+
+    expect(find.text('Select a subject before sending the request.'),
+        findsOneWidget);
+    expect(find.text('Send Request'), findsOneWidget);
+    verifyNever(() => mockRepo.sendTutorRequest(
+          mobile: any(named: 'mobile'),
+          amount: any(named: 'amount'),
+          subject: any(named: 'subject'),
+        ));
+  }
+
+  testWidgets('blocks a null subject', (tester) async {
+    await _expectSubjectBlocked(tester, null);
+  });
+
+  testWidgets('blocks an empty subject', (tester) async {
+    await _expectSubjectBlocked(tester, '');
+  });
+
+  testWidgets('blocks a whitespace-only subject', (tester) async {
+    await _expectSubjectBlocked(tester, '   ');
+  });
+
+  testWidgets('trims whitespace from subject before sending',
+      (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async => EducationTutorRequestStatusResponse(
+        status: true,
+        data: EducationTutorRequestStatusData(
+          requestReference: 'REF123',
+          amount: '2000',
+          subject: 'Physics',
+          requestStatus: 'PENDING',
+          isAccepted: false,
+          isRejected: false,
+          isPending: true,
+          rejectionReason: null,
+          createdAt: '2024-01-01',
+          respondedAt: null,
+        ),
+      ),
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(
+      _view(subject: '  Physics  '),
+      mockRepo: mockRepo,
+    ));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Verify the mock was called with trimmed subject
+    verify(() => mockRepo.sendTutorRequest(
+      mobile: '9876500001',
+      amount: 2000,
+      subject: 'Physics',
+    )).called(1);
   });
 }

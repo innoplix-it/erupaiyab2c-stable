@@ -71,7 +71,7 @@ Map<String, dynamic> _requestedBody(RequestOptions options) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const mobile = '9284354642';
+  const mobile = '9000000002';
   const amount = 10;
 
   group('POST /api/education/tutor/details request contract', () {
@@ -83,10 +83,10 @@ void main() {
           'message': 'Tutor details fetched successfully.',
           'data': {
             'tutor_id': 1,
-            'tutor_name': 'MONU ALI',
+            'tutor_name': 'TEST TUTOR ONE',
             'bank_name': '',
             'account_number': 'XXXXXXXX4642',
-            'account_holder_name': 'MONU ALI',
+            'account_holder_name': 'TEST TUTOR ONE',
             'ifsc': 'INDB0000746',
             'bank_logo': null,
             'amount': 10,
@@ -110,10 +110,10 @@ void main() {
           'verification_status': 'VERIFIED',
           'data': {
             'tutor_id': 2,
-            'tutor_name': 'TEST USER',
+            'tutor_name': 'TEST TUTOR TWO',
             'bank_name': 'Test Bank',
             'account_number': 'XXXXXXXX1234',
-            'account_holder_name': 'TEST USER',
+            'account_holder_name': 'TEST TUTOR TWO',
             'ifsc': 'TEST0001234',
             'bank_logo': null,
             'amount': 50,
@@ -121,9 +121,9 @@ void main() {
         },
       );
 
-      await repository.fetchTutorDetails(mobile: '9876543210', amount: 50);
+      await repository.fetchTutorDetails(mobile: '9000000001', amount: 50);
 
-      expect(_requestedBody(adapter.options!), {'mobile': '9876543210', 'amount': 50});
+      expect(_requestedBody(adapter.options!), {'mobile': '9000000001', 'amount': 50});
     });
   });
 
@@ -136,10 +136,10 @@ void main() {
           'message': 'Tutor details fetched successfully.',
           'data': {
             'tutor_id': 1,
-            'tutor_name': 'MONU ALI',
+            'tutor_name': 'TEST TUTOR ONE',
             'bank_name': '',
             'account_number': 'XXXXXXXX4642',
-            'account_holder_name': 'MONU ALI',
+            'account_holder_name': 'TEST TUTOR ONE',
             'ifsc': 'INDB0000746',
             'bank_logo': null,
             'amount': 10,
@@ -157,10 +157,10 @@ void main() {
       expect(response.message, 'Tutor details fetched successfully.');
       expect(response.data, isNotNull);
       expect(response.data!.tutorId, 1);
-      expect(response.data!.tutorName, 'MONU ALI');
+      expect(response.data!.tutorName, 'TEST TUTOR ONE');
       expect(response.data!.bankName, '');
       expect(response.data!.accountNumber, 'XXXXXXXX4642');
-      expect(response.data!.accountHolderName, 'MONU ALI');
+      expect(response.data!.accountHolderName, 'TEST TUTOR ONE');
       expect(response.data!.ifsc, 'INDB0000746');
       expect(response.data!.bankLogo, isNull);
       expect(response.data!.amount, 10);
@@ -176,10 +176,10 @@ void main() {
           'message': 'Tutor details fetched successfully.',
           'data': {
             'tutor_id': 1,
-            'tutor_name': 'MONU ALI',
+            'tutor_name': 'TEST TUTOR ONE',
             'bank_name': 'Test Bank',
             'account_number': 'XXXXXXXX4642',
-            'account_holder_name': 'MONU ALI',
+            'account_holder_name': 'TEST TUTOR ONE',
             'ifsc': 'INDB0000746',
             'bank_logo': null,
             'amount': 10,
@@ -200,10 +200,10 @@ void main() {
           'message': 'Tutor details fetched successfully.',
           'data': {
             'tutor_id': 1,
-            'tutor_name': 'MONU ALI',
+            'tutor_name': 'TEST TUTOR ONE',
             'bank_name': '',
             'account_number': 'XXXXXXXX4642',
-            'account_holder_name': 'MONU ALI',
+            'account_holder_name': 'TEST TUTOR ONE',
             'ifsc': 'INDB0000746',
             'bank_logo': null,
             'amount': 10,
@@ -223,10 +223,10 @@ void main() {
           'verification_status': 'VERIFIED',
           'data': {
             'tutor_id': 1,
-            'tutor_name': 'MONU ALI',
+            'tutor_name': 'TEST TUTOR ONE',
             'bank_name': '',
             'account_number': 'XXXXXXXX4642',
-            'account_holder_name': 'MONU ALI',
+            'account_holder_name': 'TEST TUTOR ONE',
             'ifsc': 'INDB0000746',
             'bank_logo': null,
             'amount': 10,
@@ -463,10 +463,10 @@ void main() {
           'message': 'Tutor details fetched successfully.',
           'data': {
             'tutor_id': 123,
-            'tutor_name': 'John Doe',
+            'tutor_name': 'TEST TUTOR THREE',
             'bank_name': 'HDFC Bank',
             'account_number': 'XXXXXXXX9999',
-            'account_holder_name': 'John Doe',
+            'account_holder_name': 'TEST TUTOR THREE',
             'ifsc': 'HDFC0001234',
             'bank_logo': 'https://example.com/logo.png',
             'amount': 500,
@@ -477,10 +477,10 @@ void main() {
       final response = await repository.fetchTutorDetails(mobile: mobile, amount: amount);
 
       expect(response.data!.tutorId, 123);
-      expect(response.data!.tutorName, 'John Doe');
+      expect(response.data!.tutorName, 'TEST TUTOR THREE');
       expect(response.data!.bankName, 'HDFC Bank');
       expect(response.data!.accountNumber, 'XXXXXXXX9999');
-      expect(response.data!.accountHolderName, 'John Doe');
+      expect(response.data!.accountHolderName, 'TEST TUTOR THREE');
       expect(response.data!.ifsc, 'HDFC0001234');
       expect(response.data!.bankLogo, 'https://example.com/logo.png');
       expect(response.data!.amount, 500);

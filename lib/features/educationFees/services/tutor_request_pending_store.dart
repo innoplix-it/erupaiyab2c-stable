@@ -148,14 +148,20 @@ class TutorRequestPendingEntry {
   const TutorRequestPendingEntry({
     required this.requestReference,
     required this.verified,
-    this.amount = '0',
+    this.amount = '',
     this.subject = '',
+    this.requesterName = '',
+    this.requesterUserId = '',
+    this.requestStatus = '',
   });
 
   final String requestReference;
   final bool verified;
   final String amount;
   final String subject;
+  final String requesterName;
+  final String requesterUserId;
+  final String requestStatus;
 
   factory TutorRequestPendingEntry.fromJson(Map<String, dynamic> json) {
     return TutorRequestPendingEntry(
@@ -166,8 +172,11 @@ class TutorRequestPendingEntry {
       verified: json['verified'] == true ||
           json['verified'] == 1 ||
           json['verified']?.toString().toLowerCase() == 'true',
-      amount: json['amount']?.toString() ?? '0',
-      subject: json['subject']?.toString() ?? '',
+      amount: json['amount']?.toString().trim() ?? '',
+      subject: json['subject']?.toString().trim() ?? '',
+      requesterName: json['requester_name']?.toString().trim() ?? '',
+      requesterUserId: json['requester_user_id']?.toString().trim() ?? '',
+      requestStatus: json['request_status']?.toString().trim() ?? '',
     );
   }
 
@@ -176,5 +185,8 @@ class TutorRequestPendingEntry {
         'verified': verified,
         'amount': amount,
         'subject': subject,
+        if (requesterName.isNotEmpty) 'requester_name': requesterName,
+        if (requesterUserId.isNotEmpty) 'requester_user_id': requesterUserId,
+        if (requestStatus.isNotEmpty) 'request_status': requestStatus,
       };
 }
