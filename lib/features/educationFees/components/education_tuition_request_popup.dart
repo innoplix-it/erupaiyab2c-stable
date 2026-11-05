@@ -296,6 +296,7 @@ Future<bool?> showEducationTuitionRequestPopup(
 }) {
   return showDialog<bool>(
     context: context,
+    useRootNavigator: true,
     builder: (dialogContext) => EducationTuitionRequestPopup(
       state: state,
       amount: amount,

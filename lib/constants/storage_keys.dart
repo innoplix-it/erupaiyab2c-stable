@@ -7,4 +7,8 @@ class StorageKeys {
   static const String guestInstallationId = 'guestInstallationId';
   static const String guestDeviceRegistered = 'guestDeviceRegistered';
   static const String guestRegisteredFcmToken = 'guestRegisteredFcmToken';
+
+  /// JSON list of tutor-request refs awaiting Received popup after background
+  /// FCM verification. Contains only request_reference + display fields.
+  static const String pendingTutorRequestPopups = 'pendingTutorRequestPopups';
 }

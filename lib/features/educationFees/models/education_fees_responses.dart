@@ -437,14 +437,23 @@ class EducationTutorRequestStatusData {
   });
 
   factory EducationTutorRequestStatusData.fromJson(Map<String, dynamic> json) {
+    final requestStatus = json['request_status']?.toString() ?? '';
+    final statusUpper = requestStatus.trim().toUpperCase();
+    final isAccepted = _tutorStatusAsBool(json['is_accepted']);
+    final isRejected = _tutorStatusAsBool(json['is_rejected']);
+    // Some backends omit boolean flags or send "1"/"true". Prefer the flag when
+    // present; otherwise derive PENDING from request_status.
+    final isPending = json.containsKey('is_pending')
+        ? _tutorStatusAsBool(json['is_pending'])
+        : statusUpper == 'PENDING' && !isAccepted && !isRejected;
     return EducationTutorRequestStatusData(
       requestReference: json['request_reference']?.toString() ?? '',
       amount: json['amount']?.toString() ?? '0',
       subject: json['subject']?.toString() ?? '',
-      requestStatus: json['request_status']?.toString() ?? '',
-      isAccepted: json['is_accepted'] == true,
-      isRejected: json['is_rejected'] == true,
-      isPending: json['is_pending'] == true,
+      requestStatus: requestStatus,
+      isAccepted: isAccepted,
+      isRejected: isRejected,
+      isPending: isPending,
       rejectionReason: json['rejection_reason']?.toString(),
       createdAt: json['created_at']?.toString() ?? '',
       respondedAt: json['responded_at']?.toString(),
@@ -482,12 +491,15 @@ class EducationTutorRequestStatusResponse {
 
     final dataJson = json['data'];
     EducationTutorRequestStatusData? data;
-    if (dataJson is Map<String, dynamic>) {
-      data = EducationTutorRequestStatusData.fromJson(dataJson);
+    // Dio/json may yield Map<dynamic, dynamic>; require a Map, then normalize.
+    if (dataJson is Map) {
+      data = EducationTutorRequestStatusData.fromJson(
+        Map<String, dynamic>.from(dataJson),
+      );
     }
 
     return EducationTutorRequestStatusResponse(
-      status: json['status'] == true,
+      status: _tutorStatusAsBool(json['status']),
       message: message,
       data: data,
     );
@@ -496,6 +508,15 @@ class EducationTutorRequestStatusResponse {
   final bool status;
   final String? message;
   final EducationTutorRequestStatusData? data;
+}
+
+bool _tutorStatusAsBool(dynamic value) {
+  if (value == true || value == 1) return true;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+  return false;
 }
 
 class EducationTutorReceivedRequestsPagination {

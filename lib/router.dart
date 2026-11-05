@@ -37,6 +37,7 @@ import 'features/educationFees/views/education_fees_recipient_view.dart';
 import 'features/educationFees/views/education_fees_tutors_view.dart';
 import 'features/educationFees/views/education_search_recipient_view.dart';
 import 'features/educationFees/views/education_payment_thank_you_view.dart';
+import 'features/educationFees/views/tutor_received_requests_view.dart';
 import 'features/home/components/zero_balance_account_popup_view.dart';
 import 'features/home/views/home_view.dart';
 import 'features/home/views/notifications_screen.dart';
@@ -368,6 +369,24 @@ final routerProvider = Provider<GoRouter>(
         GoRoute(
           path: RouteConstants.educationFeesRecipient,
           builder: (context, state) => const EducationFeesRecipientView(),
+        ),
+        GoRoute(
+          path: RouteConstants.tutorReceivedRequests,
+          builder: (context, state) {
+            final extra = state.extra;
+            String? autoShowRequestReference;
+            
+            if (extra is Map<String, dynamic>) {
+              autoShowRequestReference = extra['request_reference']?.toString() ?? 
+                                    extra['requestReference']?.toString();
+            } else if (extra is String) {
+              autoShowRequestReference = extra;
+            }
+            
+            return TutorReceivedRequestsView(
+              autoShowRequestReference: autoShowRequestReference,
+            );
+          },
         ),
         GoRoute(
           path: RouteConstants.educationTutorAddDetails,

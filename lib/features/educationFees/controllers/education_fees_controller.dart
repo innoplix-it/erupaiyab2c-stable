@@ -845,19 +845,30 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
+  /// Stores the request reference from Tutor Send Request in state.
+  ///
+  /// This should be called immediately after a successful Tutor Send Request
+  /// API response. The [requestReference] comes from `data.request_reference`
+  /// in the Send Request response.
+  void storeTutorRequestReference(String requestReference) {
+    logger.info('EDU_TUTOR_REQUEST STORE_REFERENCE');
+    state = state.copyWith(
+      requestReference: requestReference,
+    );
+  }
+
   /// Saves a registered/verified tutor beneficiary after request acceptance.
   ///
-  /// The [requestReference] MUST come from the Tutor Send Request response
-  /// (`data.request_reference`). It is never hardcoded, reconstructed or replaced
-  /// by recipient_reference or beneficiary_id.
+  /// The request reference is read from [state.requestReference], which was
+  /// stored immediately after the Tutor Send Request API response. It is never
+  /// hardcoded, reconstructed or replaced by recipient_reference or beneficiary_id.
   ///
   /// This should be called after the tutor accepts the payment request, before
   /// navigating to the tutor profile screen.
-  Future<bool> saveTutorBeneficiaryRegistered({
-    required String requestReference,
-  }) async {
+  Future<bool> saveTutorBeneficiaryRegistered() async {
     logger.info('EDU_TUTOR_SAVE_REGISTERED SAVE_BENEFICIARY_ENTERED');
-    if (requestReference.isEmpty) {
+    final requestReference = state.requestReference;
+    if (requestReference == null || requestReference.isEmpty) {
       logger.info(
         'EDU_TUTOR_SAVE_REGISTERED SAVE_GUARD_BLOCKED reason=no_request_reference',
       );
@@ -874,9 +885,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       return false;
     }
 
-    // Store the request reference in state for tracking
     state = state.copyWith(
-      requestReference: requestReference,
       isSavingBeneficiary: true,
       saveErrorMessage: null,
     );

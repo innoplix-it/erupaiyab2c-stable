@@ -7,9 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import 'config/app_env.dart';
 import 'features/profile/controllers/theme_mode_controller.dart';
 import 'features/developer_mode/controllers/developer_mode_guard.dart';
+import 'features/educationFees/widgets/tutor_request_notification_listener.dart';
 
 import 'router.dart';
 import 'services/app_lock_service.dart';
@@ -115,67 +115,69 @@ class MyApp extends HookConsumerWidget {
       fontSizeResolver: FontSizeResolvers.radius,
       builder: (context, child) {
         return MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          builder: (context, widget) {
-            final mediaQuery = MediaQuery.of(context);
-            return MediaQuery(
-              data: mediaQuery.copyWith(
-                textScaler: mediaQuery.textScaler.clamp(
-                  minScaleFactor: 0.85,
-                  maxScaleFactor: 1.15,
+            debugShowCheckedModeBanner: false,
+            builder: (context, widget) {
+              final mediaQuery = MediaQuery.of(context);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: mediaQuery.textScaler.clamp(
+                    minScaleFactor: 0.85,
+                    maxScaleFactor: 1.15,
+                  ),
                 ),
-              ),
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) => appLockService.onUserActivity(),
-                child: Stack(
-                  children: [
-                    widget ?? const SizedBox.shrink(),
-                    if (navigationInteractionLock.isLocked)
-                      const Positioned.fill(
-                        child: AbsorbPointer(
-                          absorbing: true,
-                          child: ColoredBox(color: Colors.transparent),
-                        ),
-                      ),
-                  ],
+                child: TutorRequestNotificationListener(
+                  child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (_) => appLockService.onUserActivity(),
+                    child: Stack(
+                      children: [
+                        widget ?? const SizedBox.shrink(),
+                        if (navigationInteractionLock.isLocked)
+                          const Positioned.fill(
+                            child: AbsorbPointer(
+                              absorbing: true,
+                              child: ColoredBox(color: Colors.transparent),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
+              );
+            },
+            scaffoldMessengerKey: AppSnackbar.messengerKey,
+            title: 'eRupaiya',
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color.fromARGB(255, 203, 137, 115)),
+              textTheme: GoogleFonts.plusJakartaSansTextTheme(
+                ThemeData.light().textTheme,
               ),
-            );
-          },
-          scaffoldMessengerKey: AppSnackbar.messengerKey,
-          title: 'eRupaiya',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color.fromARGB(255, 203, 137, 115)),
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(
-              ThemeData.light().textTheme,
+              primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
+                ThemeData.light().primaryTextTheme,
+              ),
+              fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+              extensions: const [
+                SkeletonizerConfigData(),
+              ],
             ),
-            primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
-              ThemeData.light().primaryTextTheme,
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              textTheme: GoogleFonts.plusJakartaSansTextTheme(
+                ThemeData.dark().textTheme,
+              ),
+              primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
+                ThemeData.dark().primaryTextTheme,
+              ),
+              fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+              extensions: const [
+                SkeletonizerConfigData.dark(),
+              ],
             ),
-            fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-            extensions: const [
-              SkeletonizerConfigData(),
-            ],
-          ),
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(
-              ThemeData.dark().textTheme,
-            ),
-            primaryTextTheme: GoogleFonts.plusJakartaSansTextTheme(
-              ThemeData.dark().primaryTextTheme,
-            ),
-            fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-            extensions: const [
-              SkeletonizerConfigData.dark(),
-            ],
-          ),
-          themeMode: themeMode,
-          routerConfig: router,
-        );
-      },
-    );
+            themeMode: themeMode,
+            routerConfig: router,
+          );
+        },
+      );
   }
 }

@@ -23,6 +23,7 @@ class RouteConstants {
   static const String educationFeesAmount = '/education-fees';
   static const String educationFeesTutors = '/education-fees/tutors';
   static const String educationFeesRecipient = '/education-fees/recipient';
+  static const String tutorReceivedRequests = '/education-tutor/received-requests';
   static const String educationTutorAddDetails = '/education-tutor/add-details';
   static const String educationSearchRecipient =
       '/education-fees/search-recipient';

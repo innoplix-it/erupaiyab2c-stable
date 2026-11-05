@@ -7,6 +7,7 @@ import '../../../constants/storage_keys.dart';
 import '../../../services/logger_service.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../utils/utils.dart';
+import '../../educationFees/services/tutor_request_notification_service.dart';
 import '../../refer_and_earn/repositories/referral_repository.dart';
 import '../models/auth_login_result.dart';
 import '../models/auth_flow.dart';
@@ -290,6 +291,11 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _repository.logout();
+    // Clear tutor-request popup dedupe + background PENDING persistence so a
+    // subsequent login on this device cannot reuse another user's queue.
+    try {
+      await TutorRequestNotificationService().clearOnLogout();
+    } catch (_) {}
     state = state.copyWith(
       isAuthenticated: false,
       hasTemporaryAccess: false,

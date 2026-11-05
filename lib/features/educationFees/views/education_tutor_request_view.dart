@@ -14,6 +14,7 @@ import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/education_erupaiya_verifying_overlay.dart';
 import '../components/education_tutor_identity.dart';
+import '../components/education_tuition_request_popup.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
 import '../models/education_fees_responses.dart';
@@ -25,7 +26,7 @@ String _formatElapsed(int seconds) {
   return '$m:$s';
 }
 
-enum _TutorRequestPhase { form, sending, sent, accepted }
+enum _TutorRequestPhase { form, sending, sent, accepted, saveFailed }
 
 class EducationTutorRequestView extends ConsumerStatefulWidget {
   const EducationTutorRequestView({
@@ -41,7 +42,6 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
     this.tutorDetails,
     this.sendDuration = const Duration(milliseconds: 1200),
     this.sentLabelDuration = const Duration(milliseconds: 700),
-    this.acceptAfterSeconds = 10,
     this.redirectDuration = const Duration(seconds: 5),
   });
 
@@ -70,10 +70,6 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
   /// How long "Request sent" stays on the loader before the waiting screen.
   final Duration sentLabelDuration;
 
-  /// Seconds the waiting timer runs before the accept signal is simulated.
-  /// Replace with the real accept event once the backend/push arrives.
-  final int acceptAfterSeconds;
-
   /// How long the "Request accepted successfully" loader is shown before the
   /// tutor profile screen opens (matches its "redirected in 5 sec" caption).
   final Duration redirectDuration;
@@ -90,7 +86,6 @@ class _EducationTutorRequestViewState
   String? _overlaySubtitle;
   int _elapsedSeconds = 0;
   Timer? _ticker;
-  String? _requestReference;
 
   @override
   void dispose() {
@@ -105,53 +100,106 @@ class _EducationTutorRequestViewState
       if (!mounted) return;
       setState(() => _elapsedSeconds++);
 
-      if (_requestReference != null &&
-          _requestReference!.isNotEmpty &&
+      // Read request reference from state
+      final requestReference = ref.read(educationFeesControllerProvider).requestReference;
+      if (requestReference != null &&
+          requestReference.isNotEmpty &&
           _elapsedSeconds % 2 == 0) {
         try {
           final statusRes =
-              await repo.fetchTutorRequestStatus(_requestReference!);
+              await repo.fetchTutorRequestStatus(requestReference);
           if (!mounted) return;
           if (statusRes.data?.isAccepted == true) {
             _onAccepted();
             return;
+          } else if (statusRes.data?.isRejected == true) {
+            _onRejected();
+            return;
           }
         } catch (_) {}
       }
-
-      // Placeholder for the real accept signal: the timer stops and the
-      // accepted loader starts as soon as it reaches [acceptAfterSeconds].
-      if (_elapsedSeconds >= widget.acceptAfterSeconds) {
-        _onAccepted();
-      }
+      
+      // NOTE: Backend does not provide an expiry field.
+      // Timer continues polling until isAccepted or isRejected becomes true.
+      // No hardcoded timeout - relies entirely on backend status.
     });
+  }
+
+  void _onRejected() {
+    _ticker?.cancel();
+    if (_phase == _TutorRequestPhase.accepted) return;
+    
+    // Show declined popup
+    if (mounted) {
+      showEducationTuitionRequestPopup(
+        context,
+        state: EducationTuitionPopupState.declined,
+        amount: widget.amount,
+        requesterName: widget.tutorName,
+      ).then((_) {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+    }
   }
 
   void _onAccepted() {
     _ticker?.cancel();
     if (_phase == _TutorRequestPhase.accepted) return;
-    setState(() {
-      _phase = _TutorRequestPhase.accepted;
-      _overlayLabel = 'Request accepted successfully';
-      _overlaySubtitle = 'you will redirected in 5 sec to tutor profile';
-    });
-    _saveBeneficiaryAndOpenProfile();
+    
+    // Show accepted popup first
+    if (mounted) {
+      showEducationTuitionRequestPopup(
+        context,
+        state: EducationTuitionPopupState.accepted,
+        amount: widget.amount,
+        requesterName: widget.tutorName,
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _phase = _TutorRequestPhase.accepted;
+            _overlayLabel = 'Request accepted successfully';
+            _overlaySubtitle = 'Saving beneficiary details...';
+          });
+          _saveBeneficiaryAndOpenProfile();
+        }
+      });
+    }
   }
 
   Future<void> _saveBeneficiaryAndOpenProfile() async {
-    if (_requestReference != null && _requestReference!.isNotEmpty) {
-      final controller = ref.read(educationFeesControllerProvider.notifier);
-      final saved = await controller.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference!,
-      );
-      if (!mounted) return;
-      if (!saved) {
-        // If save fails, still proceed to profile but log the error
-        // The beneficiary save is a background operation that shouldn't block
-        // the user's primary flow
-      }
+    final controller = ref.read(educationFeesControllerProvider.notifier);
+    final saved = await controller.saveTutorBeneficiaryRegistered();
+    if (!mounted) return;
+
+    if (saved) {
+      // Only navigate to profile on successful save
+      setState(() {
+        _overlayLabel = 'Beneficiary saved successfully';
+        _overlaySubtitle = 'you will redirected in 5 sec to tutor profile';
+      });
+      _openProfileAfterRedirect();
+    } else {
+      // On failure, stay on current screen and show error
+      final saveErrorMessage = ref.read(educationFeesControllerProvider).saveErrorMessage;
+      setState(() {
+        _phase = _TutorRequestPhase.saveFailed;
+        _overlayLabel = 'Failed to save beneficiary';
+        _overlaySubtitle = saveErrorMessage ?? 'Please retry saving beneficiary details';
+      });
+      // User can retry by calling _saveBeneficiaryAndOpenProfile again
+      // The request remains accepted, so we don't reset to pending
     }
-    _openProfileAfterRedirect();
+  }
+
+  void _retrySaveBeneficiary() {
+    setState(() {
+      _phase = _TutorRequestPhase.accepted;
+      _overlayLabel = 'Retrying save beneficiary...';
+      _overlaySubtitle = 'Please wait';
+    });
+    _saveBeneficiaryAndOpenProfile();
   }
 
   Future<void> _openProfileAfterRedirect() async {
@@ -266,7 +314,9 @@ class _EducationTutorRequestViewState
       if (!mounted) return;
 
       if (response.status && response.data != null) {
-        _requestReference = response.data!.requestReference;
+        final requestReference = response.data!.requestReference;
+        // Store in controller state (single source of truth)
+        controller.storeTutorRequestReference(requestReference);
       }
 
       setState(() => _overlayLabel = 'Request sent');
@@ -409,57 +459,66 @@ class _EducationTutorRequestViewState
                             // Figma footer: 24px above the system bottom inset.
                             padding:
                                 EdgeInsets.fromLTRB(inset, 0, inset, 24 * u),
-                            child: isSent
+                            child: _phase == _TutorRequestPhase.saveFailed
                                 ? CustomElevatedButton(
-                                    onPressed: () => context.go(
-                                      RouteConstants.home,
-                                    ),
-                                    label: 'Go to Home',
+                                    onPressed: _retrySaveBeneficiary,
+                                    label: 'Retry Save',
                                     showArrow: false,
                                     uppercaseLabel: false,
                                     height: 52 * u,
-                                    backgroundColor: AppColors.primary,
+                                    backgroundColor: const Color(0xFFDD5428),
                                   )
-                                : Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton(
-                                          onPressed: () => context.pop(),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor:
-                                                const Color(0xFFDD5428),
-                                            side: const BorderSide(
-                                              color: Color(0xFFDD5428),
-                                            ),
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: 14 * u,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(28 * u),
+                                : isSent
+                                    ? CustomElevatedButton(
+                                        onPressed: () => context.go(
+                                          RouteConstants.home,
+                                        ),
+                                        label: 'Go to Home',
+                                        showArrow: false,
+                                        uppercaseLabel: false,
+                                        height: 52 * u,
+                                        backgroundColor: AppColors.primary,
+                                      )
+                                    : Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton(
+                                              onPressed: () => context.pop(),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    const Color(0xFFDD5428),
+                                                side: const BorderSide(
+                                                  color: Color(0xFFDD5428),
+                                                ),
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 14 * u,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(28 * u),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                'Cancel',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15 * u,
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                          child: Text(
-                                            'Cancel',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 15 * u,
+                                          SizedBox(width: 12 * u),
+                                          Expanded(
+                                            child: CustomElevatedButton(
+                                              onPressed: _sendRequest,
+                                              label: 'Send Request',
+                                              showArrow: false,
+                                              uppercaseLabel: false,
+                                              height: 48 * u,
                                             ),
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                      SizedBox(width: 12 * u),
-                                      Expanded(
-                                        child: CustomElevatedButton(
-                                          onPressed: _sendRequest,
-                                          label: 'Send Request',
-                                          showArrow: false,
-                                          uppercaseLabel: false,
-                                          height: 48 * u,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
                           ),
                         ],
                       ),

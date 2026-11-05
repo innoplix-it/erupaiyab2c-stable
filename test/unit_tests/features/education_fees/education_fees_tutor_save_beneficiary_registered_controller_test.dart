@@ -55,11 +55,25 @@ void main() {
     controller.dispose();
   });
 
+  group('EducationFeesController.storeTutorRequestReference', () {
+    test('stores request reference in state immediately', () {
+      controller.storeTutorRequestReference(_requestReference);
+
+      expect(controller.state.requestReference, _requestReference);
+    });
+
+    test('new request reference overwrites previous one', () {
+      controller.storeTutorRequestReference(_requestReference);
+      const newReference = 'EDUTUTREQ180D00AA6BBCBE0C941904F2';
+      controller.storeTutorRequestReference(newReference);
+
+      expect(controller.state.requestReference, newReference);
+    });
+  });
+
   group('EducationFeesController.saveTutorBeneficiaryRegistered guards', () {
-    test('missing request reference never calls the API', () async {
-      final ok = await controller.saveTutorBeneficiaryRegistered(
-        requestReference: '',
-      );
+    test('missing request reference in state never calls the API', () async {
+      final ok = await controller.saveTutorBeneficiaryRegistered();
 
       expect(repository.callCount, 0);
       expect(ok, isFalse);
@@ -68,30 +82,20 @@ void main() {
           'Request reference missing. Please try again.');
     });
 
-    test('request reference is sent dynamically', () async {
-      final ok = await controller.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+    test('request reference is read from state and sent to API', () async {
+      controller.storeTutorRequestReference(_requestReference);
+      final ok = await controller.saveTutorBeneficiaryRegistered();
 
       expect(repository.callCount, 1);
       expect(repository.requests.single, _requestReference);
-    });
-
-    test('request reference is stored in state', () async {
-      await controller.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
-
-      expect(controller.state.requestReference, _requestReference);
     });
   });
 
   group('EducationFeesController.saveTutorBeneficiaryRegistered results', () {
     test('success stores beneficiary_id and recipient_reference from nested data',
         () async {
-      final ok = await controller.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+      controller.storeTutorRequestReference(_requestReference);
+      final ok = await controller.saveTutorBeneficiaryRegistered();
 
       expect(ok, isTrue);
       expect(controller.state.isSavingBeneficiary, isFalse);
@@ -110,10 +114,9 @@ void main() {
       );
       final failureController =
           EducationFeesController(repository: failureRepository);
+      failureController.storeTutorRequestReference(_requestReference);
 
-      final ok = await failureController.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+      final ok = await failureController.saveTutorBeneficiaryRegistered();
 
       expect(ok, isFalse);
       expect(failureController.state.saveErrorMessage,
@@ -131,10 +134,9 @@ void main() {
       );
       final noDataController =
           EducationFeesController(repository: noDataRepository);
+      noDataController.storeTutorRequestReference(_requestReference);
 
-      final ok = await noDataController.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+      final ok = await noDataController.saveTutorBeneficiaryRegistered();
 
       expect(ok, isFalse);
       expect(noDataController.state.beneficiaryId, isNull);
@@ -149,10 +151,9 @@ void main() {
       );
       final errorController =
           EducationFeesController(repository: errorRepository);
+      errorController.storeTutorRequestReference(_requestReference);
 
-      final ok = await errorController.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+      final ok = await errorController.saveTutorBeneficiaryRegistered();
 
       expect(ok, isFalse);
       expect(errorController.state.isSavingBeneficiary, isFalse);
@@ -176,10 +177,9 @@ void main() {
       );
       final updateController =
           EducationFeesController(repository: updateRepository);
+      updateController.storeTutorRequestReference(_requestReference);
 
-      final ok = await updateController.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+      final ok = await updateController.saveTutorBeneficiaryRegistered();
 
       expect(ok, isTrue);
       expect(updateController.state.beneficiaryId, newBeneficiaryId);
@@ -192,13 +192,10 @@ void main() {
   group('EducationFeesController.saveTutorBeneficiaryRegistered submission safety',
       () {
     test('re-entry guard blocks duplicate submissions', () async {
-      final first = controller.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+      controller.storeTutorRequestReference(_requestReference);
+      final first = controller.saveTutorBeneficiaryRegistered();
       // Immediately try again while first is in flight
-      final second = controller.saveTutorBeneficiaryRegistered(
-        requestReference: _requestReference,
-      );
+      final second = controller.saveTutorBeneficiaryRegistered();
 
       await first;
       await second;

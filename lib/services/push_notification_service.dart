@@ -12,6 +12,8 @@ import '../constants/routes_constant.dart';
 import '../constants/storage_keys.dart';
 import '../config/app_env.dart';
 import '../features/profile/repositories/profile_repository.dart';
+import '../features/educationFees/services/tutor_request_background_processor.dart';
+import '../features/educationFees/services/tutor_request_notification_service.dart';
 import '../firebase/explicit_firebase_options.dart';
 import 'guest_device_registration.dart';
 import '../utils/utils.dart';
@@ -44,6 +46,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     }
   }
   logger.info('FCM background message: ${message.messageId}');
+  // Background isolate: verify PENDING via Request Status API and persist.
+  // No BuildContext / Navigator / showDialog here.
+  await TutorRequestBackgroundProcessor.handle(message);
 }
 
 class PushNotificationService {
@@ -285,11 +290,19 @@ class PushNotificationService {
           final decoded = jsonDecode(payload);
           if (decoded is Map) {
             final data = decoded['data'];
-            _handleNotificationTap(
-              data: data is Map
-                  ? data.map((k, v) => MapEntry('$k', v))
-                  : const <String, dynamic>{},
-            );
+            final mapped = data is Map
+                ? data.map((k, v) => MapEntry('$k', v))
+                : const <String, dynamic>{};
+            if (TutorRequestNotificationService.isTutorRequestPayload(mapped)) {
+              unawaited(
+                TutorRequestNotificationService().handleIncomingFromData(
+                  mapped,
+                  messageId: 'local_notification_tap',
+                ),
+              );
+              return;
+            }
+            _handleNotificationTap(data: mapped);
           }
         } catch (e) {
           logger.error('Failed to parse local notification payload: $e');
@@ -312,11 +325,31 @@ class PushNotificationService {
 
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
     logger.info('FCM foreground message: ${message.messageId}');
+
+    if (TutorRequestNotificationService.isTutorRequestPayload(message.data)) {
+      logger.info(
+        'FCM_RECEIVED tutor_request foreground id=${message.messageId}',
+      );
+      await TutorRequestNotificationService().handleForegroundMessage(message);
+      return;
+    }
+
     await _showLocalNotification(message);
   }
 
   static void _handleMessageOpenedApp(RemoteMessage message) {
     logger.info('FCM opened app message: ${message.messageId}');
+
+    if (TutorRequestNotificationService.isTutorRequestPayload(message.data)) {
+      logger.info(
+        'FCM_RECEIVED tutor_request opened/terminated id=${message.messageId}',
+      );
+      unawaited(
+        TutorRequestNotificationService().handleOpenedMessage(message),
+      );
+      return;
+    }
+
     _handleNotificationTap(
       data: message.data,
     );
@@ -395,7 +428,19 @@ class PushNotificationService {
   }) {
     final resolvedLocation = _resolveLocation(data: data);
     if (resolvedLocation == null) return;
-    _navigateOrQueue(resolvedLocation);
+    
+    // Extract request_reference for tutor requests to pass as route extra
+    Object? extra;
+    if (resolvedLocation == RouteConstants.tutorReceivedRequests) {
+      final requestReference = (data['request_reference'] ?? 
+                               data['requestReference'] ?? 
+                               data['reference'])?.toString().trim();
+      if (requestReference != null && requestReference.isNotEmpty) {
+        extra = requestReference;
+      }
+    }
+    
+    _navigateOrQueue(resolvedLocation, extra: extra);
   }
 
   static String? _resolveLocation({required Map<String, dynamic> data}) {
@@ -411,6 +456,17 @@ class PushNotificationService {
       }
       // Or a RouteConstants value itself.
       if (route == RouteConstants.mobilePrepaid) return route;
+    }
+
+    // Handle tutor request notifications
+    final requestReference = (data['request_reference'] ?? 
+                             data['requestReference'] ?? 
+                             data['reference'])?.toString().trim();
+    final type = (data['type'] ?? data['notification_type'])?.toString().trim().toLowerCase();
+    
+    if (requestReference != null && requestReference.isNotEmpty && 
+        type != null && (type.contains('tutor') || type.contains('request'))) {
+      return RouteConstants.tutorReceivedRequests;
     }
 
     return null;

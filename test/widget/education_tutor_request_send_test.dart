@@ -4,10 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mocktail/mocktail.dart';
 
+import 'package:e_rupaiya/features/educationFees/controllers/education_fees_controller.dart';
+import 'package:e_rupaiya/features/educationFees/models/education_fees_responses.dart';
+import 'package:e_rupaiya/features/educationFees/repositories/education_fees_repository.dart';
 import 'package:e_rupaiya/features/educationFees/views/education_tutor_request_view.dart';
 
-Widget _wrap(Widget child) {
+class MockEducationFeesRepository extends Mock implements EducationFeesRepository {}
+
+Widget _wrap(Widget child, {MockEducationFeesRepository? mockRepo}) {
   final router = GoRouter(
     initialLocation: '/request',
     routes: [
@@ -19,7 +25,14 @@ Widget _wrap(Widget child) {
       GoRoute(path: '/request', builder: (context, state) => child),
     ],
   );
+  
+  final overrides = <Override>[
+    if (mockRepo != null)
+      educationFeesRepositoryProvider.overrideWithValue(mockRepo),
+  ];
+  
   return ProviderScope(
+    overrides: overrides,
     child: ScreenUtilInit(
       designSize: const Size(360, 690),
       minTextAdapt: true,
@@ -34,7 +47,6 @@ Widget _view({
   Duration sendDuration = Duration.zero,
   Duration sentLabelDuration = Duration.zero,
   String? maskedAccount,
-  int acceptAfterSeconds = 9999,
   Duration redirectDuration = const Duration(seconds: 5),
 }) {
   return EducationTutorRequestView(
@@ -44,7 +56,6 @@ Widget _view({
     maskedAccount: maskedAccount,
     sendDuration: sendDuration,
     sentLabelDuration: sentLabelDuration,
-    acceptAfterSeconds: acceptAfterSeconds,
     redirectDuration: redirectDuration,
   );
 }
@@ -75,6 +86,42 @@ void main() {
 
   testWidgets('Send Request shows loader with Sending Request then '
       'Request sent', (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async => EducationTutorRequestStatusResponse(
+        status: true,
+        data: EducationTutorRequestStatusData(
+          requestReference: 'REF123',
+          amount: '2000',
+          subject: 'Mathematics',
+          requestStatus: 'PENDING',
+          isAccepted: false,
+          isRejected: false,
+          isPending: true,
+          rejectionReason: null,
+          createdAt: '2024-01-01',
+          respondedAt: null,
+        ),
+      ),
+    );
+
     await tester.binding.setSurfaceSize(const Size(390, 844));
     await tester.pumpWidget(
       _wrap(
@@ -82,6 +129,7 @@ void main() {
           sendDuration: const Duration(milliseconds: 300),
           sentLabelDuration: const Duration(milliseconds: 400),
         ),
+        mockRepo: mockRepo,
       ),
     );
     await tester.pump();
@@ -106,8 +154,44 @@ void main() {
 
   testWidgets('sent phase shows success line, timer and Go to Home',
       (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async => EducationTutorRequestStatusResponse(
+        status: true,
+        data: EducationTutorRequestStatusData(
+          requestReference: 'REF123',
+          amount: '2000',
+          subject: 'Mathematics',
+          requestStatus: 'PENDING',
+          isAccepted: false,
+          isRejected: false,
+          isPending: true,
+          rejectionReason: null,
+          createdAt: '2024-01-01',
+          respondedAt: null,
+        ),
+      ),
+    );
+
     await tester.binding.setSurfaceSize(const Size(390, 844));
-    await tester.pumpWidget(_wrap(_view()));
+    await tester.pumpWidget(_wrap(_view(), mockRepo: mockRepo));
     await tester.pump();
 
     await tester.tap(find.text('Send Request'));
@@ -136,8 +220,44 @@ void main() {
 
   testWidgets('timer counts up from zero and keeps running',
       (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async => EducationTutorRequestStatusResponse(
+        status: true,
+        data: EducationTutorRequestStatusData(
+          requestReference: 'REF123',
+          amount: '2000',
+          subject: 'Mathematics',
+          requestStatus: 'PENDING',
+          isAccepted: false,
+          isRejected: false,
+          isPending: true,
+          rejectionReason: null,
+          createdAt: '2024-01-01',
+          respondedAt: null,
+        ),
+      ),
+    );
+
     await tester.binding.setSurfaceSize(const Size(390, 844));
-    await tester.pumpWidget(_wrap(_view()));
+    await tester.pumpWidget(_wrap(_view(), mockRepo: mockRepo));
     await tester.pump();
 
     await tester.tap(find.text('Send Request'));
@@ -155,11 +275,69 @@ void main() {
 
   testWidgets('accept threshold shows the accepted loader then the profile',
       (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    // First call returns PENDING, subsequent calls return ACCEPTED
+    int callCount = 0;
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async {
+        callCount++;
+        if (callCount == 1) {
+          return EducationTutorRequestStatusResponse(
+            status: true,
+            data: EducationTutorRequestStatusData(
+              requestReference: 'REF123',
+              amount: '2000',
+              subject: 'Mathematics',
+              requestStatus: 'PENDING',
+              isAccepted: false,
+              isRejected: false,
+              isPending: true,
+              rejectionReason: null,
+              createdAt: '2024-01-01',
+              respondedAt: null,
+            ),
+          );
+        } else {
+          return EducationTutorRequestStatusResponse(
+            status: true,
+            data: EducationTutorRequestStatusData(
+              requestReference: 'REF123',
+              amount: '2000',
+              subject: 'Mathematics',
+              requestStatus: 'ACCEPTED',
+              isAccepted: true,
+              isRejected: false,
+              isPending: false,
+              rejectionReason: null,
+              createdAt: '2024-01-01',
+              respondedAt: '2024-01-01',
+            ),
+          );
+        }
+      },
+    );
+
     await tester.binding.setSurfaceSize(const Size(390, 844));
     await tester.pumpWidget(_wrap(_view(
       maskedAccount: 'XXXXXX4582',
-      acceptAfterSeconds: 3,
-    )));
+    ), mockRepo: mockRepo));
     await tester.pump();
 
     await tester.tap(find.text('Send Request'));
@@ -168,8 +346,17 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    // Timer reaches the simulated accept signal.
-    await tester.pump(const Duration(seconds: 3));
+    // Polling detects acceptance after 2 seconds
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    
+    // Accepted popup should appear
+    expect(find.text('Request Accepted Successfully'), findsOneWidget);
+    
+    // Close the popup
+    await tester.tap(find.text('Done'));
+    await tester.pump();
+    
     expect(find.text('Request accepted successfully'), findsOneWidget);
     expect(
       find.text('you will redirected in 5 sec to tutor profile'),
@@ -198,8 +385,44 @@ void main() {
   });
 
   testWidgets('Go to Home navigates to the home route', (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async => EducationTutorRequestStatusResponse(
+        status: true,
+        data: EducationTutorRequestStatusData(
+          requestReference: 'REF123',
+          amount: '2000',
+          subject: 'Mathematics',
+          requestStatus: 'PENDING',
+          isAccepted: false,
+          isRejected: false,
+          isPending: true,
+          rejectionReason: null,
+          createdAt: '2024-01-01',
+          respondedAt: null,
+        ),
+      ),
+    );
+
     await tester.binding.setSurfaceSize(const Size(390, 844));
-    await tester.pumpWidget(_wrap(_view()));
+    await tester.pumpWidget(_wrap(_view(), mockRepo: mockRepo));
     await tester.pump();
 
     await tester.tap(find.text('Send Request'));
@@ -237,5 +460,189 @@ void main() {
     // Nothing is derived from the mobile number; the row stays hidden.
     expect(find.text('XXXXXX4582'), findsNothing);
     expect(find.text('9876544582'), findsNothing);
+  });
+
+  testWidgets('REJECTED case shows declined popup and cancels timer',
+      (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    // First call returns PENDING, subsequent calls return REJECTED
+    int callCount = 0;
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async {
+        callCount++;
+        if (callCount == 1) {
+          return EducationTutorRequestStatusResponse(
+            status: true,
+            data: EducationTutorRequestStatusData(
+              requestReference: 'REF123',
+              amount: '2000',
+              subject: 'Mathematics',
+              requestStatus: 'PENDING',
+              isAccepted: false,
+              isRejected: false,
+              isPending: true,
+              rejectionReason: null,
+              createdAt: '2024-01-01',
+              respondedAt: null,
+            ),
+          );
+        } else {
+          return EducationTutorRequestStatusResponse(
+            status: true,
+            data: EducationTutorRequestStatusData(
+              requestReference: 'REF123',
+              amount: '2000',
+              subject: 'Mathematics',
+              requestStatus: 'REJECTED',
+              isAccepted: false,
+              isRejected: true,
+              isPending: false,
+              rejectionReason: 'Tutor unavailable',
+              createdAt: '2024-01-01',
+              respondedAt: '2024-01-01',
+            ),
+          );
+        }
+      },
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(_view(), mockRepo: mockRepo));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Polling detects rejection after 4 seconds (second poll call)
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+    
+    // Declined popup should appear
+    expect(find.text('Request Declined'), findsOneWidget);
+  });
+
+  testWidgets('API Failure does not incorrectly mark request as accepted',
+      (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    // API returns error
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenThrow(
+      Exception('Network error'),
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(_view(), mockRepo: mockRepo));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Timer continues despite API errors
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    
+    // No accepted popup should appear
+    expect(find.text('Request accepted successfully'), findsNothing);
+    // Timer should still be running
+    expect(find.text('00:02'), findsOneWidget);
+  });
+
+  testWidgets('Screen disposal cancels timer and stops API calls',
+      (tester) async {
+    final mockRepo = MockEducationFeesRepository();
+    
+    when(() => mockRepo.sendTutorRequest(
+      mobile: any(named: 'mobile'),
+      amount: any(named: 'amount'),
+      subject: any(named: 'subject'),
+    )).thenAnswer((_) async => EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 123,
+        requestReference: 'REF123',
+        tutorId: 456,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '2024-01-01',
+      ),
+    ));
+    
+    when(() => mockRepo.fetchTutorRequestStatus(any())).thenAnswer(
+      (_) async => EducationTutorRequestStatusResponse(
+        status: true,
+        data: EducationTutorRequestStatusData(
+          requestReference: 'REF123',
+          amount: '2000',
+          subject: 'Mathematics',
+          requestStatus: 'PENDING',
+          isAccepted: false,
+          isRejected: false,
+          isPending: true,
+          rejectionReason: null,
+          createdAt: '2024-01-01',
+          respondedAt: null,
+        ),
+      ),
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(_wrap(_view(), mockRepo: mockRepo));
+    await tester.pump();
+
+    await tester.tap(find.text('Send Request'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Navigate away (dispose the screen)
+    await tester.tap(find.text('Go to Home'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // Verify we're on home page
+    expect(find.text('HOME_PAGE'), findsOneWidget);
+    
+    // Wait to ensure no additional API calls are made after disposal
+    await tester.pump(const Duration(seconds: 3));
   });
 }
