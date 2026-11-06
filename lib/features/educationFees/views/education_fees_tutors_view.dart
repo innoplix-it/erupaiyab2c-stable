@@ -81,7 +81,10 @@ class EducationFeesTutorsView extends HookConsumerWidget {
             amount: amount,
             amountLabel: '\u20B9${amount.toStringAsFixed(0)}',
             panDetails: tutor.panMasked,
-            accountNumber: tutor.accountNoUnmasked,
+            accountNumber: tutor.accountMasked.isEmpty
+                ? null
+                : tutor.accountMasked,
+            accountNoUnmasked: tutor.accountNoUnmasked,
             ifscCode: tutor.ifsc,
             branch: tutor.branch,
           ),

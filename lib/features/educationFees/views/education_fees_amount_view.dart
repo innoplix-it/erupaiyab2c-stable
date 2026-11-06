@@ -98,9 +98,11 @@ class EducationFeesAmountView extends HookConsumerWidget {
         controller.updateAmountInput('');
       });
       return () {
+        // Clear only the local field. The entered amount stays on the
+        // controller so Add Tutor and payment summary still receive it.
+        // Back navigation clears the stored amount itself.
         suppressAmountSync.value = true;
         amountController.clear();
-        Future.microtask(() => controller.updateAmountInput(''));
       };
     }, [resolvedFeeType]);
 

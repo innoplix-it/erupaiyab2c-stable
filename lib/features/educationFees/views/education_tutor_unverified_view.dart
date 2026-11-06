@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_error_messages.dart';
 import '../../../constants/routes_constant.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../widgets/my_app_bar.dart';
 import '../components/education_tutor_identity.dart';
+import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
 
 /// Unverified-tutor screen (shown after contact pick when the tutor is not
@@ -16,7 +20,7 @@ import '../education_fees_typography.dart';
 /// Reuses the shared [EducationTutorIdentityCard] and the investment banner
 /// asset, and offers two CTAs: "Ask for KYC" and "Add Details". "Add Details"
 /// opens the existing Enter Recipient Details form.
-class EducationTutorUnverifiedView extends StatelessWidget {
+class EducationTutorUnverifiedView extends HookConsumerWidget {
   const EducationTutorUnverifiedView({
     super.key,
     required this.tutorName,
@@ -31,9 +35,10 @@ class EducationTutorUnverifiedView extends StatelessWidget {
   final String amountLabel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final u = educationTutorUnit(context);
     final inset = 16 * u;
+    final asking = useState(false);
 
     return EducationFeesTheme(
       child: Scaffold(
@@ -94,12 +99,32 @@ class EducationTutorUnverifiedView extends StatelessWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          // TODO(testing): wire to the real KYC request API.
-                          onPressed: () => AppSnackbar.show(
-                            'Ask for KYC — placeholder',
-                            backgroundColor: AppColors.primary,
-                            textColor: Colors.white,
-                          ),
+                          onPressed: asking.value
+                              ? null
+                              : () async {
+                                  asking.value = true;
+                                  final response = await ref
+                                      .read(educationFeesControllerProvider
+                                          .notifier)
+                                      .askTutorForKyc();
+                                  asking.value = false;
+                                  if (!context.mounted || response == null) {
+                                    return;
+                                  }
+                                  final message =
+                                      response.message?.trim() ?? '';
+                                  AppSnackbar.show(
+                                    message.isNotEmpty
+                                        ? message
+                                        : (response.status
+                                            ? 'KYC reminder notification sent successfully.'
+                                            : AppErrorMessages.generic),
+                                    backgroundColor: response.status
+                                        ? AppColors.primary
+                                        : AppColors.red,
+                                    textColor: Colors.white,
+                                  );
+                                },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             side: const BorderSide(color: AppColors.primary),

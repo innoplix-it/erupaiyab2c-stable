@@ -71,6 +71,9 @@ class MyApp extends HookConsumerWidget {
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         FlutterNativeSplash.remove();
+        // Ask once the first frame is up. main() skips this because the
+        // activity is not ready yet, so the system dialog never appeared.
+        Future.microtask(() => LocationService.initialize());
       });
       return null;
     }, const []);

@@ -38,6 +38,16 @@ class EducationFeesRepository {
     );
   }
 
+  Future<EducationTutorAskKycResponse> askTutorForKyc({
+    String? requestReference,
+    String? mobile,
+  }) {
+    return _service.askTutorForKyc(
+      requestReference: requestReference,
+      mobile: mobile,
+    );
+  }
+
   Future<EducationTutorRequestStatusResponse> fetchTutorRequestStatus(
     String requestReference,
   ) {

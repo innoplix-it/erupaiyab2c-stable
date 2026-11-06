@@ -56,6 +56,10 @@ class ApiConstants {
       '$baseUrl/api/education/tutor/details';
   static const String educationTutorSendRequestEndpoint =
       '$baseUrl/api/education/tutor/send-request';
+  // POST body: {"request_reference": "EDUTR..."} when a request exists,
+  // otherwise {"mobile": "..."} for a tutor whose KYC is still incomplete.
+  static const String educationTutorAskKycEndpoint =
+      '$baseUrl/api/education/tutor/ask-kyc';
   static String educationTutorRequestStatusEndpoint(String requestReference) =>
       '$baseUrl/api/education/tutor/request-status/$requestReference';
   // POST body: {"request_reference": "...", "action": "ACCEPTED" | "REJECTED"}

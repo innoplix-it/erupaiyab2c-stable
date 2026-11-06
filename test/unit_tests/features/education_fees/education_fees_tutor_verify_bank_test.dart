@@ -221,6 +221,32 @@ void main() {
       expect(response.confirmsVerifiedBank, isTrue);
     });
 
+    test('string ids and a truthy bank_verified still confirm success', () async {
+      final (_, repository) = _repository(
+        payload: {
+          'status': 'SUCCESS',
+          'message': 'Tutor recipient bank account verified successfully.',
+          'data': {
+            'recipient_reference': reference,
+            'beneficiary_id': '39',
+            'name': 'TEST TUTOR NAME',
+            'account_number': 'XXXXXX3456',
+            'ifsc': ifsc,
+            'transaction_reference': '1474338350',
+            'bank_verified': 'true',
+          },
+        },
+      );
+
+      final response = await verify(repository);
+
+      expect(response.status, isTrue);
+      expect(response.data!.beneficiaryId, 39);
+      expect(response.data!.transactionReference, 1474338350);
+      expect(response.data!.bankVerified, isTrue);
+      expect(response.confirmsVerifiedBank, isTrue);
+    });
+
     test('bank_verified false never confirms success', () async {
       final (_, repository) = _repository(
         payload: successPayload(dataOverrides: {'bank_verified': false}),

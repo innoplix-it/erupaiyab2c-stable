@@ -11,7 +11,6 @@ import '../../../widgets/my_app_bar.dart';
 import '../components/education_payment_sheets.dart';
 import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
-import '../repositories/education_fees_repository.dart';
 import '../education_fees_typography.dart';
 import '../helpers/education_pay_now.dart';
 import '../models/education_fees_responses.dart';
@@ -38,6 +37,7 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
     this.tutorDetails,
     this.subject,
     this.mobile,
+    this.accountNoUnmasked,
   });
 
   final String tutorName;
@@ -66,6 +66,10 @@ class EducationTutorProfileView extends ConsumerStatefulWidget {
 
   /// Tutor mobile, used to re-read `POST /api/education/tutor/details` at pay.
   final String? mobile;
+
+  /// Original account number from `account_no_unmasked`. Display fields stay
+  /// masked; only create-order reads this.
+  final String? accountNoUnmasked;
 
   @override
   ConsumerState<EducationTutorProfileView> createState() =>
@@ -99,54 +103,50 @@ class _EducationTutorProfileViewState
     setState(() => _openingSummary = true);
 
     final repository = ref.read(educationFeesRepositoryProvider);
-    final details = await _tutorDetailsFromApi(repository);
-    final amount = details != null && details.amount > 0
-        ? details.amount.toDouble()
-        : widget.amount;
+    final amount = widget.amount;
     EducationPaymentSummaryData? summary;
-    try {
-      final response = await repository.fetchPaymentSummary(
-        amount: amount.round(),
-      );
-      if (response.status) summary = response.data;
-    } catch (_) {
-      summary = null;
+    var failure = 'Payment summary is not available. Please wait or try again.';
+    if (amount.round() <= 0) {
+      failure = 'Enter a valid amount before paying.';
+    } else {
+      try {
+        final response = await repository.fetchPaymentSummary(
+          amount: amount.round(),
+        );
+        if (response.status && response.data != null) {
+          summary = response.data;
+        } else {
+          final message = response.message?.trim() ?? '';
+          if (message.isNotEmpty) failure = message;
+        }
+      } catch (_) {
+        summary = null;
+      }
     }
     if (!mounted) return;
     setState(() => _openingSummary = false);
 
     if (summary == null) {
       AppSnackbar.show(
-        'Payment summary is not available. Please wait or try again.',
+        failure,
         backgroundColor: Colors.red,
         textColor: Colors.white,
       );
       return;
     }
 
-    if (details != null) {
-      ref
-          .read(educationFeesControllerProvider.notifier)
-          .rememberTutorDetails(details);
-    }
     final state = ref.read(educationFeesControllerProvider);
-    // tutor/details is the only source: tutor_name, account_number, ifsc, amount.
-    final recipientName = _filled([
-      details?.tutorName,
-      state.recipientName,
-      widget.tutorName,
-    ]);
-    final accountNo = _filled([
-      details?.accountNumber,
+    // Same fields as the education payment screen. Not tutor/details.
+    final recipientName = _filled([widget.tutorName, state.recipientName]);
+    final accountNo = completeEducationAccountNumber([
+      widget.accountNoUnmasked,
+      widget.tutorDetails?.accountNoUnmasked,
       state.accountNumber,
       widget.accountNumber,
+      widget.tutorDetails?.accountNumber,
     ]);
-    final ifsc = _filled([
-      details?.ifsc,
-      state.ifsc,
-      widget.ifscCode,
-    ]);
-    final feeType = _filled([widget.subject, state.feeType]);
+    final ifsc = _filled([widget.ifscCode, state.ifsc]);
+    final feeType = state.feeType;
     KDialog.instance.openSheet(
       dialog: EducationPaymentSummarySheet(
         amount: amount,
@@ -164,53 +164,6 @@ class _EducationTutorProfileViewState
           feeType: feeType,
         ),
       ),
-    );
-  }
-
-  /// Latest `POST /api/education/tutor/details` body. The screen copy is the
-  /// same API from when the profile opened.
-  Future<EducationTutorDetailsData?> _tutorDetailsFromApi(
-    EducationFeesRepository repository,
-  ) async {
-    final mobile = widget.mobile?.replaceAll(RegExp(r'\D'), '') ?? '';
-    if (mobile.length == 10) {
-      try {
-        final amount = widget.tutorDetails?.amount ?? widget.amount.round();
-        final response = await repository.fetchTutorDetails(
-          mobile: mobile,
-          amount: amount > 0 ? amount : widget.amount.round(),
-        );
-        if (response.status && response.data != null) {
-          return _mergeTutorDetails(response.data!, widget.tutorDetails);
-        }
-      } catch (_) {
-        // Keep the tutor-details payload already on this screen.
-      }
-    }
-    return widget.tutorDetails;
-  }
-
-  /// A later tutor/details call must not wipe account or IFSC with blanks.
-  EducationTutorDetailsData _mergeTutorDetails(
-    EducationTutorDetailsData fresh,
-    EducationTutorDetailsData? previous,
-  ) {
-    if (previous == null) return fresh;
-    String keep(String next, String prior) =>
-        next.trim().isNotEmpty ? next : prior;
-    return EducationTutorDetailsData(
-      tutorId: fresh.tutorId != 0 ? fresh.tutorId : previous.tutorId,
-      tutorName: keep(fresh.tutorName, previous.tutorName),
-      bankName: keep(fresh.bankName, previous.bankName),
-      accountNumber: keep(fresh.accountNumber, previous.accountNumber),
-      accountHolderName: keep(fresh.accountHolderName, previous.accountHolderName),
-      ifsc: keep(fresh.ifsc, previous.ifsc),
-      bankLogo: fresh.bankLogo ?? previous.bankLogo,
-      amount: fresh.amount > 0 ? fresh.amount : previous.amount,
-      pan: fresh.pan ?? previous.pan,
-      panMasked: fresh.panMasked ?? previous.panMasked,
-      branch: fresh.branch ?? previous.branch,
-      accountMasked: fresh.accountMasked ?? previous.accountMasked,
     );
   }
 

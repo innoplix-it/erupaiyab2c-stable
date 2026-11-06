@@ -507,8 +507,7 @@ class EducationFeesRecipientView extends HookConsumerWidget {
                                   RegExp(r'[a-zA-Z0-9]'),
                                 ),
                                 _UpperCaseFormatter(),
-                                LengthLimitingTextInputFormatter(11),
-                              ],
+                               ],
                               style: _fieldInputStyle(),
                               cursorColor: AppColors.primary,
                               decoration: _inputDecoration(

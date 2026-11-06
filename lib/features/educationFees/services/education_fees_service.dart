@@ -136,6 +136,38 @@ class EducationFeesService {
     }
   }
 
+  Future<EducationTutorAskKycResponse> askTutorForKyc({
+    String? requestReference,
+    String? mobile,
+  }) async {
+    try {
+      final request = EducationTutorAskKycRequest(
+        requestReference: requestReference,
+        mobile: mobile,
+      );
+      final response = await _dio.post(
+        ApiConstants.educationTutorAskKycEndpoint,
+        data: request.toJson(),
+      );
+      final raw = response.data;
+      final payload = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : <String, dynamic>{};
+      return EducationTutorAskKycResponse.fromJson(payload);
+    } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map) {
+          return EducationTutorAskKycResponse.fromJson(
+            Map<String, dynamic>.from(data),
+          );
+        }
+      }
+      logger.error('Failed to ask tutor for KYC: $e', error: e);
+      rethrow;
+    }
+  }
+
   Future<EducationTutorRequestStatusResponse> fetchTutorRequestStatus(
     String requestReference,
   ) async {

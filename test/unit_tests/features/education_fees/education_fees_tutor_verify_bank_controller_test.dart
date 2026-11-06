@@ -315,6 +315,19 @@ void main() {
       expect(controller.state.isVerifyingBank, isFalse);
     });
 
+    test('repeating the same account and IFSC keeps a successful verification',
+        () async {
+      await readyForm();
+      await controller.verifyTutorBank();
+      expect(controller.state.bankVerified, isTrue);
+
+      controller.updateAccountNumber('1234567890123456');
+      controller.updateIfsc('TEST0001234');
+
+      expect(controller.state.bankVerified, isTrue);
+      expect(repository.callCount, 1);
+    });
+
     test('a late response for an edited account cannot mark success', () async {
       await readyForm();
       repository.hangNext = true;

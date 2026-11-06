@@ -498,6 +498,27 @@ void main() {
     });
 
     testWidgets(
+        'VERIFIED then details NOT_VERIFIED opens Add Details',
+        (tester) async {
+      final repo = await openScreen(
+        tester,
+        verified,
+        detailsResponse: const EducationTutorDetailsResponse(
+          status: true,
+          verificationStatus: EducationTutorVerificationStatus.notVerified,
+          message: 'This tutor has not completed KYC verification.',
+        ),
+      );
+
+      await _pickNumber(tester, '9876500003');
+
+      expect(repo.verifyCalls, ['9876500003']);
+      expect(repo.detailsMobiles, ['9876500003']);
+      expect(find.byType(EducationTutorUnverifiedView), findsOneWidget);
+      expect(find.byType(EducationTutorRequestView), findsNothing);
+    });
+
+    testWidgets(
         'a details failure after VERIFIED is not treated as '
         'unverified', (tester) async {
       final repo = await openScreen(

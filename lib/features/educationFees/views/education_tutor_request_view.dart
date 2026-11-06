@@ -17,6 +17,7 @@ import '../components/education_tuition_request_popup.dart';
 import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
+import '../helpers/education_pay_now.dart';
 import '../models/education_fees_responses.dart';
 import 'education_tutor_profile_view.dart';
 
@@ -43,6 +44,7 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
     this.maskedAccount,
     this.panDetails,
     this.accountNumber,
+    this.accountNoUnmasked,
     this.ifscCode,
     this.branch,
     this.tutorDetails,
@@ -60,6 +62,9 @@ class EducationTutorRequestView extends ConsumerStatefulWidget {
   /// Backend bank details, forwarded to the tutor profile screen.
   final String? panDetails;
   final String? accountNumber;
+
+  /// Complete account number from a saved tutor. Not shown on this card.
+  final String? accountNoUnmasked;
   final String? ifscCode;
   final String? branch;
 
@@ -104,6 +109,10 @@ class _EducationTutorRequestViewState
 
   /// Subject returned by the accept status call, when the backend sends one.
   String? _acceptedSubject;
+
+  /// Latest `request_status` from send-request or request-status.
+  /// Shown while the tutor has not accepted or declined. Cleared on accept.
+  String? _apiRequestStatus;
 
   EducationTutorDetailsData? get _details =>
       _freshDetails ?? widget.tutorDetails;
@@ -150,15 +159,32 @@ class _EducationTutorRequestViewState
         // After accept the status API can return 409 when the tutor has no
         // PAN on file. Stop polling and open the profile with tutor/details.
         final panUnavailable = _receiverPanUnavailable(statusRes);
+        final data = statusRes.data;
+        final statusText = data?.requestStatus.trim() ?? '';
+        final statusUpper = statusText.toUpperCase();
+        final accepted = data?.isAccepted == true ||
+            statusUpper == 'ACCEPTED' ||
+            panUnavailable;
+        final rejected =
+            data?.isRejected == true || statusUpper == 'REJECTED';
 
-        if (statusRes.data?.isAccepted == true || panUnavailable) {
+        if (accepted) {
           _resultHandled = true;
-          final subject = statusRes.data?.subject.trim() ?? '';
+          final subject = data?.subject.trim() ?? '';
           if (subject.isNotEmpty) _acceptedSubject = subject;
           _onAccepted();
-        } else if (statusRes.data?.isRejected == true) {
+        } else if (rejected) {
           _resultHandled = true;
           unawaited(_onRejected());
+        } else if (data != null &&
+            (data.isPending || statusUpper == 'PENDING')) {
+          // Receiver closed the popup without accept or decline. The
+          // request stays pending on the API, so the sender keeps that
+          // status until a later poll reports accepted.
+          final label = statusText.isEmpty ? 'PENDING' : statusText;
+          if (label != _apiRequestStatus) {
+            setState(() => _apiRequestStatus = label);
+          }
         }
       } catch (_) {
         // Keep polling until the backend reports accepted / rejected.
@@ -203,6 +229,7 @@ class _EducationTutorRequestViewState
 
     setState(() {
       _acceptLoader = true;
+      _apiRequestStatus = null;
       _overlayLabel = 'Request accepted successfully';
       _overlaySubtitle = 'Do not close or go back.';
     });
@@ -255,9 +282,6 @@ class _EducationTutorRequestViewState
 
       if (fresh != null && mounted) {
         _freshDetails = fresh;
-        ref
-            .read(educationFeesControllerProvider.notifier)
-            .rememberTutorDetails(fresh);
       }
     } catch (_) {
       // Keep widget.tutorDetails as fallback.
@@ -280,6 +304,7 @@ class _EducationTutorRequestViewState
           amountLabel: _amountLabel(),
           panDetails: _pan(),
           accountNumber: _accountNumber(),
+          accountNoUnmasked: _accountNoUnmasked(),
           ifscCode: _ifscCode(),
           branch: _branch(),
           subject: _subjectForProfile(),
@@ -351,6 +376,17 @@ class _EducationTutorRequestViewState
     final fromApi = _details?.accountNumber.trim() ?? '';
 
     return fromApi.isNotEmpty ? fromApi : (widget.accountNumber ?? '');
+  }
+
+  /// Saved-tutor or details `account_no_unmasked`. A masked value is ignored.
+  String? _accountNoUnmasked() {
+    final saved = widget.accountNoUnmasked?.trim() ?? '';
+    if (saved.isNotEmpty && !educationAccountIsMasked(saved)) return saved;
+    final fromApi = _details?.accountNoUnmasked?.trim() ?? '';
+    if (fromApi.isNotEmpty && !educationAccountIsMasked(fromApi)) {
+      return fromApi;
+    }
+    return null;
   }
 
   String _ifscCode() {
@@ -460,10 +496,12 @@ class _EducationTutorRequestViewState
 
       if (!mounted) return;
 
+      var sentStatus = '';
       if (response.status && response.data != null) {
         controller.storeTutorRequestReference(
           response.data!.requestReference,
         );
+        sentStatus = response.data!.requestStatus.trim();
       }
 
       setState(() => _overlayLabel = 'Request sent');
@@ -472,7 +510,10 @@ class _EducationTutorRequestViewState
 
       if (!mounted) return;
 
-      setState(() => _phase = _TutorRequestPhase.sent);
+      setState(() {
+        _phase = _TutorRequestPhase.sent;
+        if (sentStatus.isNotEmpty) _apiRequestStatus = sentStatus;
+      });
 
       _startTicker();
     } catch (_) {
@@ -563,7 +604,25 @@ class _EducationTutorRequestViewState
                                     ],
                                   ),
                                   SizedBox(height: 20 * u),
-                                  if (isSent) ...[
+                                  if (isSent && !_acceptLoader) ...[
+                                    if ((_apiRequestStatus ?? '')
+                                        .trim()
+                                        .isNotEmpty) ...[
+                                      SizedBox(height: 16 * u),
+                                      Text(
+                                        _apiRequestStatus!.trim(),
+                                        key: const ValueKey(
+                                          'tutorRequestStatus',
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 16 * u,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.4 * u,
+                                          color: const Color(0xFFDD5428),
+                                        ),
+                                      ),
+                                    ],
                                     SizedBox(height: 28 * u),
                                     Row(
                                       mainAxisAlignment:

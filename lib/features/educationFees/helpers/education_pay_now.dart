@@ -38,9 +38,12 @@ Future<void> runEducationPayNow({
 
   EducationCreateOrderResponse order;
   try {
+    final completeAccount =
+        account.isEmpty || educationAccountIsMasked(account) ? null : account;
     order = await repository.createOrder(
       recipientName: name,
       accountNo: account,
+      accountNoUnmasked: completeAccount,
       ifsc: ifscCode,
       amount: amount,
       feeType: _firstNonEmpty(feeType, state.feeType ?? ''),
@@ -113,6 +116,27 @@ String maskEducationAccount(String value) {
   if (digits.length <= 4) return '****';
   final suffix = digits.substring(digits.length - 4);
   return '****$suffix';
+}
+
+/// True when [value] is a display mask (`XXXX1234`, `****1234`) rather than
+/// the original account number.
+bool educationAccountIsMasked(String value) {
+  return RegExp(r'[xX*]').hasMatch(value);
+}
+
+/// First original account number among [candidates].
+///
+/// Masked or placeholder values are skipped. When every candidate is missing
+/// or masked, this returns an empty string and does not rebuild a number
+/// from the last four digits.
+String completeEducationAccountNumber(List<String?> candidates) {
+  for (final candidate in candidates) {
+    final text = candidate?.trim() ?? '';
+    if (text.isEmpty || text.toLowerCase() == 'na') continue;
+    if (educationAccountIsMasked(text)) continue;
+    return text;
+  }
+  return '';
 }
 
 String _firstNonEmpty(String? primary, String fallback) {

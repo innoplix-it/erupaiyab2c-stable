@@ -11,6 +11,7 @@ import '../components/education_contact_sheet.dart';
 import '../components/education_erupaiya_verifying_overlay.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
+import '../helpers/education_pay_now.dart';
 import '../models/education_fees_responses.dart';
 import 'education_tutor_request_view.dart';
 import 'education_tutor_unverified_view.dart';
@@ -19,6 +20,13 @@ import 'education_tutor_unverified_view.dart';
 /// backend gave no message of its own. Never routed to the Unverified screen.
 const String kEducationTutorDetailsFailureMessage =
     'Unable to load tutor details. Please try again.';
+
+/// Complete saved-tutor account number, or null when the record has none.
+String? _savedAccountNumber(EducationBeneficiary? tutor) {
+  final account = tutor?.accountNoUnmasked?.trim() ?? '';
+  if (account.isEmpty || educationAccountIsMasked(account)) return null;
+  return account;
+}
 
 /// Backend message when present, otherwise the shared generic error text.
 String _tutorApiErrorText(String? message) {
@@ -42,6 +50,7 @@ class EducationSearchRecipientView extends HookConsumerWidget {
     final pickedName = useRef<String?>(null);
     final pickedMobile = useRef<String?>(null);
     final pickedTutor = useRef<EducationBeneficiary?>(null);
+    final beneficiaryLookup = useRef<Future<EducationBeneficiary?>?>(null);
 
     /// Real KYC result of the picked number, resolved while the overlay runs.
     final verifyFuture = useRef<Future<EducationTutorVerifyResponse?>?>(null);
@@ -107,6 +116,28 @@ class EducationSearchRecipientView extends HookConsumerWidget {
           }
           if (!context.mounted) return;
 
+          // Mobile is on eRupaiya, but Tutor Details says KYC is not done.
+          // That is a real outcome, so continue to Add Details instead of
+          // stopping on the contacts screen.
+          if (detailsResponse?.isNotVerified == true ||
+              detailsResponse?.isNotFound == true) {
+            stopVerifying();
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => EducationTutorUnverifiedView(
+                  tutorName: name,
+                  amount: amount,
+                  amountLabel: NumberFormat.currency(
+                    locale: 'en_IN',
+                    symbol: '\u20B9',
+                    decimalDigits: 0,
+                  ).format(amount),
+                ),
+              ),
+            );
+            return;
+          }
+
           final data =
               detailsResponse?.status == true ? detailsResponse?.data : null;
           if (data == null) {
@@ -123,10 +154,11 @@ class EducationSearchRecipientView extends HookConsumerWidget {
             return;
           }
 
+          final savedTutor = await beneficiaryLookup.value;
+          if (!context.mounted) return;
+          if (savedTutor != null) pickedTutor.value = savedTutor;
+
           stopVerifying();
-          ref
-              .read(educationFeesControllerProvider.notifier)
-              .rememberTutorDetails(data);
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => EducationTutorRequestView(
@@ -134,6 +166,7 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                 mobile: mobile,
                 amount: data.amount > 0 ? data.amount.toDouble() : amount,
                 accountNumber: data.accountNumber,
+                accountNoUnmasked: _savedAccountNumber(pickedTutor.value),
                 ifscCode: data.ifsc,
                 // Verified tutor card renders these API values: tutor_name,
                 // account_number, bank_name, bank_logo, amount and
@@ -195,14 +228,16 @@ class EducationSearchRecipientView extends HookConsumerWidget {
           .read(educationFeesControllerProvider.notifier)
           .verifyTutor(mobile);
 
-      // Resolved while the loader runs; purely display data.
-      ref
+      // Resolved while the loader runs. The unmasked account is forwarded
+      // to create-order; the card keeps the masked display value.
+      beneficiaryLookup.value = ref
           .read(educationFeesControllerProvider.notifier)
           .findBeneficiaryByMobile(mobile)
           .then((beneficiary) {
         if (beneficiary != null) {
           pickedTutor.value = beneficiary;
         }
+        return beneficiary;
       });
     }
 

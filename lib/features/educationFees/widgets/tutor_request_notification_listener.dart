@@ -269,7 +269,12 @@ class _TutorRequestNotificationListenerState
         'POPUP_RESULT_RECEIVED: ${event.requestReference} result=$result',
       );
       await _handlePopupResult(event, result);
-      _notificationService.markRequestHandled(event.requestReference);
+      // Closing the popup without Accept or Decline leaves the request
+      // PENDING on the API. Do not mark it handled, so the sender still
+      // sees that status until the receiver accepts.
+      if (result != null) {
+        _notificationService.markRequestHandled(event.requestReference);
+      }
     } catch (e, stackTrace) {
       logger.error(
         'Error presenting received popup: $e',

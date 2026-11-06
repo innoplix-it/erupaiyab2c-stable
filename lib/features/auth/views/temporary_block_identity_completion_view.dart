@@ -197,7 +197,7 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
               textCapitalization: TextCapitalization.characters,
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => aadhaarFocus.requestFocus(),
-              inputFormatters: const [PanInputFormatter()],
+                inputFormatters: const [PanInputFormatter()],
             ),
             SizedBox(height: 14.h),
             Text(

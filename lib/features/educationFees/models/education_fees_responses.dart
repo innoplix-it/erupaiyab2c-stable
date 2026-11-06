@@ -264,19 +264,28 @@ class EducationTutorDetailsData {
     this.panMasked,
     this.branch,
     this.accountMasked,
+    this.accountNoUnmasked,
   });
 
   factory EducationTutorDetailsData.fromJson(Map<String, dynamic> json) {
+    final rawAccountNumber = _optionalText(json['account_number']);
+    final rawAccountNo = _optionalText(json['account_no'] ?? json['accountNo']);
+    final rawUnmasked = _optionalText(json['account_no_unmasked']);
+    final displayedAccount = rawAccountNumber ?? rawAccountNo ?? rawUnmasked ?? '';
+    // A masked account_number must not hide a complete account_no that the
+    // same payload already contains. Nothing is rebuilt from the mask.
+    final completeAccount = rawUnmasked ??
+        ((rawAccountNumber != null &&
+                _accountLooksMasked(rawAccountNumber) &&
+                rawAccountNo != null &&
+                !_accountLooksMasked(rawAccountNo))
+            ? rawAccountNo
+            : null);
     return EducationTutorDetailsData(
       tutorId: _asInt(json['tutor_id']),
       tutorName: _firstText(json, const ['tutor_name', 'name']),
       bankName: _firstText(json, const ['bank_name', 'bank']),
-      accountNumber: _firstText(json, const [
-        'account_number',
-        'account_no',
-        'accountNo',
-        'account_no_unmasked',
-      ]),
+      accountNumber: displayedAccount,
       accountHolderName: _firstText(
         json,
         const ['account_holder_name', 'account_holder', 'holder_name'],
@@ -290,6 +299,7 @@ class EducationTutorDetailsData {
       accountMasked: _optionalText(
         json['account_masked'] ?? json['masked_account'],
       ),
+      accountNoUnmasked: completeAccount,
     );
   }
 
@@ -305,6 +315,23 @@ class EducationTutorDetailsData {
   final String? panMasked;
   final String? branch;
   final String? accountMasked;
+
+  /// Complete account number when the details payload includes
+  /// `account_no_unmasked`. Never derived from a masked `account_number`.
+  final String? accountNoUnmasked;
+}
+
+bool _accountLooksMasked(String value) => RegExp(r'[xX*]').hasMatch(value);
+
+/// Full account from a saved tutor. A masked `account_no_unmasked` is ignored
+/// and is not rebuilt from `account_masked`.
+String? _completeBeneficiaryAccount(Map<String, dynamic> json) {
+  for (final key in const ['account_no_unmasked', 'account_no', 'accountNo']) {
+    final text = _optionalText(json[key]);
+    if (text == null || _accountLooksMasked(text)) continue;
+    return text;
+  }
+  return null;
 }
 
 String? _optionalText(Object? value) {
@@ -464,6 +491,85 @@ class EducationTutorSendRequestResponse {
   final bool status;
   final String? message;
   final EducationTutorSendRequestData? data;
+}
+
+class EducationTutorAskKycRequest {
+  const EducationTutorAskKycRequest({
+    this.requestReference,
+    this.mobile,
+  });
+
+  /// Set when a tutor payment request already exists.
+  final String? requestReference;
+
+  /// Tutor mobile from the current search. Used when no request exists yet,
+  /// because an incomplete KYC cannot create one.
+  final String? mobile;
+
+  Map<String, dynamic> toJson() {
+    final reference = requestReference?.trim() ?? '';
+    if (reference.isNotEmpty) {
+      return {
+        'request_reference': reference,
+      };
+    }
+    return {
+      'mobile': mobile,
+    };
+  }
+}
+
+class EducationTutorAskKycData {
+  const EducationTutorAskKycData({
+    required this.requestReference,
+    required this.notificationSentTo,
+  });
+
+  factory EducationTutorAskKycData.fromJson(Map<String, dynamic> json) {
+    return EducationTutorAskKycData(
+      requestReference: json['request_reference']?.toString().trim() ?? '',
+      notificationSentTo: _asInt(json['notification_sent_to']),
+    );
+  }
+
+  final String requestReference;
+  final int notificationSentTo;
+}
+
+class EducationTutorAskKycResponse {
+  const EducationTutorAskKycResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  factory EducationTutorAskKycResponse.fromJson(Map<String, dynamic> json) {
+    String? message;
+    final messages = json['messages'];
+    if (messages is Map && messages['error'] is String) {
+      message = messages['error'] as String;
+    } else {
+      message = json['message'] as String?;
+    }
+
+    final dataJson = json['data'];
+    EducationTutorAskKycData? data;
+    if (dataJson is Map) {
+      data = EducationTutorAskKycData.fromJson(
+        Map<String, dynamic>.from(dataJson),
+      );
+    }
+
+    return EducationTutorAskKycResponse(
+      status: json['status'] == true,
+      message: message,
+      data: data,
+    );
+  }
+
+  final bool status;
+  final String? message;
+  final EducationTutorAskKycData? data;
 }
 
 class EducationTutorRequestStatusData {
@@ -894,6 +1000,29 @@ class EducationTutorVerifyBankRequest {
   }
 }
 
+/// Backend ids arrive as ints, JSON numbers, or numeric strings. A bad value
+/// stays null instead of throwing away the rest of a successful payload.
+int? _educationJsonInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) {
+    if (value.isNaN || value.isInfinite) return null;
+    return value.toInt();
+  }
+  if (value is String) return int.tryParse(value.trim());
+  return null;
+}
+
+/// `true`, `1`, and `"true"` / `"1"` / `"yes"` all count as verified.
+bool _educationJsonBool(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value == 1;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+  return false;
+}
+
 /// Nested `data` payload of the tutor recipient bank verification.
 ///
 /// [accountNumber] is the backend-masked account number and is preserved
@@ -914,12 +1043,14 @@ class EducationTutorVerifyBankData {
   factory EducationTutorVerifyBankData.fromJson(Map<String, dynamic> json) {
     return EducationTutorVerifyBankData(
       recipientReference: json['recipient_reference']?.toString() ?? '',
-      beneficiaryId: json['beneficiary_id'] as int?,
+      beneficiaryId: _educationJsonInt(json['beneficiary_id']),
       name: json['name']?.toString() ?? '',
       accountNumber: json['account_number']?.toString() ?? '',
       ifsc: json['ifsc']?.toString() ?? '',
-      transactionReference: json['transaction_reference'] as int?,
-      bankVerified: json['bank_verified'] == true,
+      // Ids often arrive as strings or JSON numbers. A strict `as int?`
+      // throws and discards an otherwise successful verification.
+      transactionReference: _educationJsonInt(json['transaction_reference']),
+      bankVerified: _educationJsonBool(json['bank_verified']),
     );
   }
 
@@ -955,12 +1086,16 @@ class EducationTutorVerifyBankResponse {
 
     final dataJson = json['data'];
     EducationTutorVerifyBankData? data;
-    if (dataJson is Map<String, dynamic>) {
-      data = EducationTutorVerifyBankData.fromJson(dataJson);
+    if (dataJson is Map) {
+      data = EducationTutorVerifyBankData.fromJson(
+        Map<String, dynamic>.from(dataJson),
+      );
     }
 
     return EducationTutorVerifyBankResponse(
-      status: json['status'] == true,
+      status: _educationJsonBool(json['status']) ||
+          (json['status'] is String &&
+              (json['status'] as String).toUpperCase() == 'SUCCESS'),
       message: message,
       data: data,
     );
@@ -1403,7 +1538,7 @@ class EducationBeneficiary {
       accountMasked: json['account_masked']?.toString() ?? '',
       ifsc: json['ifsc']?.toString() ?? '',
       branch: json['branch']?.toString() ?? '',
-      accountNoUnmasked: json['account_no_unmasked']?.toString(),
+      accountNoUnmasked: _completeBeneficiaryAccount(json),
     );
   }
 

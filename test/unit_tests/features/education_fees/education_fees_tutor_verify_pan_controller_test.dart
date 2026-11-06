@@ -83,6 +83,7 @@ void main() {
 
     test('a valid PAN is sent in uppercase and stored from the response',
         () async {
+      controller.updateRecipientName('test tutor name');
       controller.updatePan('abcde1234f');
       await controller.verifyTutorPan();
 
@@ -183,8 +184,26 @@ void main() {
       expect(controller.state.panErrorMessage, isNot(contains('ABCDE1234F')));
     });
 
+    test('a different spelling is not treated as verified', () async {
+      controller.updateRecipientName('Ravi Kumar');
+      controller.updatePan('FGHIJ5678K');
+
+      await controller.verifyTutorPan();
+
+      expect(repository.callCount, 1);
+      expect(controller.state.panVerified, isFalse);
+      expect(controller.state.recipientReference, isNull);
+      expect(controller.state.beneficiaryId, isNull);
+      expect(controller.state.panMasked, isNull);
+      expect(
+        controller.state.panErrorMessage,
+        'Name does not match the PAN name. Enter TEST TUTOR NAME.',
+      );
+    });
+
     test('a second call while loading does not send another request', () async {
       repository.hangNext = true;
+      controller.updateRecipientName('TEST TUTOR NAME');
       controller.updatePan('FGHIJ5678K');
 
       final first = controller.verifyTutorPan();
@@ -218,12 +237,13 @@ void main() {
     test('a late response for a previous PAN cannot replace the new one',
         () async {
       repository.hangNext = true;
+      controller.updateRecipientName('New Name');
       controller.updatePan('FGHIJ5678K');
       final first = controller.verifyTutorPan();
       controller.updatePan('XYZAB1234C');
       final second = controller.verifyTutorPan();
 
-      expect(repository.pans, ['ABCDE1234F', 'XYZAB1234C']);
+      expect(repository.pans, ['FGHIJ5678K', 'XYZAB1234C']);
 
       repository.inFlight[1].complete(
         const EducationTutorVerifyPanResponse(
@@ -255,6 +275,7 @@ void main() {
     });
 
     test('editing the PAN drops the stored recipient reference', () async {
+      controller.updateRecipientName('TEST TUTOR NAME');
       controller.updatePan('FGHIJ5678K');
       await controller.verifyTutorPan();
       expect(controller.state.recipientReference, isNotNull);

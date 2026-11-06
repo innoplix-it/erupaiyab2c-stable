@@ -38,6 +38,9 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   /// for an account/IFSC the user already edited away from is discarded.
   int _tutorBankVerifyRequestId = 0;
 
+  /// One Ask-for-KYC at a time, so a second tap cannot send another request.
+  bool _askKycInFlight = false;
+
   /// Discards stale [checkMobile] responses when the user edits the mobile number.
   int _checkMobileRequestId = 0;
 
@@ -51,6 +54,18 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       return digits.substring(digits.length - 10);
     }
     return digits;
+  }
+
+  /// PAN records are uppercase. Spacing and letter case do not count as a
+  /// different spelling.
+  bool _tutorPanNamesMatch(String typed, String fromApi) {
+    String normalize(String value) {
+      return value.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
+    }
+
+    final entered = normalize(typed);
+    final recorded = normalize(fromApi);
+    return entered.isNotEmpty && recorded.isNotEmpty && entered == recorded;
   }
 
   void reset() {
@@ -343,19 +358,6 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
-  /// Copies tutor/details into the fields create-order reads.
-  /// Empty API fields keep whatever was already stored.
-  void rememberTutorDetails(EducationTutorDetailsData data) {
-    final name = data.tutorName.trim();
-    final account = data.accountNumber.trim();
-    final ifsc = data.ifsc.trim();
-    state = state.copyWith(
-      recipientName: name.isNotEmpty ? name : state.recipientName,
-      accountNumber: account.isNotEmpty ? account : state.accountNumber,
-      ifsc: ifsc.isNotEmpty ? ifsc : state.ifsc,
-    );
-  }
-
   void updateRecipientName(String value) {
     final nameChanged = value != state.recipientName;
     if (nameChanged) {
@@ -480,6 +482,21 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       if (requestId != _tutorPanVerifyRequestId) return;
       final data = response.data;
       if (response.confirmsVerifiedPan && data != null) {
+        final apiName = data.name.trim();
+        if (!_tutorPanNamesMatch(state.recipientName, apiName)) {
+          state = state.copyWith(
+            isVerifyingPan: false,
+            panVerified: false,
+            panErrorMessage: apiName.isEmpty
+                ? 'Name does not match the name on PAN.'
+                : 'Name does not match the PAN name. Enter $apiName.',
+            recipientReference: null,
+            beneficiaryId: null,
+            panMasked: null,
+            verifiedPanName: null,
+          );
+          return;
+        }
         state = state.copyWith(
           isVerifyingPan: false,
           panVerified: true,
@@ -557,6 +574,12 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       );
       if (requestId != _tutorBankVerifyRequestId) return;
       final data = response.data;
+      logger.info(
+        'EDU_BANK VERIFY_RESULT status=${response.status} '
+        'hasData=${data != null} '
+        'bankVerified=${data?.bankVerified} '
+        'confirms=${response.confirmsVerifiedBank}',
+      );
       if (response.confirmsVerifiedBank && data != null) {
         state = state.copyWith(
           isVerifyingBank: false,
@@ -582,6 +605,7 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       );
     } catch (e) {
       if (requestId != _tutorBankVerifyRequestId) return;
+      logger.info('EDU_BANK VERIFY_FAILED type=${e.runtimeType}');
       state = state.copyWith(
         isVerifyingBank: false,
         bankVerified: false,
@@ -606,9 +630,10 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   }
 
   void updateAccountNumber(String value) {
-    if (value != state.accountNumber) {
-      _tutorBankVerifyRequestId++;
-    }
+    // Same text (focus loss, formatter replay) must not wipe a verification
+    // that already succeeded for this account number.
+    if (value == state.accountNumber) return;
+    _tutorBankVerifyRequestId++;
     state = state.copyWith(
       accountNumber: value,
       // Editing releases the in-flight flag (same convention as updatePan)
@@ -624,9 +649,8 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
   }
 
   void updateIfsc(String value) {
-    if (value != state.ifsc) {
-      _tutorBankVerifyRequestId++;
-    }
+    if (value == state.ifsc) return;
+    _tutorBankVerifyRequestId++;
     state = state.copyWith(
       ifsc: value,
       isVerifyingBank: false,
@@ -868,6 +892,45 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     state = state.copyWith(
       requestReference: requestReference,
     );
+  }
+
+  /// Sends a KYC reminder (`POST /api/education/tutor/ask-kyc`).
+  ///
+  /// This does not call send-request. An incomplete KYC cannot create a
+  /// payment request, so the reminder uses the tutor mobile from this flow.
+  /// A request reference already stored on state is sent instead.
+  Future<EducationTutorAskKycResponse?> askTutorForKyc() async {
+    if (_askKycInFlight) return null;
+    _askKycInFlight = true;
+    try {
+      final reference = state.requestReference?.trim() ?? '';
+      final mobile = _normalizeMobile(state.mobileInput)
+          .replaceAll(RegExp(r'\D'), '');
+      if (reference.isEmpty && mobile.length != 10) {
+        logger.info('EDU_ASK_KYC BLOCKED reason=missing_mobile');
+        return const EducationTutorAskKycResponse(
+          status: false,
+          message: 'Tutor mobile is missing. Please try again.',
+        );
+      }
+
+      logger.info('EDU_ASK_KYC');
+      return await _repository.askTutorForKyc(
+        requestReference: reference.isEmpty ? null : reference,
+        mobile: mobile.length == 10 ? mobile : null,
+      );
+    } catch (e) {
+      logger.info('EDU_ASK_KYC FAILED type=${e.runtimeType}');
+      return EducationTutorAskKycResponse(
+        status: false,
+        message: ErrorMessageUtils.from(
+          e,
+          fallback: 'Failed to send KYC reminder. Please try again.',
+        ),
+      );
+    } finally {
+      _askKycInFlight = false;
+    }
   }
 
   /// Saves a registered/verified tutor beneficiary after request acceptance.
