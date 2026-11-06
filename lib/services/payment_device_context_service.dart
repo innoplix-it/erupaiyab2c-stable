@@ -151,15 +151,15 @@ class PaymentDeviceContextService {
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) return const _LocationSnapshot.empty();
 
-      final permission = await Geolocator.checkPermission();
-      // Do not request permission here; payment should never be blocked by a
-      // permission prompt/denial. Just send empty coordinates if unavailable.
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         return const _LocationSnapshot.empty();
       }
 
-      // Use last-known only so create-order is never blocked on a GPS fix.
       final last = await Geolocator.getLastKnownPosition();
       if (last != null) {
         return _LocationSnapshot(
@@ -168,6 +168,16 @@ class PaymentDeviceContextService {
           isMocked: last.isMocked,
         );
       }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 6),
+      );
+      return _LocationSnapshot(
+        latitude: position.latitude.toString(),
+        longitude: position.longitude.toString(),
+        isMocked: position.isMocked,
+      );
     } catch (e, stackTrace) {
       logger.error('Failed to collect payment location context',
           error: e, stackTrace: stackTrace);

@@ -89,13 +89,18 @@ class EducationFeesService {
           'amount': amount,
         },
       );
-      final payload = response.data as Map<String, dynamic>? ?? {};
+      final raw = response.data;
+      final payload = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : <String, dynamic>{};
       return EducationTutorDetailsResponse.fromJson(payload);
     } catch (e) {
       if (e is DioException) {
         final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          return EducationTutorDetailsResponse.fromJson(data);
+        if (data is Map) {
+          return EducationTutorDetailsResponse.fromJson(
+            Map<String, dynamic>.from(data),
+          );
         }
       }
       logger.error('Failed to fetch tutor details: $e', error: e);

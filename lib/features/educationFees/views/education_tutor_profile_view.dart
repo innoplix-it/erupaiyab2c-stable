@@ -124,11 +124,28 @@ class _EducationTutorProfileViewState
       return;
     }
 
+    if (details != null) {
+      ref
+          .read(educationFeesControllerProvider.notifier)
+          .rememberTutorDetails(details);
+    }
     final state = ref.read(educationFeesControllerProvider);
     // tutor/details is the only source: tutor_name, account_number, ifsc, amount.
-    final recipientName = _filled([details?.tutorName, widget.tutorName]);
-    final accountNo = _filled([details?.accountNumber, widget.accountNumber]);
-    final ifsc = _filled([details?.ifsc, widget.ifscCode]);
+    final recipientName = _filled([
+      details?.tutorName,
+      state.recipientName,
+      widget.tutorName,
+    ]);
+    final accountNo = _filled([
+      details?.accountNumber,
+      state.accountNumber,
+      widget.accountNumber,
+    ]);
+    final ifsc = _filled([
+      details?.ifsc,
+      state.ifsc,
+      widget.ifscCode,
+    ]);
     final feeType = _filled([widget.subject, state.feeType]);
     KDialog.instance.openSheet(
       dialog: EducationPaymentSummarySheet(
@@ -163,12 +180,38 @@ class _EducationTutorProfileViewState
           mobile: mobile,
           amount: amount > 0 ? amount : widget.amount.round(),
         );
-        if (response.status && response.data != null) return response.data;
+        if (response.status && response.data != null) {
+          return _mergeTutorDetails(response.data!, widget.tutorDetails);
+        }
       } catch (_) {
         // Keep the tutor-details payload already on this screen.
       }
     }
     return widget.tutorDetails;
+  }
+
+  /// A later tutor/details call must not wipe account or IFSC with blanks.
+  EducationTutorDetailsData _mergeTutorDetails(
+    EducationTutorDetailsData fresh,
+    EducationTutorDetailsData? previous,
+  ) {
+    if (previous == null) return fresh;
+    String keep(String next, String prior) =>
+        next.trim().isNotEmpty ? next : prior;
+    return EducationTutorDetailsData(
+      tutorId: fresh.tutorId != 0 ? fresh.tutorId : previous.tutorId,
+      tutorName: keep(fresh.tutorName, previous.tutorName),
+      bankName: keep(fresh.bankName, previous.bankName),
+      accountNumber: keep(fresh.accountNumber, previous.accountNumber),
+      accountHolderName: keep(fresh.accountHolderName, previous.accountHolderName),
+      ifsc: keep(fresh.ifsc, previous.ifsc),
+      bankLogo: fresh.bankLogo ?? previous.bankLogo,
+      amount: fresh.amount > 0 ? fresh.amount : previous.amount,
+      pan: fresh.pan ?? previous.pan,
+      panMasked: fresh.panMasked ?? previous.panMasked,
+      branch: fresh.branch ?? previous.branch,
+      accountMasked: fresh.accountMasked ?? previous.accountMasked,
+    );
   }
 
   /// First non-empty value. "NA" is only a display placeholder.

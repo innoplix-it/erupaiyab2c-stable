@@ -255,6 +255,9 @@ class _EducationTutorRequestViewState
 
       if (fresh != null && mounted) {
         _freshDetails = fresh;
+        ref
+            .read(educationFeesControllerProvider.notifier)
+            .rememberTutorDetails(fresh);
       }
     } catch (_) {
       // Keep widget.tutorDetails as fallback.

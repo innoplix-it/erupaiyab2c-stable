@@ -124,12 +124,17 @@ class EducationSearchRecipientView extends HookConsumerWidget {
           }
 
           stopVerifying();
+          ref
+              .read(educationFeesControllerProvider.notifier)
+              .rememberTutorDetails(data);
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => EducationTutorRequestView(
-                tutorName: name,
+                tutorName: data.tutorName.isNotEmpty ? data.tutorName : name,
                 mobile: mobile,
-                amount: amount,
+                amount: data.amount > 0 ? data.amount.toDouble() : amount,
+                accountNumber: data.accountNumber,
+                ifscCode: data.ifsc,
                 // Verified tutor card renders these API values: tutor_name,
                 // account_number, bank_name, bank_logo, amount and
                 // account_holder_name exactly as returned.

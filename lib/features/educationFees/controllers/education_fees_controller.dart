@@ -343,6 +343,19 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
+  /// Copies tutor/details into the fields create-order reads.
+  /// Empty API fields keep whatever was already stored.
+  void rememberTutorDetails(EducationTutorDetailsData data) {
+    final name = data.tutorName.trim();
+    final account = data.accountNumber.trim();
+    final ifsc = data.ifsc.trim();
+    state = state.copyWith(
+      recipientName: name.isNotEmpty ? name : state.recipientName,
+      accountNumber: account.isNotEmpty ? account : state.accountNumber,
+      ifsc: ifsc.isNotEmpty ? ifsc : state.ifsc,
+    );
+  }
+
   void updateRecipientName(String value) {
     final nameChanged = value != state.recipientName;
     if (nameChanged) {
