@@ -499,6 +499,8 @@ class FileConstants {
   // TODO(status): replace with a status-aware badge after backend wiring.
   static String tuitionPendingBadgeSvg =
       'assets/images/svg/education/tuition_pending_badge.svg';
+  static String bankDetailsCheckboxSvg =
+      'assets/images/svg/education/bank_details_checkbox.svg';
   static String thankYouScreenBanner =
       'assets/images/png/thankyouscreenbanner.png';
 

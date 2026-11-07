@@ -329,15 +329,17 @@ class _EducationTutorRequestViewState
   }
 
   String _accountLine() {
-    final masked = _details?.accountMasked?.trim() ?? '';
-
-    if (masked.isNotEmpty) return masked;
-
-    final widgetMasked = widget.maskedAccount?.trim() ?? '';
-
-    if (widgetMasked.isNotEmpty) return widgetMasked;
-
     return _accountNumber();
+  }
+
+  String _accountNumber() {
+    final unmasked = _details?.accountNoUnmasked?.trim() ?? '';
+    if (unmasked.isNotEmpty) return unmasked;
+    final fromApi = _details?.accountNumber.trim() ?? '';
+    if (fromApi.isNotEmpty) return fromApi;
+    final saved = widget.accountNoUnmasked?.trim() ?? '';
+    if (saved.isNotEmpty) return saved;
+    return widget.accountNumber ?? '';
   }
 
   String? _pan() {
@@ -370,12 +372,6 @@ class _EducationTutorRequestViewState
     if (accepted.isNotEmpty) return accepted;
 
     return _subjectForRequest();
-  }
-
-  String _accountNumber() {
-    final fromApi = _details?.accountNumber.trim() ?? '';
-
-    return fromApi.isNotEmpty ? fromApi : (widget.accountNumber ?? '');
   }
 
   /// Saved-tutor or details `account_no_unmasked`. A masked value is ignored.
@@ -458,6 +454,8 @@ class _EducationTutorRequestViewState
         const SnackBar(
           content: Text('Select a subject before sending the request.'),
         ),
+
+
       );
 
       return;

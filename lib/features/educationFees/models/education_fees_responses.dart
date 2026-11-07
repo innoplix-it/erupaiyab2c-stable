@@ -499,22 +499,16 @@ class EducationTutorAskKycRequest {
     this.mobile,
   });
 
-  /// Set when a tutor payment request already exists.
+  /// Tutor payment request reference. This is the only ask-kyc field.
   final String? requestReference;
 
-  /// Tutor mobile from the current search. Used when no request exists yet,
-  /// because an incomplete KYC cannot create one.
+  /// Unused by the request body. Kept so existing callers still compile.
   final String? mobile;
 
   Map<String, dynamic> toJson() {
     final reference = requestReference?.trim() ?? '';
-    if (reference.isNotEmpty) {
-      return {
-        'request_reference': reference,
-      };
-    }
     return {
-      'mobile': mobile,
+      'request_reference': reference,
     };
   }
 }
@@ -606,12 +600,13 @@ class EducationTutorRequestStatusData {
     return EducationTutorRequestStatusData(
       requestReference: json['request_reference']?.toString() ?? '',
       amount: json['amount']?.toString().trim() ?? '',
-      subject: json['subject']?.toString().trim() ?? '',
-      requesterUserId: json['requester_user_id']?.toString().trim() ?? '',
-      requesterName: _firstNonEmptyText(json, const [
-        'requester_name',
-        'student_name',
+      subject: _deepFirstText(json, const [
+        'fee_type',
+        'subject',
+        'purpose',
       ]),
+      requesterUserId: json['requester_user_id']?.toString().trim() ?? '',
+      requesterName: _senderDisplayName(json),
       requestStatus: requestStatus,
       isAccepted: isAccepted,
       isRejected: isRejected,
@@ -636,14 +631,46 @@ class EducationTutorRequestStatusData {
   /// Sender id from the status payload. Not a display name.
   final String requesterUserId;
 
-  /// Present only when the payload includes `requester_name` or `student_name`.
+  /// Present only when the payload includes the requester's name.
   final String requesterName;
+}
+
+/// Name of the person who called send-request. `tutor_name` is the tutor,
+/// so it is only used when the payload has no sender name.
+String _senderDisplayName(Map<String, dynamic> json) {
+  final direct = _deepFirstText(json, _senderNameKeys);
+  if (direct.isNotEmpty) return direct;
+  for (final key in _senderObjectKeys) {
+    final nested = json[key];
+    if (nested is! Map) continue;
+    final name = _firstNonEmptyText(
+      Map<String, dynamic>.from(nested),
+      const ['name', 'full_name', 'requester_name', 'sender_name'],
+    );
+    if (name.isNotEmpty) return name;
+  }
+  return _deepFirstText(json, const ['tutor_name']);
 }
 
 String _firstNonEmptyText(Map<String, dynamic> json, List<String> keys) {
   for (final key in keys) {
     final value = json[key]?.toString().trim() ?? '';
-    if (value.isNotEmpty) return value;
+    if (value.isNotEmpty && value.toLowerCase() != 'null') return value;
+  }
+  return '';
+}
+
+/// Reads [keys] on this object, then inside nested objects. Lists named
+/// `requests` are skipped so one request does not borrow another request's name.
+String _deepFirstText(Object? node, List<String> keys, {int depth = 0}) {
+  if (node is! Map || depth > 4) return '';
+  final map = Map<String, dynamic>.from(node);
+  final direct = _firstNonEmptyText(map, keys);
+  if (direct.isNotEmpty) return direct;
+  for (final entry in map.entries) {
+    if (entry.key == 'requests' || entry.key == 'pagination') continue;
+    final nested = _deepFirstText(entry.value, keys, depth: depth + 1);
+    if (nested.isNotEmpty) return nested;
   }
   return '';
 }
@@ -760,9 +787,15 @@ class EducationTutorReceivedRequestsData {
   factory EducationTutorReceivedRequestsData.fromJson(
       Map<String, dynamic> json) {
     final requestsJson = json['requests'];
-    final List<Map<String, dynamic>> requests = requestsJson is List
-        ? requestsJson.whereType<Map<String, dynamic>>().toList()
-        : <Map<String, dynamic>>[];
+    final requests = <Map<String, dynamic>>[];
+    if (requestsJson is List) {
+      for (final raw in requestsJson) {
+        if (raw is! Map) continue;
+        final request = Map<String, dynamic>.from(raw);
+        _stampReceiverDisplayFields(request, json);
+        requests.add(request);
+      }
+    }
 
     final paginationJson = json['pagination'];
     EducationTutorReceivedRequestsPagination? pagination;
@@ -779,6 +812,49 @@ class EducationTutorReceivedRequestsData {
 
   final List<Map<String, dynamic>> requests;
   final EducationTutorReceivedRequestsPagination? pagination;
+}
+
+const _senderNameKeys = [
+  'requester_name',
+  'requesterName',
+  'sender_name',
+  'student_name',
+  'parent_name',
+];
+
+const _senderObjectKeys = [
+  'requester',
+  'sender',
+  'user',
+  'student',
+  'parent',
+];
+
+const _receiverFeeKeys = [
+  'fee_type',
+  'subject',
+  'purpose',
+];
+
+void _stampReceiverDisplayFields(
+  Map<String, dynamic> request,
+  Map<String, dynamic> parent,
+) {
+  final name = _senderDisplayName(request);
+  final parentName = name.isNotEmpty ? '' : _senderDisplayName(parent);
+  final resolvedName = name.isNotEmpty ? name : parentName;
+  if (resolvedName.isNotEmpty &&
+      (request['requester_name']?.toString().trim().isEmpty ?? true)) {
+    request['requester_name'] = resolvedName;
+  }
+
+  final fee = _deepFirstText(request, _receiverFeeKeys);
+  final parentFee = fee.isNotEmpty ? '' : _deepFirstText(parent, _receiverFeeKeys);
+  final resolvedFee = fee.isNotEmpty ? fee : parentFee;
+  if (resolvedFee.isNotEmpty &&
+      (request['fee_type']?.toString().trim().isEmpty ?? true)) {
+    request['fee_type'] = resolvedFee;
+  }
 }
 
 class EducationTutorReceivedRequestsResponse {
@@ -1334,9 +1410,14 @@ class EducationPaymentStatusResponse {
       amount: rawAmount,
       updatedAt: rawTime,
       paymentType: (flattened['payment_type'] ?? '').toString().trim(),
-      serviceCharge: (flattened['service_charge'] ?? '').toString().trim(),
-      gstOnServiceCharge:
-          (flattened['gst_on_service_charge'] ?? '').toString().trim(),
+      serviceCharge: _readCharge(flattened, const [
+        'service_charge',
+        'Service Charge',
+      ]),
+      gstOnServiceCharge: _readCharge(flattened, const [
+        'gst_on_service_charge',
+        'GST on Service Charge',
+      ]),
       payableAmount:
           (flattened['payable_amount'] ?? flattened['total_payable'] ?? '')
               .toString()
@@ -1363,6 +1444,28 @@ class EducationPaymentStatusResponse {
   bool get isFailed => paymentStatus.trim().toUpperCase() == 'FAILED';
   bool get hasKnownPaymentStatus =>
       isSuccess || isFailed || isPending || isProcessing;
+}
+
+String _readCharge(Map<String, dynamic> source, List<String> keys) {
+  String from(Map<dynamic, dynamic> map) {
+    for (final key in keys) {
+      for (final entry in map.entries) {
+        if (entry.key.toString().trim().toLowerCase() != key.toLowerCase()) {
+          continue;
+        }
+        final text = entry.value?.toString().trim() ?? '';
+        if (text.isEmpty || text.toLowerCase() == 'null') continue;
+        return text;
+      }
+    }
+    return '';
+  }
+
+  final direct = from(source);
+  if (direct.isNotEmpty) return direct;
+  final breakdown = source['amount_breakdown'];
+  if (breakdown is Map) return from(breakdown);
+  return '';
 }
 
 String _readPaymentStatus(Map<String, dynamic> source) {

@@ -174,7 +174,7 @@ class TutorRequestPendingEntry {
           json['verified']?.toString().toLowerCase() == 'true',
       amount: json['amount']?.toString().trim() ?? '',
       subject: json['subject']?.toString().trim() ?? '',
-      requesterName: json['requester_name']?.toString().trim() ?? '',
+      requesterName: _storedRequesterName(json),
       requesterUserId: json['requester_user_id']?.toString().trim() ?? '',
       requestStatus: json['request_status']?.toString().trim() ?? '',
     );
@@ -189,4 +189,18 @@ class TutorRequestPendingEntry {
         if (requesterUserId.isNotEmpty) 'requester_user_id': requesterUserId,
         if (requestStatus.isNotEmpty) 'request_status': requestStatus,
       };
+}
+
+String _storedRequesterName(Map<String, dynamic> json) {
+  for (final key in const [
+    'requester_name',
+    'sender_name',
+    'student_name',
+    'parent_name',
+    'tutor_name',
+  ]) {
+    final value = json[key]?.toString().trim() ?? '';
+    if (value.isNotEmpty && value.toLowerCase() != 'null') return value;
+  }
+  return '';
 }

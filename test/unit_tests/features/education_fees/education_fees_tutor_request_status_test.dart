@@ -664,6 +664,49 @@ void main() {
       expect(response.data!.isRejected, isFalse);
     });
 
+    test('reads tutor_name for the receiver popup', () async {
+      const liveReference = 'EDUTR20261106061937FFB19244';
+      final (_, repository) = _repository(
+        payload: const {
+          'status': true,
+          'data': {
+            'request_reference': liveReference,
+            'tutor_name': 'Darshan Nikam',
+            'amount': '2000.00',
+            'subject': 'tuition fees',
+            'request_status': 'PENDING',
+            'is_pending': true,
+          },
+        },
+      );
+
+      final response = await repository.fetchTutorRequestStatus(liveReference);
+
+      expect(response.data!.requesterName, 'Darshan Nikam');
+      expect(response.data!.subject, 'tuition fees');
+    });
+
+    test('reads nested tutor_name and fee_type', () async {
+      const liveReference = 'EDUTR20261106061937FFB19244';
+      final (_, repository) = _repository(
+        payload: const {
+          'status': true,
+          'data': {
+            'request_reference': liveReference,
+            'amount': '1.00',
+            'status': 'PENDING',
+            'tutor': {'tutor_name': 'Darshan Nikam'},
+            'payment': {'fee_type': 'tuition fees'},
+          },
+        },
+      );
+
+      final response = await repository.fetchTutorRequestStatus(liveReference);
+
+      expect(response.data!.requesterName, 'Darshan Nikam');
+      expect(response.data!.subject, 'tuition fees');
+    });
+
     test('maps status PENDING when the same object is nested under data',
         () async {
       const liveReference = 'EDUTR2026110504443591AAB581';

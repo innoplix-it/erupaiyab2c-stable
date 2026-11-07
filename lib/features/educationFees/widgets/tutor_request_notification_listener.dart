@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../services/logger_service.dart';
 import '../../../widgets/k_dialog.dart';
 import '../constants/tutor_notification_constants.dart';
+import '../components/bank_details_request_popup.dart';
 import '../components/education_tuition_request_popup.dart';
 import '../controllers/education_fees_controller.dart';
 import '../repositories/education_fees_repository.dart';
@@ -241,24 +242,29 @@ class _TutorRequestNotificationListenerState
       return;
     }
 
-    final amount = double.tryParse(event.amount.trim());
-    final requesterName =
-    event.requesterName.trim().isEmpty ? null : event.requesterName.trim();
-    final purpose =
-    event.subject.trim().isEmpty ? null : event.subject.trim();
-    final statusLabel = event.requestStatus.trim().isEmpty
-        ? null
-        : event.requestStatus.trim();
+    final fetched = await _fetchReceiverDisplay(event.requestReference);
+    final amount = double.tryParse(
+      _filled(fetched?.amount, event.amount),
+    );
+    final requesterName = _optional(_filled(fetched?.tutorName, event.requesterName));
+    final purpose = _optional(_filled(fetched?.feeType, event.subject));
+    final statusLabel = _optional(
+      _filled(fetched?.status, event.requestStatus),
+    );
+    logger.info(
+      'RECEIVER_POPUP_FIELDS: ${event.requestReference} '
+      'name=${requesterName != null} fee=${purpose != null}',
+    );
 
     try {
       logger.info('CALLING_SHOW_DIALOG: ${event.requestReference}');
-      final resultFuture = showEducationTuitionRequestPopup(
+      final resultFuture = showBankDetailsRequestPopup(
         popupContext,
-        state: EducationTuitionPopupState.received,
-        amount: amount,
         requesterName: requesterName,
+        feeType: purpose,
+        amount: amount,
         paymentPurpose: purpose,
-        requestStatusLabel: statusLabel,
+        paymentStatus: statusLabel,
       );
       _notificationService.markPopupPresented(event.requestReference);
       _navigatorRetryAttempts = 0;
@@ -359,6 +365,88 @@ class _TutorRequestNotificationListenerState
     }
   }
 
+  /// Loads `tutor_name` and `fee_type` for this request before the popup opens.
+  Future<_ReceiverDisplay?> _fetchReceiverDisplay(String reference) async {
+    if (reference.isEmpty) return null;
+    _ReceiverDisplay? found;
+    try {
+      final response = await ref
+          .read(educationFeesRepositoryProvider)
+          .fetchTutorReceivedRequests(
+            page: 1,
+            perPage: 50,
+            status: TutorNotificationConstants.statusPending,
+          );
+      for (final request
+          in response.data?.requests ?? const <Map<String, dynamic>>[]) {
+        final requestReference = (request['request_reference'] ??
+                request['requestReference'] ??
+                request['tutor_request_reference'])
+            ?.toString()
+            .trim();
+        if (requestReference != reference) continue;
+        found = _ReceiverDisplay(
+          tutorName: _filled(
+            request['requester_name']?.toString(),
+            _filled(
+              request['sender_name']?.toString(),
+              request['tutor_name']?.toString() ?? '',
+            ),
+          ),
+          feeType:
+              (request['fee_type'] ?? request['subject'])?.toString().trim() ??
+                  '',
+          amount: request['amount']?.toString().trim() ?? '',
+          status: (request['request_status'] ?? request['status'])
+                  ?.toString()
+                  .trim() ??
+              '',
+        );
+        break;
+      }
+    } catch (e) {
+      logger.warning('RECEIVER_POPUP_LIST_FETCH_FAILED: $reference');
+    }
+
+    if (found != null &&
+        found.tutorName.isNotEmpty &&
+        found.feeType.isNotEmpty) {
+      return found;
+    }
+
+    try {
+      final status = await ref
+          .read(educationFeesRepositoryProvider)
+          .fetchTutorRequestStatus(reference);
+      final data = status.data;
+      if (data == null) return found;
+      return _ReceiverDisplay(
+        tutorName: _filled(data.requesterName, found?.tutorName ?? ''),
+        feeType: _filled(data.subject, found?.feeType ?? ''),
+        amount: _filled(data.amount, found?.amount ?? ''),
+        status: _filled(data.requestStatus, found?.status ?? ''),
+      );
+    } catch (e) {
+      logger.warning('RECEIVER_POPUP_STATUS_FETCH_FAILED: $reference');
+      return found;
+    }
+  }
+
+  String _filled(String? primary, String fallback) {
+    final first = primary?.trim() ?? '';
+    if (first.isNotEmpty && first.toLowerCase() != 'null') return first;
+    return fallback.trim();
+  }
+
+  String? _optional(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed.toLowerCase() == 'null') return null;
+    if (trimmed.toLowerCase() == 'true' || trimmed.toLowerCase() == 'false') {
+      return null;
+    }
+    return trimmed;
+  }
+
   /// Declined popup, shown only on the receiver device after a successful
   /// Decline.
   Future<void> _showDeclinedPopup(TutorRequestEvent event) async {
@@ -416,4 +504,18 @@ class _TutorRequestNotificationListenerState
   Widget build(BuildContext context) {
     return widget.child;
   }
+}
+
+class _ReceiverDisplay {
+  const _ReceiverDisplay({
+    required this.tutorName,
+    required this.feeType,
+    required this.amount,
+    required this.status,
+  });
+
+  final String tutorName;
+  final String feeType;
+  final String amount;
+  final String status;
 }

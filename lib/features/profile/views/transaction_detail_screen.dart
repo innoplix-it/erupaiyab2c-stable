@@ -1505,7 +1505,7 @@ _StatusMeta _statusMeta(
   }
 
   return _StatusMeta(
-    title: 'Transaction Details',
+    title: 'Transaction Successful',
     iconAsset: FileConstants.successIcon,
     gradient: const [
       Color(0xFF004C1E),

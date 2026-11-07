@@ -167,6 +167,21 @@ class _EducationTutorProfileViewState
     );
   }
 
+  /// The account parameter from tutor details, unchanged.
+  /// `account_no_unmasked` when the API sends it, otherwise `account_number`
+  /// or `account_no`. `account_masked` is not substituted.
+  String _shownAccount() {
+    final unmasked = _filled([
+      widget.accountNoUnmasked,
+      widget.tutorDetails?.accountNoUnmasked,
+    ]);
+    if (unmasked.isNotEmpty) return unmasked;
+    return _filled([
+      widget.tutorDetails?.accountNumber,
+      widget.accountNumber,
+    ]);
+  }
+
   /// First non-empty value. "NA" is only a display placeholder.
   String _filled(List<String?> values) {
     for (final value in values) {
@@ -218,7 +233,7 @@ class _EducationTutorProfileViewState
                         EducationTutorIdentityCard(
                           unit: u,
                           name: widget.tutorName,
-                          accountLine: widget.accountLine,
+                          accountLine: _shownAccount(),
                           amountLabel: widget.amountLabel,
                           verified: widget.verified,
                           bankLogoUrl: widget.bankLogoUrl ??
@@ -271,8 +286,7 @@ class _EducationTutorProfileViewState
                                     child: EducationTutorDetailCell(
                                       unit: u,
                                       label: 'Account Number',
-                                      value: _value(widget.accountNumber ??
-                                          widget.tutorDetails?.accountNumber),
+                                      value: _value(_shownAccount()),
                                       alignRight: true,
                                     ),
                                   ),

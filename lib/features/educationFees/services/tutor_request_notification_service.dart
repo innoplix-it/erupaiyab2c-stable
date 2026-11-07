@@ -403,15 +403,52 @@ class TutorRequestNotificationService {
       'sender_name',
       'student_name',
       'parent_name',
+      'tutor_name',
+      'recipient_name',
+      'receipient_name',
       'name',
     ]);
     if (direct.isNotEmpty) return direct;
-    for (final key in ['requester', 'sender', 'user']) {
+    for (final key in ['tutor', 'recipient', 'requester', 'sender', 'user']) {
       final nested = _asStringMap(d[key]);
       if (nested != null) {
-        final n = _firstNonEmpty(nested, ['name', 'full_name']);
+        final n = _firstNonEmpty(nested, [
+          'tutor_name',
+          'recipient_name',
+          'receipient_name',
+          'name',
+          'full_name',
+        ]);
         if (n.isNotEmpty) return n;
       }
+    }
+    return _nestedText(d, const [
+      'requester_name',
+      'sender_name',
+      'student_name',
+      'parent_name',
+      'tutor_name',
+      'recipient_name',
+      'receipient_name',
+    ]);
+  }
+
+  static String _feeTypeFrom(Map<String, dynamic> d) {
+    final direct = _firstNonEmpty(d, const [
+      'fee_type',
+      'subject',
+      'purpose',
+    ]);
+    if (direct.isNotEmpty) return direct;
+    return _nestedText(d, const ['fee_type', 'subject', 'purpose']);
+  }
+
+  static String _nestedText(Map<String, dynamic> d, List<String> keys) {
+    for (final value in d.values) {
+      final nested = _asStringMap(value);
+      if (nested == null) continue;
+      final found = _firstNonEmpty(nested, keys);
+      if (found.isNotEmpty) return found;
     }
     return '';
   }
@@ -426,7 +463,7 @@ class TutorRequestNotificationService {
       requestReference: requestReference,
       messageId: messageId,
       amount: _firstNonEmpty(d, ['amount', 'fee_amount', 'tuition_amount']),
-      subject: _firstNonEmpty(d, ['subject', 'fee_type', 'purpose']),
+      subject: _feeTypeFrom(d),
       requesterName: _requesterNameFrom(d),
       requestStatus: _firstNonEmpty(d, ['request_status', 'status']),
       forced: force,

@@ -436,6 +436,16 @@ class _TuitionAmountBody extends StatelessWidget {
   }
 }
 
+/// Opens the numeric keyboard for every tap in the white amount box,
+/// including when the field is already focused and the keyboard was closed.
+void _openAmountKeyboard(FocusNode focusNode) {
+  focusNode.requestFocus();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!focusNode.hasFocus) return;
+    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+  });
+}
+
 class _AmountCard extends StatelessWidget {
   const _AmountCard({
     required this.feeChipLabel,
@@ -495,7 +505,11 @@ class _AmountCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: LayoutBuilder(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _openAmountKeyboard(amountFocusNode),
+              child: SizedBox.expand(
+              child: LayoutBuilder(
               builder: (context, constraints) {
                 final inner = constraints.maxWidth;
                 final digits = amountController.text;
@@ -558,6 +572,7 @@ class _AmountCard extends StatelessWidget {
                             isCollapsed: true,
                             contentPadding: EdgeInsets.zero,
                           ),
+                          onTap: () => _openAmountKeyboard(amountFocusNode),
                           onChanged: onAmountChanged,
                         ),
                       ),
@@ -565,6 +580,8 @@ class _AmountCard extends StatelessWidget {
                   ),
                 );
               },
+            ),
+            ),
             ),
           ),
         ),

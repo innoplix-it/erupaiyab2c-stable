@@ -307,8 +307,46 @@ class PushNotificationService {
         ?.createNotificationChannel(androidChannel);
   }
 
+  static final RegExp _kycWord = RegExp(r'\bkyc\b', caseSensitive: false);
+
+  static bool _isKycPush({
+    String? title,
+    String? body,
+    Map<String, dynamic>? data,
+  }) {
+    final type = (data?['type'] ?? data?['notification_type'])
+        ?.toString()
+        .trim()
+        .toLowerCase();
+    if (type != null && type.contains('kyc')) return true;
+    final redirect = (data?['redirect_screen'] ??
+            data?['redirect'] ??
+            data?['route'] ??
+            data?['screen'])
+        ?.toString()
+        .trim();
+    if (redirect == RouteConstants.kycVerification ||
+        redirect == RouteConstants.kycOverview ||
+        redirect == RouteConstants.panVerification ||
+        redirect == RouteConstants.aadhaarVerification) {
+      return true;
+    }
+    final text = '${title ?? ''} ${body ?? ''} ${data?['title'] ?? ''} '
+        '${data?['body'] ?? ''} ${data?['message'] ?? ''}';
+    return _kycWord.hasMatch(text);
+  }
+
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
     logger.info('FCM foreground message: ${message.messageId}');
+
+    if (_isKycPush(
+      title: message.notification?.title,
+      body: message.notification?.body,
+      data: message.data,
+    )) {
+      await _showLocalNotification(message);
+      return;
+    }
 
     if (TutorRequestNotificationService.isTutorRequestPayload(message.data)) {
       logger.info(
@@ -330,6 +368,14 @@ class PushNotificationService {
       if (decoded is! Map) return;
       final mapped =
           TutorRequestNotificationService.notificationDataFromPayload(decoded);
+      if (_isKycPush(
+        title: decoded['title']?.toString(),
+        body: decoded['body']?.toString(),
+        data: mapped,
+      )) {
+        _navigateOrQueue(RouteConstants.kycVerification);
+        return;
+      }
       if (TutorRequestNotificationService.isTutorRequestPayload(mapped)) {
         unawaited(
           TutorRequestNotificationService().handleOpenedData(
@@ -351,6 +397,14 @@ class PushNotificationService {
     final data = TutorRequestNotificationService.notificationDataFromPayload(
       message.data,
     );
+    if (_isKycPush(
+      title: message.notification?.title,
+      body: message.notification?.body,
+      data: data,
+    )) {
+      _navigateOrQueue(RouteConstants.kycVerification);
+      return;
+    }
     if (TutorRequestNotificationService.isTutorRequestPayload(data)) {
       logger.info(
         'FCM_RECEIVED tutor_request opened/terminated id=${message.messageId}',
@@ -474,6 +528,19 @@ class PushNotificationService {
       }
       // Or a RouteConstants value itself.
       if (route == RouteConstants.mobilePrepaid) return route;
+    }
+
+    final type = (data['type'] ?? data['notification_type'])
+        ?.toString()
+        .trim()
+        .toLowerCase();
+    if (type != null && type.contains('kyc')) {
+      return RouteConstants.kycVerification;
+    }
+    if (_kycWord.hasMatch(
+      '${data['title'] ?? ''} ${data['body'] ?? ''} ${data['message'] ?? ''}',
+    )) {
+      return RouteConstants.kycVerification;
     }
 
     // Tutor request taps open the Received popup on the current screen.

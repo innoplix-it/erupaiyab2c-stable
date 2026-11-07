@@ -69,6 +69,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Future<void> _onNotificationTap(NotificationItem item) async {
     if (_isOpening) return;
     _markNotificationRead(ref, item);
+    if (item.isKycNotification) {
+      _isOpening = true;
+      try {
+        await context.push(RouteConstants.kycVerification);
+      } finally {
+        _isOpening = false;
+      }
+      return;
+    }
     final isPayNow = _primaryLabelFor(item) == 'Pay Now';
     final isTransaction = item.isTransactionNotification;
     if (!isPayNow && !isTransaction && !item.mayReferToTransaction) {
@@ -585,6 +594,7 @@ Future<void> _openPlayStore() async {
 }
 
 String _primaryLabelFor(NotificationItem item) {
+  if (item.isKycNotification) return 'Complete KYC';
   if (item.isBillPaymentSuccessNotification) return 'View';
   final redirect = (item.redirectScreen ?? '').trim().toLowerCase();
   if (redirect == 'spin_screen') return 'Play Now';

@@ -216,7 +216,7 @@ class PaymentResultScreen extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.details,
-    this.detailsTitle = 'Transaction Details',
+    this.detailsTitle = 'Transaction Successful',
     this.onViewHistory,
     this.viewHistoryText = 'View Transaction History',
     this.onContinue,

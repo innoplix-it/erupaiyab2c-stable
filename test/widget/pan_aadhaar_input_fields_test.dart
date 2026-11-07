@@ -62,12 +62,15 @@ void main() {
       await tester.tap(find.byType(TextField));
       await tester.pump();
 
-      // Segment state is derived from controller length; after the letters
-      // stage the field must accept digits.
-      await tester.enterText(find.byType(TextField), 'ABCDE1');
+      TextField field() => tester.widget<TextField>(find.byType(TextField));
+
+      expect(field().keyboardType, TextInputType.number);
+
+      await tester.enterText(find.byType(TextField), 'ABCDE1234');
       await tester.pump();
 
-      expect(controller.text, 'ABCDE1');
+      expect(controller.text, 'ABCDE1234');
+      expect(field().keyboardType, TextInputType.text);
 
       controller.dispose();
     });

@@ -549,4 +549,22 @@ void main() {
       );
     });
   });
+
+  test('keeps the sender requester_name ahead of tutor_name', () {
+    final data = EducationTutorReceivedRequestsData.fromJson(const {
+      'requests': [
+        {
+          'request_reference': 'EDUTR20261106061937FFB19244',
+          'requester_name': 'Asha Patil',
+          'tutor_name': 'Darshan Nikam',
+          'subject': 'tuition fees',
+          'amount': '1.00',
+          'status': 'PENDING',
+        },
+      ],
+    });
+
+    expect(data.requests.single['requester_name'], 'Asha Patil');
+    expect(data.requests.single['fee_type'], 'tuition fees');
+  });
 }

@@ -163,7 +163,26 @@ void main() {
       }
     });
 
-    test('Session Expired 404 clears the session without the 401 reset hook',
+    DioException sessionExpired404({bool skipAuth = false}) {
+      final options = RequestOptions(
+        path: 'https://api.test/session',
+        extra: {'skipAuth': skipAuth},
+      );
+      return DioException(
+        requestOptions: options,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 404,
+          data: const <String, dynamic>{
+            'status': false,
+            'message': 'Session Expired. Please login again.',
+          },
+        ),
+      );
+    }
+
+    test('another-device Session Expired 404 clears session and auth state',
         () async {
       expect(navigatorKey.currentContext, isNull);
       seedFullSession(
@@ -176,31 +195,58 @@ void main() {
       final handler = MockErrorHandler();
       when(() => handler.next(any())).thenAnswer((_) {});
 
-      final options = RequestOptions(path: 'https://api.test/session');
-      await interceptor.onError(
-        DioException(
-          requestOptions: options,
-          type: DioExceptionType.badResponse,
-          response: Response<dynamic>(
-            requestOptions: options,
-            statusCode: 404,
-            data: const <String, dynamic>{
-              'status': false,
-              'message': 'Session Expired. Please login again.',
-            },
-          ),
-        ),
-        handler,
-      );
+      await interceptor.onError(sessionExpired404(), handler);
 
       for (final key in sessionStorageKeys) {
         expect(store.containsKey(key), isFalse, reason: '$key must be cleared');
       }
       expect(store['deviceToken'], 'device-token-value');
       expect(store['themeMode'], 'light');
-      // 404 session expiry uses the 2474709 clear path, not the 401 hook.
-      expect(localResetCalls, 0);
+      expect(localResetCalls, 1);
       verify(() => handler.next(any())).called(1);
+    });
+
+    test('concurrent Session Expired 404s reset auth state only once',
+        () async {
+      seedFullSession(
+        refreshExpiresAt: DateTime.now().add(const Duration(days: 1)),
+      );
+      var localResetCalls = 0;
+      DioInterceptors.onLocalSessionExpired = () => localResetCalls++;
+      final interceptor = DioInterceptors();
+      final h1 = MockErrorHandler();
+      final h2 = MockErrorHandler();
+      when(() => h1.next(any())).thenAnswer((_) {});
+      when(() => h2.next(any())).thenAnswer((_) {});
+
+      await Future.wait([
+        interceptor.onError(sessionExpired404(), h1),
+        interceptor.onError(sessionExpired404(), h2),
+      ]);
+
+      expect(localResetCalls, 1);
+      for (final key in sessionStorageKeys) {
+        expect(store.containsKey(key), isFalse);
+      }
+    });
+
+    test('login (skipAuth) Session Expired 404 does not clear the new session',
+        () async {
+      seedFullSession(
+        refreshExpiresAt: DateTime.now().add(const Duration(days: 1)),
+      );
+      var localResetCalls = 0;
+      DioInterceptors.onLocalSessionExpired = () => localResetCalls++;
+      final interceptor = DioInterceptors();
+      final handler = MockErrorHandler();
+      when(() => handler.next(any())).thenAnswer((_) {});
+
+      await interceptor.onError(sessionExpired404(skipAuth: true), handler);
+
+      expect(localResetCalls, 0);
+      for (final key in sessionStorageKeys) {
+        expect(store.containsKey(key), isTrue);
+      }
     });
 
     test('a normal API 404 does not clear the session', () async {
@@ -262,6 +308,31 @@ void main() {
         when(() => handler.next(any())).thenAnswer((_) {});
         await interceptor.onError(err, handler);
       }
+
+      expect(localResetCalls, 0);
+      for (final key in sessionStorageKeys) {
+        expect(store.containsKey(key), isTrue);
+      }
+    });
+
+    test('network timeout does not clear the session', () async {
+      seedFullSession(
+        refreshExpiresAt: DateTime.now().add(const Duration(days: 1)),
+      );
+      var localResetCalls = 0;
+      DioInterceptors.onLocalSessionExpired = () => localResetCalls++;
+      final interceptor = DioInterceptors();
+      final handler = MockErrorHandler();
+      when(() => handler.next(any())).thenAnswer((_) {});
+
+      await interceptor.onError(
+        DioException(
+          requestOptions: RequestOptions(path: 'https://api.test/x'),
+          type: DioExceptionType.connectionTimeout,
+          message: 'timeout',
+        ),
+        handler,
+      );
 
       expect(localResetCalls, 0);
       for (final key in sessionStorageKeys) {

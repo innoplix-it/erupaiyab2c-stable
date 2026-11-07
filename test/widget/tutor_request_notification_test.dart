@@ -298,8 +298,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('HOME_SCREEN'), findsOneWidget);
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
       verify(() => mockRepo.fetchTutorRequestStatus(liveReference)).called(1);
     });
 
@@ -445,9 +445,9 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('Requested By Asha Patil'), findsOneWidget);
-      expect(find.text('Chemistry'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.textContaining('Asha Patil'), findsOneWidget);
+      expect(find.textContaining('Chemistry'), findsOneWidget);
       expect(find.textContaining('\u20B9250'), findsOneWidget);
       expect(find.text('Student'), findsNothing);
       expect(find.text('Tuition Fees'), findsNothing);
@@ -484,7 +484,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
       expect(find.text('Student'), findsNothing);
       expect(find.text('Tuition'), findsNothing);
       expect(find.text('Tuition Fees'), findsNothing);
@@ -523,7 +523,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('HOME_SCREEN'), findsOneWidget);
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     test('PENDING validation accepts string/int boolean flags from API', () async {
@@ -875,10 +875,10 @@ void main() {
       await tester.pump();
 
       // Popup should appear
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('You have received a new payment request'), findsOneWidget);
-      expect(find.text('\u20B9100'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.textContaining('bank details'), findsOneWidget);
+      expect(find.textContaining('\u20B9100'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
       expect(find.text('Decline'), findsOneWidget);
       verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
     });
@@ -925,7 +925,7 @@ void main() {
       await tester.pump();
 
       // Popup should NOT appear
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('REJECTED response does not show Received popup', (tester) async {
@@ -970,7 +970,7 @@ void main() {
       await tester.pump();
 
       // Popup should NOT appear
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('status false does not show popup', (tester) async {
@@ -1005,7 +1005,7 @@ void main() {
       await tester.pump();
 
       // Popup should NOT appear
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('Network error does not show popup', (tester) async {
@@ -1036,7 +1036,7 @@ void main() {
       await tester.pump();
 
       // Popup should NOT appear (service returns false on error)
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('Popup ACCEPT button calls Accept API', (tester) async {
@@ -1097,10 +1097,15 @@ void main() {
       await tester.pump();
 
       // Popup should appear
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
 
-      await tester.ensureVisible(find.text('Accept Request'));
-      await tester.tap(find.text('Accept Request'));
+      await tester.ensureVisible(find.text('Terms & conditions'));
+      await tester.tap(find.text('Terms & conditions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('I Agree'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Share Details'));
+      await tester.tap(find.text('Share Details'));
       await tester.pump();
       await tester.pump();
 
@@ -1243,7 +1248,7 @@ void main() {
       await tester.pump();
 
       // First popup should appear
-      expect(find.text('\u20B9100'), findsOneWidget);
+      expect(find.textContaining('\u20B9100'), findsOneWidget);
 
       // Close first popup
       await tester.tap(find.byKey(const ValueKey('tuitionPopupClose')));
@@ -1260,7 +1265,7 @@ void main() {
       await tester.pump();
 
       // Second popup should appear with different amount
-      expect(find.text('\u20B9200'), findsOneWidget);
+      expect(find.textContaining('\u20B9200'), findsOneWidget);
     });
   });
 
@@ -1837,8 +1842,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Popup should appear automatically
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
     });
 
     testWidgets('notification tap with ACCEPTED does not show popup', (tester) async {
@@ -1885,7 +1890,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Popup should NOT appear
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('notification tap with REJECTED does not show popup', (tester) async {
@@ -1932,7 +1937,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Popup should NOT appear
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('notification tap with network error allows retry', (tester) async {
@@ -1965,7 +1970,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Popup should NOT appear on error
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('notification tap with reference mismatch does not show popup', (tester) async {
@@ -2012,7 +2017,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Popup should NOT appear on reference mismatch
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('auto popup only shows once per request', (tester) async {
@@ -2059,7 +2064,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // First popup appears
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
 
       // Close popup
       await tester.tap(find.byKey(const ValueKey('tuitionPopupClose')));
@@ -2067,7 +2072,7 @@ void main() {
 
       // Wait and verify popup doesn't appear again
       await tester.pump(const Duration(milliseconds: 200));
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
   });
 
@@ -2099,9 +2104,9 @@ void main() {
       );
 
       expect(find.text('HOME_SCREEN'), findsOneWidget);
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('You have received a new payment request'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.textContaining('bank details'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
       expect(find.byType(TutorReceivedRequestsView), findsNothing);
     });
 
@@ -2114,8 +2119,8 @@ void main() {
       );
 
       expect(find.text('PROFILE_SCREEN'), findsOneWidget);
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
     });
 
     testWidgets('popup opens while Wallet screen is active', (tester) async {
@@ -2127,8 +2132,8 @@ void main() {
       );
 
       expect(find.text('WALLET_SCREEN'), findsOneWidget);
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
     });
 
     testWidgets(
@@ -2153,7 +2158,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
     });
 
     testWidgets(
@@ -2178,8 +2183,8 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
     });
 
     testWidgets(
@@ -2204,7 +2209,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
       verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
     });
 
@@ -2231,8 +2236,8 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
-      expect(find.text('Accept Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
+      expect(find.text('Share Details'), findsOneWidget);
       verifyNever(() => mockRepo.fetchTutorRequestStatus('REF123'));
     });
 
@@ -2282,7 +2287,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
       expect(find.text('SENDER_HOME'), findsOneWidget);
     });
   });
@@ -2357,7 +2362,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('HOME_SCREEN'), findsOneWidget);
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
       verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
     });
 
@@ -2383,7 +2388,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(TutorReceivedRequestsView), findsNothing);
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
       verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
     });
 
@@ -2433,7 +2438,7 @@ void main() {
           'type': 'tutor_request',
         }),
       );
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
       verifyNever(() => mockRepo.fetchTutorRequestStatus('REF123'));
 
       authed = true;
@@ -2441,7 +2446,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
       verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
     });
 
@@ -2475,7 +2480,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsNothing);
+      expect(find.text('Bank Details Request'), findsNothing);
     });
 
     testWidgets('duplicate notification tap does not open a second popup',
@@ -2505,7 +2510,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Tuition Fee Request'), findsOneWidget);
+      expect(find.text('Bank Details Request'), findsOneWidget);
       verify(() => mockRepo.fetchTutorRequestStatus('REF123')).called(1);
     });
   });

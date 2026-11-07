@@ -882,6 +882,24 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
     }
   }
 
+  Future<EducationTutorSendRequestResponse?> _createTutorRequestReference() async {
+    final mobile =
+        _normalizeMobile(state.mobileInput).replaceAll(RegExp(r'\D'), '');
+    final amountText =
+        state.amountInput.replaceAll(RegExp(r'[^\d.]'), '').split('.').first;
+    final amount = int.tryParse(amountText) ?? 0;
+    final subject = state.feeType?.trim() ?? '';
+    if (mobile.length != 10 || amount <= 0 || subject.isEmpty) {
+      logger.info('EDU_ASK_KYC BLOCKED reason=missing_request_reference');
+      return null;
+    }
+    return _repository.sendTutorRequest(
+      mobile: mobile,
+      amount: amount,
+      subject: subject,
+    );
+  }
+
   /// Stores the request reference from Tutor Send Request in state.
   ///
   /// This should be called immediately after a successful Tutor Send Request
@@ -896,28 +914,39 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
 
   /// Sends a KYC reminder (`POST /api/education/tutor/ask-kyc`).
   ///
-  /// This does not call send-request. An incomplete KYC cannot create a
-  /// payment request, so the reminder uses the tutor mobile from this flow.
-  /// A request reference already stored on state is sent instead.
+  /// The body is only `request_reference`. When this flow has not stored one
+  /// yet, the existing send-request call creates it first. The mobile is
+  /// never sent to ask-kyc.
   Future<EducationTutorAskKycResponse?> askTutorForKyc() async {
     if (_askKycInFlight) return null;
     _askKycInFlight = true;
     try {
-      final reference = state.requestReference?.trim() ?? '';
-      final mobile = _normalizeMobile(state.mobileInput)
-          .replaceAll(RegExp(r'\D'), '');
-      if (reference.isEmpty && mobile.length != 10) {
-        logger.info('EDU_ASK_KYC BLOCKED reason=missing_mobile');
-        return const EducationTutorAskKycResponse(
-          status: false,
-          message: 'Tutor mobile is missing. Please try again.',
-        );
+      var reference = state.requestReference?.trim() ?? '';
+      if (reference.isEmpty) {
+        final created = await _createTutorRequestReference();
+        if (created == null) {
+          return const EducationTutorAskKycResponse(
+            status: false,
+            message: 'Request reference is required.',
+          );
+        }
+        if (!created.status ||
+            (created.data?.requestReference.trim().isEmpty ?? true)) {
+          final message = created.message?.trim() ?? '';
+          return EducationTutorAskKycResponse(
+            status: false,
+            message: message.isNotEmpty
+                ? message
+                : 'Request reference is required.',
+          );
+        }
+        reference = created.data!.requestReference.trim();
+        storeTutorRequestReference(reference);
       }
 
       logger.info('EDU_ASK_KYC');
       return await _repository.askTutorForKyc(
-        requestReference: reference.isEmpty ? null : reference,
-        mobile: mobile.length == 10 ? mobile : null,
+        requestReference: reference,
       );
     } catch (e) {
       logger.info('EDU_ASK_KYC FAILED type=${e.runtimeType}');

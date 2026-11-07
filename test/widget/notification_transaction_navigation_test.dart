@@ -54,6 +54,7 @@ NotificationItem _notification(
   String subtitle = 'Electricity bill of \u20B9100',
   String? referenceId,
   String redirect = '',
+  String? type,
   bool isRead = false,
 }) {
   return NotificationItem(
@@ -63,6 +64,7 @@ NotificationItem _notification(
     actionLabel: 'View',
     iconAsset: _logo,
     section: 'Today',
+    type: type,
     referenceId: referenceId,
     redirectScreen: redirect,
     isRead: isRead,
@@ -482,6 +484,10 @@ Future<_Harness> _pump(
         path: RouteConstants.billerDetail,
         builder: (_, state) =>
             _BillPaymentProbe(state.extra as BillerDetailArgs?),
+      ),
+      GoRoute(
+        path: RouteConstants.kycVerification,
+        builder: (_, __) => const Scaffold(body: Text('kyc verification')),
       ),
     ],
   );
@@ -1539,6 +1545,77 @@ void main() {
         _notification('n', title: 'Payment Failed', referenceId: 'REF-F'),
       );
       expect(entry, isNull);
+    });
+  });
+
+  group('KYC notification button', () {
+    test('the Complete Your eRupaiya KYC card is a KYC notification', () {
+      final card = NotificationItem(
+        id: 'k1',
+        title: 'Complete Your eRupaiya KYC',
+        subtitle:
+            'A user wants to pay \u20B95,000.00 in tuition fees to you! '
+            'Complete your KYC.',
+        actionLabel: 'View',
+        iconAsset: _logo,
+        section: 'Updates',
+        showRemindButton: true,
+      );
+      final paymentRequest = _notification(
+        'pay-1',
+        title: 'New Education Payment Request',
+        subtitle: 'You have received an education payment request of \u20B91.00.',
+      );
+
+      expect(card.isKycNotification, isTrue);
+      expect(card.isBillReminderNotification, isFalse);
+      expect(paymentRequest.isKycNotification, isFalse);
+    });
+
+    testWidgets('shows Complete KYC and opens the existing KYC route',
+        (tester) async {
+      await _pump(
+        tester,
+        items: [
+          NotificationItem(
+            id: 'kyc-1',
+            title: 'Complete Your eRupaiya KYC',
+            subtitle:
+                'A user wants to pay \u20B95,000.00 in tuition fees to you! '
+                'Complete your KYC.',
+            actionLabel: 'View',
+            iconAsset: _logo,
+            section: 'Updates',
+            showRemindButton: true,
+            createdAt: DateTime(2026, 10, 10, 12),
+          ),
+        ],
+      );
+
+      expect(find.text('Complete KYC'), findsOneWidget);
+      expect(find.text('Pay Now'), findsNothing);
+
+      await tester.tap(find.text('Complete KYC'));
+      await _settleNavigation(tester);
+
+      expect(find.text('kyc verification'), findsOneWidget);
+    });
+
+    testWidgets('a bill reminder still shows Pay Now', (tester) async {
+      await _pump(
+        tester,
+        items: [
+          _notification(
+            'bill-1',
+            title: 'Electricity Bill Reminder',
+            subtitle: 'Your bill of \u20B91200 is due in 6 days',
+            referenceId: '41',
+          ),
+        ],
+      );
+
+      expect(find.text('Pay Now'), findsOneWidget);
+      expect(find.text('Complete KYC'), findsNothing);
     });
   });
 }

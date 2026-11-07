@@ -1,4 +1,5 @@
 import '../../../constants/file_constants.dart';
+import '../../../constants/routes_constant.dart';
 
 class NotificationItem {
   const NotificationItem({
@@ -76,6 +77,25 @@ class NotificationItem {
       '${title.trim()} ${subtitle.trim()} ${(type ?? '').trim()} ${(redirectScreen ?? '').trim()}'
           .toLowerCase();
 
+  static final RegExp _kycWord = RegExp(r'\bkyc\b');
+
+  /// KYC when the backend `type` contains `kyc`, `redirect_screen` is an
+  /// existing KYC route, or the title/message asks the user to complete KYC.
+  /// "New Education Payment Request" has no KYC word, so it stays Pay Now.
+  bool get isKycNotification {
+    final typeValue = (type ?? '').trim().toLowerCase();
+    if (typeValue.contains('kyc')) return true;
+    final redirect = (redirectScreen ?? '').trim();
+    if (redirect == RouteConstants.kycVerification ||
+        redirect == RouteConstants.kycOverview ||
+        redirect == RouteConstants.panVerification ||
+        redirect == RouteConstants.aadhaarVerification) {
+      return true;
+    }
+    final text = '${title.trim()} ${subtitle.trim()}'.toLowerCase();
+    return _kycWord.hasMatch(text);
+  }
+
   bool get isBillPaymentSuccessNotification {
     final text = _combinedText;
     return (text.contains('bill payment successful') ||
@@ -142,6 +162,7 @@ class NotificationItem {
   /// Reminders, Spin & Win, offers, app updates and wallet history keep
   /// their existing behaviour.
   bool get isTransactionNotification {
+    if (isKycNotification) return false;
     final redirect = (redirectScreen ?? '').trim().toLowerCase();
     if (_transactionRedirects.contains(redirect)) return true;
     if (_nonTransactionRedirects.contains(redirect)) return false;
@@ -160,6 +181,7 @@ class NotificationItem {
   /// notification opens the details only if the id matches a transaction,
   /// and otherwise keeps its existing behaviour.
   bool get mayReferToTransaction {
+    if (isKycNotification) return false;
     if (transactionReferenceId == null) return false;
     final redirect = (redirectScreen ?? '').trim().toLowerCase();
     if (_nonTransactionRedirects.contains(redirect)) return false;
@@ -177,6 +199,7 @@ class NotificationItem {
   }
 
   bool get isBillReminderNotification {
+    if (isKycNotification) return false;
     if (isBillPaymentSuccessNotification) return false;
     final text = _combinedText;
     if (showRemindButton) return true;

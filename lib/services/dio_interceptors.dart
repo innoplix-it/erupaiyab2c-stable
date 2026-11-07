@@ -406,30 +406,14 @@ class DioInterceptors extends InterceptorsWrapper {
       } else {
         _showAppError(AppErrorMessages.sessionRefreshFailed);
       }
-    } else if (err.response?.statusCode == 404 &&
+    } else if (!skipAuth &&
+        err.response?.statusCode == 404 &&
         _isSessionExpiredNotFound(err.response?.data)) {
-      // Commit 2474709: Session Expired 404 shows the session-expired
-      // message, logs out, and returns to Login. The same commit keyed that
-      // path only on HTTP 404. Genuine not-found responses (a different
-      // message, or no session-expired message) stay on the normal error path.
+      // Another-device invalidation: the backend answers the old device's
+      // next authenticated call with HTTP 404 and a session-expired message.
+      // A normal not-found 404, and any unauthenticated call, stay put.
       _showAppError(AppErrorMessages.sessionExpired);
-      final context = navigatorKey.currentContext;
-      if (context != null) {
-        try {
-          // ignore: use_build_context_synchronously
-          await ProviderScope.containerOf(context)
-              .read(authControllerProvider.notifier)
-              .logout();
-        } catch (_) {
-          await _clearSession();
-        }
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          context.go(RouteConstants.login);
-        });
-      } else {
-        await _clearSession();
-      }
+      await _handleTerminalSessionExpiry();
     } else if (err.error is CertificateNotVerifiedException ||
         err.error is CertificateCouldNotBeVerifiedException) {
       _showAppError(AppErrorMessages.secureConnection);

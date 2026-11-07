@@ -763,7 +763,7 @@ _CcStatusMeta _resolveStatusMeta(
 
   // Default: treat as successful
   return _CcStatusMeta(
-    title: 'Transaction Details',
+    title: 'Transaction Successful',
     iconAsset: FileConstants.successIcon,
     gradient: const [
       Color(0xFF004C1E),

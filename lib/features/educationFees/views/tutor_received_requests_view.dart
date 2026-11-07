@@ -11,7 +11,7 @@ import '../../../widgets/my_app_bar.dart';
 import '../constants/tutor_notification_constants.dart';
 import '../controllers/education_fees_controller.dart';
 import '../controllers/tutor_received_requests_controller.dart';
-import '../components/education_tuition_request_popup.dart';
+import '../components/bank_details_request_popup.dart';
 import '../repositories/education_fees_repository.dart';
 import '../services/tutor_request_notification_service.dart';
 import '../../../services/logger_service.dart';
@@ -135,16 +135,18 @@ class _TutorReceivedRequestsViewState
 
       if (!mounted) return;
 
-      final resultFuture = showEducationTuitionRequestPopup(
+      final purpose =
+          data.subject.trim().isEmpty ? null : data.subject.trim();
+      final statusLabel = data.requestStatus.trim().isEmpty
+          ? null
+          : data.requestStatus.trim();
+      final resultFuture = showBankDetailsRequestPopup(
         context,
-        state: EducationTuitionPopupState.received,
-        amount: amount,
         requesterName: requesterName,
-        paymentPurpose:
-            data.subject.trim().isEmpty ? null : data.subject.trim(),
-        requestStatusLabel: data.requestStatus.trim().isEmpty
-            ? null
-            : data.requestStatus.trim(),
+        feeType: purpose,
+        amount: amount,
+        paymentPurpose: purpose,
+        paymentStatus: statusLabel,
       );
       _hasAutoShownPopup = true;
       notificationService.markPopupPresented(requestReference);
@@ -204,21 +206,30 @@ class _TutorReceivedRequestsViewState
     final amount = double.tryParse(request['amount']?.toString().trim() ?? '');
     final requesterName = _firstText(request, const [
       'requester_name',
+      'requesterName',
+      'sender_name',
       'student_name',
+      'parent_name',
+      'tutor_name',
+      'name',
     ]);
-    final purpose = _firstText(request, const ['subject']);
+    final purpose = _firstText(request, const [
+      'fee_type',
+      'subject',
+      'purpose',
+    ]);
     final statusLabel = _firstText(request, const [
       'request_status',
       'status',
     ]);
 
-    final result = await showEducationTuitionRequestPopup(
+    final result = await showBankDetailsRequestPopup(
       context,
-      state: EducationTuitionPopupState.received,
-      amount: amount,
       requesterName: requesterName,
+      feeType: purpose,
+      amount: amount,
       paymentPurpose: purpose,
-      requestStatusLabel: statusLabel,
+      paymentStatus: statusLabel,
     );
 
     if (result == true) {

@@ -39,30 +39,19 @@ class TemporaryBlockIdentityCompletionView extends HookConsumerWidget {
     useEffect(() {
       void syncPanKeyboard() {
         final next = panKeyboardSegmentForLength(panController.text.length);
-        if (next != panKeyboardSegment.value) {
-          panKeyboardSegment.value = next;
-        }
+        if (next == panKeyboardSegment.value) return;
+        final refocus = panFocus.hasFocus;
+        panKeyboardSegment.value = next;
+        if (!refocus) return;
+        panFocus.unfocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (panFocus.canRequestFocus) panFocus.requestFocus();
+        });
       }
 
       panController.addListener(syncPanKeyboard);
       return () => panController.removeListener(syncPanKeyboard);
-    }, [panController]);
-
-    // Re-attach the input connection when the PAN stage changes so the OS
-    // keyboard flips letters <-> numbers and reliably reopens, instead of
-    // being dismissed by a widget-key rebuild. Text/caret live in the
-    // controller and survive the focus toggle.
-    final lastPanSeg = useRef(panKeyboardSegment.value);
-    useEffect(() {
-      if (panKeyboardSegment.value == lastPanSeg.value) return null;
-      lastPanSeg.value = panKeyboardSegment.value;
-      if (!panFocus.hasFocus) return null;
-      panFocus.unfocus();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        panFocus.requestFocus();
-      });
-      return null;
-    }, [panKeyboardSegment.value]);
+    }, [panController, panFocus]);
 
     Future<void> handleContinue() async {
       final pan = panController.text.trim().toUpperCase();

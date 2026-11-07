@@ -51,7 +51,17 @@ class _FakeAskRepository extends EducationFeesRepository {
     required String subject,
   }) async {
     sendCount++;
-    return const EducationTutorSendRequestResponse(status: false);
+    return const EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 1,
+        requestReference: 'EDUTR-CREATED',
+        tutorId: 1,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '',
+      ),
+    );
   }
 
   @override
@@ -115,17 +125,23 @@ void main() {
     expect(response.data?.notificationSentTo, 10);
   });
 
-  test('posts the tutor mobile and never calls send-request', () async {
+  test('ask-kyc body is request_reference and never the mobile', () async {
     final adapter = _StubAdapter();
     final repository = EducationFeesRepository(
       service: EducationFeesService(dio: Dio()..httpClientAdapter = adapter),
     );
 
-    await repository.askTutorForKyc(mobile: '9876543210');
+    await repository.askTutorForKyc(
+      requestReference: 'EDUTR20261106061937FFB19244',
+      mobile: '9876543210',
+    );
 
     expect(adapter.options!.uri.toString(),
         ApiConstants.educationTutorAskKycEndpoint);
-    expect(adapter.options!.data, {'mobile': '9876543210'});
+    expect(adapter.options!.data, {
+      'request_reference': 'EDUTR20261106061937FFB19244',
+    });
+    expect(adapter.options!.data.toString().contains('mobile'), isFalse);
   });
 
   test('asks with the stored reference and does not send a payment request',
@@ -141,22 +157,25 @@ void main() {
     expect(repo.askBodies, [
       {
         'request_reference': 'EDUTR-ALREADY-SENT',
-        'mobile': '9876543210',
+        'mobile': null,
       },
     ]);
     expect(response?.status, isTrue);
   });
 
-  test('asks with the searched mobile when no request exists', () async {
+  test('creates a request reference before ask-kyc when none is stored',
+      () async {
     final repo = _FakeAskRepository();
     final controller = EducationFeesController(repository: repo);
     controller.updateMobileInput('9876543210');
+    controller.updateAmountInput('2000');
+    controller.updateFeeType('tuition fees');
 
     final response = await controller.askTutorForKyc();
 
-    expect(repo.sendCount, 0);
-    expect(repo.askBodies.single['mobile'], '9876543210');
-    expect(repo.askBodies.single['request_reference'], isNull);
+    expect(repo.sendCount, 1);
+    expect(repo.askBodies.single['mobile'], isNull);
+    expect(repo.askBodies.single['request_reference'], 'EDUTR-CREATED');
     expect(response?.status, isTrue);
   });
 }

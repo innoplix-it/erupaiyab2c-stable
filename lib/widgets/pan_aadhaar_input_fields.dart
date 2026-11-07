@@ -138,36 +138,26 @@ class PanInputField extends HookWidget {
     final segment =
         useState(panKeyboardSegmentForLength(controller.text.length));
 
-    // Single listener: only updates state when the stage actually changes.
+    // Same switch as the education PAN field: close the keyboard in the same
+    // turn the stage changes, then reopen it so the OS actually flips
+    // letters -> digits (4) -> letter.
     useEffect(() {
       void onTextChanged() {
         final next = panKeyboardSegmentForLength(controller.text.length);
-        if (next != segment.value) {
-          segment.value = next;
-        }
+        if (next == segment.value) return;
+        final refocus = localFocus.hasFocus;
+        segment.value = next;
+        if (!refocus) return;
+        localFocus.unfocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (localFocus.canRequestFocus) localFocus.requestFocus();
+        });
       }
 
-      // Sync once in case the controller was pre-filled / changed.
       onTextChanged();
       controller.addListener(onTextChanged);
       return () => controller.removeListener(onTextChanged);
-    }, [controller]);
-
-    // When the PAN stage changes, re-attach the input connection so the OS
-    // keyboard actually switches (letters -> numbers -> letters) instead of
-    // being dismissed by a widget-key rebuild. The persistent focus node is
-    // toggled, so text and caret living in the controller survive.
-    final lastSegment = useRef(segment.value);
-    useEffect(() {
-      if (segment.value == lastSegment.value) return null;
-      lastSegment.value = segment.value;
-      if (!localFocus.hasFocus) return null;
-      localFocus.unfocus();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        localFocus.requestFocus();
-      });
-      return null;
-    }, [segment.value]);
+    }, [controller, localFocus]);
 
     return TextField(
       controller: controller,

@@ -66,7 +66,7 @@ class MyApp extends HookConsumerWidget {
     final themeMode = ref.watch(themeModeControllerProvider);
     final appLockService = ref.read(appLockServiceProvider);
     final navigationInteractionLock =
-    ref.watch(navigationInteractionLockProvider);
+        ref.watch(navigationInteractionLockProvider);
     useListenable(navigationInteractionLock);
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -185,3 +185,4 @@ class MyApp extends HookConsumerWidget {
     );
   }
 }
+

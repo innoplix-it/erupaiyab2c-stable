@@ -28,7 +28,7 @@ Widget _view() => const EducationTutorUnverifiedView(
 
 class _FakeAskKycRepository extends EducationFeesRepository {
   int sendCount = 0;
-  final askMobiles = <String?>[];
+  final askReferences = <String?>[];
 
   @override
   Future<EducationTutorSendRequestResponse> sendTutorRequest({
@@ -37,7 +37,17 @@ class _FakeAskKycRepository extends EducationFeesRepository {
     required String subject,
   }) async {
     sendCount++;
-    return const EducationTutorSendRequestResponse(status: false);
+    return const EducationTutorSendRequestResponse(
+      status: true,
+      data: EducationTutorSendRequestData(
+        requestId: 1,
+        requestReference: 'EDUTR-CREATED',
+        tutorId: 1,
+        amount: '2000',
+        requestStatus: 'PENDING',
+        createdAt: '',
+      ),
+    );
   }
 
   @override
@@ -45,7 +55,7 @@ class _FakeAskKycRepository extends EducationFeesRepository {
     String? requestReference,
     String? mobile,
   }) async {
-    askMobiles.add(mobile);
+    askReferences.add(requestReference);
     return const EducationTutorAskKycResponse(
       status: true,
       message: 'KYC reminder notification sent successfully.',
@@ -81,7 +91,9 @@ void main() {
     expect(find.byType(Image), findsNothing);
   });
 
-  testWidgets('Ask for KYC posts ask-kyc with the tutor mobile', (tester) async {
+  testWidgets('Ask for KYC posts ask-kyc with the request reference', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     final repo = _FakeAskKycRepository();
     await tester.pumpWidget(
@@ -105,13 +117,15 @@ void main() {
     );
     final controller = container.read(educationFeesControllerProvider.notifier);
     controller.updateMobileInput('9876543210');
+    controller.updateAmountInput('2000');
+    controller.updateFeeType('tuition fees');
 
     await tester.tap(find.text('Ask for KYC'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(repo.sendCount, 0);
-    expect(repo.askMobiles, ['9876543210']);
+    expect(repo.sendCount, 1);
+    expect(repo.askReferences, ['EDUTR-CREATED']);
   });
 
   testWidgets('stays overflow-free across the device matrix', (tester) async {
