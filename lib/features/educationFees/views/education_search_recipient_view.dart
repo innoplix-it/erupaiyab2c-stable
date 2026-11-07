@@ -129,7 +129,7 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                   amount: amount,
                   amountLabel: NumberFormat.currency(
                     locale: 'en_IN',
-                    symbol: '\u20B9',
+                    symbol: '₹',
                     decimalDigits: 0,
                   ).format(amount),
                 ),
@@ -201,7 +201,7 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                 amount: amount,
                 amountLabel: NumberFormat.currency(
                   locale: 'en_IN',
-                  symbol: '\u20B9',
+                  symbol: '₹',
                   decimalDigits: 0,
                 ).format(amount),
                 verificationStatus: verifyResponse.verificationStatus,

@@ -40,7 +40,6 @@ class _TutorReceivedRequestsViewState
     extends ConsumerState<TutorReceivedRequestsView> {
   final ScrollController _scrollController = ScrollController();
   bool _hasAutoShownPopup = false;
-  bool _isResponding = false;
 
   EducationFeesRepository get _repository =>
       ref.read(educationFeesRepositoryProvider);
@@ -140,54 +139,28 @@ class _TutorReceivedRequestsViewState
       final statusLabel = data.requestStatus.trim().isEmpty
           ? null
           : data.requestStatus.trim();
+      final paymentMethod = data.paymentMethod.trim().isEmpty
+          ? null
+          : data.paymentMethod.trim();
       final resultFuture = showBankDetailsRequestPopup(
         context,
         requesterName: requesterName,
         feeType: purpose,
         amount: amount,
         paymentPurpose: purpose,
+        paymentMethod: paymentMethod,
         paymentStatus: statusLabel,
+        requestReference: requestReference,
       );
       _hasAutoShownPopup = true;
       notificationService.markPopupPresented(requestReference);
       logger.info('NOTIFICATION_TAP_POPUP_PRESENTED: $requestReference');
 
       final result = await resultFuture;
-      if (_isResponding) return;
-      _isResponding = true;
-      try {
-        if (result == true) {
-          await _repository.respondToTutorRequest(
-            requestReference: requestReference,
-            action: TutorNotificationConstants.statusAccepted,
-          );
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Request accepted successfully'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            _fetchRequests();
-          }
-        } else if (result == false) {
-          await _repository.respondToTutorRequest(
-            requestReference: requestReference,
-            action: TutorNotificationConstants.statusRejected,
-          );
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Request rejected'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-            _fetchRequests();
-          }
-        }
-      } finally {
-        _isResponding = false;
-        notificationService.markRequestHandled(requestReference);
+      // Popup now handles Respond API and notification deletion internally.
+      // Just refresh the list after the popup closes.
+      if (result == true || result == false) {
+        _fetchRequests();
       }
     } catch (e) {
       logger.error('NOTIFICATION_TAP_AUTO_POPUP_ERROR: $e', error: e);
@@ -222,6 +195,11 @@ class _TutorReceivedRequestsViewState
       'request_status',
       'status',
     ]);
+    final paymentMethod = _firstText(request, const [
+      'payment_method',
+      'paymentMethod',
+      'method',
+    ]);
 
     final result = await showBankDetailsRequestPopup(
       context,
@@ -229,63 +207,15 @@ class _TutorReceivedRequestsViewState
       feeType: purpose,
       amount: amount,
       paymentPurpose: purpose,
+      paymentMethod: paymentMethod,
       paymentStatus: statusLabel,
+      requestReference: requestReference,
     );
 
-    if (result == true) {
-      // Request was accepted - call API
-      try {
-        final controller = ref.read(tutorReceivedRequestsControllerProvider.notifier);
-        await controller.respondToRequest(
-          requestReference: requestReference,
-          action: 'ACCEPTED',
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Request accepted successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          _fetchRequests(); // Refresh list
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to accept request: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } else if (result == false) {
-      // Request was rejected - call API
-      try {
-        final controller = ref.read(tutorReceivedRequestsControllerProvider.notifier);
-        await controller.respondToRequest(
-          requestReference: requestReference,
-          action: 'REJECTED',
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Request rejected'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-          _fetchRequests(); // Refresh list
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to reject request: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+    // Popup now handles Respond API and notification deletion internally.
+    // Just refresh the list after the popup closes.
+    if (result == true || result == false) {
+      _fetchRequests();
     }
   }
 

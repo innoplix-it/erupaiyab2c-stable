@@ -110,6 +110,7 @@ class TutorRequestBackgroundProcessor {
           requesterName: dataPayload.requesterName,
           requesterUserId: dataPayload.requesterUserId,
           requestStatus: dataPayload.requestStatus,
+          paymentMethod: dataPayload.paymentMethod,
         ),
       );
       logger.info(

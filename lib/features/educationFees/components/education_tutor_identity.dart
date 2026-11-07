@@ -23,7 +23,7 @@ const LinearGradient kEducationTutorBackgroundGradient = LinearGradient(
 
 String educationTutorInitials(String name) {
   final parts =
-      name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
   if (parts.isEmpty) return '?';
   if (parts.length == 1) {
     final word = parts.first;
@@ -62,6 +62,8 @@ class EducationTutorIdentityCard extends StatelessWidget {
     required this.accountLine,
     required this.amountLabel,
     required this.statusLines,
+    this.statusAboveAmount,
+    this.highlightAmount = false,
     this.verified = true,
     this.bankLogoUrl,
   });
@@ -71,6 +73,13 @@ class EducationTutorIdentityCard extends StatelessWidget {
   final String accountLine;
   final String amountLabel;
   final List<EducationTutorStatusLine> statusLines;
+
+  /// Short status shown between the name and the rupee amount
+  /// (e.g. "KYC Not Completed", "Not registered").
+  final String? statusAboveAmount;
+
+  /// Orange amount pill: `#DD5428` at 10% background, `#DD5428` text.
+  final bool highlightAmount;
 
   /// Drives the avatar corner tick: green check when verified, gold when not.
   final bool verified;
@@ -152,14 +161,14 @@ class EducationTutorIdentityCard extends StatelessWidget {
                     logo.isEmpty
                         ? genericBankGlyph
                         : AppNetworkImage(
-                            url: logo,
-                            width: 18 * u,
-                            height: 18 * u,
-                            fit: BoxFit.contain,
-                            showShimmer: false,
-                            placeholder: genericBankGlyph,
-                            errorWidget: genericBankGlyph,
-                          ),
+                      url: logo,
+                      width: 18 * u,
+                      height: 18 * u,
+                      fit: BoxFit.contain,
+                      showShimmer: false,
+                      placeholder: genericBankGlyph,
+                      errorWidget: genericBankGlyph,
+                    ),
                     SizedBox(width: 6 * u),
                     Text(
                       accountLine,
@@ -172,26 +181,55 @@ class EducationTutorIdentityCard extends StatelessWidget {
                   ],
                 ),
               ],
-              SizedBox(height: 14 * u),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 18 * u,
-                  vertical: 8 * u,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F4F5),
-                  borderRadius: BorderRadius.circular(24 * u),
-                ),
-                child: Text(
-                  amountLabel,
+              if ((statusAboveAmount ?? '').trim().isNotEmpty) ...[
+                SizedBox(height: 6 * u),
+                Text(
+                  statusAboveAmount!.trim(),
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18 * u,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    fontSize: 14 * u,
+                    fontWeight: FontWeight.w500,
+                    height: 1.35,
+                    color: const Color(0xFFA3A3A3),
                   ),
                 ),
-              ),
-              SizedBox(height: 16 * u),
+                SizedBox(height: 10 * u),
+              ] else
+                SizedBox(height: 14 * u),
+              // Amount pill hugs its content (IntrinsicWidth) instead of
+              // stretching to the full card width. Hidden when empty.
+              if (amountLabel.trim().isNotEmpty) ...[
+                IntrinsicWidth(
+                  child: Container(
+                    height: highlightAmount ? 32 * u : null,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: highlightAmount ? 16 * u : 18 * u,
+                      vertical: highlightAmount ? 0 : 8 * u,
+                    ),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: highlightAmount
+                          ? const Color(0xFFDD5428).withValues(alpha: 0.1)
+                          : const Color(0xFFF4F4F5),
+                      borderRadius: BorderRadius.circular(
+                        highlightAmount ? 16 * u : 24 * u,
+                      ),
+                    ),
+                    child: Text(
+                      amountLabel,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: highlightAmount ? 14 * u : 18 * u,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                        color: highlightAmount
+                            ? const Color(0xFFDD5428)
+                            : Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16 * u),
+              ],
               for (final line in statusLines) ...[
                 Text(
                   line.text,
@@ -245,7 +283,7 @@ class EducationTutorDetailCell extends StatelessWidget {
     final u = unit;
     return Column(
       crossAxisAlignment:
-          alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Text(
           label,

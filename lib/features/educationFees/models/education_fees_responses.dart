@@ -591,6 +591,7 @@ class EducationTutorRequestStatusData {
     required this.respondedAt,
     this.requesterUserId = '',
     this.requesterName = '',
+    this.paymentMethod = '',
   });
 
   factory EducationTutorRequestStatusData.fromJson(Map<String, dynamic> json) {
@@ -625,6 +626,11 @@ class EducationTutorRequestStatusData {
       rejectionReason: json['rejection_reason']?.toString(),
       createdAt: json['created_at']?.toString() ?? '',
       respondedAt: json['responded_at']?.toString(),
+      paymentMethod: _deepFirstText(json, const [
+        'payment_method',
+        'paymentMethod',
+        'method',
+      ]),
     );
   }
 
@@ -644,6 +650,9 @@ class EducationTutorRequestStatusData {
 
   /// Present only when the payload includes the requester's name.
   final String requesterName;
+
+  /// Payment method from the status payload (e.g., Credit Card, UPI).
+  final String paymentMethod;
 }
 
 /// Name of the person who called send-request. `tutor_name` is the tutor,

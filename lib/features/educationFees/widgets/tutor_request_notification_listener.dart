@@ -7,9 +7,7 @@ import '../../../services/logger_service.dart';
 import '../../../widgets/k_dialog.dart';
 import '../constants/tutor_notification_constants.dart';
 import '../components/bank_details_request_popup.dart';
-import '../components/education_tuition_request_popup.dart';
 import '../controllers/education_fees_controller.dart';
-import '../repositories/education_fees_repository.dart';
 import '../services/tutor_request_notification_service.dart';
 
 /// Root listener: shows the Received popup for a NEW tutor request
@@ -44,12 +42,8 @@ class _TutorRequestNotificationListenerState
   final List<TutorRequestEvent> _displayQueue = [];
   final List<TutorRequestEvent> _pendingUntilNavigator = [];
   bool _processingQueue = false;
-  final Set<String> _responding = {};
   int _navigatorRetryAttempts = 0;
   int _authRetryAttempts = 0;
-
-  EducationFeesRepository get _repository =>
-      ref.read(educationFeesRepositoryProvider);
 
   @override
   void initState() {
@@ -253,6 +247,9 @@ class _TutorRequestNotificationListenerState
     final statusLabel = _optional(
       _filled(fetched?.status, event.requestStatus),
     );
+    final paymentMethod = _optional(
+      _filled(fetched?.paymentMethod, event.paymentMethod),
+    );
     logger.info(
       'RECEIVER_POPUP_FIELDS: ${event.requestReference} '
       'name=${requesterName != null} fee=${purpose != null}',
@@ -260,12 +257,14 @@ class _TutorRequestNotificationListenerState
 
     try {
       logger.info('CALLING_SHOW_DIALOG: ${event.requestReference}');
+      if (!popupContext.mounted) return;
       final resultFuture = showBankDetailsRequestPopup(
         popupContext,
         requesterName: requesterName,
         feeType: purpose,
         amount: amount,
         paymentPurpose: purpose,
+        paymentMethod: paymentMethod,
         paymentStatus: statusLabel,
         requestReference: event.requestReference,
         notificationId: event.notificationId,
@@ -331,65 +330,6 @@ class _TutorRequestNotificationListenerState
     });
   }
 
-  /// Accept -> ACCEPTED, Decline -> REJECTED via
-  /// POST /api/education/tutor/respond-request
-  /// with body {"request_reference", "action"}.
-  /// A successful Decline shows the declined popup on THIS (receiver) device.
-  /// Returns true only when the respond API succeeds.
-  Future<bool> _handlePopupResult(
-      TutorRequestEvent event,
-      bool? result,
-      ) async {
-    logger.info(
-      'HANDLE_POPUP_RESULT: ${event.requestReference} result=$result',
-    );
-    if (result == null) return false;
-    if (!_responding.add(event.requestReference)) return false;
-    final action = result == true
-        ? TutorNotificationConstants.statusAccepted
-        : TutorNotificationConstants.statusRejected;
-
-    var apiOk = false;
-    var declinedOk = false;
-    try {
-      logger.info(
-        'RESPOND_REQUEST_CALL: ${event.requestReference} action=$action',
-      );
-      final res = await _repository.respondToTutorRequest(
-        requestReference: event.requestReference,
-        action: action,
-      );
-      logger.info(
-        'RESPOND_REQUEST_RESULT: ${event.requestReference} '
-            'status=${res.status} message=${res.message} '
-            'requestStatus=${res.data?.requestStatus ?? res.requestStatus}',
-      );
-      apiOk = res.status == true;
-      declinedOk = result == false && apiOk;
-    } catch (e) {
-      logger.error(
-        'Failed to submit tutor request response: $e',
-        error: e,
-      );
-    } finally {
-      _responding.remove(event.requestReference);
-    }
-
-    if (declinedOk) {
-      await _showDeclinedPopup(event);
-    }
-    return apiOk;
-  }
-
-  /// Extract notification ID from messageId (format: "alerts_{notificationId}")
-  String? _extractNotificationId(String? messageId) {
-    if (messageId == null || messageId.isEmpty) return null;
-    if (messageId.startsWith('alerts_')) {
-      return messageId.substring(7); // Remove "alerts_" prefix
-    }
-    return null;
-  }
-
   /// Loads `tutor_name` and `fee_type` for this request before the popup opens.
   Future<_ReceiverDisplay?> _fetchReceiverDisplay(String reference) async {
     if (reference.isEmpty) return null;
@@ -426,6 +366,10 @@ class _TutorRequestNotificationListenerState
                   ?.toString()
                   .trim() ??
               '',
+          paymentMethod: (request['payment_method'] ?? request['paymentMethod'] ?? request['method'])
+                  ?.toString()
+                  .trim() ??
+              '',
         );
         break;
       }
@@ -450,6 +394,7 @@ class _TutorRequestNotificationListenerState
         feeType: _filled(data.subject, found?.feeType ?? ''),
         amount: _filled(data.amount, found?.amount ?? ''),
         status: _filled(data.requestStatus, found?.status ?? ''),
+        paymentMethod: _filled(data.paymentMethod, found?.paymentMethod ?? ''),
       );
     } catch (e) {
       logger.warning('RECEIVER_POPUP_STATUS_FETCH_FAILED: $reference');
@@ -470,30 +415,6 @@ class _TutorRequestNotificationListenerState
       return null;
     }
     return trimmed;
-  }
-
-  /// Declined popup, shown only on the receiver device after a successful
-  /// Decline.
-  Future<void> _showDeclinedPopup(TutorRequestEvent event) async {
-    final popupContext = _resolvePopupContext();
-    if (popupContext == null) {
-      logger.warning('DECLINED_POPUP_NO_CONTEXT: ${event.requestReference}');
-      return;
-    }
-    final amount = double.tryParse(event.amount.trim());
-    final requesterName =
-    event.requesterName.trim().isEmpty ? null : event.requesterName.trim();
-    try {
-      logger.info('SHOW_DECLINED_POPUP: ${event.requestReference}');
-      await showEducationTuitionRequestPopup(
-        popupContext,
-        state: EducationTuitionPopupState.declined,
-        amount: amount,
-        requesterName: requesterName,
-      );
-    } catch (e) {
-      logger.error('Failed to show declined popup: $e', error: e);
-    }
   }
 
   BuildContext? _resolvePopupContext() {
@@ -537,10 +458,12 @@ class _ReceiverDisplay {
     required this.feeType,
     required this.amount,
     required this.status,
+    this.paymentMethod = '',
   });
 
   final String tutorName;
   final String feeType;
   final String amount;
   final String status;
+  final String paymentMethod;
 }

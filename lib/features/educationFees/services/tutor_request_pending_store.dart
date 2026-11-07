@@ -153,6 +153,7 @@ class TutorRequestPendingEntry {
     this.requesterName = '',
     this.requesterUserId = '',
     this.requestStatus = '',
+    this.paymentMethod = '',
   });
 
   final String requestReference;
@@ -162,6 +163,7 @@ class TutorRequestPendingEntry {
   final String requesterName;
   final String requesterUserId;
   final String requestStatus;
+  final String paymentMethod;
 
   factory TutorRequestPendingEntry.fromJson(Map<String, dynamic> json) {
     return TutorRequestPendingEntry(
@@ -177,6 +179,10 @@ class TutorRequestPendingEntry {
       requesterName: _storedRequesterName(json),
       requesterUserId: json['requester_user_id']?.toString().trim() ?? '',
       requestStatus: json['request_status']?.toString().trim() ?? '',
+      paymentMethod: (json['payment_method'] ?? json['paymentMethod'] ?? json['method'])
+          ?.toString()
+          .trim() ??
+          '',
     );
   }
 
@@ -188,6 +194,7 @@ class TutorRequestPendingEntry {
         if (requesterName.isNotEmpty) 'requester_name': requesterName,
         if (requesterUserId.isNotEmpty) 'requester_user_id': requesterUserId,
         if (requestStatus.isNotEmpty) 'request_status': requestStatus,
+        if (paymentMethod.isNotEmpty) 'payment_method': paymentMethod,
       };
 }
 

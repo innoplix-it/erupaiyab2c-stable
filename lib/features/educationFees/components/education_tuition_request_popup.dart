@@ -76,13 +76,12 @@ class EducationTuitionRequestPopup extends StatelessWidget {
     if (amount == null) return null;
     return NumberFormat.currency(
       locale: 'en_IN',
-      symbol: '\u20B9',
+      symbol: '₹',
       decimalDigits: 0,
     ).format(amount);
   }
 
-  /// Display name in Title Case ("darshan nikam innoplix" ->
-  /// "Darshan Nikam Innoplix").
+
   String get _requester {
     final raw = requesterName?.trim() ?? '';
     if (raw.isEmpty) return '';

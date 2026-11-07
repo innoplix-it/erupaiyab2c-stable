@@ -18,9 +18,9 @@ import '../models/education_fees_responses.dart';
 /// Unverified-tutor screen (shown after contact pick when the tutor is not
 /// yet verified on eRupaiya).
 ///
-/// Reuses the shared [EducationTutorIdentityCard] and the investment banner
-/// asset, and offers two CTAs: "Ask for KYC" and "Add Details". "Add Details"
-/// opens the existing Enter Recipient Details form.
+/// Reuses the shared [EducationTutorIdentityCard] and offers two CTAs:
+/// "Ask for KYC" and "Add Details". "Add Details" opens the existing Enter
+/// Recipient Details form.
 class EducationTutorUnverifiedView extends HookConsumerWidget {
   const EducationTutorUnverifiedView({
     super.key,
@@ -73,26 +73,20 @@ class EducationTutorUnverifiedView extends HookConsumerWidget {
                       children: [
                         EducationTutorIdentityCard(
                           unit: u,
-                          name: tutorName,
+                          name: '',
                           // No masked account for an unverified tutor.
                           accountLine: '',
+                          // Amount pill renders inside the card
+                          // (Figma order: status -> amount pill -> message).
                           amountLabel: amountLabel,
                           verified: false,
+                          highlightAmount: true,
+                          statusAboveAmount: _getStatusText(),
                           statusLines: [
                             EducationTutorStatusLine(
-                              text: _getStatusText(),
-                              color: const Color(0xFFDC2626),
-                              weight: FontWeight.w600,
-                              fontSize: 14 * u,
-                            ),
-                            EducationTutorStatusLine(
                               text: _getStatusMessage(),
-                              color: const Color(0xFFDC2626),
-                              fontSize: 14 * u,
-                            ),
-                            EducationTutorStatusLine(
-                              text: '$tutorName • $amountLabel',
                               color: const Color(0xFF71717A),
+                              fontSize: 14 * u,
                             ),
                           ],
                         ),
@@ -111,29 +105,29 @@ class EducationTutorUnverifiedView extends HookConsumerWidget {
                           onPressed: asking.value
                               ? null
                               : () async {
-                                  asking.value = true;
-                                  final response = await ref
-                                      .read(educationFeesControllerProvider
-                                          .notifier)
-                                      .askTutorForKyc();
-                                  asking.value = false;
-                                  if (!context.mounted || response == null) {
-                                    return;
-                                  }
-                                  final message =
-                                      response.message?.trim() ?? '';
-                                  AppSnackbar.show(
-                                    message.isNotEmpty
-                                        ? message
-                                        : (response.status
-                                            ? 'KYC reminder notification sent successfully.'
-                                            : AppErrorMessages.generic),
-                                    backgroundColor: response.status
-                                        ? AppColors.primary
-                                        : AppColors.red,
-                                    textColor: Colors.white,
-                                  );
-                                },
+                            asking.value = true;
+                            final response = await ref
+                                .read(educationFeesControllerProvider
+                                .notifier)
+                                .askTutorForKyc();
+                            asking.value = false;
+                            if (!context.mounted || response == null) {
+                              return;
+                            }
+                            final message =
+                                response.message?.trim() ?? '';
+                            AppSnackbar.show(
+                              message.isNotEmpty
+                                  ? message
+                                  : (response.status
+                                  ? 'KYC reminder notification sent successfully.'
+                                  : AppErrorMessages.generic),
+                              backgroundColor: response.status
+                                  ? AppColors.primary
+                                  : AppColors.red,
+                              textColor: Colors.white,
+                            );
+                          },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             side: const BorderSide(color: AppColors.primary),
@@ -192,16 +186,14 @@ class EducationTutorUnverifiedView extends HookConsumerWidget {
   String _getStatusMessage() {
     final msg = apiMessage?.toLowerCase() ?? '';
     if (msg.contains('not registered')) {
-      return apiMessage?.trim() ?? 'This mobile number is not registered with eRupaiya. '
-          'Ask the recipient to register before you add them as a tutor.';
+      return 'This mobile number isn\'t registered on eRupaiya. '
+          'Ask your tutor to install the eRupaiya app or add their bank details to proceed with your $amountLabel payment.';
     }
     if (msg.contains('verified successfully')) {
-      return 'Please ask your tutor to accept the tuition '
-          'fees \n request on erupaiya app';
+      return 'Please ask your tutor to complete their KYC on the eRupaiya app to receive your tuition fee payment.';
     }
     if (verificationStatus == EducationTutorVerificationStatus.notVerified) {
-      return 'Please ask your tutor to accept the tuition '
-          'fees \n request on erupaiya app';
+      return 'Please ask your tutor to complete their KYC on the eRupaiya app to receive your tuition fee payment.';
     }
     return '';
   }

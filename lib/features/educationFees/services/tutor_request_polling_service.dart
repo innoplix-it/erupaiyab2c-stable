@@ -140,6 +140,7 @@ class TutorRequestPollingService {
           TutorRequestEvent(
             requestReference: requestReference,
             messageId: 'polling_${DateTime.now().millisecondsSinceEpoch}',
+            paymentMethod: '',
           ),
         );
       }

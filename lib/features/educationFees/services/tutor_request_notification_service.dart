@@ -260,6 +260,7 @@ class TutorRequestNotificationService {
     String requesterName = '',
     String requesterUserId = '',
     String requestStatus = '',
+    String paymentMethod = '',
     String messageId = 'background_verified',
   }) async {
     if (requestReference.isEmpty) return;
@@ -282,6 +283,7 @@ class TutorRequestNotificationService {
         subject: subject,
         requesterName: requesterName,
         requestStatus: requestStatus,
+        paymentMethod: paymentMethod,
       ),
     );
     await TutorRequestPendingStore.remove(requestReference);
@@ -506,6 +508,7 @@ class TutorRequestNotificationService {
       subject: _feeTypeFrom(d),
       requesterName: _requesterNameFrom(d),
       requestStatus: _firstNonEmpty(d, ['request_status', 'status']),
+      paymentMethod: _firstNonEmpty(d, ['payment_method', 'paymentMethod', 'method']),
       forced: force,
       sourceRequestKey: sourceRequestKey,
     );
@@ -538,6 +541,7 @@ class TutorRequestNotificationService {
       subject: pick((e) => e.subject),
       requesterName: pick((e) => e.requesterName),
       requestStatus: pick((e) => e.requestStatus),
+      paymentMethod: pick((e) => e.paymentMethod),
       forced: forced,
       sourceRequestKey: alias,
     );
@@ -822,6 +826,7 @@ class TutorRequestNotificationService {
           subject: data.subject,
           requesterName: data.requesterName,
           requestStatus: data.requestStatus,
+          paymentMethod: data.paymentMethod,
           forced: true,
         ),
       );
@@ -1144,6 +1149,7 @@ class TutorRequestEvent {
     this.subject = '',
     this.requesterName = '',
     this.requestStatus = '',
+    this.paymentMethod = '',
     this.forced = false,
     this.sourceRequestKey = '',
     this.notificationId,
@@ -1155,6 +1161,7 @@ class TutorRequestEvent {
   final String subject;
   final String requesterName;
   final String requestStatus;
+  final String paymentMethod;
 
   /// True for notification tap / foreground FCM. Bypasses sender-device skip.
   final bool forced;

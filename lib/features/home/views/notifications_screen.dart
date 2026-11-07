@@ -827,7 +827,6 @@ String _relativeAge(DateTime? dateTime) {
   if (dateTime == null) return '';
   final diff = DateTime.now().difference(dateTime);
   if (diff.inDays >= 1) return '${diff.inDays}d';
-  if (diff.inHours >= 1) return '${diff.inHours}h';
   if (diff.inMinutes >= 1) return '${diff.inMinutes}m';
   return 'now';
 }

@@ -22,9 +22,8 @@ import '../models/education_fees_responses.dart';
 import 'education_tutor_profile_view.dart';
 
 String _formatElapsed(int seconds) {
-  final m = (seconds ~/ 60).toString().padLeft(2, '0');
-  final s = (seconds % 60).toString().padLeft(2, '0');
-  return '$m:$s';
+  final minutes = seconds ~/ 60;
+  return '$minutes min';
 }
 
 enum _TutorRequestPhase {
