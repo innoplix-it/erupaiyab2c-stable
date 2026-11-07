@@ -244,6 +244,7 @@ class TutorRequestNotificationService {
         fallback: d.fallback,
         fromTap: d.fromTap,
         sourceRequestKey: d.sourceRequestKey,
+        trustFallback: d.trustFallback,
       );
     }
   }
@@ -353,6 +354,8 @@ class TutorRequestNotificationService {
         String messageId = '',
         bool force = true,
         bool fromTap = false,
+        TutorRequestEvent? fallback,
+        bool trustFallback = false,
       }) async {
     if (!isTutorRequestPayload(data)) {
       logger.info('FCM payload is not a tutor request, skipping');
@@ -367,19 +370,23 @@ class TutorRequestNotificationService {
     final sourceKey = looksLikeInternalRequestId(requestReference)
         ? requestReference
         : '';
+    final fallbackEvent = trustFallback && fallback != null
+        ? fallback
+        : _eventFromMap(
+            requestReference,
+            messageId,
+            data,
+            force,
+            sourceRequestKey: sourceKey,
+          );
     return _processRequestReference(
       requestReference,
       messageId: messageId,
       force: force,
       fromTap: fromTap,
       sourceRequestKey: sourceKey,
-      fallback: _eventFromMap(
-        requestReference,
-        messageId,
-        data,
-        force,
-        sourceRequestKey: sourceKey,
-      ),
+      fallback: fallbackEvent,
+      trustFallback: trustFallback,
     );
   }
 
@@ -648,6 +655,7 @@ class TutorRequestNotificationService {
             fromTap: fromTap,
             fallback: fallback,
             sourceRequestKey: sourceRequestKey,
+            trustFallback: trustFallback,
           ),
         );
         logger.info('AUTH_NOT_READY queued: $requestReference');
@@ -657,11 +665,18 @@ class TutorRequestNotificationService {
         return TutorTapOpenResult.skipped;
       }
 
-      // Item already came from the received PENDING list.
+      // Item already came from the received PENDING list or Alerts tap with extracted data.
+      // When trustFallback is true, skip all API lookups and use the fallback event directly.
       if (trustFallback && fallback != null) {
-        logger.info('POPUP_FROM_RECEIVED_LIST: $requestReference');
+        logger.info('POPUP_FROM_TRUSTED_FALLBACK: $requestReference');
         _queuePopup(fallback);
         return TutorTapOpenResult.openedPopup;
+      }
+
+      // Skip received-requests lookup when trustFallback is true (Alerts tap)
+      if (trustFallback) {
+        logger.warning('TRUST_FALLBACK_WITHOUT_DATA: $requestReference');
+        return TutorTapOpenResult.unresolved;
       }
 
       final lookup = await _lookupInReceivedList(requestReference, messageId);
@@ -698,7 +713,8 @@ class TutorRequestNotificationService {
       }
 
       // Confirm business status for a full EDUTR tap key via request-status.
-      if (fromTap || force) {
+      // Skip when trustFallback is true (Alerts tap with extracted data).
+      if ((fromTap || force) && !trustFallback) {
         final statusLookup =
             await _resolveViaRequestStatus(requestReference, messageId);
         if (statusLookup.event != null) {
@@ -1099,6 +1115,7 @@ class _DeferredTutorRequest {
     this.fromTap = false,
     this.fallback,
     this.sourceRequestKey = '',
+    this.trustFallback = false,
   });
 
   final String requestReference;
@@ -1107,6 +1124,7 @@ class _DeferredTutorRequest {
   final bool fromTap;
   final TutorRequestEvent? fallback;
   final String sourceRequestKey;
+  final bool trustFallback;
 }
 
 /// Outcome of an Alerts / notification tap open attempt.

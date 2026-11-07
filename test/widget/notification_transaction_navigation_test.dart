@@ -5,6 +5,7 @@ import 'package:e_rupaiya/features/educationFees/controllers/education_fees_cont
 import 'package:e_rupaiya/features/educationFees/models/education_fees_responses.dart';
 import 'package:e_rupaiya/features/educationFees/repositories/education_fees_repository.dart';
 import 'package:e_rupaiya/features/educationFees/services/tutor_request_notification_service.dart';
+import 'package:e_rupaiya/features/educationFees/widgets/tutor_request_notification_listener.dart';
 import 'package:e_rupaiya/features/home/controllers/home_controller.dart';
 import 'package:e_rupaiya/features/home/controllers/notifications_controller.dart';
 import 'package:e_rupaiya/features/home/helpers/bill_reminder_payment.dart';
@@ -514,7 +515,9 @@ Future<_Harness> _pump(
             (ref) => _FakeBillerDetailController(harness.selectedBillers),
           ),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: TutorRequestNotificationListener(
+          child: MaterialApp.router(routerConfig: router),
+        ),
       ),
     ),
   );
@@ -1731,6 +1734,8 @@ void main() {
 
       await tester.tap(find.text('Pay Now'));
       await _settleNavigation(tester);
+      // Drain the 600ms retry timer from the notification listener
+      await tester.pump(const Duration(milliseconds: 700));
 
       expect(harness.home.requestedPages, isEmpty);
       expect(harness.selectedBillers, isEmpty);
@@ -1839,6 +1844,63 @@ void main() {
 
       expect(find.text('Complete'), findsOneWidget);
       expect(find.text('Pay Now'), findsNothing);
+    });
+
+    testWidgets(
+        'Pending Education notification tap opens popup without API calls',
+        (tester) async {
+      const requestRef = 'EDUTR-NO-API-TAP';
+      final educationRepo = _FakeEducationFeesRepository(
+        requestReference: requestRef,
+        status: 'PENDING',
+      );
+      TutorRequestNotificationService().debugReset(
+        repository: educationRepo,
+        authChecker: () async => true,
+      );
+      addTearDown(() {
+        TutorRequestNotificationService().debugReset(
+          authChecker: () async => true,
+        );
+      });
+
+      await _pump(
+        tester,
+        items: [
+          _notification(
+            'edu-no-api',
+            title: 'New Education Payment Request',
+            subtitle:
+                'You have received an education payment request of \u20B91.00.',
+            requestReference: requestRef,
+            requestStatus: 'PENDING',
+            type: 'tutor_request',
+          ),
+        ],
+        educationRepository: educationRepo,
+      );
+
+      expect(find.text('Pay Now'), findsOneWidget);
+
+      // Record API call count before tap
+      final callsBeforeTap = educationRepo.receivedRequestCalls;
+      final statusBeforeTap = educationRepo.statusCalls;
+
+      // Tap the Pay Now button - should open popup WITHOUT API calls on tap
+      await tester.tap(find.text('Pay Now'));
+      await tester.pump();
+
+      // Verify NO API calls were made on the tap itself
+      // (Popup listener may fetch data after popup opens, which is allowed)
+      expect(educationRepo.receivedRequestCalls, equals(callsBeforeTap));
+      expect(educationRepo.statusCalls, equals(statusBeforeTap));
+
+      // Wait for popup to render and timers to complete
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(milliseconds: 600)); // Wait for listener timer
+
+      // Popup should be shown (Bank Details Request dialog)
+      expect(find.text('Bank Details Request'), findsOneWidget);
     });
   });
 }

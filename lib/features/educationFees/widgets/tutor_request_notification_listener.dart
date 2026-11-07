@@ -242,7 +242,9 @@ class _TutorRequestNotificationListenerState
       return;
     }
 
-    final fetched = await _fetchReceiverDisplay(event.requestReference);
+    final fetched = event.forced
+        ? null
+        : await _fetchReceiverDisplay(event.requestReference);
     final amount = double.tryParse(
       _filled(fetched?.amount, event.amount),
     );

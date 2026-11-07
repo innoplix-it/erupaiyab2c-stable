@@ -116,6 +116,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   /// Pay Now → always open existing popup. Complete only after Accept/Decline
   /// (or when the Alerts card already has a non-PENDING status).
+  /// NO API calls on tap - opens popup immediately with available data.
   Future<void> _openEducationPaymentRequest(NotificationItem item) async {
     final reference = item.educationRequestReference;
     if (reference == null || reference.isEmpty) {
@@ -143,19 +144,49 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         'ALERTS_EDUCATION_TAP: notificationId=${item.id} '
         'reference=$reference internalId=${internalId ?? ""}',
       );
-      final openResult =
-          await TutorRequestNotificationService().handleOpenedData(
-        {
-          'request_reference': reference,
-          if (internalId != null && internalId != reference)
-            'request_id': internalId,
-          if (type.isNotEmpty) 'type': type,
-          if (type.isNotEmpty) 'notification_type': type,
-          'title': item.title,
-          'message': item.subtitle,
-          'body': item.subtitle,
-        },
+
+      // Extract available data from notification message/title to avoid API calls
+      final amount = _extractAmount(item.subtitle);
+      final feeType = _extractFeeType(item.subtitle);
+      final requesterName = _extractRequesterName(item.title);
+
+      // Direct popup opening with NO API calls on tap.
+      // Create fallback event with extracted data from notification text.
+      final service = TutorRequestNotificationService();
+      final data = {
+        'request_reference': reference,
+        if (internalId != null && internalId != reference)
+          'request_id': internalId,
+        if (type.isNotEmpty) 'type': type,
+        if (type.isNotEmpty) 'notification_type': type,
+        'title': item.title,
+        'message': item.subtitle,
+        'body': item.subtitle,
+        if (amount.isNotEmpty) 'amount': amount,
+        if (feeType.isNotEmpty) 'fee_type': feeType,
+        if (feeType.isNotEmpty) 'subject': feeType,
+        if (requesterName.isNotEmpty) 'requester_name': requesterName,
+      };
+
+      // Create fallback event with extracted data to avoid API calls
+      final fallbackEvent = TutorRequestEvent(
+        requestReference: reference,
         messageId: 'alerts_${item.id}',
+        amount: amount,
+        subject: feeType,
+        requesterName: requesterName,
+        requestStatus: TutorNotificationConstants.statusPending,
+        forced: true,
+        sourceRequestKey: internalId ?? '',
+      );
+
+      final openResult = await service.handleIncomingFromData(
+        data,
+        messageId: 'alerts_${item.id}',
+        fromTap: true,
+        force: true,
+        fallback: fallbackEvent,
+        trustFallback: true,
       );
       if (!mounted) return;
       if (openResult == TutorTapOpenResult.openedPopup) {
@@ -171,6 +202,55 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     } finally {
       _isOpening = false;
     }
+  }
+
+  /// Extract amount from notification message (e.g., "₹5,000.00" or "5000")
+  String _extractAmount(String? message) {
+    if (message == null || message.isEmpty) return '';
+    final text = message.trim();
+    // Match ₹ symbol followed by digits with optional commas and decimals
+    final rupeeMatch = RegExp(r'₹\s*[\d,]+\.?\d*').firstMatch(text);
+    if (rupeeMatch != null) {
+      return rupeeMatch.group(0)!.replaceAll(',', '').replaceAll('₹', '').trim();
+    }
+    // Match plain number with optional decimals (fallback)
+    final numberMatch = RegExp(r'\b\d+\.?\d*\b').firstMatch(text);
+    if (numberMatch != null) {
+      return numberMatch.group(0)!;
+    }
+    return '';
+  }
+
+  /// Extract fee type from notification message (e.g., "tuition fees", "hostel fees")
+  String _extractFeeType(String? message) {
+    if (message == null || message.isEmpty) return '';
+    final text = message.toLowerCase();
+    final feeTypes = ['tuition fees', 'hostel fees', 'exam fees', 'library fees', 'lab fees'];
+    for (final type in feeTypes) {
+      if (text.contains(type)) {
+        return type;
+      }
+    }
+    // Check for "education payment" pattern
+    if (text.contains('education payment')) return 'education fees';
+    // Generic fallback for any "fee" mention
+    if (text.contains('fee')) return 'fees';
+    return '';
+  }
+
+  /// Extract requester name from notification title (e.g., "Darshan Nikam has requested...")
+  String _extractRequesterName(String? title) {
+    if (title == null || title.isEmpty) return '';
+    final text = title.trim();
+    // Match pattern like "Name has requested" or "Name wants to pay"
+    final nameMatch = RegExp(r'^([A-Za-z\s]+?)\s+(has requested|wants to pay|requested)')
+        .firstMatch(text);
+    if (nameMatch != null) {
+      return nameMatch.group(1)!.trim();
+    }
+    // For generic titles like "New Education Payment Request", return empty
+    // The popup handles empty names gracefully
+    return '';
   }
 
   void _rememberEducationRequestStatus(String reference, String status) {
