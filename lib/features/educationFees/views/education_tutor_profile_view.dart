@@ -182,6 +182,58 @@ class _EducationTutorProfileViewState
     ]);
   }
 
+  /// Display masked PAN on profile screen.
+  String _shownPan() {
+    final raw = _filled([
+      widget.panDetails,
+      widget.tutorDetails?.panMasked,
+      widget.tutorDetails?.pan,
+    ]);
+    if (raw.isEmpty) return 'NA';
+    return _maskPan(raw);
+  }
+
+  String _maskPan(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed.toUpperCase() == 'NA') return 'NA';
+    if (trimmed.contains('*') || RegExp(r'[xX]').hasMatch(trimmed)) {
+      return trimmed;
+    }
+    if (trimmed.length >= 10) {
+      return '${trimmed.substring(0, 5)}****${trimmed.substring(trimmed.length - 1)}';
+    }
+    if (trimmed.length > 4) {
+      return '${trimmed.substring(0, 4)}****';
+    }
+    return trimmed;
+  }
+
+  /// Display masked IFSC code on profile screen (e.g. BARB0XXXXXX).
+  String _shownIfsc() {
+    final raw = _filled([
+      widget.ifscCode,
+      widget.tutorDetails?.ifsc,
+    ]);
+    if (raw.isEmpty) return 'NA';
+    return _maskIfsc(raw);
+  }
+
+  String _maskIfsc(String value) {
+    final trimmed = value.trim().toUpperCase();
+    if (trimmed.isEmpty || trimmed == 'NA') return 'NA';
+    if (trimmed.contains('*') || trimmed.contains('X')) return trimmed;
+    if (trimmed.length >= 11) {
+      return '${trimmed.substring(0, 5)}XXXXXX';
+    }
+    if (trimmed.length > 5) {
+      return '${trimmed.substring(0, 5)}${'X' * (trimmed.length - 5)}';
+    }
+    if (trimmed.length > 4) {
+      return '${trimmed.substring(0, 4)}${'X' * (trimmed.length - 4)}';
+    }
+    return trimmed;
+  }
+
   /// First non-empty value. "NA" is only a display placeholder.
   String _filled(List<String?> values) {
     for (final value in values) {
@@ -279,7 +331,7 @@ class _EducationTutorProfileViewState
                                     child: EducationTutorDetailCell(
                                       unit: u,
                                       label: 'PAN Details',
-                                      value: _value(widget.panDetails),
+                                      value: _shownPan(),
                                     ),
                                   ),
                                   Expanded(
@@ -300,8 +352,7 @@ class _EducationTutorProfileViewState
                                     child: EducationTutorDetailCell(
                                       unit: u,
                                       label: 'IFSC Code',
-                                      value: _value(widget.ifscCode ??
-                                          widget.tutorDetails?.ifsc),
+                                      value: _shownIfsc(),
                                     ),
                                   ),
                                   Expanded(

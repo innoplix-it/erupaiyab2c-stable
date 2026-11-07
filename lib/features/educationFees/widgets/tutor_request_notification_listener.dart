@@ -10,11 +10,62 @@ import '../components/bank_details_request_popup.dart';
 import '../controllers/education_fees_controller.dart';
 import '../services/tutor_request_notification_service.dart';
 
-/// Root listener: shows the Received popup for a NEW tutor request
-/// (foreground FCM, notification tap, or a not-yet-shown pending request found
-/// on startup / resume). Accept / Decline call the respond-request API.
-/// After a successful Decline, the declined popup is shown on the RECEIVER
-/// device only (the sender never sees it).
+/// Key names the backend may use for each popup field. The first non-empty
+/// match wins; nested objects are searched too.
+const _nameKeys = [
+  'requester_name',
+  'requesterName',
+  'sender_name',
+  'senderName',
+  'requested_by_name',
+  'requested_by',
+  'from_name',
+  'student_name',
+  'parent_name',
+  'payer_name',
+  'user_name',
+  'full_name',
+  'tutor_name',
+  'name',
+];
+
+const _feeKeys = [
+  'fee_type',
+  'feeType',
+  'subject',
+  'purpose',
+  'payment_purpose',
+  'paymentPurpose',
+  'category',
+];
+
+const _methodKeys = [
+  'payment_method',
+  'paymentMethod',
+  'method',
+  'payment_mode',
+  'paymentMode',
+  'pay_method',
+  'payment_type',
+  'paymentType',
+  'mode',
+];
+
+const _statusKeys = [
+  'payment_status',
+  'paymentStatus',
+  'request_status',
+  'status',
+];
+
+const _amountKeys = [
+  'amount',
+  'fee_amount',
+  'tuition_amount',
+  'requested_amount',
+];
+
+
 class TutorRequestNotificationListener extends ConsumerStatefulWidget {
   const TutorRequestNotificationListener({
     super.key,
@@ -204,6 +255,22 @@ class _TutorRequestNotificationListenerState
     }
   }
 
+  /// True when the event is missing any field the popup displays.
+  bool _hasMissingDisplayField(TutorRequestEvent event) {
+    return event.requesterName.trim().isEmpty ||
+        event.subject.trim().isEmpty ||
+        event.amount.trim().isEmpty ||
+        event.paymentMethod.trim().isEmpty ||
+        event.requestStatus.trim().isEmpty;
+  }
+
+  /// "₹2,000.00" / "2000" / "2000.00" -> 2000.0 (null when not a number).
+  double? _parseAmount(String raw) {
+    final cleaned = raw.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (cleaned.isEmpty) return null;
+    return double.tryParse(cleaned);
+  }
+
   Future<void> _presentReceivedPopup(TutorRequestEvent event) async {
     logger.info('PRESENT_RECEIVED_POPUP_CALLED: ${event.requestReference}');
 
@@ -236,23 +303,23 @@ class _TutorRequestNotificationListenerState
       return;
     }
 
-    final fetched = event.forced
-        ? null
-        : await _fetchReceiverDisplay(event.requestReference);
-    final amount = double.tryParse(
-      _filled(fetched?.amount, event.amount),
-    );
-    final requesterName = _optional(_filled(fetched?.tutorName, event.requesterName));
-    final purpose = _optional(_filled(fetched?.feeType, event.subject));
-    final statusLabel = _optional(
-      _filled(fetched?.status, event.requestStatus),
-    );
-    final paymentMethod = _optional(
-      _filled(fetched?.paymentMethod, event.paymentMethod),
-    );
+    // Alerts / FCM events carry only what the notification payload had, so a
+    // field can be blank. Fetch from the API whenever the event is not forced
+    // OR is missing a displayed field.
+    final needsFetch = !event.forced || _hasMissingDisplayField(event);
+    final fetched =
+    needsFetch ? await _fetchReceiverDisplay(event.requestReference) : null;
+
+    final amount = _parseAmount(_filled(fetched?.amount, event.amount));
+    final requesterName = _filled(fetched?.tutorName, event.requesterName);
+    final purpose = _filled(fetched?.feeType, event.subject);
+    final statusLabel = _filled(fetched?.status, event.requestStatus);
+    final paymentMethod = _filled(fetched?.paymentMethod, event.paymentMethod);
     logger.info(
       'RECEIVER_POPUP_FIELDS: ${event.requestReference} '
-      'name=${requesterName != null} fee=${purpose != null}',
+          'name=${requesterName.isNotEmpty} fee=${purpose.isNotEmpty} '
+          'amount=${amount != null} method=${paymentMethod.isNotEmpty} '
+          'status=${statusLabel.isNotEmpty} fetched=${fetched != null}',
     );
 
     try {
@@ -260,14 +327,14 @@ class _TutorRequestNotificationListenerState
       if (!popupContext.mounted) return;
       final resultFuture = showBankDetailsRequestPopup(
         popupContext,
-        requesterName: requesterName,
-        feeType: purpose,
-        amount: amount,
-        paymentPurpose: purpose,
-        paymentMethod: paymentMethod,
-        paymentStatus: statusLabel,
-        requestReference: event.requestReference,
-        notificationId: event.notificationId,
+        requesterName: _optional(requesterName), // Sender name from API
+        feeType: _optional(purpose), // Fee type / subject from API
+        amount: amount, // Payment amount from API
+        paymentPurpose: _optional(purpose), // Payment purpose (same as feeType)
+        paymentMethod: _optional(paymentMethod), // Payment method from API
+        paymentStatus: _optional(statusLabel), // Payment status from API
+        requestReference: event.requestReference, // Request reference ID
+        notificationId: event.notificationId, // Notification ID (alerts only)
       );
       _notificationService.markPopupPresented(event.requestReference);
       _navigatorRetryAttempts = 0;
@@ -282,7 +349,7 @@ class _TutorRequestNotificationListenerState
       if (result == true || result == false) {
         logger.info(
           'SHARE_DETAILS_COMPLETE: ${event.requestReference} '
-          'source=${event.sourceRequestKey}',
+              'source=${event.sourceRequestKey}',
         );
         _notificationService.markRequestHandled(
           event.requestReference,
@@ -330,7 +397,39 @@ class _TutorRequestNotificationListenerState
     });
   }
 
-  /// Loads `tutor_name` and `fee_type` for this request before the popup opens.
+  bool _isComplete(_ReceiverDisplay d) {
+    return d.tutorName.isNotEmpty &&
+        d.feeType.isNotEmpty &&
+        d.amount.isNotEmpty &&
+        d.status.isNotEmpty &&
+        d.paymentMethod.isNotEmpty;
+  }
+
+  /// First non-empty value for [keys] on this map, then inside nested maps.
+  String _pick(Map<String, dynamic> map, List<String> keys, {int depth = 0}) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value is Map || value is List || value == null) continue;
+      final text = value.toString().trim();
+      if (text.isNotEmpty && text.toLowerCase() != 'null') return text;
+    }
+    if (depth > 3) return '';
+    for (final value in map.values) {
+      if (value is Map) {
+        final nested = _pick(
+          Map<String, dynamic>.from(value),
+          keys,
+          depth: depth + 1,
+        );
+        if (nested.isNotEmpty) return nested;
+      }
+    }
+    return '';
+  }
+
+  /// Loads name, fee type, amount, status and payment method for this request
+  /// before the popup opens. Uses the received-requests list first, then fills
+  /// any blank with the request-status API.
   Future<_ReceiverDisplay?> _fetchReceiverDisplay(String reference) async {
     if (reference.isEmpty) return null;
     _ReceiverDisplay? found;
@@ -338,48 +437,40 @@ class _TutorRequestNotificationListenerState
       final response = await ref
           .read(educationFeesRepositoryProvider)
           .fetchTutorReceivedRequests(
-            page: 1,
-            perPage: 50,
-            status: TutorNotificationConstants.statusPending,
-          );
+        page: 1,
+        perPage: 50,
+        status: TutorNotificationConstants.statusPending,
+      );
       for (final request
-          in response.data?.requests ?? const <Map<String, dynamic>>[]) {
+      in response.data?.requests ?? const <Map<String, dynamic>>[]) {
         final requestReference = (request['request_reference'] ??
-                request['requestReference'] ??
-                request['tutor_request_reference'])
+            request['requestReference'] ??
+            request['tutor_request_reference'])
             ?.toString()
             .trim();
-        if (requestReference != reference) continue;
+        final requestId =
+            (request['request_id'] ?? request['id'])?.toString().trim();
+        if (requestReference != reference && requestId != reference) continue;
+        // Key names only (no personal values) so a missing field can be traced.
+        logger.info('RECEIVER_ROW_KEYS: $reference ${request.keys.join(",")}');
         found = _ReceiverDisplay(
-          tutorName: _filled(
-            request['requester_name']?.toString(),
-            _filled(
-              request['sender_name']?.toString(),
-              request['tutor_name']?.toString() ?? '',
-            ),
-          ),
-          feeType:
-              (request['fee_type'] ?? request['subject'])?.toString().trim() ??
-                  '',
-          amount: request['amount']?.toString().trim() ?? '',
-          status: (request['request_status'] ?? request['status'])
-                  ?.toString()
-                  .trim() ??
-              '',
-          paymentMethod: (request['payment_method'] ?? request['paymentMethod'] ?? request['method'])
-                  ?.toString()
-                  .trim() ??
-              '',
+          tutorName: _pick(request, _nameKeys),
+          feeType: _pick(request, _feeKeys),
+          amount: _pick(request, _amountKeys),
+          status: _pick(request, _statusKeys),
+          paymentMethod: _pick(request, _methodKeys),
         );
         break;
+      }
+      if (found == null) {
+        logger.info('RECEIVER_ROW_NOT_IN_PENDING_LIST: $reference');
       }
     } catch (e) {
       logger.warning('RECEIVER_POPUP_LIST_FETCH_FAILED: $reference');
     }
 
-    if (found != null &&
-        found.tutorName.isNotEmpty &&
-        found.feeType.isNotEmpty) {
+    // Only skip the status API when EVERY displayed field is already filled.
+    if (found != null && _isComplete(found)) {
       return found;
     }
 
@@ -388,13 +479,22 @@ class _TutorRequestNotificationListenerState
           .read(educationFeesRepositoryProvider)
           .fetchTutorRequestStatus(reference);
       final data = status.data;
+      logger.info(
+        'RECEIVER_STATUS_DATA: $reference '
+            'present=${data != null} '
+            'name=${(data?.requesterName ?? '').isNotEmpty} '
+            'fee=${(data?.subject ?? '').isNotEmpty} '
+            'amount=${(data?.amount ?? '').isNotEmpty} '
+            'method=${(data?.paymentMethod ?? '').isNotEmpty} '
+            'status=${(data?.requestStatus ?? '').isNotEmpty}',
+      );
       if (data == null) return found;
       return _ReceiverDisplay(
-        tutorName: _filled(data.requesterName, found?.tutorName ?? ''),
-        feeType: _filled(data.subject, found?.feeType ?? ''),
-        amount: _filled(data.amount, found?.amount ?? ''),
-        status: _filled(data.requestStatus, found?.status ?? ''),
-        paymentMethod: _filled(data.paymentMethod, found?.paymentMethod ?? ''),
+        tutorName: _filled(found?.tutorName, data.requesterName),
+        feeType: _filled(found?.feeType, data.subject),
+        amount: _filled(found?.amount, data.amount),
+        status: _filled(found?.status, data.requestStatus),
+        paymentMethod: _filled(found?.paymentMethod, data.paymentMethod),
       );
     } catch (e) {
       logger.warning('RECEIVER_POPUP_STATUS_FETCH_FAILED: $reference');

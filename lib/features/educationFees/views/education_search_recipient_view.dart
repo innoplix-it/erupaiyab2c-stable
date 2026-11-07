@@ -174,15 +174,16 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                 tutorDetails: data,
                 // Saved-tutor extras, still forwarded to the tutor profile.
                 maskedAccount: pickedTutor.value?.accountMasked,
-                panDetails: pickedTutor.value?.panMasked,
-                branch: pickedTutor.value?.branch,
+                panDetails:
+                    pickedTutor.value?.panMasked ?? data.panMasked ?? data.pan,
+                branch: pickedTutor.value?.branch ?? data.branch,
                 // Subject/fee type from the amount screen selection.
                 subject: ref
-                    .read(educationFeesControllerProvider)
-                    .feeType
-                    ?.trim()
-                    .isNotEmpty ==
-                    true
+                            .read(educationFeesControllerProvider)
+                            .feeType
+                            ?.trim()
+                            .isNotEmpty ==
+                        true
                     ? ref.read(educationFeesControllerProvider).feeType!.trim()
                     : null,
               ),

@@ -23,11 +23,21 @@ void _debugLog(String message) {
   debugPrint(message);
 }
 
+enum RefreshOutcome {
+  refreshed,
+  rejected,
+  unavailable,
+}
+
 class DioInterceptors extends InterceptorsWrapper {
   final secureStorage = SecureStorageService.instance;
-  static Completer<bool>? _refreshCompleter;
+  static Completer<RefreshOutcome>? _refreshCompleter;
   static bool _handlingServerUnavailable = false;
   static bool _handlingTerminalExpiry = false;
+
+  /// Test hook. Production refresh talks to `/api/auth/refresh`.
+  @visibleForTesting
+  static Future<RefreshOutcome> Function()? debugRefreshOverride;
 
   /// AUD-037 G1: app-wiring hook registered by `routerProvider` so the
   /// terminal session-expiration path can reset the in-memory AuthController
@@ -205,15 +215,18 @@ class DioInterceptors extends InterceptorsWrapper {
     return dio;
   }
 
-  Future<bool> _refreshAccessToken() async {
+  Future<RefreshOutcome> _refreshAccessToken() async {
+    if (debugRefreshOverride != null) {
+      return debugRefreshOverride!();
+    }
     if (_refreshCompleter != null) {
       return _refreshCompleter!.future;
     }
-    _refreshCompleter = Completer<bool>();
+    _refreshCompleter = Completer<RefreshOutcome>();
     try {
       final refreshToken = await secureStorage.read(key: 'refreshToken');
       if (refreshToken == null || refreshToken.isEmpty) {
-        _refreshCompleter!.complete(false);
+        _refreshCompleter!.complete(RefreshOutcome.rejected);
         return _refreshCompleter!.future;
       }
 
@@ -231,7 +244,10 @@ class DioInterceptors extends InterceptorsWrapper {
       final expiresIn = data['expires_in'] as int?;
 
       if (!success || accessToken == null || expiresIn == null) {
-        _refreshCompleter!.complete(false);
+        final outcome = _isSessionEndedMessage(payload?['message'])
+            ? RefreshOutcome.rejected
+            : RefreshOutcome.unavailable;
+        _refreshCompleter!.complete(outcome);
         return _refreshCompleter!.future;
       }
 
@@ -253,10 +269,14 @@ class DioInterceptors extends InterceptorsWrapper {
           value: refreshExpiry.toIso8601String(),
         );
       }
-      _refreshCompleter!.complete(true);
+      _refreshCompleter!.complete(RefreshOutcome.refreshed);
+      return _refreshCompleter!.future;
+    } on DioException catch (error) {
+      final outcome = _refreshOutcomeFromError(error);
+      _refreshCompleter?.complete(outcome);
       return _refreshCompleter!.future;
     } catch (_) {
-      _refreshCompleter?.complete(false);
+      _refreshCompleter?.complete(RefreshOutcome.unavailable);
       return _refreshCompleter!.future;
     } finally {
       _refreshCompleter = null;
@@ -282,11 +302,41 @@ class DioInterceptors extends InterceptorsWrapper {
     return null;
   }
 
-  Future<bool> _refreshAccessTokenWithRetry() async {
+  Future<RefreshOutcome> _refreshAccessTokenWithRetry() async {
     final refreshed = await _refreshAccessToken();
-    if (refreshed) return true;
+    if (refreshed != RefreshOutcome.unavailable) return refreshed;
     await Future.delayed(const Duration(milliseconds: 300));
     return _refreshAccessToken();
+  }
+
+  /// The server refused this device's refresh token. That is the other-device
+  /// login: Device B replaced the session, so Device A cannot mint a new one.
+  RefreshOutcome _refreshOutcomeFromError(DioException error) {
+    final code = error.response?.statusCode;
+    if (code == 401 || code == 403) return RefreshOutcome.rejected;
+    if (code == 404 && _isSessionExpiredNotFound(error.response?.data)) {
+      return RefreshOutcome.rejected;
+    }
+    if (_isSessionEndedMessage(
+      ErrorMessageUtils.fromResponseData(error.response?.data),
+    )) {
+      return RefreshOutcome.rejected;
+    }
+    return RefreshOutcome.unavailable;
+  }
+
+  bool _isSessionEndedMessage(Object? message) {
+    final text = message?.toString().toLowerCase().replaceAll(
+          RegExp(r'\s+'),
+          ' ',
+        ).trim() ??
+        '';
+    if (text.isEmpty) return false;
+    return text.contains('session expired') ||
+        text.contains('logged in on another') ||
+        text.contains('another device') ||
+        text.contains('token revoked') ||
+        text.contains('refresh token') && text.contains('invalid');
   }
 
   Future<bool?> _isRefreshTokenExpired() async {
@@ -391,11 +441,19 @@ class DioInterceptors extends InterceptorsWrapper {
       final isRefreshCall = err.requestOptions.extra['isRefresh'] == true;
       if (!alreadyRetried && !isRefreshCall) {
         final refreshed = await _refreshAccessTokenWithRetry();
-        if (refreshed) {
+        if (refreshed == RefreshOutcome.refreshed) {
           final options = err.requestOptions;
           options.extra['retried'] = true;
           final response = await DioService.instance.client.fetch(options);
           handler.resolve(response);
+          return;
+        }
+        if (refreshed == RefreshOutcome.rejected) {
+          // Device B signed in with the same account. This device's refresh
+          // token is no longer accepted, even if its local expiry is later.
+          _showAppError(AppErrorMessages.sessionExpired);
+          await _handleTerminalSessionExpiry();
+          super.onError(err, handler);
           return;
         }
       }

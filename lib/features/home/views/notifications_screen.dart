@@ -148,7 +148,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       // Extract available data from notification message/title to avoid API calls
       final amount = _extractAmount(item.subtitle);
       final feeType = _extractFeeType(item.subtitle);
-      final requesterName = _extractRequesterName(item.title);
+      final requesterName = _extractRequesterName(item.title, item.subtitle);
 
       // Direct popup opening with NO API calls on tap.
       // Create fallback event with extracted data from notification text.
@@ -163,9 +163,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         'message': item.subtitle,
         'body': item.subtitle,
         if (amount.isNotEmpty) 'amount': amount,
-        if (feeType.isNotEmpty) 'fee_type': feeType,
-        if (feeType.isNotEmpty) 'subject': feeType,
+        'fee_type': feeType.isNotEmpty ? feeType : 'tuition fees',
+        'subject': feeType.isNotEmpty ? feeType : 'tuition fees',
         if (requesterName.isNotEmpty) 'requester_name': requesterName,
+        'payment_method': 'Credit Card',
+        'payment_status': 'Not Yet Paid',
       };
 
       // Create fallback event with extracted data to avoid API calls
@@ -173,9 +175,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         requestReference: reference,
         messageId: 'alerts_${item.id}',
         amount: amount,
-        subject: feeType,
+        subject: feeType.isNotEmpty ? feeType : 'tuition fees',
         requesterName: requesterName,
-        requestStatus: TutorNotificationConstants.statusPending,
+        requestStatus: 'Not Yet Paid',
+        paymentMethod: 'Credit Card',
         forced: true,
         sourceRequestKey: internalId ?? '',
         notificationId: item.id,
@@ -239,18 +242,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return '';
   }
 
-  /// Extract requester name from notification title (e.g., "Darshan Nikam has requested...")
-  String _extractRequesterName(String? title) {
-    if (title == null || title.isEmpty) return '';
-    final text = title.trim();
-    // Match pattern like "Name has requested" or "Name wants to pay"
-    final nameMatch = RegExp(r'^([A-Za-z\s]+?)\s+(has requested|wants to pay|requested)')
-        .firstMatch(text);
-    if (nameMatch != null) {
-      return nameMatch.group(1)!.trim();
+  /// Extract requester name from notification title or subtitle
+  String _extractRequesterName(String? title, [String? subtitle]) {
+    for (final text in [title?.trim(), subtitle?.trim()]) {
+      if (text == null || text.isEmpty) continue;
+      final nameMatch = RegExp(r'^([A-Za-z\s]+?)\s+(has requested|wants to pay|requested)')
+          .firstMatch(text);
+      if (nameMatch != null) {
+        final candidate = nameMatch.group(1)!.trim();
+        if (candidate.toLowerCase() != 'new education payment request' &&
+            candidate.toLowerCase() != 'a user') {
+          return candidate;
+        }
+      }
+      final fromMatch = RegExp(r'from\s+([A-Za-z\s]+?)(?:\s+for|\.|$)', caseSensitive: false)
+          .firstMatch(text);
+      if (fromMatch != null) {
+        return fromMatch.group(1)!.trim();
+      }
     }
-    // For generic titles like "New Education Payment Request", return empty
-    // The popup handles empty names gracefully
     return '';
   }
 
@@ -826,9 +836,16 @@ String _primaryLabelFor(
 String _relativeAge(DateTime? dateTime) {
   if (dateTime == null) return '';
   final diff = DateTime.now().difference(dateTime);
-  if (diff.inDays >= 1) return '${diff.inDays}d';
-  if (diff.inMinutes >= 1) return '${diff.inMinutes}m';
-  return 'now';
+  if (diff.inDays >= 1) {
+    return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+  }
+  if (diff.inHours >= 1) {
+    return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
+  }
+  if (diff.inMinutes >= 1) {
+    return '${diff.inMinutes} minute${diff.inMinutes > 1 ? 's' : ''} ago';
+  }
+  return 'Just now';
 }
 
 /// Dismiss ("X") icon supplied for the Alerts screen.

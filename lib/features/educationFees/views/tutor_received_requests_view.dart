@@ -78,6 +78,19 @@ class _TutorReceivedRequestsViewState
         .fetchPendingRequests(refresh: true);
   }
 
+  /// "₹2,000.00" / "2000" / "2000.00" -> 2000.0 (null when not a number).
+  double? _parseAmount(String? raw) {
+    final cleaned = (raw ?? '').replaceAll(RegExp(r'[^0-9.]'), '');
+    if (cleaned.isEmpty) return null;
+    return double.tryParse(cleaned);
+  }
+
+  String? _nonEmpty(String? value) {
+    final v = value?.trim() ?? '';
+    if (v.isEmpty || v.toLowerCase() == 'null') return null;
+    return v;
+  }
+
   Future<void> _autoShowPopupIfNeeded() async {
     if (_hasAutoShownPopup) return;
     final requestReference = widget.autoShowRequestReference;
@@ -99,7 +112,7 @@ class _TutorReceivedRequestsViewState
 
     try {
       final response =
-          await _repository.fetchTutorRequestStatus(requestReference);
+      await _repository.fetchTutorRequestStatus(requestReference);
 
       if (!response.status || response.data == null) {
         logger.warning('NOTIFICATION_TAP_STATUS_API_FAILED: $requestReference');
@@ -128,29 +141,19 @@ class _TutorReceivedRequestsViewState
 
       logger.info('NOTIFICATION_TAP_PENDING_CONFIRMED: $requestReference');
 
-      final amount = double.tryParse(data.amount.trim());
-      final requesterName =
-          data.requesterName.trim().isEmpty ? null : data.requesterName.trim();
-
       if (!mounted) return;
 
-      final purpose =
-          data.subject.trim().isEmpty ? null : data.subject.trim();
-      final statusLabel = data.requestStatus.trim().isEmpty
-          ? null
-          : data.requestStatus.trim();
-      final paymentMethod = data.paymentMethod.trim().isEmpty
-          ? null
-          : data.paymentMethod.trim();
+      // Same fields as the list-tap popup so both behave identically.
+      final purpose = _nonEmpty(data.subject);
       final resultFuture = showBankDetailsRequestPopup(
         context,
-        requesterName: requesterName,
-        feeType: purpose,
-        amount: amount,
-        paymentPurpose: purpose,
-        paymentMethod: paymentMethod,
-        paymentStatus: statusLabel,
-        requestReference: requestReference,
+        requesterName: _nonEmpty(data.requesterName), // Sender name from API
+        feeType: purpose, // Fee type / subject from API
+        amount: _parseAmount(data.amount), // Payment amount from API
+        paymentPurpose: purpose, // Payment purpose (same as feeType)
+        paymentMethod: _nonEmpty(data.paymentMethod), // Payment method from API
+        paymentStatus: _nonEmpty(data.requestStatus), // Payment status from API
+        requestReference: requestReference, // Request reference ID
       );
       _hasAutoShownPopup = true;
       notificationService.markPopupPresented(requestReference);
@@ -170,46 +173,75 @@ class _TutorReceivedRequestsViewState
   }
 
   Future<void> _showRequestDialog(String requestReference) async {
-    final controllerState = ref.watch(tutorReceivedRequestsControllerProvider);
+    // ref.read (not watch): this runs from a tap callback, not from build.
+    final controllerState = ref.read(tutorReceivedRequestsControllerProvider);
     final request = controllerState.requests.firstWhere(
-      (r) => r['request_reference']?.toString() == requestReference,
+          (r) => r['request_reference']?.toString() == requestReference,
       orElse: () => <String, dynamic>{},
     );
-    
-    final amount = double.tryParse(request['amount']?.toString().trim() ?? '');
-    final requesterName = _firstText(request, const [
+
+    var requesterName = _firstText(request, const [
       'requester_name',
       'requesterName',
       'sender_name',
+      'tutor_name',
+      'tutorName',
       'student_name',
       'parent_name',
-      'tutor_name',
       'name',
     ]);
-    final purpose = _firstText(request, const [
-      'fee_type',
+    var purpose = _firstText(request, const [
       'subject',
+      'fee_type',
       'purpose',
     ]);
-    final statusLabel = _firstText(request, const [
+    var statusLabel = _firstText(request, const [
       'request_status',
       'status',
     ]);
-    final paymentMethod = _firstText(request, const [
+    var paymentMethod = _firstText(request, const [
       'payment_method',
       'paymentMethod',
       'method',
     ]);
+    var amount = _parseAmount(request['amount']?.toString());
+
+    // The list payload can miss some fields. Fill the blanks from the same
+    // status API the notification-tap flow uses, so the popup shows the same
+    // content in both behaviours.
+    final missing = requesterName == null ||
+        purpose == null ||
+        statusLabel == null ||
+        paymentMethod == null ||
+        amount == null;
+    if (missing && requestReference.isNotEmpty) {
+      try {
+        final response =
+        await _repository.fetchTutorRequestStatus(requestReference);
+        final data = response.data;
+        if (response.status && data != null) {
+          requesterName ??= _nonEmpty(data.requesterName);
+          purpose ??= _nonEmpty(data.subject);
+          statusLabel ??= _nonEmpty(data.requestStatus);
+          paymentMethod ??= _nonEmpty(data.paymentMethod);
+          amount ??= _parseAmount(data.amount);
+        }
+      } catch (e) {
+        logger.error('LIST_TAP_STATUS_FALLBACK_ERROR: $e', error: e);
+      }
+    }
+
+    if (!mounted) return;
 
     final result = await showBankDetailsRequestPopup(
       context,
-      requesterName: requesterName,
-      feeType: purpose,
-      amount: amount,
-      paymentPurpose: purpose,
-      paymentMethod: paymentMethod,
-      paymentStatus: statusLabel,
-      requestReference: requestReference,
+      requesterName: requesterName, // Sender name from API
+      feeType: purpose, // Fee type / subject from API
+      amount: amount, // Payment amount from API
+      paymentPurpose: purpose, // Payment purpose (same as feeType)
+      paymentMethod: paymentMethod, // Payment method from API
+      paymentStatus: statusLabel, // Payment status from API
+      requestReference: requestReference, // Request reference ID
     );
 
     // Popup now handles Respond API and notification deletion internally.
@@ -228,8 +260,7 @@ class _TutorReceivedRequestsViewState
   }
 
   String _formatAmount(dynamic amount) {
-    final amountStr = amount?.toString().trim() ?? '';
-    final amountValue = double.tryParse(amountStr);
+    final amountValue = _parseAmount(amount?.toString());
     if (amountValue == null) return '';
     return NumberFormat.currency(
       locale: 'en_IN',
@@ -255,11 +286,11 @@ class _TutorReceivedRequestsViewState
         onRefresh: _fetchRequests,
         child: state.isLoading && state.requests.isEmpty
             ? const Center(
-                child: CircularProgressIndicator(),
-              )
+          child: CircularProgressIndicator(),
+        )
             : state.requests.isEmpty
-                ? _buildEmptyState(u)
-                : _buildRequestList(u, state),
+            ? _buildEmptyState(u)
+            : _buildRequestList(u, state),
       ),
     );
   }
@@ -340,9 +371,9 @@ class _TutorReceivedRequestsViewState
     final amount = request['amount']?.toString().trim() ?? '';
     final subject = request['subject']?.toString().trim() ?? '';
     final statusLabel = _firstText(request, const [
-          'request_status',
-          'status',
-        ]) ??
+      'request_status',
+      'status',
+    ]) ??
         '';
     final createdAt = request['created_at']?.toString() ?? '';
 

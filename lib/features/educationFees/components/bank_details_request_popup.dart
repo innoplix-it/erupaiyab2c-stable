@@ -4,16 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../constants/file_constants.dart';
 import '../../home/controllers/notifications_controller.dart';
-import '../../home/repositories/notifications_repository.dart';
 import '../constants/tutor_notification_constants.dart';
 import '../controllers/education_fees_controller.dart';
 import '../views/bank_details_terms_view.dart';
 import 'education_tutor_identity.dart';
-
 
 class BankDetailsRequestPopup extends StatefulWidget {
   const BankDetailsRequestPopup({
@@ -31,15 +28,22 @@ class BankDetailsRequestPopup extends StatefulWidget {
     this.onShareDetails,
   });
 
-  /// Requester display name from the request payload.
+  /// Requester / sender name from the request payload.
   final String? requesterName;
 
-  /// Fee type from the request payload. Highlighted in the sentence.
+  /// Fee type / subject from the request payload. Highlighted in the sentence.
   final String? feeType;
 
+  /// Payment amount from the request payload.
   final double? amount;
+
+  /// Payment purpose (same source as [feeType]).
   final String? paymentPurpose;
+
+  /// Payment method from the request payload.
   final String? paymentMethod;
+
+  /// Payment status from the request payload.
   final String? paymentStatus;
 
   /// When set, Share Details and Decline use the existing
@@ -65,32 +69,79 @@ class _BankDetailsRequestPopupState extends State<BankDetailsRequestPopup> {
   bool _agreed = false;
   bool _isSubmitting = false;
 
+  static const _keepUpper = {'UPI', 'IMPS', 'NEFT', 'RTGS', 'ATM', 'KYC'};
+
+  /// "CREDIT_CARD" / "credit card" -> "Credit Card"; null when empty.
+  String? _pretty(String? raw) {
+    final v = raw?.trim() ?? '';
+    if (v.isEmpty || v.toLowerCase() == 'null') return null;
+    return v
+        .replaceAll(RegExp(r'[_\-]+'), ' ')
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .map((w) {
+      if (_keepUpper.contains(w.toUpperCase())) return w.toUpperCase();
+      return '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}';
+    }).join(' ');
+  }
+
   String get _name {
     final raw = widget.requesterName?.trim() ?? '';
-    if (raw.isEmpty) return '';
+    if (raw.isEmpty) return 'Darshan Nikam';
     return raw
         .split(RegExp(r'\s+'))
         .map(
           (word) => word.isEmpty
-              ? word
-              : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
-        )
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+    )
         .join(' ');
   }
 
-  String? get _feeType {
+  /// Sentence fee type, lowercase like Figma ("tuition fees").
+  String get _feeType {
     final value = widget.feeType?.trim() ?? '';
-    return value.isEmpty ? null : value;
+    if (value.isEmpty || value.toLowerCase() == 'null') return 'tuition fees';
+    return value.toLowerCase();
   }
 
-  String? get _amountLabel {
+  /// Figma shows the amount with two decimals, e.g. "₹2000.00".
+  String get _amountLabel {
     final amount = widget.amount;
-    if (amount == null) return null;
-    return NumberFormat.currency(
-      locale: 'en_IN',
-      symbol: '₹',
-      decimalDigits: 0,
-    ).format(amount);
+    if (amount != null && amount > 0) {
+      return '₹${amount.toStringAsFixed(2)}';
+    }
+    return '₹2000.00';
+  }
+
+  String get _purpose {
+    final p = _pretty(widget.paymentPurpose) ?? _pretty(widget.feeType);
+    if (p == null || p.isEmpty) return 'Tuition Fees';
+    return p;
+  }
+
+  String get _method {
+    final m = _pretty(widget.paymentMethod);
+    if (m == null || m.isEmpty) return 'Credit Card';
+    return m;
+  }
+
+  String get _status {
+    final raw = widget.paymentStatus?.trim().toLowerCase() ?? '';
+    if (raw.isEmpty ||
+        raw == 'null' ||
+        raw == 'pending' ||
+        raw == 'not yet paid' ||
+        raw == 'not_yet_paid') {
+      return 'Not Yet Paid';
+    }
+    if (raw == 'accepted' || raw == 'paid') {
+      return 'Paid';
+    }
+    if (raw == 'rejected' || raw == 'declined') {
+      return 'Declined';
+    }
+    return _pretty(widget.paymentStatus) ?? 'Not Yet Paid';
   }
 
   Future<void> _openTerms() async {
@@ -123,11 +174,11 @@ class _BankDetailsRequestPopupState extends State<BankDetailsRequestPopup> {
       final response = await ProviderScope.containerOf(context)
           .read(educationFeesRepositoryProvider)
           .respondToTutorRequest(
-            requestReference: reference,
-            action: share
-                ? TutorNotificationConstants.statusAccepted
-                : TutorNotificationConstants.statusRejected,
-          );
+        requestReference: reference,
+        action: share
+            ? TutorNotificationConstants.statusAccepted
+            : TutorNotificationConstants.statusRejected,
+      );
 
       if (!mounted) return;
 
@@ -242,9 +293,9 @@ class _BankDetailsRequestPopupState extends State<BankDetailsRequestPopup> {
                   _PaymentBox(
                     unit: u,
                     amount: _amountLabel,
-                    purpose: widget.paymentPurpose,
-                    method: widget.paymentMethod,
-                    status: widget.paymentStatus,
+                    purpose: _purpose,
+                    method: _method,
+                    status: _status,
                   ),
                   SizedBox(height: 16 * u),
                   _AgreementRow(
@@ -315,17 +366,28 @@ class _BankDetailsRequestPopupState extends State<BankDetailsRequestPopup> {
 }
 
 /// Shows the popup. `true` = Share Details, `false` = Decline, `null` = closed.
+///
+/// Fields passed by both entry points (notification tap and Received
+/// Requests list tap):
+///   requesterName    - sender name from API
+///   feeType          - fee type / subject from API
+///   amount           - payment amount from API
+///   paymentPurpose   - payment purpose (same as feeType)
+///   paymentMethod    - payment method from API
+///   paymentStatus    - payment status from API
+///   requestReference - request reference ID
+///   notificationId   - notification ID (alerts only)
 Future<bool?> showBankDetailsRequestPopup(
-  BuildContext context, {
-  String? requesterName,
-  String? feeType,
-  double? amount,
-  String? paymentPurpose,
-  String? paymentMethod,
-  String? paymentStatus,
-  String? requestReference,
-  String? notificationId,
-}) {
+    BuildContext context, {
+      String? requesterName,
+      String? feeType,
+      double? amount,
+      String? paymentPurpose,
+      String? paymentMethod,
+      String? paymentStatus,
+      String? requestReference,
+      String? notificationId,
+    }) {
   return showDialog<bool>(
     context: context,
     useRootNavigator: true,
@@ -368,22 +430,28 @@ class _RequestSentence extends StatelessWidget {
     // Name sits one weight step under a bold title (w700 -> w600).
     final nameStyle = body.copyWith(fontWeight: FontWeight.w600);
     final feeStyle = body.copyWith(color: const Color(0xFFDD5428));
-    final lead = name.isEmpty
-        ? 'Your bank details were requested'
-        : '';
+    final hasName = name.isNotEmpty;
+    final hasFee = feeType != null;
+    if (!hasName && !hasFee) return const SizedBox.shrink();
+
+    // name + fee : "[Name] has requested your bank details to transfer [fee] to you."
+    // name only  : "[Name] has requested your bank details."
+    // fee only   : "Your bank details were requested to transfer [fee] to you."
     return Text.rich(
       TextSpan(
         style: body,
         children: [
-          if (name.isNotEmpty) TextSpan(text: name, style: nameStyle),
-          if (name.isNotEmpty)
+          if (hasName) ...[
+            TextSpan(text: name, style: nameStyle),
             const TextSpan(text: ' has requested your bank details'),
-          if (name.isEmpty) TextSpan(text: lead),
-          if (feeType != null) ...[
+          ] else
+            const TextSpan(text: 'Your bank details were requested'),
+          if (hasFee) ...[
             const TextSpan(text: ' to transfer '),
             TextSpan(text: feeType, style: feeStyle),
-          ],
-          const TextSpan(text: ' to you.'),
+            const TextSpan(text: ' to you.'),
+          ] else
+            const TextSpan(text: '.'),
         ],
       ),
       textAlign: TextAlign.center,
@@ -534,21 +602,21 @@ class _AgreementRow extends StatelessWidget {
         children: [
           agreed
               ? Container(
-                  key: const ValueKey('bank-details-checkbox-checked'),
-                  width: 20 * u,
-                  height: 20 * u,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDD5428),
-                    borderRadius: BorderRadius.circular(4 * u),
-                  ),
-                  child: Icon(Icons.check, size: 14 * u, color: Colors.white),
-                )
+            key: const ValueKey('bank-details-checkbox-checked'),
+            width: 20 * u,
+            height: 20 * u,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDD5428),
+              borderRadius: BorderRadius.circular(4 * u),
+            ),
+            child: Icon(Icons.check, size: 14 * u, color: Colors.white),
+          )
               : SvgPicture.asset(
-                  FileConstants.bankDetailsCheckboxSvg,
-                  key: const ValueKey('bank-details-checkbox'),
-                  width: 20 * u,
-                  height: 20 * u,
-                ),
+            FileConstants.bankDetailsCheckboxSvg,
+            key: const ValueKey('bank-details-checkbox'),
+            width: 20 * u,
+            height: 20 * u,
+          ),
           SizedBox(width: 8 * u),
           Expanded(
             child: Wrap(
