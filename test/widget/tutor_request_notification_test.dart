@@ -238,6 +238,345 @@ void main() {
       );
     });
 
+    test('prefers EDUTR request_reference over numeric request_id', () {
+      expect(
+        TutorRequestNotificationService.extractRequestReference({
+          'request_reference': '93',
+          'tutor_request_reference': 'EDUTR202611070621048D1BC654',
+          'type': 'tutor_request',
+        }),
+        'EDUTR202611070621048D1BC654',
+      );
+      expect(
+        TutorRequestNotificationService.looksLikeInternalRequestId('93'),
+        isTrue,
+      );
+      expect(
+        TutorRequestNotificationService.looksLikeInternalRequestId(
+          'EDUTR202611070621048D1BC654',
+        ),
+        isFalse,
+      );
+    });
+
+    test(
+        'Alerts numeric request_id resolves via received-requests id to EDUTR',
+        () async {
+      const internalId = '93';
+      const edutr = 'EDUTR202611070621048D1BC654';
+      when(
+        () => mockRepo.fetchTutorReceivedRequests(
+          page: any(named: 'page'),
+          perPage: any(named: 'perPage'),
+          status: any(named: 'status'),
+        ),
+      ).thenAnswer(
+        (_) async => EducationTutorReceivedRequestsResponse(
+          status: true,
+          data: EducationTutorReceivedRequestsData(
+            requests: [
+              {
+                'id': 93,
+                'request_id': 93,
+                'request_reference': edutr,
+                'amount': '1.00',
+                'status': 'PENDING',
+              },
+              {
+                'id': 94,
+                'request_reference': 'EDUTR-OTHER',
+                'amount': '9.00',
+                'status': 'PENDING',
+              },
+            ],
+            pagination: null,
+          ),
+        ),
+      );
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+
+      await service.handleOpenedData(
+        {
+          'request_reference': internalId,
+          'type': 'tutor_request',
+        },
+        messageId: 'alerts_19075',
+      );
+
+      expect(events, hasLength(1));
+      expect(events.single.requestReference, edutr);
+      expect(events.single.sourceRequestKey, internalId);
+      expect(events.single.amount, '1.00');
+      expect(service.shownRequestReferences.contains(edutr), isTrue);
+      expect(service.shownRequestReferences.contains(internalId), isFalse);
+      await subscription.cancel();
+    });
+
+    test(
+        'unresolved numeric id does not open a popup or mark the request handled',
+        () async {
+      const internalId = '93';
+      when(
+        () => mockRepo.fetchTutorReceivedRequests(
+          page: any(named: 'page'),
+          perPage: any(named: 'perPage'),
+          status: any(named: 'status'),
+        ),
+      ).thenAnswer(
+        (_) async => EducationTutorReceivedRequestsResponse(
+          status: true,
+          data: EducationTutorReceivedRequestsData(
+            requests: [
+              {
+                'request_reference': 'EDUTR202611070621048D1BC654',
+                'amount': '1.00',
+                'status': 'PENDING',
+              },
+            ],
+            pagination: null,
+          ),
+        ),
+      );
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+
+      final result = await service.handleOpenedData(
+        {
+          'request_reference': internalId,
+          'type': 'tutor_request',
+        },
+        messageId: 'alerts_19075',
+      );
+
+      expect(result, TutorTapOpenResult.unresolved);
+      expect(events, isEmpty);
+      expect(service.shownRequestReferences.contains(internalId), isFalse);
+      expect(
+        service.shownRequestReferences.contains('EDUTR202611070621048D1BC654'),
+        isFalse,
+      );
+      verifyNever(() => mockRepo.fetchTutorRequestStatus(any()));
+      await subscription.cancel();
+    });
+
+    test(
+        'live numeric Alerts id does not call request-status (404 contract)',
+        () async {
+      const internalId = '93';
+      const edutr = 'EDUTR20261107062552AB242B85';
+      when(
+        () => mockRepo.fetchTutorReceivedRequests(
+          page: any(named: 'page'),
+          perPage: any(named: 'perPage'),
+          status: any(named: 'status'),
+        ),
+      ).thenAnswer(
+        (_) async => const EducationTutorReceivedRequestsResponse(
+          status: true,
+          data: EducationTutorReceivedRequestsData(
+            requests: [
+              // Live received-requests rows have EDUTR only — no id/request_id.
+              {
+                'request_reference': edutr,
+                'amount': '1.00',
+                'status': 'PENDING',
+              },
+            ],
+            pagination: null,
+          ),
+        ),
+      );
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+
+      final result = await service.handleOpenedData(
+        {
+          'request_reference': internalId,
+          'type': 'tutor_request',
+        },
+        messageId: 'alerts_19075',
+      );
+
+      expect(result, TutorTapOpenResult.unresolved);
+      expect(events, isEmpty);
+      verifyNever(() => mockRepo.fetchTutorRequestStatus(any()));
+      await subscription.cancel();
+    });
+
+    test(
+        'EDUTR tap uses request-status when pending list misses the row',
+        () async {
+      const edutr = 'EDUTR20261107062552AB242B85';
+      when(
+        () => mockRepo.fetchTutorReceivedRequests(
+          page: any(named: 'page'),
+          perPage: any(named: 'perPage'),
+          status: any(named: 'status'),
+        ),
+      ).thenAnswer(
+        (_) async => const EducationTutorReceivedRequestsResponse(
+          status: true,
+          data: EducationTutorReceivedRequestsData(
+            requests: [],
+            pagination: null,
+          ),
+        ),
+      );
+      when(() => mockRepo.fetchTutorRequestStatus(edutr)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'status': true,
+          'message': 'Request status fetched successfully.',
+          'data': {
+            'request_reference': edutr,
+            'amount': '1.00',
+            'subject': 'Tuition Fee',
+            'request_status': 'PENDING',
+            'is_accepted': false,
+            'is_rejected': false,
+            'is_pending': true,
+            'rejection_reason': null,
+            'created_at': '2026-11-07 06:25:52',
+            'responded_at': null,
+          },
+        }),
+      );
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+
+      final result = await service.handleOpenedData(
+        {
+          'request_reference': edutr,
+          'type': 'tutor_request',
+        },
+        messageId: 'alerts_19075',
+      );
+
+      expect(result, TutorTapOpenResult.openedPopup);
+      expect(events, hasLength(1));
+      expect(events.single.requestReference, edutr);
+      expect(events.single.requestStatus, 'PENDING');
+      verify(() => mockRepo.fetchTutorRequestStatus(edutr)).called(1);
+      await subscription.cancel();
+    });
+
+    test(
+        'request-status not pending does not open popup and does not Complete',
+        () async {
+      const edutr = 'EDUTR20261107062552AB242B85';
+      when(
+        () => mockRepo.fetchTutorReceivedRequests(
+          page: any(named: 'page'),
+          perPage: any(named: 'perPage'),
+          status: any(named: 'status'),
+        ),
+      ).thenAnswer(
+        (_) async => const EducationTutorReceivedRequestsResponse(
+          status: true,
+          data: EducationTutorReceivedRequestsData(
+            requests: [],
+            pagination: null,
+          ),
+        ),
+      );
+      when(() => mockRepo.fetchTutorRequestStatus(edutr)).thenAnswer(
+        (_) async => EducationTutorRequestStatusResponse.fromJson(const {
+          'status': true,
+          'message': 'Request status fetched successfully.',
+          'data': {
+            'request_reference': edutr,
+            'amount': '1.00',
+            'subject': 'Tuition Fee',
+            'request_status': 'ACCEPTED',
+            'is_accepted': true,
+            'is_rejected': false,
+            'is_pending': false,
+            'rejection_reason': null,
+            'created_at': '2026-11-07 06:25:52',
+            'responded_at': '2026-11-07 07:00:00',
+          },
+        }),
+      );
+
+      final events = <TutorRequestEvent>[];
+      final handled = <String>[];
+      final eventSub = service.requestEvents.listen(events.add);
+      final handledSub = service.requestHandled.listen(handled.add);
+
+      final result = await service.handleOpenedData(
+        {
+          'request_reference': edutr,
+          'type': 'tutor_request',
+        },
+        messageId: 'alerts_19075',
+      );
+
+      expect(result, TutorTapOpenResult.notPending);
+      expect(events, isEmpty);
+      // Tap alone must not fire requestHandled / Complete.
+      expect(handled, isEmpty);
+      await eventSub.cancel();
+      await handledSub.cancel();
+    });
+
+    test('embedded EDUTR in message text is preferred over numeric id', () {
+      expect(
+        TutorRequestNotificationService.extractRequestReference({
+          'request_reference': '93',
+          'message':
+              'New Education Payment Request EDUTR202611070621048D1BC654',
+          'type': 'tutor_request',
+        }),
+        'EDUTR202611070621048D1BC654',
+      );
+    });
+
+    test(
+        'full EDUTR request_reference still resolves the matching pending row',
+        () async {
+      const edutr = 'EDUTR202611070621048D1BC654';
+      when(
+        () => mockRepo.fetchTutorReceivedRequests(
+          page: any(named: 'page'),
+          perPage: any(named: 'perPage'),
+          status: any(named: 'status'),
+        ),
+      ).thenAnswer(
+        (_) async => EducationTutorReceivedRequestsResponse(
+          status: true,
+          data: EducationTutorReceivedRequestsData(
+            requests: [
+              {
+                'id': 93,
+                'request_reference': edutr,
+                'amount': '1.00',
+                'status': 'PENDING',
+              },
+            ],
+            pagination: null,
+          ),
+        ),
+      );
+
+      final events = <TutorRequestEvent>[];
+      final subscription = service.requestEvents.listen(events.add);
+
+      await service.handleOpenedData(
+        {
+          'request_reference': edutr,
+          'type': 'tutor_request',
+        },
+        messageId: 'alerts_19075',
+      );
+
+      expect(events, hasLength(1));
+      expect(events.single.requestReference, edutr);
+      await subscription.cancel();
+    });
+
     test('live status PENDING object broadcasts the Received popup event',
         () async {
       const liveReference = 'EDUTR2026110504443591AAB581';

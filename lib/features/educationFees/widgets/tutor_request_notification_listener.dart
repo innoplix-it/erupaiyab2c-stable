@@ -274,12 +274,25 @@ class _TutorRequestNotificationListenerState
       logger.info(
         'POPUP_RESULT_RECEIVED: ${event.requestReference} result=$result',
       );
-      await _handlePopupResult(event, result);
-      // Closing the popup without Accept or Decline leaves the request
-      // PENDING on the API. Do not mark it handled, so the sender still
-      // sees that status until the receiver accepts.
-      if (result != null) {
-        _notificationService.markRequestHandled(event.requestReference);
+      // Complete only after Share Details / Decline API succeeds — not on
+      // tap, popup open, or dismiss.
+      final submitted = await _handlePopupResult(event, result);
+      if (submitted) {
+        logger.info(
+          'SHARE_DETAILS_COMPLETE: ${event.requestReference} '
+          'source=${event.sourceRequestKey}',
+        );
+        _notificationService.markRequestHandled(
+          event.requestReference,
+          alsoKeys: [
+            if (event.sourceRequestKey.trim().isNotEmpty)
+              event.sourceRequestKey.trim(),
+          ],
+        );
+      } else if (result == true) {
+        logger.warning(
+          'SHARE_DETAILS_FAILED_KEEP_PENDING: ${event.requestReference}',
+        );
       }
     } catch (e, stackTrace) {
       logger.error(
@@ -323,19 +336,21 @@ class _TutorRequestNotificationListenerState
   /// POST /api/education/tutor/respond-request
   /// with body {"request_reference", "action"}.
   /// A successful Decline shows the declined popup on THIS (receiver) device.
-  Future<void> _handlePopupResult(
+  /// Returns true only when the respond API succeeds.
+  Future<bool> _handlePopupResult(
       TutorRequestEvent event,
       bool? result,
       ) async {
     logger.info(
       'HANDLE_POPUP_RESULT: ${event.requestReference} result=$result',
     );
-    if (result == null) return;
-    if (!_responding.add(event.requestReference)) return;
+    if (result == null) return false;
+    if (!_responding.add(event.requestReference)) return false;
     final action = result == true
         ? TutorNotificationConstants.statusAccepted
         : TutorNotificationConstants.statusRejected;
 
+    var apiOk = false;
     var declinedOk = false;
     try {
       logger.info(
@@ -350,7 +365,8 @@ class _TutorRequestNotificationListenerState
             'status=${res.status} message=${res.message} '
             'requestStatus=${res.data?.requestStatus ?? res.requestStatus}',
       );
-      declinedOk = result == false && res.status == true;
+      apiOk = res.status == true;
+      declinedOk = result == false && apiOk;
     } catch (e) {
       logger.error(
         'Failed to submit tutor request response: $e',
@@ -363,6 +379,7 @@ class _TutorRequestNotificationListenerState
     if (declinedOk) {
       await _showDeclinedPopup(event);
     }
+    return apiOk;
   }
 
   /// Loads `tutor_name` and `fee_type` for this request before the popup opens.

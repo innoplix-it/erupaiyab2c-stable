@@ -11,13 +11,7 @@ import '../constants/tutor_notification_constants.dart';
 import '../repositories/education_fees_repository.dart';
 import 'tutor_request_pending_store.dart';
 
-/// Tutor (receiver) side popup source.
-///
-/// - Foreground FCM / notification tap -> popup (tap is validated against the
-///   received PENDING list so an already answered request never reopens).
-/// - Startup / resume -> only requests NOT shown before (persisted "seen" set).
-///   The first run stores a baseline so old requests never pop up.
-/// - `request-status` is sender-only on the backend, so it is never used here.
+
 class TutorRequestNotificationService {
   TutorRequestNotificationService._() {
     _eventController = StreamController<TutorRequestEvent>.broadcast(
@@ -47,6 +41,8 @@ class TutorRequestNotificationService {
 
   final StreamController<void> _presentationAttention =
   StreamController<void>.broadcast();
+  final StreamController<String> _handledController =
+  StreamController<String>.broadcast(sync: true);
   final List<_DeferredTutorRequest> _authDeferred = [];
   late final StreamController<TutorRequestEvent> _eventController;
   final List<TutorRequestEvent> _eventQueue = [];
@@ -101,6 +97,9 @@ class TutorRequestNotificationService {
 
   Stream<TutorRequestEvent> get requestEvents => _eventController.stream;
   Stream<void> get presentationAttention => _presentationAttention.stream;
+
+  /// Fires after Accept/Decline marks a request handled (Alerts can show Complete).
+  Stream<String> get requestHandled => _handledController.stream;
   bool get hasAuthDeferred => _authDeferred.isNotEmpty;
   bool get isShowingPopup => _isShowingPopup;
 
@@ -244,6 +243,7 @@ class TutorRequestNotificationService {
         force: d.force,
         fallback: d.fallback,
         fromTap: d.fromTap,
+        sourceRequestKey: d.sourceRequestKey,
       );
     }
   }
@@ -308,7 +308,9 @@ class TutorRequestNotificationService {
   }
 
   /// Notification TAP.
-  Future<void> handleOpenedData(
+  /// Returns [TutorTapOpenResult] so Alerts can show feedback when the
+  /// numeric request id cannot be mapped to an `EDUTR...` reference.
+  Future<TutorTapOpenResult> handleOpenedData(
       Map<String, dynamic> raw, {
         String messageId = 'notification_tap',
       }) {
@@ -346,7 +348,7 @@ class TutorRequestNotificationService {
     return data;
   }
 
-  Future<void> handleIncomingFromData(
+  Future<TutorTapOpenResult> handleIncomingFromData(
       Map<String, dynamic> data, {
         String messageId = '',
         bool force = true,
@@ -354,20 +356,30 @@ class TutorRequestNotificationService {
       }) async {
     if (!isTutorRequestPayload(data)) {
       logger.info('FCM payload is not a tutor request, skipping');
-      return;
+      return TutorTapOpenResult.skipped;
     }
     final requestReference = extractRequestReference(data);
     if (requestReference == null || requestReference.isEmpty) {
       logger.warning('No request reference in notification data');
-      return;
+      return TutorTapOpenResult.unresolved;
     }
     logger.info('TUTOR_REQUEST_REFERENCE_EXTRACTED: $requestReference');
-    await _processRequestReference(
+    final sourceKey = looksLikeInternalRequestId(requestReference)
+        ? requestReference
+        : '';
+    return _processRequestReference(
       requestReference,
       messageId: messageId,
       force: force,
       fromTap: fromTap,
-      fallback: _eventFromMap(requestReference, messageId, data, force),
+      sourceRequestKey: sourceKey,
+      fallback: _eventFromMap(
+        requestReference,
+        messageId,
+        data,
+        force,
+        sourceRequestKey: sourceKey,
+      ),
     );
   }
 
@@ -386,6 +398,26 @@ class TutorRequestNotificationService {
         m['tutor_request_reference'];
     final s = v?.toString().trim() ?? '';
     return s.isEmpty ? null : s;
+  }
+
+  /// Pure numeric ids from send-request (`request_id`) / received-requests (`id`
+  /// or `request_id`). Not an `EDUTR...` reference.
+  static bool looksLikeInternalRequestId(String? raw) {
+    final value = (raw ?? '').trim();
+    if (value.isEmpty) return false;
+    return RegExp(r'^\d+$').hasMatch(value);
+  }
+
+  /// Verified numeric identity fields on a received-request row.
+  static String? _numericIdFromMap(Map<String, dynamic> m) {
+    for (final key in ['request_id', 'id']) {
+      final raw = m[key];
+      if (raw == null) continue;
+      final value = raw.toString().trim();
+      if (value.isEmpty || value.toLowerCase() == 'null') continue;
+      if (looksLikeInternalRequestId(value)) return value;
+    }
+    return null;
   }
 
   static String _firstNonEmpty(Map<String, dynamic> d, List<String> keys) {
@@ -457,8 +489,9 @@ class TutorRequestNotificationService {
       String requestReference,
       String messageId,
       Map<String, dynamic> d,
-      bool force,
-      ) {
+      bool force, {
+        String sourceRequestKey = '',
+      }) {
     return TutorRequestEvent(
       requestReference: requestReference,
       messageId: messageId,
@@ -467,6 +500,7 @@ class TutorRequestNotificationService {
       requesterName: _requesterNameFrom(d),
       requestStatus: _firstNonEmpty(d, ['request_status', 'status']),
       forced: force,
+      sourceRequestKey: sourceRequestKey,
     );
   }
 
@@ -476,12 +510,19 @@ class TutorRequestNotificationService {
       TutorRequestEvent? primary,
       TutorRequestEvent? secondary, {
         required bool forced,
+        String sourceRequestKey = '',
       }) {
     String pick(String Function(TutorRequestEvent e) f) {
       final a = primary == null ? '' : f(primary);
       if (a.trim().isNotEmpty) return a;
       return secondary == null ? '' : f(secondary);
     }
+
+    final alias = sourceRequestKey.trim().isNotEmpty
+        ? sourceRequestKey.trim()
+        : (primary?.sourceRequestKey.trim().isNotEmpty == true
+            ? primary!.sourceRequestKey
+            : (secondary?.sourceRequestKey ?? ''));
 
     return TutorRequestEvent(
       requestReference: requestReference,
@@ -491,10 +532,14 @@ class TutorRequestNotificationService {
       requesterName: pick((e) => e.requesterName),
       requestStatus: pick((e) => e.requestStatus),
       forced: forced,
+      sourceRequestKey: alias,
     );
   }
 
   /// Looks the request up in the tutor's received PENDING list.
+  /// Matches `EDUTR...` [request_reference] or, when the tap key is a numeric
+  /// internal id, the row's verified `request_id` / `id` — then returns an
+  /// event keyed by the row's full `request_reference`.
   /// `ok == false` means the list could not be fetched (unknown).
   Future<_ListLookup> _lookupInReceivedList(
       String requestReference,
@@ -509,18 +554,39 @@ class TutorRequestNotificationService {
       if (!res.status || res.data == null) {
         return const _ListLookup(ok: false);
       }
+      final needle = requestReference.trim();
+      final needleIsInternalId = looksLikeInternalRequestId(needle);
       for (final item in res.data!.requests) {
         final map = _asStringMap(item);
         if (map == null) continue;
-        if (_refFromMap(map) == requestReference) {
-          logger.info('RECEIVED_LIST_LOOKUP_HIT: $requestReference');
+        final rowRef = _refFromMap(map);
+        if (rowRef != null && rowRef == needle) {
+          logger.info('RECEIVED_LIST_LOOKUP_HIT: $needle');
           return _ListLookup(
             ok: true,
-            event: _eventFromMap(requestReference, messageId, map, true),
+            event: _eventFromMap(rowRef, messageId, map, true),
           );
         }
+        if (needleIsInternalId) {
+          final rowId = _numericIdFromMap(map);
+          if (rowId != null && rowId == needle) {
+            if (rowRef == null || rowRef.isEmpty) {
+              logger.warning(
+                'RECEIVED_LIST_ID_HIT_WITHOUT_REFERENCE: id=$needle',
+              );
+              continue;
+            }
+            logger.info(
+              'RECEIVED_LIST_LOOKUP_HIT_BY_ID: id=$needle -> $rowRef',
+            );
+            return _ListLookup(
+              ok: true,
+              event: _eventFromMap(rowRef, messageId, map, true),
+            );
+          }
+        }
       }
-      logger.info('RECEIVED_LIST_LOOKUP_MISS: $requestReference');
+      logger.info('RECEIVED_LIST_LOOKUP_MISS: $needle');
       return const _ListLookup(ok: true);
     } catch (e) {
       logger.error('RECEIVED_LIST_LOOKUP_ERROR: $e', error: e);
@@ -532,21 +598,22 @@ class TutorRequestNotificationService {
   // Core
   // ---------------------------------------------------------------------------
 
-  Future<void> _processRequestReference(
+  Future<TutorTapOpenResult> _processRequestReference(
       String requestReference, {
         required String messageId,
         bool force = false,
         bool fromTap = false,
         TutorRequestEvent? fallback,
         bool trustFallback = false,
+        String sourceRequestKey = '',
       }) async {
-    if (requestReference.isEmpty) return;
+    if (requestReference.isEmpty) return TutorTapOpenResult.skipped;
 
     if (force) {
       if (_presentedReferences.contains(requestReference) &&
           _isShowingPopup) {
         logger.info('FORCE_SKIP_POPUP_ALREADY_VISIBLE: $requestReference');
-        return;
+        return TutorTapOpenResult.skipped;
       }
       _handledReferences.remove(requestReference);
       _awaitingPopup.remove(requestReference);
@@ -554,12 +621,16 @@ class TutorRequestNotificationService {
       _presentedReferences.remove(requestReference);
       _eventQueue.removeWhere((e) => e.requestReference == requestReference);
     } else {
-      if (_handledReferences.contains(requestReference)) return;
+      if (_handledReferences.contains(requestReference)) {
+        return TutorTapOpenResult.skipped;
+      }
       if (_presentedReferences.contains(requestReference) ||
           _awaitingPopup.contains(requestReference)) {
-        return;
+        return TutorTapOpenResult.skipped;
       }
-      if (_inFlight.contains(requestReference)) return;
+      if (_inFlight.contains(requestReference)) {
+        return TutorTapOpenResult.skipped;
+      }
     }
 
     _inFlight.add(requestReference);
@@ -576,57 +647,171 @@ class TutorRequestNotificationService {
             force: force,
             fromTap: fromTap,
             fallback: fallback,
+            sourceRequestKey: sourceRequestKey,
           ),
         );
         logger.info('AUTH_NOT_READY queued: $requestReference');
         if (!_presentationAttention.isClosed) {
           _presentationAttention.add(null);
         }
-        return;
+        return TutorTapOpenResult.skipped;
       }
 
       // Item already came from the received PENDING list.
       if (trustFallback && fallback != null) {
         logger.info('POPUP_FROM_RECEIVED_LIST: $requestReference');
         _queuePopup(fallback);
-        return;
+        return TutorTapOpenResult.openedPopup;
       }
 
       final lookup = await _lookupInReceivedList(requestReference, messageId);
 
       if (lookup.event != null) {
+        // Always present using the resolved EDUTR reference from the list row.
+        final resolvedRef = lookup.event!.requestReference;
+        logger.info(
+          'PENDING_REQUEST_CONFIRMED: $requestReference -> $resolvedRef',
+        );
         _queuePopup(
           _merge(
-            requestReference,
+            resolvedRef,
             messageId,
             lookup.event,
             fallback,
             forced: force,
+            sourceRequestKey: sourceRequestKey,
           ),
         );
-        return;
+        return TutorTapOpenResult.openedPopup;
       }
 
-      // List says: not pending any more -> already answered.
+      // Numeric Alerts ids cannot call request-status/{id}: live contract
+      // returns 404 "Request not found." Mapping requires either EDUTR on the
+      // notification or id/request_id on received-requests rows.
+      if (fromTap && looksLikeInternalRequestId(requestReference)) {
+        logger.warning(
+          'TAP_REQUEST_ID_UNRESOLVED: $requestReference '
+          '(received-requests has no matching id/request_id; '
+          'request-status requires EDUTR request_reference)',
+        );
+        return TutorTapOpenResult.unresolved;
+      }
+
+      // Confirm business status for a full EDUTR tap key via request-status.
+      if (fromTap || force) {
+        final statusLookup =
+            await _resolveViaRequestStatus(requestReference, messageId);
+        if (statusLookup.event != null) {
+          final resolvedRef = statusLookup.event!.requestReference;
+          if (statusLookup.isPending) {
+            logger.info(
+              'REQUEST_STATUS_PENDING_POPUP: $requestReference -> $resolvedRef',
+            );
+            _queuePopup(
+              _merge(
+                resolvedRef,
+                messageId,
+                statusLookup.event,
+                fallback,
+                forced: force,
+                sourceRequestKey: sourceRequestKey,
+              ),
+            );
+            return TutorTapOpenResult.openedPopup;
+          }
+          if (fromTap) {
+            logger.info('TAP_REQUEST_NOT_PENDING_SKIP: $resolvedRef');
+            // Do not mark Complete here — only Share Details / Decline success
+            // updates Alerts. Tap alone must not complete the notification.
+            _handledReferences.add(resolvedRef);
+            await _markSeen([resolvedRef]);
+            return TutorTapOpenResult.notPending;
+          }
+        }
+      }
+
+      // Full EDUTR was not on the PENDING list and status was unavailable.
       if (lookup.ok && fromTap) {
         logger.info('TAP_REQUEST_NOT_PENDING_SKIP: $requestReference');
         _handledReferences.add(requestReference);
         await _markSeen([requestReference]);
-        return;
+        return TutorTapOpenResult.notPending;
       }
 
       // Foreground FCM, or list unavailable: show from the FCM payload.
-      if (force && fallback != null) {
+      // Never fall back with a bare numeric internal id — Accept/Decline need
+      // the real EDUTR request_reference.
+      if (force &&
+          fallback != null &&
+          !looksLikeInternalRequestId(requestReference)) {
         logger.info('FORCE_FALLBACK_POPUP: $requestReference');
         _queuePopup(fallback);
-        return;
+        return TutorTapOpenResult.openedPopup;
       }
       logger.info('NO_POPUP_FOR_REQUEST: $requestReference');
+      return fromTap
+          ? TutorTapOpenResult.unresolved
+          : TutorTapOpenResult.skipped;
     } catch (e) {
       logger.error('PROCESS_REQUEST_ERROR: $e', error: e);
-      if (force && fallback != null) _queuePopup(fallback);
+      if (force &&
+          fallback != null &&
+          !looksLikeInternalRequestId(requestReference)) {
+        _queuePopup(fallback);
+        return TutorTapOpenResult.openedPopup;
+      }
+      return TutorTapOpenResult.unresolved;
     } finally {
       _inFlight.remove(requestReference);
+    }
+  }
+
+  /// Maps a tap key (EDUTR or numeric request_id) through
+  /// `GET /api/education/tutor/request-status/{key}`.
+  /// Business state is `data.request_status` / `is_pending` only.
+  Future<_StatusLookup> _resolveViaRequestStatus(
+    String key,
+    String messageId,
+  ) async {
+    try {
+      final response = await _repository.fetchTutorRequestStatus(key);
+      // Envelope `status: true` means the HTTP API succeeded — not PENDING.
+      if (!response.status || response.data == null) {
+        logger.warning('REQUEST_STATUS_ENVELOPE_FAILED: key=$key');
+        return const _StatusLookup(ok: false);
+      }
+      final data = response.data!;
+      final resolved = data.requestReference.trim();
+      if (resolved.isEmpty) {
+        logger.warning('REQUEST_STATUS_MISSING_REFERENCE: key=$key');
+        return const _StatusLookup(ok: true);
+      }
+      if (looksLikeInternalRequestId(key) &&
+          looksLikeInternalRequestId(resolved) &&
+          resolved == key) {
+        logger.warning('REQUEST_STATUS_DID_NOT_EXPAND_ID: $key');
+        return const _StatusLookup(ok: true);
+      }
+      logger.info(
+        'REQUEST_STATUS_RESOLVED: key=$key -> $resolved '
+        'request_status=${data.requestStatus} is_pending=${data.isPending}',
+      );
+      return _StatusLookup(
+        ok: true,
+        isPending: data.isPending,
+        event: TutorRequestEvent(
+          requestReference: resolved,
+          messageId: messageId,
+          amount: data.amount,
+          subject: data.subject,
+          requesterName: data.requesterName,
+          requestStatus: data.requestStatus,
+          forced: true,
+        ),
+      );
+    } catch (e) {
+      logger.error('REQUEST_STATUS_RESOLVE_ERROR: $key $e', error: e);
+      return const _StatusLookup(ok: false);
     }
   }
 
@@ -669,21 +854,68 @@ class TutorRequestNotificationService {
     return !TutorNotificationConstants.excludedTypes.any(type.contains);
   }
 
+  static final RegExp _edutrInText = RegExp(
+    r'EDUTR[A-Z0-9]+',
+    caseSensitive: false,
+  );
+
+  /// Scans nested maps/lists/strings for an embedded `EDUTR...` token.
+  static String? findEmbeddedEdutrReference(Object? value) {
+    if (value == null) return null;
+    if (value is String) {
+      final match = _edutrInText.firstMatch(value.trim());
+      return match?.group(0);
+    }
+    if (value is Map) {
+      for (final entry in value.entries) {
+        final found = findEmbeddedEdutrReference(entry.value);
+        if (found != null) return found;
+      }
+      return null;
+    }
+    if (value is Iterable) {
+      for (final item in value) {
+        final found = findEmbeddedEdutrReference(item);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
   static String? extractRequestReference(Map<String, dynamic> data) {
-    final requestRef = data['request_reference'] ??
-        data['requestReference'] ??
-        data['tutor_request_reference'];
-    if (requestRef != null && requestRef.toString().trim().isNotEmpty) {
-      return requestRef.toString().trim();
+    final candidates = <String>[];
+    void consider(Object? raw) {
+      final value = raw?.toString().trim() ?? '';
+      if (value.isEmpty || value.toLowerCase() == 'null') return;
+      if (!candidates.contains(value)) candidates.add(value);
+    }
+
+    consider(data['request_reference']);
+    consider(data['requestReference']);
+    consider(data['tutor_request_reference']);
+    // Prefer a full EDUTR (or other non-numeric) ref over a bare request_id.
+    for (final candidate in candidates) {
+      if (!looksLikeInternalRequestId(candidate)) return candidate;
     }
 
     for (final entry in data.entries) {
       final k = entry.key.toLowerCase();
       if (k.contains('request') && (k.contains('ref') || k.endsWith('id'))) {
-        final v = entry.value?.toString().trim() ?? '';
-        if (v.isNotEmpty) return v;
+        consider(entry.value);
       }
     }
+    for (final candidate in candidates) {
+      if (!looksLikeInternalRequestId(candidate)) return candidate;
+    }
+
+    // Last resort: dig EDUTR out of message/title/nested payload text.
+    final embedded = findEmbeddedEdutrReference(data);
+    if (embedded != null && embedded.isNotEmpty) {
+      logger.info('TUTOR_REQUEST_REFERENCE_EMBEDDED: $embedded');
+      return embedded;
+    }
+
+    if (candidates.isNotEmpty) return candidates.first;
 
     final type = (data['type'] ?? data['notification_type'])
         ?.toString()
@@ -762,18 +994,36 @@ class TutorRequestNotificationService {
     _broadcast(event);
   }
 
-  void markRequestHandled(String requestReference) {
-    _inFlight.remove(requestReference);
-    _awaitingPopup.remove(requestReference);
-    _needsPresentationRetry.remove(requestReference);
-    _presentedReferences.remove(requestReference);
-    _handledReferences.add(requestReference);
+  void markRequestHandled(
+    String requestReference, {
+    Iterable<String> alsoKeys = const [],
+  }) {
+    final reference = requestReference.trim();
+    if (reference.isEmpty) return;
+    _inFlight.remove(reference);
+    _awaitingPopup.remove(reference);
+    _needsPresentationRetry.remove(reference);
+    _presentedReferences.remove(reference);
+    _handledReferences.add(reference);
     _eventQueue.removeWhere(
-          (event) => event.requestReference == requestReference,
+          (event) => event.requestReference == reference,
     );
     _isShowingPopup = false;
-    unawaited(_markSeen([requestReference]));
-    logger.info('Request $requestReference marked as handled');
+    final aliases = <String>{
+      reference,
+      for (final key in alsoKeys)
+        if (key.trim().isNotEmpty) key.trim(),
+    };
+    unawaited(_markSeen(aliases));
+    if (!_handledController.isClosed) {
+      for (final key in aliases) {
+        _handledController.add(key);
+      }
+    }
+    logger.info(
+      'Request $reference marked as handled'
+      '${aliases.length > 1 ? " aliases=${aliases.join(",")}" : ""}',
+    );
   }
 
   bool shouldPresentPopup(String requestReference) {
@@ -829,6 +1079,18 @@ class _ListLookup {
   final TutorRequestEvent? event;
 }
 
+class _StatusLookup {
+  const _StatusLookup({
+    required this.ok,
+    this.isPending = false,
+    this.event,
+  });
+
+  final bool ok;
+  final bool isPending;
+  final TutorRequestEvent? event;
+}
+
 class _DeferredTutorRequest {
   const _DeferredTutorRequest({
     required this.requestReference,
@@ -836,6 +1098,7 @@ class _DeferredTutorRequest {
     this.force = false,
     this.fromTap = false,
     this.fallback,
+    this.sourceRequestKey = '',
   });
 
   final String requestReference;
@@ -843,6 +1106,15 @@ class _DeferredTutorRequest {
   final bool force;
   final bool fromTap;
   final TutorRequestEvent? fallback;
+  final String sourceRequestKey;
+}
+
+/// Outcome of an Alerts / notification tap open attempt.
+enum TutorTapOpenResult {
+  openedPopup,
+  notPending,
+  unresolved,
+  skipped,
 }
 
 /// A tutor request that should show the Received popup.
@@ -855,6 +1127,7 @@ class TutorRequestEvent {
     this.requesterName = '',
     this.requestStatus = '',
     this.forced = false,
+    this.sourceRequestKey = '',
   });
 
   final String requestReference;
@@ -866,4 +1139,8 @@ class TutorRequestEvent {
 
   /// True for notification tap / foreground FCM. Bypasses sender-device skip.
   final bool forced;
+
+  /// Original Alerts numeric id (e.g. `93`) when [requestReference] was
+  /// resolved to a full `EDUTR...`. Used so Complete overrides match the card.
+  final String sourceRequestKey;
 }

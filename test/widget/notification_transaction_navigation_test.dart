@@ -1,17 +1,10 @@
-// Notification -> transaction details navigation.
-//
-// Transaction notifications from every module (bill payments, recharges,
-// credit card, FASTag, digital gold, refunds, ...) must open the details of
-// exactly the transaction they refer to, on that module's existing details
-// screen (credit card has its own; the rest share TransactionDetailScreen),
-// from the View label or anywhere on the card. Missing or unknown ids never open another
-// transaction's details. Responsive checks use the canonical
-// `responsiveTestScreenSizes` matrix.
-
 import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:e_rupaiya/constants/routes_constant.dart';
+import 'package:e_rupaiya/features/educationFees/controllers/education_fees_controller.dart';
+import 'package:e_rupaiya/features/educationFees/models/education_fees_responses.dart';
+import 'package:e_rupaiya/features/educationFees/repositories/education_fees_repository.dart';
+import 'package:e_rupaiya/features/educationFees/services/tutor_request_notification_service.dart';
 import 'package:e_rupaiya/features/home/controllers/home_controller.dart';
 import 'package:e_rupaiya/features/home/controllers/notifications_controller.dart';
 import 'package:e_rupaiya/features/home/helpers/bill_reminder_payment.dart';
@@ -53,8 +46,11 @@ NotificationItem _notification(
   required String title,
   String subtitle = 'Electricity bill of \u20B9100',
   String? referenceId,
+  String? requestReference,
+  String? requestStatus,
   String redirect = '',
   String? type,
+  bool showRemindButton = false,
   bool isRead = false,
 }) {
   return NotificationItem(
@@ -66,7 +62,10 @@ NotificationItem _notification(
     section: 'Today',
     type: type,
     referenceId: referenceId,
+    requestReference: requestReference,
+    requestStatus: requestStatus,
     redirectScreen: redirect,
+    showRemindButton: showRemindButton,
     isRead: isRead,
     createdAt: DateTime(2026, 10, 10, 12),
   );
@@ -437,6 +436,7 @@ Future<_Harness> _pump(
   List<NotificationItem>? items,
   List<List<TransactionHistoryEntry>>? pages,
   bool realDetails = false,
+  EducationFeesRepository? educationRepository,
 }) async {
   tester.view.devicePixelRatio = 2;
   tester.view.physicalSize = size * 2;
@@ -507,6 +507,9 @@ Future<_Harness> _pump(
           creditCardTransactionsRepositoryProvider
               .overrideWithValue(harness.creditCards),
           homeRepositoryProvider.overrideWithValue(harness.home),
+          if (educationRepository != null)
+            educationFeesRepositoryProvider
+                .overrideWithValue(educationRepository),
           billerDetailControllerProvider.overrideWith(
             (ref) => _FakeBillerDetailController(harness.selectedBillers),
           ),
@@ -1565,11 +1568,17 @@ void main() {
         'pay-1',
         title: 'New Education Payment Request',
         subtitle: 'You have received an education payment request of \u20B91.00.',
+        requestReference: 'EDUTR-TEST-1',
+        type: 'tutor_request',
+        showRemindButton: true,
       );
 
       expect(card.isKycNotification, isTrue);
       expect(card.isBillReminderNotification, isFalse);
       expect(paymentRequest.isKycNotification, isFalse);
+      expect(paymentRequest.isEducationPaymentRequestNotification, isTrue);
+      expect(paymentRequest.isBillReminderNotification, isFalse);
+      expect(paymentRequest.educationRequestReference, 'EDUTR-TEST-1');
     });
 
     testWidgets('shows Complete KYC and opens the existing KYC route',
@@ -1618,6 +1627,284 @@ void main() {
       expect(find.text('Complete KYC'), findsNothing);
     });
   });
+
+  group('Education Payment Request from Alerts', () {
+    test('fromApi keeps request_reference and status for routing', () {
+      final pending = NotificationItem.fromApi({
+        'id': 'edu-1',
+        'title': 'New Education Payment Request',
+        'message':
+            'You have received an education payment request of \u20B91.00.',
+        'type': 'tutor_request',
+        'request_reference': 'EDUTR-FROM-API',
+        'status': 'PENDING',
+        'reference_id': '41',
+        'show_remind_button': true,
+        'is_read': '0',
+        'created_at': '2026-10-10 12:00:00',
+      });
+      final completed = NotificationItem.fromApi({
+        'id': 'edu-2',
+        'title': 'New Education Payment Request',
+        'message':
+            'You have received an education payment request of \u20B91.00.',
+        'type': 'tutor_request',
+        'request_reference': 'EDUTR-DONE',
+        'status': 'ACCEPTED',
+        'is_read': '0',
+        'created_at': '2026-10-10 12:00:00',
+      });
+      final numericOnly = NotificationItem.fromApi({
+        'id': '19075',
+        'title': 'New Education Payment Request',
+        'message':
+            'You have received an education payment request of \u20B91.00.',
+        'type': 'tutor_request',
+        'request_reference': '93',
+        'request_id': '93',
+        'is_read': '0',
+        'created_at': '2026-11-07 06:21:00',
+      });
+      final prefersEdutr = NotificationItem.fromApi({
+        'id': '19076',
+        'title': 'New Education Payment Request',
+        'message':
+            'You have received an education payment request of \u20B91.00.',
+        'type': 'tutor_request',
+        'request_reference': '93',
+        'reference_id': 'EDUTR202611070621048D1BC654',
+        'is_read': '0',
+        'created_at': '2026-11-07 06:21:00',
+      });
+
+      expect(pending.requestReference, 'EDUTR-FROM-API');
+      expect(pending.requestStatus, 'PENDING');
+      expect(pending.isEducationPaymentRequestPending, isTrue);
+      expect(pending.isEducationPaymentRequestCompleted, isFalse);
+      expect(completed.isEducationPaymentRequestPending, isFalse);
+      expect(completed.isEducationPaymentRequestCompleted, isTrue);
+      expect(numericOnly.id, '19075');
+      expect(numericOnly.educationRequestReference, '93');
+      expect(numericOnly.educationInternalRequestId, '93');
+      expect(prefersEdutr.educationRequestReference,
+          'EDUTR202611070621048D1BC654');
+      expect(prefersEdutr.educationInternalRequestId, '93');
+    });
+
+    testWidgets(
+        'Pay Now always opens the tutor popup (even without status on card)',
+        (tester) async {
+      const requestRef = 'EDUTR-ALERTS-1';
+      final educationRepo = _FakeEducationFeesRepository(
+        requestReference: requestRef,
+        status: 'PENDING',
+      );
+      TutorRequestNotificationService().debugReset(
+        repository: educationRepo,
+        authChecker: () async => true,
+      );
+      addTearDown(() {
+        TutorRequestNotificationService().debugReset(
+          authChecker: () async => true,
+        );
+      });
+
+      final harness = await _pump(
+        tester,
+        items: [
+          _notification(
+            'edu-pay-1',
+            title: 'New Education Payment Request',
+            subtitle:
+                'You have received an education payment request of \u20B91.00.',
+            requestReference: requestRef,
+            type: 'tutor_request',
+            showRemindButton: true,
+            referenceId: '41',
+          ),
+        ],
+        educationRepository: educationRepo,
+      );
+
+      expect(find.text('Pay Now'), findsOneWidget);
+      expect(find.text('Complete'), findsNothing);
+
+      await tester.tap(find.text('Pay Now'));
+      await _settleNavigation(tester);
+
+      expect(harness.home.requestedPages, isEmpty);
+      expect(harness.selectedBillers, isEmpty);
+      expect(find.text('Complete'), findsNothing);
+      expect(
+        find.text('Bill details are not available for this notification.'),
+        findsNothing,
+      );
+      expect(
+        TutorRequestNotificationService()
+            .shownRequestReferences
+            .contains(requestRef),
+        isTrue,
+      );
+    });
+
+    testWidgets(
+        'completed status shows Complete and does not open the popup',
+        (tester) async {
+      const requestRef = 'EDUTR-ALERTS-DONE';
+      final educationRepo = _FakeEducationFeesRepository(
+        requestReference: requestRef,
+        status: 'ACCEPTED',
+      );
+      TutorRequestNotificationService().debugReset(
+        repository: educationRepo,
+        authChecker: () async => true,
+      );
+      addTearDown(() {
+        TutorRequestNotificationService().debugReset(
+          authChecker: () async => true,
+        );
+      });
+
+      final harness = await _pump(
+        tester,
+        items: [
+          _notification(
+            'edu-pay-done',
+            title: 'New Education Payment Request',
+            subtitle:
+                'You have received an education payment request of \u20B91.00.',
+            requestReference: requestRef,
+            requestStatus: 'ACCEPTED',
+            type: 'tutor_request',
+            showRemindButton: true,
+          ),
+        ],
+        educationRepository: educationRepo,
+      );
+
+      expect(find.text('Complete'), findsOneWidget);
+      expect(find.text('Pay Now'), findsNothing);
+
+      await tester.tap(find.text('Complete'));
+      await _settleNavigation(tester);
+
+      expect(harness.home.requestedPages, isEmpty);
+      expect(
+        TutorRequestNotificationService()
+            .shownRequestReferences
+            .contains(requestRef),
+        isFalse,
+      );
+    });
+
+    testWidgets(
+        'Accept/Decline handled event updates Alerts label to Complete',
+        (tester) async {
+      const requestRef = 'EDUTR-ALERTS-ACCEPT';
+      final educationRepo = _FakeEducationFeesRepository(
+        requestReference: requestRef,
+        status: 'PENDING',
+      );
+      TutorRequestNotificationService().debugReset(
+        repository: educationRepo,
+        authChecker: () async => true,
+      );
+      addTearDown(() {
+        TutorRequestNotificationService().debugReset(
+          authChecker: () async => true,
+        );
+      });
+
+      await _pump(
+        tester,
+        items: [
+          _notification(
+            'edu-pay-accept',
+            title: 'New Education Payment Request',
+            subtitle:
+                'You have received an education payment request of \u20B91.00.',
+            requestReference: requestRef,
+            requestStatus: 'PENDING',
+            type: 'tutor_request',
+          ),
+        ],
+        educationRepository: educationRepo,
+      );
+
+      expect(find.text('Pay Now'), findsOneWidget);
+
+      TutorRequestNotificationService().markRequestHandled(requestRef);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Complete'), findsOneWidget);
+      expect(find.text('Pay Now'), findsNothing);
+    });
+  });
+}
+
+class _FakeEducationFeesRepository extends EducationFeesRepository {
+  _FakeEducationFeesRepository({
+    required this.requestReference,
+    this.status = 'PENDING',
+  });
+
+  final String requestReference;
+  final String status;
+  int receivedRequestCalls = 0;
+  int statusCalls = 0;
+
+  @override
+  Future<EducationTutorRequestStatusResponse> fetchTutorRequestStatus(
+    String requestReference,
+  ) async {
+    statusCalls++;
+    final upper = status.toUpperCase();
+    return EducationTutorRequestStatusResponse(
+      status: true,
+      data: EducationTutorRequestStatusData(
+        requestReference: requestReference,
+        amount: '1.00',
+        subject: 'tuition fees',
+        requestStatus: upper,
+        isAccepted: upper == 'ACCEPTED',
+        isRejected: upper == 'REJECTED',
+        isPending: upper == 'PENDING',
+        rejectionReason: null,
+        createdAt: '2026-11-05 10:00:37',
+        respondedAt: null,
+      ),
+    );
+  }
+
+  @override
+  Future<EducationTutorReceivedRequestsResponse> fetchTutorReceivedRequests({
+    int page = 1,
+    int perPage = 20,
+    String? status,
+  }) async {
+    receivedRequestCalls++;
+    final include =
+        status == null || status.toUpperCase() == this.status.toUpperCase();
+    return EducationTutorReceivedRequestsResponse(
+      status: true,
+      data: EducationTutorReceivedRequestsData(
+        requests: include
+            ? [
+                {
+                  'request_reference': requestReference,
+                  'requester_user_id': '303',
+                  'requester_name': 'Asha Patil',
+                  'fee_type': 'tuition fees',
+                  'amount': '1.00',
+                  'status': this.status,
+                },
+              ]
+            : const <Map<String, dynamic>>[],
+        pagination: null,
+      ),
+    );
+  }
 }
 
 class _ThrowingRepo extends TransactionHistoryRepository {

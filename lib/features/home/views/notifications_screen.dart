@@ -17,11 +17,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/routes_constant.dart';
+import '../../../services/logger_service.dart';
 import '../../../services/notification_badge_service.dart';
 import '../../../widgets/app_network_image.dart';
 import '../../../widgets/app_snackbar.dart';
 import '../../../widgets/infinite_scroll_listener.dart';
 import '../../../widgets/my_app_bar.dart';
+import '../../educationFees/constants/tutor_notification_constants.dart';
+import '../../educationFees/services/tutor_request_notification_service.dart';
 import '../../profile/controllers/transaction_history_controller.dart';
 import '../../services/controllers/credit_card_transactions_controller.dart';
 import '../controllers/notifications_controller.dart';
@@ -33,6 +36,9 @@ import '../models/notification_item.dart';
 
 final notificationReadIdsProvider =
     StateProvider.autoDispose<Set<String>>((ref) => <String>{});
+
+final educationRequestStatusOverridesProvider =
+    StateProvider.autoDispose<Map<String, String>>((ref) => <String, String>{});
 
 final notificationTransactionResolverProvider =
     Provider<NotificationTransactionResolver>(
@@ -66,6 +72,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   // True only while an API lookup runs; shows the loading overlay.
   bool _isLookingUp = false;
 
+  StreamSubscription<String>? _educationHandledSub;
+
   Future<void> _onNotificationTap(NotificationItem item) async {
     if (_isOpening) return;
     _markNotificationRead(ref, item);
@@ -78,7 +86,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       }
       return;
     }
-    final isPayNow = _primaryLabelFor(item) == 'Pay Now';
+    if (item.isEducationPaymentRequestNotification) {
+      await _openEducationPaymentRequest(item);
+      return;
+    }
+    final isPayNow = _primaryLabelFor(
+          item,
+          statusOverrides: ref.read(educationRequestStatusOverridesProvider),
+        ) ==
+        'Pay Now';
     final isTransaction = item.isTransactionNotification;
     if (!isPayNow && !isTransaction && !item.mayReferToTransaction) {
       _handleNotificationRedirect(context, item);
@@ -96,6 +112,76 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       _isOpening = false;
       if (mounted && _isLookingUp) setState(() => _isLookingUp = false);
     }
+  }
+
+  /// Pay Now → always open existing popup. Complete only after Accept/Decline
+  /// (or when the Alerts card already has a non-PENDING status).
+  Future<void> _openEducationPaymentRequest(NotificationItem item) async {
+    final reference = item.educationRequestReference;
+    if (reference == null || reference.isEmpty) {
+      AppSnackbar.show(
+        'Payment request details are not available for this notification.',
+        type: AppSnackbarType.error,
+      );
+      return;
+    }
+
+    final overrides = ref.read(educationRequestStatusOverridesProvider);
+    final knownStatus = _educationRequestStatusFor(item, overrides);
+
+    if (knownStatus != null &&
+        knownStatus != TutorNotificationConstants.statusPending) {
+      // Already Complete on the card — do not open popup again.
+      return;
+    }
+
+    _isOpening = true;
+    try {
+      final type = (item.type ?? '').trim();
+      final internalId = item.educationInternalRequestId;
+      logger.info(
+        'ALERTS_EDUCATION_TAP: notificationId=${item.id} '
+        'reference=$reference internalId=${internalId ?? ""}',
+      );
+      final openResult =
+          await TutorRequestNotificationService().handleOpenedData(
+        {
+          'request_reference': reference,
+          if (internalId != null && internalId != reference)
+            'request_id': internalId,
+          if (type.isNotEmpty) 'type': type,
+          if (type.isNotEmpty) 'notification_type': type,
+          'title': item.title,
+          'message': item.subtitle,
+          'body': item.subtitle,
+        },
+        messageId: 'alerts_${item.id}',
+      );
+      if (!mounted) return;
+      if (openResult == TutorTapOpenResult.openedPopup) {
+        logger.info(
+          'ALERTS_EDUCATION_POPUP_OPENED: notificationId=${item.id}',
+        );
+      } else if (openResult == TutorTapOpenResult.unresolved) {
+        AppSnackbar.show(
+          'Payment request details are not available for this notification.',
+          type: AppSnackbarType.error,
+        );
+      }
+    } finally {
+      _isOpening = false;
+    }
+  }
+
+  void _rememberEducationRequestStatus(String reference, String status) {
+    final normalized = status.trim().toUpperCase();
+    if (normalized.isEmpty) return;
+    final current = ref.read(educationRequestStatusOverridesProvider);
+    if (current[reference] == normalized) return;
+    ref.read(educationRequestStatusOverridesProvider.notifier).state = {
+      ...current,
+      reference: normalized,
+    };
   }
 
   Future<T> _lookUp<T>(Future<T> Function() lookup) async {
@@ -174,11 +260,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    _educationHandledSub =
+        TutorRequestNotificationService().requestHandled.listen((reference) {
+      if (!mounted) return;
+      // Accept/Decline finished → Alerts label becomes Complete.
+      _rememberEducationRequestStatus(
+        reference,
+        TutorNotificationConstants.statusAccepted,
+      );
+    });
     Future.microtask(
       () => ref
           .read(notificationsControllerProvider.notifier)
           .fetchNotifications(),
     );
+  }
+
+  @override
+  void dispose() {
+    _educationHandledSub?.cancel();
+    super.dispose();
   }
 
   /// Confirmation before clearing: "Yes" calls the verified
@@ -265,6 +366,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget build(BuildContext context) {
     final notificationsState = ref.watch(notificationsControllerProvider);
     final localReadIds = ref.watch(notificationReadIdsProvider);
+    final educationStatusOverrides =
+        ref.watch(educationRequestStatusOverridesProvider);
     final items = notificationsState.notifications;
     final unreadCountToSync = notificationsState.unreadCount > 0
         ? notificationsState.unreadCount
@@ -431,7 +534,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                                       _onNotificationTap(item),
                                                     ),
                                                     primaryLabel:
-                                                        _primaryLabelFor(item),
+                                                        _primaryLabelFor(
+                                                      item,
+                                                      statusOverrides:
+                                                          educationStatusOverrides,
+                                                    ),
                                                   ),
                                                 ),
                                               );
@@ -593,12 +700,44 @@ Future<void> _openPlayStore() async {
   } catch (_) {}
 }
 
-String _primaryLabelFor(NotificationItem item) {
+String? _educationRequestStatusFor(
+  NotificationItem item,
+  Map<String, String> statusOverrides,
+) {
+  // Match Complete overrides by EDUTR and/or numeric Alerts request id.
+  for (final key in <String?>[
+    item.educationRequestReference,
+    item.educationInternalRequestId,
+    item.requestReference,
+    item.requestId,
+  ]) {
+    final trimmed = key?.trim();
+    if (trimmed == null || trimmed.isEmpty) continue;
+    final override = statusOverrides[trimmed]?.trim().toUpperCase();
+    if (override != null && override.isNotEmpty) return override;
+  }
+  final fromItem = (item.requestStatus ?? '').trim().toUpperCase();
+  if (fromItem.isEmpty) return null;
+  return fromItem;
+}
+
+String _primaryLabelFor(
+  NotificationItem item, {
+  Map<String, String> statusOverrides = const <String, String>{},
+}) {
   if (item.isKycNotification) return 'Complete KYC';
   if (item.isBillPaymentSuccessNotification) return 'View';
   final redirect = (item.redirectScreen ?? '').trim().toLowerCase();
   if (redirect == 'spin_screen') return 'Play Now';
   if (redirect == 'app_update_screen') return 'Tap To Update';
+  if (item.isEducationPaymentRequestNotification) {
+    final status = _educationRequestStatusFor(item, statusOverrides);
+    if (status != null &&
+        status != TutorNotificationConstants.statusPending) {
+      return 'Complete';
+    }
+    return 'Pay Now';
+  }
   if (item.isBillReminderNotification) return 'Pay Now';
   return 'View';
 }

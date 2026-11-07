@@ -1,5 +1,7 @@
 import '../../../constants/file_constants.dart';
 import '../../../constants/routes_constant.dart';
+import '../../educationFees/constants/tutor_notification_constants.dart';
+import '../../educationFees/services/tutor_request_notification_service.dart';
 
 class NotificationItem {
   const NotificationItem({
@@ -14,6 +16,9 @@ class NotificationItem {
     this.type,
     this.redirectScreen,
     this.referenceId,
+    this.requestReference,
+    this.requestId,
+    this.requestStatus,
     this.isRead = false,
     this.createdAt,
   });
@@ -47,6 +52,9 @@ class NotificationItem {
       type: (json['type'] ?? '').toString(),
       redirectScreen: (json['redirect_screen'] ?? '').toString(),
       referenceId: (json['reference_id'] ?? '').toString(),
+      requestReference: _requestReferenceFrom(json),
+      requestId: _requestIdFrom(json),
+      requestStatus: _requestStatusFrom(json),
       isRead: (json['is_read'] ?? '').toString() == '1',
       createdAt: _parseCreatedAt(json['created_at']?.toString()),
     );
@@ -70,6 +78,18 @@ class NotificationItem {
   final String? type;
   final String? redirectScreen;
   final String? referenceId;
+
+  /// Education/tutor payment-request id from the notifications list API
+  /// (`request_reference` / aliases). Distinct from [referenceId].
+  final String? requestReference;
+
+  /// Numeric education request DB id when the notifications API sends
+  /// `request_id` (same field as send-request). Distinct from notification [id].
+  final String? requestId;
+
+  /// Education/tutor request status when the notifications API sends it
+  /// (`PENDING`, `ACCEPTED`, `REJECTED`, ...). Not the list envelope flag.
+  final String? requestStatus;
   final bool isRead;
   final DateTime? createdAt;
 
@@ -81,7 +101,7 @@ class NotificationItem {
 
   /// KYC when the backend `type` contains `kyc`, `redirect_screen` is an
   /// existing KYC route, or the title/message asks the user to complete KYC.
-  /// "New Education Payment Request" has no KYC word, so it stays Pay Now.
+  /// "New Education Payment Request" has no KYC word, so it is not KYC.
   bool get isKycNotification {
     final typeValue = (type ?? '').trim().toLowerCase();
     if (typeValue.contains('kyc')) return true;
@@ -94,6 +114,132 @@ class NotificationItem {
     }
     final text = '${title.trim()} ${subtitle.trim()}'.toLowerCase();
     return _kycWord.hasMatch(text);
+  }
+
+  static final RegExp _educationPaymentRequestText = RegExp(
+    r'education\s+payment\s+request|tuition\s+(fee\s+)?request',
+  );
+
+  /// Prefer a full `EDUTR...` (or other non-numeric) reference for the popup.
+  /// Falls back to a numeric internal `request_id` so the tutor service can
+  /// resolve it against received-requests `id` / `request_id`.
+  String? get educationRequestReference {
+    final candidates = <String>[
+      if (_usableId(requestReference) != null) _usableId(requestReference)!,
+      if (_looksLikeEducationPaymentRequest && _usableId(referenceId) != null)
+        _usableId(referenceId)!,
+      if (_usableId(requestId) != null) _usableId(requestId)!,
+    ];
+    if (candidates.isEmpty) return null;
+    for (final candidate in candidates) {
+      if (!_looksLikeInternalRequestId(candidate)) return candidate;
+    }
+    return candidates.first;
+  }
+
+  /// Numeric DB request id when the Alerts payload only has that (e.g. `93`).
+  String? get educationInternalRequestId {
+    for (final candidate in [
+      requestId,
+      requestReference,
+      if (_looksLikeEducationPaymentRequest) referenceId,
+    ]) {
+      final value = _usableId(candidate);
+      if (value != null && _looksLikeInternalRequestId(value)) return value;
+    }
+    return null;
+  }
+
+  static bool _looksLikeInternalRequestId(String value) =>
+      RegExp(r'^\d+$').hasMatch(value.trim());
+
+  /// Education Payment Request cards that must open the existing tutor
+  /// popup (same path as FCM), not Bill Details.
+  bool get isEducationPaymentRequestNotification {
+    if (isKycNotification) return false;
+    final reference = educationRequestReference;
+    if (reference == null) return false;
+    return _looksLikeEducationPaymentRequest;
+  }
+
+  /// True when [requestStatus] is explicitly still `PENDING`.
+  bool get isEducationPaymentRequestPending {
+    if (!isEducationPaymentRequestNotification) return false;
+    final status = (requestStatus ?? '').trim().toUpperCase();
+    if (status.isEmpty) return false;
+    return status == TutorNotificationConstants.statusPending;
+  }
+
+  /// True when [requestStatus] is present and no longer `PENDING`
+  /// (e.g. `ACCEPTED` / `REJECTED`).
+  bool get isEducationPaymentRequestCompleted {
+    if (!isEducationPaymentRequestNotification) return false;
+    final status = (requestStatus ?? '').trim().toUpperCase();
+    if (status.isEmpty) return false;
+    return status != TutorNotificationConstants.statusPending;
+  }
+
+  bool get _looksLikeEducationPaymentRequest {
+    final typeValue = (type ?? '').trim().toLowerCase();
+    if (typeValue.isNotEmpty) {
+      if (TutorNotificationConstants.excludedTypes
+          .any(typeValue.contains)) {
+        return false;
+      }
+      if (typeValue.contains(TutorNotificationConstants.typeTutor) ||
+          typeValue.contains(TutorNotificationConstants.typeTuition) ||
+          typeValue.contains(TutorNotificationConstants.typeEducation) ||
+          typeValue.contains(TutorNotificationConstants.typeRequest)) {
+        return true;
+      }
+    }
+    final text = '${title.trim()} ${subtitle.trim()}'.toLowerCase();
+    return _educationPaymentRequestText.hasMatch(text);
+  }
+
+  static String? _usableId(String? raw) {
+    final value = (raw ?? '').trim();
+    if (value.isEmpty) return null;
+    final lower = value.toLowerCase();
+    if (lower == 'null' || lower == 'undefined' || value == '0') return null;
+    return value;
+  }
+
+  static String? _requestReferenceFrom(Map<String, dynamic> json) {
+    final direct = _usableId(
+      (json['request_reference'] ??
+              json['requestReference'] ??
+              json['tutor_request_reference'])
+          ?.toString(),
+    );
+    if (direct != null && !_looksLikeInternalRequestId(direct)) {
+      return direct;
+    }
+    // Only dig EDUTR from human-readable text — not reference_id / other
+    // identity fields (those are handled by [educationRequestReference]).
+    final embedded = TutorRequestNotificationService.findEmbeddedEdutrReference({
+      'message': json['message'],
+      'title': json['title'],
+      'body': json['body'],
+      'subtitle': json['subtitle'],
+    });
+    if (embedded != null && embedded.isNotEmpty) return embedded;
+    return direct;
+  }
+
+  static String? _requestIdFrom(Map<String, dynamic> json) {
+    return _usableId((json['request_id'] ?? json['requestId'])?.toString());
+  }
+
+  static String? _requestStatusFrom(Map<String, dynamic> json) {
+    final raw = json['request_status'] ?? json['status'];
+    // List envelope uses boolean `status: true`; ignore that.
+    if (raw == null || raw is bool) return null;
+    final value = raw.toString().trim();
+    if (value.isEmpty) return null;
+    final lower = value.toLowerCase();
+    if (lower == 'null' || lower == 'true' || lower == 'false') return null;
+    return value;
   }
 
   bool get isBillPaymentSuccessNotification {
@@ -163,6 +309,7 @@ class NotificationItem {
   /// their existing behaviour.
   bool get isTransactionNotification {
     if (isKycNotification) return false;
+    if (isEducationPaymentRequestNotification) return false;
     final redirect = (redirectScreen ?? '').trim().toLowerCase();
     if (_transactionRedirects.contains(redirect)) return true;
     if (_nonTransactionRedirects.contains(redirect)) return false;
@@ -182,6 +329,7 @@ class NotificationItem {
   /// and otherwise keeps its existing behaviour.
   bool get mayReferToTransaction {
     if (isKycNotification) return false;
+    if (isEducationPaymentRequestNotification) return false;
     if (transactionReferenceId == null) return false;
     final redirect = (redirectScreen ?? '').trim().toLowerCase();
     if (_nonTransactionRedirects.contains(redirect)) return false;
@@ -191,15 +339,12 @@ class NotificationItem {
 
   /// [referenceId] when it is a usable transaction identifier.
   String? get transactionReferenceId {
-    final value = (referenceId ?? '').trim();
-    if (value.isEmpty) return null;
-    final lower = value.toLowerCase();
-    if (lower == 'null' || lower == 'undefined' || value == '0') return null;
-    return value;
+    return _usableId(referenceId);
   }
 
   bool get isBillReminderNotification {
     if (isKycNotification) return false;
+    if (isEducationPaymentRequestNotification) return false;
     if (isBillPaymentSuccessNotification) return false;
     final text = _combinedText;
     if (showRemindButton) return true;
