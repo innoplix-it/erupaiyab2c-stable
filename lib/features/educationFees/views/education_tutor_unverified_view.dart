@@ -13,6 +13,7 @@ import '../../../widgets/my_app_bar.dart';
 import '../components/education_tutor_identity.dart';
 import '../controllers/education_fees_controller.dart';
 import '../education_fees_typography.dart';
+import '../models/education_fees_responses.dart';
 
 /// Unverified-tutor screen (shown after contact pick when the tutor is not
 /// yet verified on eRupaiya).
@@ -26,6 +27,8 @@ class EducationTutorUnverifiedView extends HookConsumerWidget {
     required this.tutorName,
     required this.amount,
     required this.amountLabel,
+    this.verificationStatus = EducationTutorVerificationStatus.notVerified,
+    this.apiMessage,
   });
 
   final String tutorName;
@@ -33,6 +36,8 @@ class EducationTutorUnverifiedView extends HookConsumerWidget {
   /// Plain amount in rupees (kept for the future KYC / pay wiring).
   final double amount;
   final String amountLabel;
+  final EducationTutorVerificationStatus verificationStatus;
+  final String? apiMessage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,17 +78,21 @@ class EducationTutorUnverifiedView extends HookConsumerWidget {
                           accountLine: '',
                           amountLabel: amountLabel,
                           verified: false,
-                          statusLines: const [
+                          statusLines: [
                             EducationTutorStatusLine(
-                              text: 'Unverified',
-                              color: Color(0xFF71717A),
+                              text: _getStatusText(),
+                              color: const Color(0xFFDC2626),
                               weight: FontWeight.w600,
+                              fontSize: 14 * u,
                             ),
                             EducationTutorStatusLine(
-                              text:
-                                  'Please ask your tutor to accept the tuition '
-                                  'fees \n request on erupaiya app',
-                              color: Color(0xFF71717A),
+                              text: _getStatusMessage(),
+                              color: const Color(0xFFDC2626),
+                              fontSize: 14 * u,
+                            ),
+                            EducationTutorStatusLine(
+                              text: '$tutorName • $amountLabel',
+                              color: const Color(0xFF71717A),
                             ),
                           ],
                         ),
@@ -164,5 +173,36 @@ class EducationTutorUnverifiedView extends HookConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _getStatusText() {
+    final msg = apiMessage?.toLowerCase() ?? '';
+    if (msg.contains('not registered')) {
+      return 'Not registered';
+    }
+    if (msg.contains('verified successfully')) {
+      return 'KYC Not Completed';
+    }
+    if (verificationStatus == EducationTutorVerificationStatus.notVerified) {
+      return 'KYC Not Completed';
+    }
+    return 'Unverified';
+  }
+
+  String _getStatusMessage() {
+    final msg = apiMessage?.toLowerCase() ?? '';
+    if (msg.contains('not registered')) {
+      return apiMessage?.trim() ?? 'This mobile number is not registered with eRupaiya. '
+          'Ask the recipient to register before you add them as a tutor.';
+    }
+    if (msg.contains('verified successfully')) {
+      return 'Please ask your tutor to accept the tuition '
+          'fees \n request on erupaiya app';
+    }
+    if (verificationStatus == EducationTutorVerificationStatus.notVerified) {
+      return 'Please ask your tutor to accept the tuition '
+          'fees \n request on erupaiya app';
+    }
+    return '';
   }
 }

@@ -35,6 +35,8 @@ class _FakeAskKycRepository extends EducationFeesRepository {
     required String mobile,
     required int amount,
     required String subject,
+    String? feeType,
+    String? senderName,
   }) async {
     sendCount++;
     return const EducationTutorSendRequestResponse(

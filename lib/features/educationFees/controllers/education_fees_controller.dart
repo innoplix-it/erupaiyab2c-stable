@@ -897,6 +897,8 @@ class EducationFeesController extends StateNotifier<EducationFeesState> {
       mobile: mobile,
       amount: amount,
       subject: subject,
+      feeType: subject,
+      senderName: state.recipientName,
     );
   }
 

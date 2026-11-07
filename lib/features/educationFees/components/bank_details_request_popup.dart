@@ -7,16 +7,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../constants/file_constants.dart';
+import '../../home/controllers/notifications_controller.dart';
+import '../../home/repositories/notifications_repository.dart';
 import '../constants/tutor_notification_constants.dart';
 import '../controllers/education_fees_controller.dart';
 import '../views/bank_details_terms_view.dart';
 import 'education_tutor_identity.dart';
 
-/// Receiver consent popup before bank details are shared.
-///
-/// Returns `true` for Share Details, `false` for Decline, and `null` when
-/// the close button dismisses it. Terms acceptance only checks the box; it
-/// does not call an API.
+
 class BankDetailsRequestPopup extends StatefulWidget {
   const BankDetailsRequestPopup({
     super.key,
@@ -27,6 +25,7 @@ class BankDetailsRequestPopup extends StatefulWidget {
     this.paymentMethod,
     this.paymentStatus,
     this.requestReference,
+    this.notificationId,
     this.onClose,
     this.onDecline,
     this.onShareDetails,
@@ -47,6 +46,10 @@ class BankDetailsRequestPopup extends StatefulWidget {
   /// POST /api/education/tutor/respond-request call.
   final String? requestReference;
 
+  /// Notification ID from Alerts. Used to delete the notification after
+  /// successful Respond API call.
+  final String? notificationId;
+
   /// When set, the close button uses this instead of popping the route.
   final VoidCallback? onClose;
 
@@ -60,6 +63,7 @@ class BankDetailsRequestPopup extends StatefulWidget {
 
 class _BankDetailsRequestPopupState extends State<BankDetailsRequestPopup> {
   bool _agreed = false;
+  bool _isSubmitting = false;
 
   String get _name {
     final raw = widget.requesterName?.trim() ?? '';
@@ -101,26 +105,75 @@ class _BankDetailsRequestPopupState extends State<BankDetailsRequestPopup> {
 
   Future<void> _respond(bool share) async {
     final reference = widget.requestReference?.trim() ?? '';
-    if (reference.isNotEmpty) {
-      try {
-        final response = await ProviderScope.containerOf(context)
-            .read(educationFeesRepositoryProvider)
-            .respondToTutorRequest(
-              requestReference: reference,
-              action: share
-                  ? TutorNotificationConstants.statusAccepted
-                  : TutorNotificationConstants.statusRejected,
-            );
-        if (!mounted || !response.status) return;
-      } catch (_) {
+    if (reference.isEmpty) {
+      // No request reference - just close the popup
+      if (!mounted) return;
+      if (share) {
+        (widget.onShareDetails ?? () => Navigator.of(context).pop(true))();
+      } else {
+        (widget.onDecline ?? () => Navigator.of(context).pop(false))();
+      }
+      return;
+    }
+
+    if (_isSubmitting) return; // Prevent duplicate submissions
+    setState(() => _isSubmitting = true);
+
+    try {
+      final response = await ProviderScope.containerOf(context)
+          .read(educationFeesRepositoryProvider)
+          .respondToTutorRequest(
+            requestReference: reference,
+            action: share
+                ? TutorNotificationConstants.statusAccepted
+                : TutorNotificationConstants.statusRejected,
+          );
+
+      if (!mounted) return;
+
+      // Handle already-responded case
+      if (!response.status) {
+        final requestStatus = response.requestStatus?.trim().toUpperCase();
+        if (requestStatus == 'ACCEPTED' || requestStatus == 'REJECTED') {
+          // Already responded - use the actual backend status
+          // Still delete the notification since it's already handled
+          await _deleteNotification();
+          if (share) {
+            (widget.onShareDetails ?? () => Navigator.of(context).pop(true))();
+          } else {
+            (widget.onDecline ?? () => Navigator.of(context).pop(false))();
+          }
+          return;
+        }
+        // Other error - keep popup open for retry
+        setState(() => _isSubmitting = false);
         return;
       }
+
+      // Successful response
+      await _deleteNotification();
+
+      if (share) {
+        (widget.onShareDetails ?? () => Navigator.of(context).pop(true))();
+      } else {
+        (widget.onDecline ?? () => Navigator.of(context).pop(false))();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
     }
-    if (!mounted) return;
-    if (share) {
-      (widget.onShareDetails ?? () => Navigator.of(context).pop(true))();
-    } else {
-      (widget.onDecline ?? () => Navigator.of(context).pop(false))();
+  }
+
+  Future<void> _deleteNotification() async {
+    final notificationId = widget.notificationId?.trim() ?? '';
+    if (notificationId.isEmpty) return;
+
+    try {
+      final notificationsRepo = ProviderScope.containerOf(context)
+          .read(notificationsRepositoryProvider);
+      await notificationsRepo.deleteNotification(notificationId);
+    } catch (_) {
+      // Delete failure - don't block the flow, just log
     }
   }
 
@@ -271,6 +324,7 @@ Future<bool?> showBankDetailsRequestPopup(
   String? paymentMethod,
   String? paymentStatus,
   String? requestReference,
+  String? notificationId,
 }) {
   return showDialog<bool>(
     context: context,
@@ -284,6 +338,7 @@ Future<bool?> showBankDetailsRequestPopup(
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus,
       requestReference: requestReference,
+      notificationId: notificationId,
       onDecline: () => Navigator.of(dialogContext).pop(false),
       onShareDetails: () => Navigator.of(dialogContext).pop(true),
     ),

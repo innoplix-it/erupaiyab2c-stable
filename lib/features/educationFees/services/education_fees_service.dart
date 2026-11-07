@@ -112,15 +112,20 @@ class EducationFeesService {
     required String mobile,
     required int amount,
     required String subject,
+    String? feeType,
+    String? senderName,
   }) async {
     try {
+      final request = EducationTutorSendRequestRequest(
+        mobile: mobile,
+        amount: amount,
+        subject: subject,
+        feeType: feeType,
+        senderName: senderName,
+      );
       final response = await _dio.post(
         ApiConstants.educationTutorSendRequestEndpoint,
-        data: {
-          'mobile': mobile,
-          'amount': amount,
-          'subject': subject,
-        },
+        data: request.toJson(),
       );
       final payload = response.data as Map<String, dynamic>? ?? {};
       return EducationTutorSendRequestResponse.fromJson(payload);

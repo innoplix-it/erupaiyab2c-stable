@@ -94,7 +94,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           item,
           statusOverrides: ref.read(educationRequestStatusOverridesProvider),
         ) ==
-        'Pay Now';
+        'Open Now';
     final isTransaction = item.isTransactionNotification;
     if (!isPayNow && !isTransaction && !item.mayReferToTransaction) {
       _handleNotificationRedirect(context, item);
@@ -178,6 +178,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         requestStatus: TutorNotificationConstants.statusPending,
         forced: true,
         sourceRequestKey: internalId ?? '',
+        notificationId: item.id,
       );
 
       final openResult = await service.handleIncomingFromData(
@@ -816,7 +817,7 @@ String _primaryLabelFor(
         status != TutorNotificationConstants.statusPending) {
       return 'Complete';
     }
-    return 'Pay Now';
+    return 'Open Now';
   }
   if (item.isBillReminderNotification) return 'Pay Now';
   return 'View';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:e_rupaiya/constants/routes_constant.dart';
 import 'package:e_rupaiya/features/educationFees/controllers/education_fees_controller.dart';
@@ -438,6 +439,7 @@ Future<_Harness> _pump(
   List<List<TransactionHistoryEntry>>? pages,
   bool realDetails = false,
   EducationFeesRepository? educationRepository,
+  _FakeNotificationsRepository? notificationsRepo,
 }) async {
   tester.view.devicePixelRatio = 2;
   tester.view.physicalSize = size * 2;
@@ -445,7 +447,7 @@ Future<_Harness> _pump(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   final harness = _Harness(
-    _FakeNotificationsRepository(items ?? _defaultNotifications),
+    notificationsRepo ?? _FakeNotificationsRepository(items ?? _defaultNotifications),
     _FakeHistoryRepository(pages ?? _historyPages),
   );
 
@@ -1729,10 +1731,10 @@ void main() {
         educationRepository: educationRepo,
       );
 
-      expect(find.text('Pay Now'), findsOneWidget);
+       expect(find.text('Open Now'), findsOneWidget);
       expect(find.text('Complete'), findsNothing);
 
-      await tester.tap(find.text('Pay Now'));
+      await tester.tap(find.text('Open Now'));
       await _settleNavigation(tester);
       // Drain the 600ms retry timer from the notification listener
       await tester.pump(const Duration(milliseconds: 700));
@@ -1788,7 +1790,7 @@ void main() {
       );
 
       expect(find.text('Complete'), findsOneWidget);
-      expect(find.text('Pay Now'), findsNothing);
+      expect(find.text('Open Now'), findsNothing);
 
       await tester.tap(find.text('Complete'));
       await _settleNavigation(tester);
@@ -1836,14 +1838,14 @@ void main() {
         educationRepository: educationRepo,
       );
 
-      expect(find.text('Pay Now'), findsOneWidget);
+      expect(find.text('Open Now'), findsOneWidget);
 
       TutorRequestNotificationService().markRequestHandled(requestRef);
       await tester.pump();
       await tester.pump();
 
       expect(find.text('Complete'), findsOneWidget);
-      expect(find.text('Pay Now'), findsNothing);
+      expect(find.text('Open Now'), findsNothing);
     });
 
     testWidgets(
@@ -1880,14 +1882,13 @@ void main() {
         educationRepository: educationRepo,
       );
 
-      expect(find.text('Pay Now'), findsOneWidget);
+      expect(find.text('Open Now'), findsOneWidget);
 
       // Record API call count before tap
       final callsBeforeTap = educationRepo.receivedRequestCalls;
       final statusBeforeTap = educationRepo.statusCalls;
 
-      // Tap the Pay Now button - should open popup WITHOUT API calls on tap
-      await tester.tap(find.text('Pay Now'));
+      await tester.tap(find.text('Open Now'));
       await tester.pump();
 
       // Verify NO API calls were made on the tap itself
@@ -1915,6 +1916,7 @@ class _FakeEducationFeesRepository extends EducationFeesRepository {
   final String status;
   int receivedRequestCalls = 0;
   int statusCalls = 0;
+  final respondCalls = <({String requestReference, String action})>[];
 
   @override
   Future<EducationTutorRequestStatusResponse> fetchTutorRequestStatus(
@@ -1965,6 +1967,19 @@ class _FakeEducationFeesRepository extends EducationFeesRepository {
             : const <Map<String, dynamic>>[],
         pagination: null,
       ),
+    );
+  }
+
+  @override
+  Future<EducationTutorRespondToRequestResponse> respondToTutorRequest({
+    required String requestReference,
+    required String action,
+  }) async {
+    respondCalls.add((requestReference: requestReference, action: action));
+    return EducationTutorRespondToRequestResponse(
+      status: true,
+      message: 'Request responded successfully',
+      requestStatus: action,
     );
   }
 }

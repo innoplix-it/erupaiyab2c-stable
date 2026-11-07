@@ -126,8 +126,7 @@ class NotificationItem {
   String? get educationRequestReference {
     final candidates = <String>[
       if (_usableId(requestReference) != null) _usableId(requestReference)!,
-      if (_looksLikeEducationPaymentRequest && _usableId(referenceId) != null)
-        _usableId(referenceId)!,
+      if (_usableId(referenceId) != null) _usableId(referenceId)!,
       if (_usableId(requestId) != null) _usableId(requestId)!,
     ];
     if (candidates.isEmpty) return null;
@@ -186,6 +185,16 @@ class NotificationItem {
           .any(typeValue.contains)) {
         return false;
       }
+      // Check for underscore-separated type values first (e.g., "tutor_request")
+      final parts = typeValue.split('_');
+      if (parts.any((part) =>
+          part == TutorNotificationConstants.typeTutor ||
+          part == TutorNotificationConstants.typeTuition ||
+          part == TutorNotificationConstants.typeEducation ||
+          part == TutorNotificationConstants.typeRequest)) {
+        return true;
+      }
+      // Check for substring matches
       if (typeValue.contains(TutorNotificationConstants.typeTutor) ||
           typeValue.contains(TutorNotificationConstants.typeTuition) ||
           typeValue.contains(TutorNotificationConstants.typeEducation) ||

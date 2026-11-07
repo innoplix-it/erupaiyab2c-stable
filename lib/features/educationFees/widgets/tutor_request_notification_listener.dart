@@ -267,6 +267,8 @@ class _TutorRequestNotificationListenerState
         amount: amount,
         paymentPurpose: purpose,
         paymentStatus: statusLabel,
+        requestReference: event.requestReference,
+        notificationId: event.notificationId,
       );
       _notificationService.markPopupPresented(event.requestReference);
       _navigatorRetryAttempts = 0;
@@ -276,10 +278,9 @@ class _TutorRequestNotificationListenerState
       logger.info(
         'POPUP_RESULT_RECEIVED: ${event.requestReference} result=$result',
       );
-      // Complete only after Share Details / Decline API succeeds — not on
-      // tap, popup open, or dismiss.
-      final submitted = await _handlePopupResult(event, result);
-      if (submitted) {
+      // The popup now handles Respond API and notification deletion internally.
+      // We only need to mark the request as handled in the notification service.
+      if (result == true || result == false) {
         logger.info(
           'SHARE_DETAILS_COMPLETE: ${event.requestReference} '
           'source=${event.sourceRequestKey}',
@@ -290,10 +291,6 @@ class _TutorRequestNotificationListenerState
             if (event.sourceRequestKey.trim().isNotEmpty)
               event.sourceRequestKey.trim(),
           ],
-        );
-      } else if (result == true) {
-        logger.warning(
-          'SHARE_DETAILS_FAILED_KEEP_PENDING: ${event.requestReference}',
         );
       }
     } catch (e, stackTrace) {
@@ -382,6 +379,15 @@ class _TutorRequestNotificationListenerState
       await _showDeclinedPopup(event);
     }
     return apiOk;
+  }
+
+  /// Extract notification ID from messageId (format: "alerts_{notificationId}")
+  String? _extractNotificationId(String? messageId) {
+    if (messageId == null || messageId.isEmpty) return null;
+    if (messageId.startsWith('alerts_')) {
+      return messageId.substring(7); // Remove "alerts_" prefix
+    }
+    return null;
   }
 
   /// Loads `tutor_name` and `fee_type` for this request before the popup opens.

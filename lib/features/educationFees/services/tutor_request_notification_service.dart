@@ -1146,6 +1146,7 @@ class TutorRequestEvent {
     this.requestStatus = '',
     this.forced = false,
     this.sourceRequestKey = '',
+    this.notificationId,
   });
 
   final String requestReference;
@@ -1161,4 +1162,8 @@ class TutorRequestEvent {
   /// Original Alerts numeric id (e.g. `93`) when [requestReference] was
   /// resolved to a full `EDUTR...`. Used so Complete overrides match the card.
   final String sourceRequestKey;
+
+  /// Notification ID from Alerts. Used to delete the notification after
+  /// successful Respond API call.
+  final String? notificationId;
 }

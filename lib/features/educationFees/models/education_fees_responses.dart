@@ -414,18 +414,29 @@ class EducationTutorSendRequestRequest {
     required this.mobile,
     required this.amount,
     required this.subject,
+    this.feeType,
+    this.senderName,
   });
 
   final String mobile;
   final int amount;
   final String subject;
+  final String? feeType;
+  final String? senderName;
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'mobile': mobile,
       'amount': amount,
       'subject': subject,
     };
+    if (feeType != null && feeType!.trim().isNotEmpty) {
+      map['fee_type'] = feeType!.trim();
+    }
+    if (senderName != null && senderName!.trim().isNotEmpty) {
+      map['sender_name'] = senderName!.trim();
+    }
+    return map;
   }
 }
 

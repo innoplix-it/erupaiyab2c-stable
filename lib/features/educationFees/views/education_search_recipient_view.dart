@@ -204,6 +204,8 @@ class EducationSearchRecipientView extends HookConsumerWidget {
                   symbol: '\u20B9',
                   decimalDigits: 0,
                 ).format(amount),
+                verificationStatus: verifyResponse.verificationStatus,
+                apiMessage: verifyResponse.message,
               ),
             ),
           );

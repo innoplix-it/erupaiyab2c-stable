@@ -40,11 +40,13 @@ class EducationTutorStatusLine {
     required this.text,
     required this.color,
     this.weight = FontWeight.w400,
+    this.fontSize,
   });
 
   final String text;
   final Color color;
   final FontWeight weight;
+  final double? fontSize;
 }
 
 /// White identity card (avatar, name, masked account, amount, status lines)
@@ -195,7 +197,7 @@ class EducationTutorIdentityCard extends StatelessWidget {
                   line.text,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12 * u,
+                    fontSize: line.fontSize ?? 12 * u,
                     fontWeight: line.weight,
                     height: 1.35,
                     color: line.color,

@@ -30,11 +30,15 @@ class EducationFeesRepository {
     required String mobile,
     required int amount,
     required String subject,
+    String? feeType,
+    String? senderName,
   }) {
     return _service.sendTutorRequest(
       mobile: mobile,
       amount: amount,
       subject: subject,
+      feeType: feeType,
+      senderName: senderName,
     );
   }
 
