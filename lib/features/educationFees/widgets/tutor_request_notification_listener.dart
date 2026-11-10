@@ -304,9 +304,9 @@ class _TutorRequestNotificationListenerState
     }
 
     // Alerts / FCM events carry only what the notification payload had, so a
-    // field can be blank. Fetch from the API whenever the event is not forced
-    // OR is missing a displayed field.
-    final needsFetch = !event.forced || _hasMissingDisplayField(event);
+    // field can be blank. Fetch from the API only when the event is not forced
+    // and is missing a displayed field (forced events open immediately without blocking).
+    final needsFetch = !event.forced && _hasMissingDisplayField(event);
     final fetched =
     needsFetch ? await _fetchReceiverDisplay(event.requestReference) : null;
 
@@ -344,8 +344,8 @@ class _TutorRequestNotificationListenerState
       logger.info(
         'POPUP_RESULT_RECEIVED: ${event.requestReference} result=$result',
       );
-      // The popup now handles Respond API and notification deletion internally.
-      // We only need to mark the request as handled in the notification service.
+      // The popup handles Respond API and notification deletion internally.
+      // We only mark the request as handled if user tapped Share Details or Decline.
       if (result == true || result == false) {
         logger.info(
           'SHARE_DETAILS_COMPLETE: ${event.requestReference} '
@@ -358,6 +358,10 @@ class _TutorRequestNotificationListenerState
               event.sourceRequestKey.trim(),
           ],
         );
+      } else {
+        // User closed with 'X' or dismissed without completing.
+        // Release so the notification stays viewable and can be reopened anytime from Alerts!
+        _notificationService.releaseForDismiss(event.requestReference);
       }
     } catch (e, stackTrace) {
       logger.error(
@@ -365,7 +369,10 @@ class _TutorRequestNotificationListenerState
         error: e,
         stackTrace: stackTrace,
       );
+      _notificationService.releaseForDismiss(event.requestReference);
       _queueUntilNavigatorReady(event);
+    } finally {
+      _notificationService.setPopupShowing(false);
     }
   }
 

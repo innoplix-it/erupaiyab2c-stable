@@ -511,12 +511,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                       .where((n) =>
                                           !n.isRead &&
                                           !localReadIds.contains(n.id))
-                                      .toList(growable: false);
+                                      .toList()
+                                    ..sort(_compareNotificationsByCreatedAtDesc);
                                   final updates = items
                                       .where((n) =>
                                           n.isRead ||
                                           localReadIds.contains(n.id))
-                                      .toList(growable: false);
+                                      .toList()
+                                    ..sort(_compareNotificationsByCreatedAtDesc);
 
                                   final entries = <_NotificationsListEntry>[
                                     if (unreadNotifications.isNotEmpty) ...[
@@ -835,17 +837,24 @@ String _primaryLabelFor(
 
 String _relativeAge(DateTime? dateTime) {
   if (dateTime == null) return '';
-  final diff = DateTime.now().difference(dateTime);
-  if (diff.inDays >= 1) {
-    return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
-  }
-  if (diff.inHours >= 1) {
-    return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
-  }
-  if (diff.inMinutes >= 1) {
-    return '${diff.inMinutes} minute${diff.inMinutes > 1 ? 's' : ''} ago';
-  }
-  return 'Just now';
+  final now = DateTime.now();
+  final created = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+  final diff = now.difference(created);
+  if (diff.isNegative) return 'now';
+  if (diff.inDays >= 1) return '${diff.inDays}d';
+  if (diff.inHours >= 1) return '${diff.inHours} hr';
+  if (diff.inMinutes >= 1) return '${diff.inMinutes}m';
+  return 'now';
+}
+
+int _compareNotificationsByCreatedAtDesc(
+    NotificationItem a, NotificationItem b) {
+  final aTime = a.createdAt;
+  final bTime = b.createdAt;
+  if (aTime == null && bTime == null) return 0;
+  if (aTime == null) return 1;
+  if (bTime == null) return -1;
+  return bTime.compareTo(aTime);
 }
 
 /// Dismiss ("X") icon supplied for the Alerts screen.

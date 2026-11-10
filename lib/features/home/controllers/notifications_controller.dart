@@ -80,9 +80,11 @@ class NotificationsController extends StateNotifier<NotificationsState> {
     );
     try {
       final page = await _repository.fetchNotifications(page: 1, limit: state.limit);
+      final combined = [...page.notifications, ...page.updates]
+        ..sort(_compareNotificationsByCreatedAtDesc);
       state = state.copyWith(
         isLoading: false,
-        notifications: [...page.notifications, ...page.updates],
+        notifications: combined,
         unreadCount: page.unreadCount,
         currentPage: page.currentPage,
         totalPages: page.totalPages,
@@ -147,9 +149,11 @@ class NotificationsController extends StateNotifier<NotificationsState> {
         page: nextPage,
         limit: state.limit,
       );
+      final combined = [...state.notifications, ...page.notifications, ...page.updates]
+        ..sort(_compareNotificationsByCreatedAtDesc);
       state = state.copyWith(
         isFetchingMore: false,
-        notifications: [...state.notifications, ...page.notifications, ...page.updates],
+        notifications: combined,
         unreadCount: page.unreadCount,
         currentPage: page.currentPage,
         totalPages: page.totalPages,
@@ -163,4 +167,14 @@ class NotificationsController extends StateNotifier<NotificationsState> {
       );
     }
   }
+}
+
+int _compareNotificationsByCreatedAtDesc(
+    NotificationItem a, NotificationItem b) {
+  final aTime = a.createdAt;
+  final bTime = b.createdAt;
+  if (aTime == null && bTime == null) return 0;
+  if (aTime == null) return 1;
+  if (bTime == null) return -1;
+  return bTime.compareTo(aTime);
 }

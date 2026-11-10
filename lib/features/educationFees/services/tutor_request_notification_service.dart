@@ -1006,6 +1006,14 @@ class TutorRequestNotificationService {
     logger.info('TUTOR_POPUP_PRESENTATION_FAILED: $requestReference');
   }
 
+  void releaseForDismiss(String requestReference) {
+    _presentedReferences.remove(requestReference);
+    _awaitingPopup.remove(requestReference);
+    _needsPresentationRetry.remove(requestReference);
+    _isShowingPopup = false;
+    logger.info('TUTOR_POPUP_DISMISSED_RELEASED: $requestReference');
+  }
+
   void rebroadcastAwaiting(TutorRequestEvent event) {
     if (_handledReferences.contains(event.requestReference) ||
         _presentedReferences.contains(event.requestReference)) {
